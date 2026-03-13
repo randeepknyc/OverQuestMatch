@@ -69,12 +69,7 @@ struct GameScreen: View {
                 // Full-screen tap-away overlay for gem selector (covers entire game)
                 if viewModel.isSelectingGemToClear {
                     ZStack {
-                        // Dark overlay background (allows taps to pass to gem selector)
-                        Color.black.opacity(0.1)
-                            .ignoresSafeArea()
-                            .allowsHitTesting(false) // Let taps pass through to content below
-                        
-                        // Invisible tap-catcher that covers everywhere EXCEPT the gem selector
+                        // Invisible tap-catcher that covers everywhere
                         Color.clear
                             .ignoresSafeArea()
                             .contentShape(Rectangle())
@@ -86,21 +81,18 @@ struct GameScreen: View {
                     .zIndex(90) // Below gem selector
                 }
                 
-                // Gem selector overlay (TOP LEVEL - appears above everything)
+                // Circular gem selector around Ramp's portrait (TOP LEVEL)
                 if viewModel.isSelectingGemToClear {
-                    VStack {
-                        Spacer()
-                            .frame(height: geometry.size.height * 0.44)
-                        HStack {
-                            GemTypeSelector(viewModel: viewModel)
-                                .scaleEffect(1.5)
-                                .padding(.leading, 40)
-                            Spacer()
-                        }
-                        Spacer()
-                    }
+                    // Calculate Ramp's portrait center position
+                    let rampCenterX = geometry.size.width * 0.25 // Approximate left side
+                    let rampCenterY = 60 + (geometry.size.height * 0.42 * 0.35)-10 // HUD + partial battle scene
+                    
+                    CircularGemSelector(
+                        viewModel: viewModel,
+                        centerPosition: CGPoint(x: rampCenterX, y: rampCenterY)
+                    )
                     .transition(.scale.combined(with: .opacity))
-                    .zIndex(200) // Above everything including tap-away
+                    .zIndex(200) // Above tap-away overlay
                 }
                 
                 // ═══════════════════════════════════════════════════════════════

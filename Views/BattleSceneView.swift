@@ -13,60 +13,74 @@ struct BattleSceneView: View {
             // Background
             backgroundGradient
             
-            VStack(spacing: 12) {
+            VStack(spacing: 0) {
                 // SECTION 1: Battle Portraits (side-by-side)
                 HStack(spacing: 20) {
-                    // LEFT: Ramp portrait + health
+                    // LEFT: Ramp portrait with health border + coffee cup at bottom
                     VStack(spacing: 6) {
                         ZStack(alignment: .topTrailing) {
-                            CharacterPortrait(
+                            // Portrait with health border
+                            CharacterPortraitWithHealthBorder(
                                 character: viewModel.battleManager.player,
                                 isAttacking: viewModel.isPlayerAttacking,
-                                isFlashing: viewModel.flashPlayer
+                                isFlashing: viewModel.flashPlayer,
+                                showShield: true
                             )
                             
-                            // Shield badge
-                            if viewModel.battleManager.player.shield > 0 {
-                                ShieldBadge(amount: viewModel.battleManager.player.shield)
+                            // Health badge (top-right corner)
+                            // ONLY SHOW when gem selector is NOT active
+                            if !viewModel.isSelectingGemToClear {
+                                HealthBadge(currentHealth: viewModel.battleManager.player.currentHealth)
+                                    .offset(x: 8, y: -8)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                         }
-                        
-                        CharacterHealthBar(character: viewModel.battleManager.player)
+                        .overlay(alignment: .bottom) {
+                            // Coffee cup button at bottom center of portrait
+                            // ONLY SHOW when gem selector is NOT active
+                            if !viewModel.isSelectingGemToClear {
+                                CoffeeCupAbilityButton(viewModel: viewModel)
+                                    .offset(y: 30) // Half outside portrait border
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
                     }
                     
                     Spacer()
                     
-                    // RIGHT: Ednar portrait + health
+                    // RIGHT: Ednar portrait (new style matching Ramp)
                     VStack(spacing: 6) {
-                        CharacterPortrait(
-                            character: viewModel.battleManager.enemy,
-                            isAttacking: viewModel.isEnemyAttacking,
-                            isFlashing: viewModel.flashEnemy
-                        )
-                        
-                        CharacterHealthBar(character: viewModel.battleManager.enemy)
+                        ZStack(alignment: .topLeading) {
+                            // Portrait with health border
+                            CharacterPortraitWithHealthBorder(
+                                character: viewModel.battleManager.enemy,
+                                isAttacking: viewModel.isEnemyAttacking,
+                                isFlashing: viewModel.flashEnemy,
+                                showShield: false
+                            )
+                            
+                            // Health badge (top-LEFT corner for enemy)
+                            // ALWAYS VISIBLE (no conditional)
+                            HealthBadge(currentHealth: viewModel.battleManager.enemy.currentHealth)
+                                .offset(x: -8, y: -8)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 16) // Move portraits UP
                 
-                // SECTION 2: Status & Info Bar (side-by-side)
+                // Push narrative to bottom
+                Spacer()
+                
+                // SECTION 2: Battle Narrative (positioned near bottom)
                 HStack(alignment: .top, spacing: 16) {
-                    // LEFT: Coffee Cup Ability Button + Gem Selector
-                    VStack(alignment: .center, spacing: 8) {
-                        // Ability button - always centered
-                        CoffeeCupAbilityButton(viewModel: viewModel)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    // RIGHT: Battle narrative only (3 messages)
+                    // Battle narrative (3 messages) - now takes full width
                     VStack(spacing: 8) {
-                        // Battle narrative (3 boxes)
                         BattleNarrativeColumn(events: viewModel.battleManager.recentEvents)
                     }
-                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 16)
+                .padding(.bottom, 8) // Space from match-3 board
             }
             
            
@@ -97,56 +111,160 @@ struct BattleSceneView: View {
     }
 }
 
-// MARK: - Character Portrait
+// MARK: - Character Portrait WITH HEALTH BORDER
+
+struct CharacterPortraitWithHealthBorder: View {
+    let character: Character
+    let isAttacking: Bool
+    let isFlashing: Bool
+    let showShield: Bool
+    
+    var body: some View {
+        ZStack {
+            // Background circle (grey) - shows "missing health"
+            Circle()
+                .stroke(Color.black.opacity(0.3), lineWidth: 8)
+                .frame(width: 180, height: 180)
+            
+            // Health border (circular progress) - color-coded by health
+            Circle()
+                .trim(from: 0, to: character.healthPercentage)
+                .stroke(
+                    LinearGradient(
+                        colors: [healthColor, healthColor.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 180, height: 180)
+                .rotationEffect(.degrees(-90)) // Start from top
+                .animation(.easeInOut(duration: 0.4), value: character.currentHealth)
+            
+            // Portrait Image - uses character state
+            Group {
+                if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 165, height: 165)
+                        .clipShape(Circle())
+                } else {
+                    // Fallback if image not found
+                    Circle()
+                        .fill(Color.blue.opacity(0.3))
+                        .frame(width: 165, height: 165)
+                        .overlay(
+                            Text(String(character.name.prefix(1)))
+                                .font(.system(size: 55, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                }
+            }
+            .offset(x: isAttacking ? 15 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
+            .overlay(
+                Circle()
+                    .fill(Color.white.opacity(isFlashing ? 0.5 : 0))
+                    .frame(width: 165, height: 165)
+                    .animation(.easeInOut(duration: 0.2), value: isFlashing)
+            )
+        }
+        .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
+    }
+    
+    private var healthColor: Color {
+        if character.healthPercentage > 0.5 {
+            return .green
+        } else if character.healthPercentage > 0.25 {
+            return .yellow
+        } else {
+            return .red
+        }
+    }
+}
+
+// MARK: - Health Badge (NOW IN TOP-RIGHT CORNER)
+
+struct HealthBadge: View {
+    let currentHealth: Int
+    
+    var body: some View {
+        ZStack {
+            // Try to use health_badge image
+            if let heartImage = UIImage(named: "health_badge") {
+                Image(uiImage: heartImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 50, height: 50)
+            } else {
+                // Fallback: pink circle with heart icon
+                Circle()
+                    .fill(Color.pink)
+                    .frame(width: 50, height: 50)
+                
+                Circle()
+                    .stroke(Color.white, lineWidth: 2)
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+            }
+            
+            // Health number overlay (centered)
+            Text("\(currentHealth)")
+                .font(.gameScore(size: 22))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.8), radius: 2, x: 1, y: 1)
+        }
+        .shadow(color: .black.opacity(0.4), radius: 3, y: 1)
+    }
+}
+
+// MARK: - Character Portrait (OLD STYLE - DEPRECATED)
 
 struct CharacterPortrait: View {
     let character: Character
     let isAttacking: Bool
     let isFlashing: Bool
+    let showShield: Bool
     
     var body: some View {
-        ZStack {
-            // Character image
-            if let uiImage = UIImage(named: character.imageName) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(height: 160)
-                    .offset(x: isAttacking ? 15 : 0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isAttacking)
-            } else {
-                // Fallback placeholder
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color.blue.opacity(0.7)],
-                            startPoint: .top,
-                            endPoint: .bottom
+        ZStack(alignment: .topTrailing) {
+            // Portrait Image - NOW USES CHARACTER STATE
+            Group {
+                if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    // Fallback if image not found
+                    Rectangle()
+                        .fill(Color.blue.opacity(0.3))
+                        .overlay(
+                            Text(String(character.name.prefix(1)))
+                                .font(.system(size: 60, weight: .bold))
+                                .foregroundColor(.white)
                         )
-                    )
-                    .frame(width: 140, height: 160)
-                    .overlay {
-                        Text(String(character.name.prefix(1)))
-                            .font(.system(size: 80, weight: .black))
-                            .foregroundStyle(.white)
-                    }
-                    .offset(x: isAttacking ? 15 : 0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isAttacking)
+                }
             }
-            
-            // Flash effect
-            if isFlashing {
+            .frame(height: 160)
+            .cornerRadius(12)
+            .offset(x: isAttacking ? 15 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
+            .overlay(
                 Rectangle()
-                    .fill(.white.opacity(0.5))
-                    .frame(width: 160, height: 160)
-                    .transition(.opacity)
-            }
+                    .fill(Color.white.opacity(isFlashing ? 0.5 : 0))
+                    .cornerRadius(12)
+                    .animation(.easeInOut(duration: 0.2), value: isFlashing)
+            )
         }
         .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
     }
 }
 
-// MARK: - Health Bar
+// MARK: - Health Bar (OLD STYLE - DEPRECATED)
 
 struct CharacterHealthBar: View {
     let character: Character
@@ -195,7 +313,7 @@ struct CharacterHealthBar: View {
     }
 }
 
-// MARK: - Shield Badge
+// MARK: - Shield Badge (KEPT FOR REFERENCE - not currently used)
 
 struct ShieldBadge: View {
     let amount: Int
@@ -231,7 +349,7 @@ struct BattleNarrativeColumn: View {
                     Text(event.icon)
                         .font(.gameUI(size: 14))
                     Text(event.text)
-                        .font(.gameUI(size: 18))
+                        .font(.gameUI(size: 22))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -370,34 +488,47 @@ struct PieChartFill: Shape {
     }
 }
 
-// MARK: - Gem Type Selector (Horizontal with tile images)
+// MARK: - Circular Gem Selector (around Ramp's portrait border)
 
-struct GemTypeSelector: View {
+struct CircularGemSelector: View {
     @Bindable var viewModel: GameViewModel
+    let centerPosition: CGPoint
+    let radius: CGFloat = 100 // Positioned right at the outer edge of 180px portrait
+    
+    let gemTypes: [TileType] = [.sword, .fire, .shield, .heart, .mana, .poison]
     
     var body: some View {
-        VStack(spacing: 4) {
-            Text("SELECT:")
-                .font(.system(size: 7, weight: .bold))
-                .foregroundStyle(.yellow)
-            
-            // Horizontal row of all 6 tile types
-            HStack(spacing: 2) {
-                ForEach([TileType.sword, TileType.fire, TileType.shield, TileType.heart, TileType.mana, TileType.poison], id: \.self) { type in
-                    GemTypeTileButton(type: type, viewModel: viewModel)
-                }
+        ZStack {
+            // 6 gems arranged in a circle (starting at top, going clockwise)
+            ForEach(Array(gemTypes.enumerated()), id: \.offset) { index, type in
+                let angle = angleForGem(at: index)
+                let position = positionForGem(at: angle)
+                
+                GemButton(type: type, viewModel: viewModel)
+                    .position(position)
             }
         }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.9))
-                .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
-        )
+    }
+    
+    // Calculate angle for each gem (60° apart, starting at top = -90°)
+    private func angleForGem(at index: Int) -> Double {
+        let baseAngle = -90.0 // Start at top (12 o'clock)
+        let angleStep = 360.0 / Double(gemTypes.count) // 60° for 6 gems
+        return baseAngle + (angleStep * Double(index))
+    }
+    
+    // Calculate x,y position based on angle
+    private func positionForGem(at angle: Double) -> CGPoint {
+        let radians = angle * .pi / 180
+        let x = centerPosition.x + radius * cos(radians)
+        let y = centerPosition.y + radius * sin(radians)
+        return CGPoint(x: x, y: y)
     }
 }
 
-struct GemTypeTileButton: View {
+// MARK: - Individual Gem Button with Yellow Glow
+
+struct GemButton: View {
     let type: TileType
     @Bindable var viewModel: GameViewModel
     
@@ -408,23 +539,31 @@ struct GemTypeTileButton: View {
             }
         } label: {
             ZStack {
-                // Try to use the actual tile image
+                // Yellow glow background
+                Circle()
+                    .fill(Color.yellow.opacity(0.3))
+                    .frame(width: 50, height: 50)
+                    .blur(radius: 8)
+                
+                // Gem tile image
                 if let uiImage = UIImage(named: type.imageName) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 35, height: 35)
                 } else {
-                    // Fallback to colored circle if image doesn't exist
+                    // Fallback
                     Circle()
                         .fill(type.color.opacity(0.8))
-                        .frame(width: 20, height: 20)
+                        .frame(width: 35, height: 35)
                         .overlay(
                             Circle()
-                                .stroke(type.color, lineWidth: 1.5)
+                                .stroke(type.color, lineWidth: 2)
                         )
                 }
             }
+            .shadow(color: .yellow, radius: 10)
+            .shadow(color: .black.opacity(0.5), radius: 3)
         }
     }
 }

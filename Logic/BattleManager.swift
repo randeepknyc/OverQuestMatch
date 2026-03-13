@@ -75,21 +75,49 @@ class BattleManager {
             case .sword:
                 let damage = Int(Double(GameConfig.baseDamage * matchCount) * multiplier)
                 totalDamage += damage
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🎨 SET PLAYER TO ATTACK STATE
+                // ═══════════════════════════════════════════════════════════════
+                player.currentState = .attack
+                // ═══════════════════════════════════════════════════════════════
+                
                 addEvent(barbarianAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .fire:
                 let damage = Int(Double(GameConfig.magicDamage * matchCount) * multiplier)
                 totalDamage += damage
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🎨 SET PLAYER TO ATTACK STATE
+                // ═══════════════════════════════════════════════════════════════
+                player.currentState = .attack
+                // ═══════════════════════════════════════════════════════════════
+                
                 addEvent(magicAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .shield:
                 let shield = GameConfig.shieldAmount * matchCount
                 totalShield += shield
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🎨 SET PLAYER TO DEFEND STATE
+                // ═══════════════════════════════════════════════════════════════
+                player.currentState = .defend
+                // ═══════════════════════════════════════════════════════════════
+                
                 addEvent(shieldMessage(amount: shield, isCombo: isCombo))
                 
             case .heart:
                 let healing = GameConfig.healAmount * matchCount
                 totalHealing += healing
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🎨 SET PLAYER TO DEFEND STATE (healing = defensive action)
+                // ═══════════════════════════════════════════════════════════════
+                player.currentState = .defend
+                // ═══════════════════════════════════════════════════════════════
+                
                 addEvent(healMessage(amount: healing, isCombo: isCombo))
                 
             case .mana:
@@ -126,10 +154,19 @@ class BattleManager {
             triggeredPowerSurge = true
             let bonusMana = GameConfig.powerSurgeManaBonus
             mana = min(GameConfig.maxMana, mana + bonusMana)
-            addEvent(BattleEvent(text: "ZAP! \(totalMatches) MATCHES! +\(bonusMana)", type: .special))
+            addEvent(BattleEvent(text: "⚡ POWER SURGE! \(totalMatches) MATCHES! +\(bonusMana) bonus mana!", type: .special))
         }
         // ═══════════════════════════════════════════════════════════════
         // 🔥 SESSION 2 ADDITION: POWER SURGE DETECTION (END)
+        // ═══════════════════════════════════════════════════════════════
+        
+        // ═══════════════════════════════════════════════════════════════
+        // 🎨 RETURN PLAYER TO IDLE STATE AFTER DELAY
+        // ═══════════════════════════════════════════════════════════════
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            player.currentState = .idle
+        }
         // ═══════════════════════════════════════════════════════════════
         
         checkGameOver()
@@ -139,9 +176,24 @@ class BattleManager {
         guard gameState == .playing else { return }
         
         let damage = Int.random(in: GameConfig.enemyMinDamage...GameConfig.enemyMaxDamage)
-        player.takeDamage(damage)
         
+        // ═══════════════════════════════════════════════════════════════
+        // 🎨 SET PLAYER TO HURT STATE WHEN TAKING DAMAGE
+        // ═══════════════════════════════════════════════════════════════
+        player.currentState = .hurt
+        // ═══════════════════════════════════════════════════════════════
+        
+        player.takeDamage(damage)
         addEvent(enemyAttackMessage(damage: damage))
+        
+        // ═══════════════════════════════════════════════════════════════
+        // 🎨 RETURN TO IDLE AFTER DELAY
+        // ═══════════════════════════════════════════════════════════════
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            player.currentState = .idle
+        }
+        // ═══════════════════════════════════════════════════════════════
         
         turnCount += 1
         checkGameOver()
@@ -150,9 +202,23 @@ class BattleManager {
     private func checkGameOver() {
         if !enemy.isAlive {
             gameState = .victory
+            
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 SET PLAYER TO VICTORY STATE
+            // ═══════════════════════════════════════════════════════════════
+            player.currentState = .victory
+            // ═══════════════════════════════════════════════════════════════
+            
             addEvent(BattleEvent(text: "Victory! The Toad King croaks his last!", type: .special))
         } else if !player.isAlive {
             gameState = .defeat
+            
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 SET PLAYER TO DEFEAT STATE
+            // ═══════════════════════════════════════════════════════════════
+            player.currentState = .defeat
+            // ═══════════════════════════════════════════════════════════════
+            
             addEvent(BattleEvent(text: "Defeated! The swamp claims another hero...", type: .special))
         }
     }
@@ -166,6 +232,8 @@ class BattleManager {
         recentEvents.removeAll()
         comboCount = 0
         turnCount = 0
+        player.currentState = .idle
+        enemy.currentState = .idle
         gameState = .playing
     }
     
@@ -186,16 +254,51 @@ class BattleManager {
         case .heroicStrike:
             // This now means "Clear Board" - requires gem type selection
             if let gemType = gemType {
+                // ═══════════════════════════════════════════════════════════════
+                // 🎨 SET PLAYER TO SPELL STATE
+                // ═══════════════════════════════════════════════════════════════
+                player.currentState = .spell
+                
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(600))
+                    player.currentState = .idle
+                }
+                // ═══════════════════════════════════════════════════════════════
+                
                 addEvent(BattleEvent(text: "💥 CLEARED ALL \(gemType.battleAction.uppercased()) GEMS!", type: .special))
             }
             
         case .divineShield:
             let shieldAmount = GameConfig.divineShieldAmount
+            
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 SET PLAYER TO SPELL STATE
+            // ═══════════════════════════════════════════════════════════════
+            player.currentState = .spell
+            
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(600))
+                player.currentState = .idle
+            }
+            // ═══════════════════════════════════════════════════════════════
+            
             player.addShield(shieldAmount)
             addEvent(BattleEvent(text: "🛡️ DIVINE SHIELD! +\(shieldAmount) protection!", type: .special))
             
         case .greaterHeal:
             let healAmount = GameConfig.greaterHealAmount
+            
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 SET PLAYER TO SPELL STATE
+            // ═══════════════════════════════════════════════════════════════
+            player.currentState = .spell
+            
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(600))
+                player.currentState = .idle
+            }
+            // ═══════════════════════════════════════════════════════════════
+            
             player.heal(healAmount)
             addEvent(BattleEvent(text: "💚 GREATER HEAL! +\(healAmount) HP!", type: .special))
         }
@@ -260,11 +363,11 @@ class BattleManager {
     
     private func enemyAttackMessage(damage: Int) -> BattleEvent {
         let messages = [
-            "Toad King strikes for \(damage)!",
-            "Slimy slam! \(damage) damage!",
-            "The toad croaks a curse! \(damage)!",
-            "Webbed fist connects! \(damage)!",
-            "Ribbiting assault! \(damage)!"
+            "EDNAR strikes for \(damage)!",
+            "ZAPPY ZAP! \(damage) damage!",
+            "Ednar curses! \(damage)!",
+            "Ednar throws a book \(damage)!",
+            "Wizardly whizzer! \(damage)!"
         ]
         return BattleEvent(text: messages.randomElement()!, type: .enemyAttack)
     }
