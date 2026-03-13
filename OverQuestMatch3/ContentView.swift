@@ -2,20 +2,135 @@
 //  ContentView.swift
 //  OverQuestMatch3
 //
-//  Created by Randeep Katari on 3/7/26.
-//
 
 import SwiftUI
 
 struct ContentView: View {
+    @State private var viewModel = GameViewModel()
+    @State private var showTitleScreen = true
+    @State private var showMapScreen = false
+    @State private var showPauseMenu = false
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            // Main game (only visible when both screens are dismissed)
+            if !showTitleScreen && !showMapScreen {
+                GameScreen(viewModel: viewModel, showPauseMenu: $showPauseMenu)
+            }
+            
+            // Map screen (appears after title screen)
+            if showMapScreen && !showTitleScreen {
+                MapScreenView(showMapScreen: $showMapScreen)
+                    .transition(.opacity)
+            }
+            
+            // Title screen overlay (first screen)
+            if showTitleScreen {
+                TitleScreenView(showTitleScreen: $showTitleScreen, showMapScreen: $showMapScreen)
+                    .transition(.opacity)
+            }
+            
+            // FULL SCREEN PAUSE MENU - AT TOP LEVEL
+            if showPauseMenu {
+                PauseMenuView(
+                    isPresented: $showPauseMenu,
+                    viewModel: viewModel
+                )
+                .transition(.opacity)
+                .zIndex(1000)
+            }
         }
-        .padding()
+    }
+}
+
+struct GameScreen: View {
+    @Bindable var viewModel: GameViewModel
+    @Binding var showPauseMenu: Bool
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // HUD (hamburger menu + score)
+                    GameHUDView(viewModel: viewModel, showPauseMenu: $showPauseMenu)
+                        .frame(height: 60)
+                    
+                    // Battle scene (characters, health, mana, abilities)
+                    BattleSceneView(viewModel: viewModel)
+                        .frame(height: geometry.size.height * 0.42)
+                    
+                    // Match-3 board (extended size)
+                    GameBoardView(viewModel: viewModel)
+                        .frame(height: geometry.size.height * 0.58)
+                }
+                
+                // Full-screen tap-away overlay for gem selector (covers entire game)
+                if viewModel.isSelectingGemToClear {
+                    ZStack {
+                        // Dark overlay background (allows taps to pass to gem selector)
+                        Color.black.opacity(0.1)
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false) // Let taps pass through to content below
+                        
+                        // Invisible tap-catcher that covers everywhere EXCEPT the gem selector
+                        Color.clear
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                viewModel.cancelGemClearSelection()
+                            }
+                    }
+                    .transition(.opacity)
+                    .zIndex(90) // Below gem selector
+                }
+                
+                // Gem selector overlay (TOP LEVEL - appears above everything)
+                if viewModel.isSelectingGemToClear {
+                    VStack {
+                        Spacer()
+                            .frame(height: geometry.size.height * 0.44)
+                        HStack {
+                            GemTypeSelector(viewModel: viewModel)
+                                .scaleEffect(1.5)
+                                .padding(.leading, 40)
+                            Spacer()
+                        }
+                        Spacer()
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                    .zIndex(200) // Above everything including tap-away
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🔥 SESSION 2 ADDITION: POWER SURGE FULL SCREEN EFFECT (START)
+                // ═══════════════════════════════════════════════════════════════
+                // POWER SURGE EFFECT - COVERS ENTIRE SCREEN
+                if GameConfig.enablePowerSurgeEffect && viewModel.battleManager.triggeredPowerSurge {
+                    PowerSurgeEffect()
+                        .transition(.opacity)
+                        .zIndex(500) // Above game, below pause menu
+                }
+                // ═══════════════════════════════════════════════════════════════
+                // 🔥 SESSION 2 ADDITION: POWER SURGE FULL SCREEN EFFECT (END)
+                // ═══════════════════════════════════════════════════════════════
+                
+                // Game over overlay
+                if viewModel.battleManager.gameState != .playing {
+                    GameOverView(
+                        gameState: viewModel.battleManager.gameState,
+                        score: viewModel.score,
+                        onRestart: {
+                            withAnimation {
+                                viewModel.resetGame()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        .ignoresSafeArea(.keyboard)
     }
 }
 

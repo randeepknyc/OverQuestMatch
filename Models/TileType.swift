@@ -1,7 +1,59 @@
 //
-//  Untitled 4.swift
+//  TileType.swift
 //  OverQuestMatch3
 //
-//  Created by Randeep Katari on 3/7/26.
-//
 
+import SwiftUI
+
+enum TileType: String, CaseIterable {
+    case sword
+    case fire
+    case shield
+    case heart
+    case mana
+    case poison
+    
+    var color: Color {
+        switch self {
+        case .sword: return Color(red: 0.95, green: 0.45, blue: 0.45)
+        case .fire: return Color(red: 0.98, green: 0.6, blue: 0.2)
+        case .shield: return Color(red: 0.4, green: 0.85, blue: 0.75)
+        case .heart: return Color(red: 0.98, green: 0.45, blue: 0.7)
+        case .mana: return Color(red: 0.95, green: 0.85, blue: 0.3)
+        case .poison: return Color(red: 0.7, green: 0.5, blue: 0.95)
+        }
+    }
+    
+    // ⚙️ USE CUSTOM IMAGES INSTEAD OF SF SYMBOLS
+    var imageName: String {
+        switch self {
+        case .sword: return "sword_tile"
+        case .fire: return "fire_tile"
+        case .shield: return "shield_tile"
+        case .heart: return "heart_tile"
+        case .mana: return "mana_tile"
+        case .poison: return "poison_tile"
+        }
+    }
+    
+    var battleAction: String {
+        switch self {
+        case .sword: return "attack"
+        case .fire: return "magic"
+        case .shield: return "defend"
+        case .heart: return "heal"
+        case .mana: return "charge"
+        case .poison: return "poison"
+        }
+    }
+}
+
+struct Tile: Identifiable, Equatable {
+    let id = UUID()
+    let type: TileType
+    var isSpecial: Bool = false
+    
+    static func random() -> Tile {
+        Tile(type: TileType.allCases.randomElement()!)
+    }
+}

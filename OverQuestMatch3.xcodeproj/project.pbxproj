@@ -6,13 +6,65 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
+		7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075322F5D2A5800BD0591 /* BoardManager.swift */; };
+		7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075312F5D2A5600BD0591 /* BattleManager.swift */; };
+		7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */; };
+		7FB0753C2F5D2FE800BD0591 /* BattleSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075372F5D2AA200BD0591 /* BattleSceneView.swift */; };
+		7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075362F5D2AA000BD0591 /* GameBoardView.swift */; };
+		7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075352F5D2A9E00BD0591 /* GameHUDview.swift */; };
+		7FB0753F2F5D2FF600BD0591 /* GameOverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075342F5D2A9C00BD0591 /* GameOverView.swift */; };
+		7FB075402F5D2FFA00BD0591 /* AnimationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075382F5D2B6B00BD0591 /* AnimationHelpers.swift */; };
+		7FB075412F5D300100BD0591 /* BattleEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */; };
+		7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB0752D2F5D29D800BD0591 /* GameAssets.swift */; };
+		7FB075432F5D300100BD0591 /* Character.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB0752F2F5D29DF00BD0591 /* Character.swift */; };
+		7FB075442F5D300100BD0591 /* TileType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075302F5D29E100BD0591 /* TileType.swift */; };
+		7FB075492F5D5B0300BD0591 /* TitleScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075482F5D5B0300BD0591 /* TitleScreenView.swift */; };
+		7FB075E82F5E95EB00BD0591 /* Ability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075E72F5E95EB00BD0591 /* Ability.swift */; };
+		7FB075EA2F5EA7EE00BD0591 /* MapScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */; };
+		7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */; };
+		7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverQuestMatch3.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7FB0752D2F5D29D800BD0591 /* GameAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAssets.swift; sourceTree = "<group>"; };
+		7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleEvent.swift; sourceTree = "<group>"; };
+		7FB0752F2F5D29DF00BD0591 /* Character.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Character.swift; sourceTree = "<group>"; };
+		7FB075302F5D29E100BD0591 /* TileType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileType.swift; sourceTree = "<group>"; };
+		7FB075312F5D2A5600BD0591 /* BattleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleManager.swift; sourceTree = "<group>"; };
+		7FB075322F5D2A5800BD0591 /* BoardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardManager.swift; sourceTree = "<group>"; };
+		7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
+		7FB075342F5D2A9C00BD0591 /* GameOverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameOverView.swift; sourceTree = "<group>"; };
+		7FB075352F5D2A9E00BD0591 /* GameHUDview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHUDview.swift; sourceTree = "<group>"; };
+		7FB075362F5D2AA000BD0591 /* GameBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameBoardView.swift; sourceTree = "<group>"; };
+		7FB075372F5D2AA200BD0591 /* BattleSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleSceneView.swift; sourceTree = "<group>"; };
+		7FB075382F5D2B6B00BD0591 /* AnimationHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationHelpers.swift; sourceTree = "<group>"; };
+		7FB075482F5D5B0300BD0591 /* TitleScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleScreenView.swift; sourceTree = "<group>"; };
+		7FB075E72F5E95EB00BD0591 /* Ability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ability.swift; sourceTree = "<group>"; };
+		7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreenView.swift; sourceTree = "<group>"; };
+		7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontExtensions.swift; sourceTree = "<group>"; };
+		7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AI_CONTEXT.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7FB075F02F5EB55400BD0591 /* Exceptions for "OverQuestMatch3" folder in "OverQuestMatch3" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7FB075192F5D219B00BD0591 /* OverQuestMatch3 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7FB0751C2F5D219B00BD0591 /* OverQuestMatch3 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7FB075F02F5EB55400BD0591 /* Exceptions for "OverQuestMatch3" folder in "OverQuestMatch3" target */,
+			);
 			path = OverQuestMatch3;
 			sourceTree = "<group>";
 		};
@@ -32,8 +84,19 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */,
+				7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */,
+				7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */,
+				7FB075E72F5E95EB00BD0591 /* Ability.swift */,
+				7FB075482F5D5B0300BD0591 /* TitleScreenView.swift */,
+				7FB0752C2F5D29A300BD0591 /* Logic */,
+				7FB0752B2F5D29A100BD0591 /* ViewModels */,
+				7FB0752A2F5D299E00BD0591 /* Views */,
+				7FB075292F5D299400BD0591 /* Utilities */,
+				7FB075282F5D298200BD0591 /* Models */,
 				7FB0751C2F5D219B00BD0591 /* OverQuestMatch3 */,
 				7FB0751B2F5D219B00BD0591 /* Products */,
+				7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -43,6 +106,53 @@
 				7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7FB075282F5D298200BD0591 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7FB075302F5D29E100BD0591 /* TileType.swift */,
+				7FB0752F2F5D29DF00BD0591 /* Character.swift */,
+				7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */,
+				7FB0752D2F5D29D800BD0591 /* GameAssets.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7FB075292F5D299400BD0591 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				7FB075382F5D2B6B00BD0591 /* AnimationHelpers.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		7FB0752A2F5D299E00BD0591 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7FB075372F5D2AA200BD0591 /* BattleSceneView.swift */,
+				7FB075362F5D2AA000BD0591 /* GameBoardView.swift */,
+				7FB075352F5D2A9E00BD0591 /* GameHUDview.swift */,
+				7FB075342F5D2A9C00BD0591 /* GameOverView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7FB0752B2F5D29A100BD0591 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		7FB0752C2F5D29A300BD0591 /* Logic */ = {
+			isa = PBXGroup;
+			children = (
+				7FB075322F5D2A5800BD0591 /* BoardManager.swift */,
+				7FB075312F5D2A5600BD0591 /* BattleManager.swift */,
+			);
+			path = Logic;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -109,6 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +230,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */,
+				7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */,
+				7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */,
+				7FB075402F5D2FFA00BD0591 /* AnimationHelpers.swift in Sources */,
+				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
+				7FB075412F5D300100BD0591 /* BattleEvent.swift in Sources */,
+				7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */,
+				7FB075E82F5E95EB00BD0591 /* Ability.swift in Sources */,
+				7FB075432F5D300100BD0591 /* Character.swift in Sources */,
+				7FB075442F5D300100BD0591 /* TileType.swift in Sources */,
+				7FB0753C2F5D2FE800BD0591 /* BattleSceneView.swift in Sources */,
+				7FB075EA2F5EA7EE00BD0591 /* MapScreenView.swift in Sources */,
+				7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */,
+				7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */,
+				7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */,
+				7FB0753F2F5D2FF600BD0591 /* GameOverView.swift in Sources */,
+				7FB075492F5D5B0300BD0591 /* TitleScreenView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -250,12 +378,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2UD727W348;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OverQuestMatch3/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -282,12 +415,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2UD727W348;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OverQuestMatch3/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
