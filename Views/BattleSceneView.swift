@@ -546,6 +546,9 @@ struct GemButton: View {
     let type: TileType
     @Bindable var viewModel: GameViewModel
     
+    @State private var hasPopped = false
+    @State private var bounceScale: CGFloat = 0.0
+    
     var body: some View {
         Button {
             Task {
@@ -578,6 +581,31 @@ struct GemButton: View {
             }
             .shadow(color: .yellow, radius: 10)
             .shadow(color: .black.opacity(0.5), radius: 3)
+            .scaleEffect(bounceScale)
+            .onAppear {
+                // Calculate staggered delay based on gem position
+                let gemIndex = [TileType.sword, .fire, .shield, .heart, .mana, .poison].firstIndex(of: type) ?? 0
+                let delay = Double(gemIndex) * 0.08 // 0.08s apart
+                
+                // Start small
+                bounceScale = 0.0
+                
+                // Pop out with bounce after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    // First: Pop to overshoot
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        bounceScale = 1.2
+                    }
+                    
+                    // Then: Settle to normal size
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                            bounceScale = 1.0
+                            hasPopped = true
+                        }
+                    }
+                }
+            }
         }
     }
 }

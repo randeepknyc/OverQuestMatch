@@ -27,13 +27,13 @@ class GameViewModel {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // This multiplier ONLY affects cascade 2, 3, 4, etc. (auto-matches)
     // Your FIRST match always plays at normal speed (1.0)
-    // 
+    //
     // 1.0 = Normal speed (same as first match)
     // 0.7 = ~30% faster (current - snappier auto-chains!)
     // 0.5 = 2x faster
     // 0.3 = Very fast auto-chains
     // 2.0 = 2x slower (watch cascades unfold)
-    var autoChainSpeedMultiplier: Double = 0.7  // ⚡ Auto-chains run 30% faster
+    var autoChainSpeedMultiplier: Double = 0.5  // ⚡ Auto-chains run 30% faster
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
