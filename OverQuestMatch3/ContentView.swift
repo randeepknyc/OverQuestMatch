@@ -10,12 +10,13 @@ struct ContentView: View {
     @State private var showTitleScreen = true
     @State private var showMapScreen = false
     @State private var showPauseMenu = false
+    @State private var currentGameMode: GameMode = .swap
     
     var body: some View {
         ZStack {
             // Main game (only visible when both screens are dismissed)
             if !showTitleScreen && !showMapScreen {
-                GameScreen(viewModel: viewModel, showPauseMenu: $showPauseMenu)
+                GameScreen(viewModel: viewModel, showPauseMenu: $showPauseMenu, gameMode: $currentGameMode)
             }
             
             // Map screen (appears after title screen)
@@ -34,7 +35,8 @@ struct ContentView: View {
             if showPauseMenu {
                 PauseMenuView(
                     isPresented: $showPauseMenu,
-                    viewModel: viewModel
+                    viewModel: viewModel,
+                    gameMode: $currentGameMode
                 )
                 .transition(.opacity)
                 .zIndex(1000)
@@ -46,6 +48,7 @@ struct ContentView: View {
 struct GameScreen: View {
     @Bindable var viewModel: GameViewModel
     @Binding var showPauseMenu: Bool
+    @Binding var gameMode: GameMode
     
     var body: some View {
         GeometryReader { geometry in
@@ -62,8 +65,14 @@ struct GameScreen: View {
                         .frame(height: geometry.size.height * 0.42)
                     
                     // Match-3 board (extended size)
-                    GameBoardView(viewModel: viewModel)
+                    GameBoardView(viewModel: viewModel, gameMode: gameMode)
                         .frame(height: geometry.size.height * 0.58)
+                }
+                .onChange(of: gameMode) { _, newMode in
+                    viewModel.currentGameMode = newMode
+                }
+                .onAppear {
+                    viewModel.currentGameMode = gameMode
                 }
                 
                 // Full-screen tap-away overlay for gem selector (covers entire game)

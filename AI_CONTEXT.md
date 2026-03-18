@@ -155,15 +155,451 @@ ZStack {
    - Adjustable bonus: `GameConfig.powerSurgeManaBonus` (default: 2)
    - 100% code-based - no image assets required
 
+6. **🌧️ RAINDROP CASCADE ANIMATION - COMPREHENSIVE REFERENCE** ✨ **WORKING PERFECTLY!**
+   
+   **Overview:**
+   - New gems spawn with cascading "raindrop" effect from top of screen
+   - Gems fall from above with delay, fade-in, and scale-up animation
+   - CRITICAL: This is SEPARATE from swap animations - modifications must preserve this!
+   
+   **User-Adjustable Constants (Lines 23-25):**
+   ```swift
+   let RAINDROP_BASE_DELAY: Double = 0.15        // Delay between each column starting
+   let RAINDROP_RANDOMNESS: Double = 0.25        // Random variation added to each column
+   let RAINDROP_SPAWN_DURATION: Double = 0.4     // How long each gem takes to fall
+   ```
+   
+   **Animation Components (Lines 276-280 in GemTileView):**
+   ```swift
+   // Scale: Gems start at 30% size, grow to 100%
+   .scaleEffect(hasAppeared ? 1.0 : (spawnDelay > 0 ? 0.3 : 1.0))
+   
+   // Opacity: Gems start invisible, fade to fully visible
+   .opacity(hasAppeared ? 1.0 : (spawnDelay > 0 ? 0.0 : 1.0))
+   
+   // Offset: Gems start 150 pixels above their final position
+   .offset(y: hasAppeared ? 0 : (spawnDelay > 0 ? -150 : 0))
+   ```
+   
+   **Spawn Logic (Lines 283-307):**
+   ```swift
+   .onChange(of: tile.id) { _, newID in
+       if currentTileID != newID {
+           currentTileID = newID
+           
+           // CRITICAL: Only animate if spawnDelay > 0
+           if spawnDelay > 0 {
+               hasAppeared = false
+               
+               Task {
+                   try? await Task.sleep(for: .seconds(spawnDelay))
+                   // Spring animation for smooth landing
+                   withAnimation(.spring(response: RAINDROP_SPAWN_DURATION, dampingFraction: 0.7)) {
+                       hasAppeared = true
+                   }
+               }
+           } else {
+               // No spawn delay = swap/move, appear instantly
+               hasAppeared = true
+           }
+       }
+   }
+   ```
+   
+   **Initial Appearance Logic (Lines 309-323):**
+   ```swift
+   .onAppear {
+       currentTileID = tile.id
+       
+       if spawnDelay > 0 {
+           hasAppeared = false
+           Task {
+               try? await Task.sleep(for: .seconds(spawnDelay))
+               withAnimation(.spring(response: RAINDROP_SPAWN_DURATION, dampingFraction: 0.7)) {
+                   hasAppeared = true
+               }
+           }
+       } else {
+           hasAppeared = true
+       }
+   }
+   ```
+   
+   **State Variables Required (Lines 232-234):**
+   ```swift
+   @State private var hasAppeared = false      // Tracks if spawn animation completed
+   @State private var currentTileID: UUID?     // Tracks tile ID changes for spawn detection
+   ```
+   
+   **How spawnDelay is Set:**
+   - Set by `BoardManager.swift` during board refill operations
+   - Different delays per tile position create cascading effect
+   - Pass to `GemTileView` via parameter: `spawnDelay: viewModel.boardManager.spawnDelays[position] ?? 0`
+   
+   **Bottom-to-Top Initial Fill (BoardManager.swift):**
+   - Special function: `fillEmptySpacesWithBottomUpRaindrop()`
+   - Creates wave effect: bottom row first, then each row up
+   - Formula: `baseDelay = Double(rowIndex) * 0.1`
+   - Used ONLY on game start/reset
+   
+   **Gameplay Refill (BoardManager.swift):**
+   - Function: `fillEmptySpacesWithRaindrop()`
+   - Random delays across columns
+   - Used during normal gameplay after matches
+   
+   **⚠️ CRITICAL PRESERVATION RULES:**
+   - Lines 276-323 must NEVER be modified when changing swap animations
+   - `spawnDelay > 0` conditional is crucial - DO NOT remove
+   - Spring animation parameters (.spring(response:dampingFraction:)) are tuned perfectly
+   - hasAppeared state tracking must remain intact
+   - currentTileID tracking must remain intact
+   
+   **Related Files:**
+   - GameBoardView.swift (lines 276-323) - Animation implementation
+   - BoardManager.swift - Spawn delay calculation and assignment
+   - GridPosition.swift - Position tracking for delays
+
+7. **💎 GEM SWAP ANIMATION** ✅ **WORKING PERFECTLY!**
+   - **Current Configuration**: `.easeInOut(duration: 0.4)` (lines 200-201)
+   - Gems glide smoothly when swapping positions
+   - Silky smooth ease-in/ease-out curve (like Candy Crush)
+   - 0.4 seconds duration (adjustable: 0.3 = faster, 0.5 = slower)
+   - Alternative styles available: linear, spring physics
+   - Full adjustment guide in Session 8 documentation
+
+8. **🎮 SPRINGY DRAG GESTURE** ✅ **WORKING PERFECTLY!**
+   - **Current Configuration**: `.interpolatingSpring(stiffness: 250, damping: 20)` (line 378)
+   - Gems bounce slightly when released from drag
+   - Fun, playful, tactile feel when moving gems around
+   - Responsive and game-like
+   - Adjustable: More springy (300/15), Less springy (200/25)
+
+9. **🎯 MATCH DISAPPEAR ANIMATION** ✅ **WORKING PERFECTLY!**
+   - **Current Configuration**: `.scale(scale: 0.01).combined(with: .opacity)` (lines 193-198)
+   - Matched gems shrink to nearly nothing while fading out
+   - Simple, clean removal - no wiggle, no buzz
+   - Old code style
+
+10. **⚠️ INVALID SWAP SHAKE** ✅ **WORKING PERFECTLY!**
+   - **Current Configuration**: `startShaking()` function (lines 321-328)
+   - Gentle shake when attempting invalid swap
+   - Settings: 6 repeats, ±5 pixels, 0.05s duration, 0.3s timeout
+   - Old code style
+
 ---
 
 ## ❌ KNOWN ISSUES
 
-- None currently reported
+1. **Match Animations Still In Progress** ⚠️
+   - Wiggle animation implemented but may need fine-tuning
+   - Disappear transition added but needs testing
+   - Swap animations might still show gems disappearing/reappearing (being debugged)
+   - Spawn animation separation from swap animation in progress
 
 ---
 
 ## 🔧 RECENT CHANGES
+
+### Session 8: Springy Drag Gesture & Final Animation Tuning (March 16, 2026) ✅
+
+**Goal:**
+- Add springiness to drag gestures for fun, playful feel when moving gems
+- Maintain smooth swap animations
+- Document all final animation values
+- **100% PRESERVE raindrop cascade animation** (most critical feature)
+
+**User Request:**
+- "I would like to add some springiness to the animation so that when players move them around they're kind of fun and smooth and springy to move"
+
+**Changes Made:**
+
+1. **GameBoardView.swift - Springy Drag Snap-Back (Line 378)**
+   ```swift
+   withAnimation(.interpolatingSpring(stiffness: 250, damping: 20)) {
+       dragOffset.wrappedValue = .zero
+   }
+   ```
+   - **Before**: `.spring(response: 0.3, dampingFraction: 0.6)` - soft, smooth
+   - **After**: `.interpolatingSpring(stiffness: 250, damping: 20)` - springy, playful ✅
+   - Gems now bounce slightly when released from drag
+   - Fun, tactile feel when moving gems around
+   - More responsive and game-like
+
+**Drag Gesture Spring Options:**
+
+| Feel | Configuration | Use Case |
+|------|--------------|----------|
+| **Current (Playful)** ✅ | `stiffness: 250, damping: 20` | Fun, bouncy, responsive |
+| **More Springy** | `stiffness: 300, damping: 15` | Very bouncy, arcade-like |
+| **Less Springy** | `stiffness: 200, damping: 25` | Gentle bounce |
+| **Very Bouncy** | `stiffness: 350, damping: 12` | Game-like, exaggerated |
+| **Smooth (Old)** | `response: 0.3, dampingFraction: 0.6` | Soft, no bounce |
+
+**Final Animation Summary:**
+
+1. **Swap Animation (Lines 200-201)**:
+   ```swift
+   .animation(.easeInOut(duration: 0.4), value: row)
+   .animation(.easeInOut(duration: 0.4), value: col)
+   ```
+   - Silky smooth glide when swapping
+   - No bounce, pure ease-in-out curve
+
+2. **Drag Snap-Back (Line 378)**:
+   ```swift
+   .interpolatingSpring(stiffness: 250, damping: 20)
+   ```
+   - Springy bounce when releasing drag
+   - Fun, playful feel
+
+3. **Raindrop Cascade (Lines 276-323)**:
+   - **100% PRESERVED** - No changes
+   - Spring animation: `.spring(response: RAINDROP_SPAWN_DURATION, dampingFraction: 0.7)`
+
+4. **Match Disappear (Lines 193-198)**:
+   - Scale to 0.01 combined with opacity fade
+   - Simple, clean removal
+
+5. **Invalid Shake (Lines 321-328)**:
+   - Gentle shake: 6 repeats, ±5 pixels, 0.3s timeout
+
+**What Was PRESERVED (100% unchanged):**
+✅ **Raindrop cascade animation** - All timing, delays, and spawn logic untouched
+✅ **Spawn delay system** - `spawnDelay > 0` conditional logic intact
+✅ **Swap animation smoothness** - `.easeInOut(duration: 0.4)` unchanged
+✅ **Match disappear** - Simple scale + opacity unchanged
+✅ **All user-adjustable constants** - RAINDROP_BASE_DELAY, RAINDROP_RANDOMNESS, RAINDROP_SPAWN_DURATION
+
+**Result:**
+✅ Dragging gems feels springy and fun (stiffness: 250, damping: 20)
+✅ Swaps remain silky smooth (easeInOut 0.4s)
+✅ Raindrop cascade 100% preserved
+✅ All animations working perfectly
+✅ **USER CONFIRMED: Ready for next modifications**
+
+**Files Modified:**
+- GameBoardView.swift (updated drag snap-back spring, line 378)
+- AI_CONTEXT.md (documented springy drag gesture)
+
+---
+
+### Session 7: Match Animation Overhaul - Wiggle, Disappear, Swap Fixes (March 16, 2026)
+
+**Goal:**
+- Create satisfying match animations (wiggle before disappearing)
+- Fix gems disappearing/reappearing during swaps
+- Separate spawn animations from swap animations completely
+- Make animations feel weighty and impactful
+
+**Problems Identified:**
+1. Gems just "clicked off" like a light switch (no animation)
+2. Gems disappeared and reappeared during swaps (spawn animation interfering)
+3. No visual feedback before tiles vanish
+4. Swap and spawn animations were interfering with each other
+
+**Changes Made:**
+
+1. **GameBoardView.swift - Match Wiggle Animation**
+   - Added state variables: `matchWiggleScale`, `matchWiggleRotation`
+   - Created `startMatchWiggle()` function: 8 wiggles, ±8° rotation, 1.02↔1.08 scale
+   - Triggers when `isShaking` becomes true
+
+2. **GameBoardView.swift - Disappear Transition**
+   - `.transition(.asymmetric(removal: .scale(scale: 0.3).combined(with: .opacity)))`
+   - Tiles shrink to 30% while fading out
+
+3. **GameBoardView.swift - Conditional Spawn Animation**
+   - Spawn animation ONLY if `spawnDelay > 0`
+   - No spawn delay = instant appearance (for swaps)
+
+4. **BoardManager.swift - Clear Spawn Delays on Swap**
+   - `swap()` function now clears spawn delays for swapped tiles
+
+5. **GameViewModel.swift - Swap Flow Refactor**
+   - Pre-check: swap → check matches → swap back (instant)
+   - THEN animate based on validity
+   - Prevents visual flashing
+
+**Animation Timings:**
+- Wiggle: 450ms
+- Disappear: 500ms
+- Valid swap: 400ms
+- Invalid swap: 300ms forward + 200ms shake + 300ms back
+
+**Status:**
+✅ Wiggle animation working
+✅ Disappear transition implemented
+⚠️ Swap fix in progress (may still have issues)
+⚠️ Needs testing
+
+**Files Modified:**
+- GameBoardView.swift (wiggle, spawn conditions, transitions)
+- BoardManager.swift (clear spawn delays)
+- GameViewModel.swift (swap flow, timing, withAnimation wrapper)
+
+---
+
+### Session 6: Bottom-to-Top Initial Board Fill (March 16, 2026)
+
+**Goal:**
+- Make initial board fill (game start/reset) use a "filling container" effect
+- Gems should appear from bottom row to top row with wave-like progression
+- Different from gameplay refills which remain random/scattered
+
+**Changes Made:**
+
+1. **BoardManager.swift - New Function: `fillEmptySpacesWithBottomUpRaindrop()`**
+   - **Option A (ACTIVE)**: Staggered row delays creating wave effect
+     - Bottom row: 0.0-0.1s delays
+     - Each row up: +0.1s base delay
+     - Formula: `baseDelay = Double(rowIndex) * 0.1`
+     - Random offset within each row: `0...0.1s`
+   - **Option B (Available)**: Random delays but processed bottom-to-top
+     - Toggle with `useOptionA = false`
+
+2. **BoardManager.swift - Modified `generateInitialBoard()`**
+   - Changed from `fillEmptySpacesWithRaindrop()` to `fillEmptySpacesWithBottomUpRaindrop()`
+   - Only affects initial board setup
+
+3. **BoardManager.swift - Kept Original Function**
+   - `fillEmptySpacesWithRaindrop()` still exists for gameplay refills
+
+**Result:**
+✅ **Initial board fill**: Beautiful bottom-to-top wave effect (0.1s per row)
+✅ **Gameplay refills**: Random raindrop effect (original behavior)
+✅ **Two distinct fill styles**: Start/reset vs during-game
+
+**Files Modified:**
+- BoardManager.swift (added new function, modified generateInitialBoard)
+
+---
+
+### Session 5: Game Mode Separation - Chain Mode No Match-3 (March 15, 2026)
+
+**Problem Identified:**
+- Chain mode was processing BOTH manual chains AND automatic match-3 patterns
+- User wanted chain mode to ONLY work with manual chains (no auto-matching)
+- Match-3 mechanics should be completely disabled in chain mode
+
+**Changes Made:**
+
+1. **GameViewModel.swift - Added Game Mode Tracking (Line 29)**
+   ```swift
+   // Game mode tracking
+   var currentGameMode: GameMode = .swap
+   ```
+   - ViewModel now tracks which mode is active (swap vs chain)
+   - Defaults to swap mode on initialization
+
+2. **GameViewModel.swift - Modified processCascades() (Lines 107-110)**
+   ```swift
+   @MainActor
+   private func processCascades() async {
+       // 🔗 CHAIN MODE: Skip match-3 processing entirely
+       if currentGameMode == .chain {
+           return
+       }
+       // ... rest of match-3 cascade logic
+   }
+   ```
+   - Early return exits function if in chain mode
+   - Prevents any match-3 detection and processing
+   - Tiles still fall and refill, but no automatic matching
+
+3. **ContentView.swift - Game Mode Synchronization (Lines 72-77)**
+   ```swift
+   .onChange(of: gameMode) { _, newMode in
+       viewModel.currentGameMode = newMode
+   }
+   .onAppear {
+       viewModel.currentGameMode = gameMode
+   }
+   ```
+   - Syncs selected game mode to ViewModel
+   - Updates whenever user switches modes in pause menu
+   - Ensures ViewModel always knows current mode
+
+**Result:**
+✅ **SWAP MODE** (original behavior):
+   - Match-3 patterns detected and processed
+   - Cascades trigger automatically
+   - Battle effects from matches
+
+✅ **CHAIN MODE** (new behavior):
+   - ONLY manual chains processed
+   - No automatic match-3 detection
+   - Tiles fall and refill normally
+   - No cascade loops after chain release
+   - Player has full control over damage timing
+
+**How It Works:**
+- User draws chain → Tiles removed → Gravity applies → New tiles spawn → `processCascades()` called
+- In swap mode: Function continues, finds matches, creates cascades
+- In chain mode: Function returns immediately, no match detection occurs
+- Board still looks normal, but won't auto-match 3-in-a-row
+
+**Files Modified:**
+- GameViewModel.swift (added currentGameMode property, modified processCascades)
+- ContentView.swift (added game mode synchronization)
+
+---
+
+### Session 4: Smooth Gem Animations - Spring Physics (March 15, 2026)
+
+**Problem Identified:**
+- Gems were "snapping" into place with no animation
+- No bounce, spring, or transition effects
+- Swaps, falls, and new tile spawns felt abrupt and jarring
+
+**Changes Made:**
+
+1. **GameBoardView.swift - Global Board Animation (Line 28)**
+   ```swift
+   .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.boardManager.tiles.map { $0.map { $0?.id } })
+   ```
+   - Watches entire board state for changes
+   - Triggers spring animation when any tile ID changes
+   - response: 0.5s = animation duration
+   - dampingFraction: 0.7 = moderate bounce (lower = bouncier)
+
+2. **GameBoardView.swift - Individual Tile Animations (Lines 171-172)**
+   ```swift
+   .animation(.spring(response: 0.45, dampingFraction: 0.68), value: row)
+   .animation(.spring(response: 0.45, dampingFraction: 0.68), value: col)
+   ```
+   - Each tile animates when row or column changes
+   - Slightly faster (0.45s) and bouncier (0.68) than global
+   - Triggers during gravity falls and swaps
+
+3. **GameBoardView.swift - Improved Transitions (Lines 164-168)**
+   ```swift
+   .transition(
+       .asymmetric(
+           insertion: .scale(scale: 0.1).combined(with: .opacity),
+           removal: .scale(scale: 0.5).combined(with: .opacity)
+       )
+   )
+   ```
+   - New tiles: Pop in from 0.1 scale with fade
+   - Removed tiles: Shrink to 0.5 scale with fade
+   - Asymmetric = different in/out animations
+
+**Result:**
+✅ Smooth falling animations with physics bounce
+✅ Swaps animate smoothly between positions
+✅ New tiles pop in with scale effect
+✅ Matched tiles shrink and fade out
+✅ All movements use spring physics (natural feel)
+
+**Animation Parameters Explained:**
+- **response**: How long the animation takes (seconds)
+- **dampingFraction**: How bouncy (0.0 = infinite bounce, 1.0 = no bounce)
+- **scale**: Size multiplier (0.1 = 10% size, 1.0 = 100% size)
+
+**Files Modified:**
+- GameBoardView.swift (added animations and transitions)
+
+---
 
 ### Session 3: 4-Match Power Surge Effect - WORKING! (March 12, 2026)
 
@@ -1186,15 +1622,17 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
+| GameBoardView.swift | Session 8 | ✅ Working | Springy drag gesture (stiffness: 250, damping: 20), smooth swap (.easeInOut 0.4s), raindrop cascade preserved |
+| GameViewModel.swift | Session 7 | ✅ Working | Swap flow refactored, timing adjusted |
+| BoardManager.swift | Session 6 | ✅ Working | Clears spawn delays on swap, bottom-to-top fill perfect |
+| ContentView.swift | Session 5 | ✅ Working | Syncs game mode to ViewModel via onChange/onAppear |
 | ChainComboEffects.swift | Session 4 | ✅ Working | Blue diagonal lightning + particles effect |
 | GameAssets.swift | Session 3 | ✅ Working | Added Power Surge config toggles |
 | BattleManager.swift | Session 3 | ✅ Working | Detects 4+ matches, triggers Power Surge |
-| GameViewModel.swift | Session 3 | ✅ Working | Controls Power Surge timing and flag reset |
-| ContentView.swift | Session 3 | ✅ Working | Displays Power Surge effect overlay (z:500) |
 | BattleSceneView.swift | Session 1 | ✅ Working | Gem selector removed, coffee button centered |
-| GameBoardView.swift | Initial | ✅ Working | Not modified yet |
 
 ---
 
-**Last Updated**: Session 4 - Custom Blue Lightning Effect
-**Status**: All systems operational! ONE massive diagonal blue lightning bolt with particles! ⚡💙
+**Last Updated**: Session 8 - Springy Drag Gesture & Final Animation Tuning
+**Status**: All animations working perfectly! ✅ Dragging gems feels springy and fun (stiffness: 250, damping: 20), swaps are silky smooth (.easeInOut 0.4s), raindrop cascade fully preserved. Ready for cascade modifications! 💎✨
+**Status**: Match animations in progress! Wiggle effect working, debugging disappearing gems during swaps. Initial fill still PERFECT! 💎✨

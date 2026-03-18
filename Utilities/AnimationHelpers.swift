@@ -32,7 +32,6 @@ struct PopEffect: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(isActive ? 1.2 : 1.0)
-            .opacity(isActive ? 0.8 : 1.0)
     }
 }
 

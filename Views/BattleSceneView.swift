@@ -4,14 +4,23 @@
 //
 
 import SwiftUI
+import Combine
 
 struct BattleSceneView: View {
     @Bindable var viewModel: GameViewModel
     
     var body: some View {
         ZStack {
-            // Background
-            backgroundGradient
+            // Background - match_bg image
+            if let bgImage = UIImage(named: GameAssets.matchBackground) {
+                Image(uiImage: bgImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .ignoresSafeArea()
+            } else {
+                // Fallback gradient
+                backgroundGradient
+            }
             
             VStack(spacing: 0) {
                 // SECTION 1: Battle Portraits (side-by-side)
@@ -143,7 +152,12 @@ struct CharacterPortraitWithHealthBorder: View {
             
             // Portrait Image - uses character state
             Group {
-                if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
+                // Special handling for Ramp - use line boil animation
+                if character.name == "Ramp" {
+                    RampLineBoilPortrait()
+                        .frame(width: 165, height: 165)
+                        .clipShape(Circle())
+                } else if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -567,3 +581,36 @@ struct GemButton: View {
         }
     }
 }
+// MARK: - Ramp Line Boil Animation
+
+struct RampLineBoilPortrait: View {
+    @State private var currentFrame = 0
+    
+    // 4-frame cycle: boil1, boil2, boil3, boil2 (creates smooth back-and-forth)
+    private let frameSequence = ["ramp_boil1", "ramp_boil2", "ramp_boil3", "ramp_boil2"]
+    
+    private let timer = Timer.publish(every: 0.15, on: .main, in: .common).autoconnect()
+    
+    var body: some View {
+        Group {
+            if let image = UIImage(named: frameSequence[currentFrame]) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                // Fallback if boil images not found
+                Circle()
+                    .fill(Color.blue.opacity(0.3))
+                    .overlay(
+                        Text("R")
+                            .font(.system(size: 55, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+            }
+        }
+        .onReceive(timer) { _ in
+            currentFrame = (currentFrame + 1) % frameSequence.count
+        }
+    }
+}
+

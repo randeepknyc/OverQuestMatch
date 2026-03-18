@@ -51,9 +51,21 @@ enum TileType: String, CaseIterable {
 struct Tile: Identifiable, Equatable {
     let id = UUID()
     let type: TileType
+    var row: Int
+    var col: Int
     var isSpecial: Bool = false
+    var spawnDelay: Double = 0
+    var fallDelay: Double = 0
     
-    static func random() -> Tile {
-        Tile(type: TileType.allCases.randomElement()!)
+    static func random(row: Int, col: Int) -> Tile {
+        Tile(
+            type: TileType.allCases.randomElement()!,
+            row: row,
+            col: col
+        )
+    }
+    
+    static func == (lhs: Tile, rhs: Tile) -> Bool {
+        lhs.id == rhs.id
     }
 }

@@ -29,9 +29,17 @@ struct GameAssets {
     
     // MARK: - Battle Background
     static let battleBackground = "battle_bg" // Placeholder for swamp/forest scene
+    static let matchBackground = "match_bg" // Match-3 board background
     
     // MARK: - Map Screen
     static let mapBackground = "map_placeholder" // Map screen background image
+    
+    // MARK: - Menu Icons
+    static let resumeIcon = "resume_icon"
+    static let restartIcon = "restart_icon"
+    static let settingsIcon = "settings_icon"
+    static let helpIcon = "help_icon"
+    static let exitIcon = "exit_icon"
     
     // MARK: - Audio (hooks for future)
     static let soundEffects = [
