@@ -33,7 +33,19 @@ class GameViewModel {
     // 0.5 = 2x faster
     // 0.3 = Very fast auto-chains
     // 2.0 = 2x slower (watch cascades unfold)
-    var autoChainSpeedMultiplier: Double = 0.5  // ⚡ Auto-chains run 30% faster
+    var autoChainSpeedMultiplier: Double = 0.5  // ⚡ Auto-chains run 50% faster
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ⚡ CHAIN MODE SPEED CONTROL (Buttery Smooth!)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Controls how fast chain processing happens after you release
+    // Lower = faster, higher = slower
+    //
+    // 0.2 = Super fast (almost instant)
+    // 0.4 = Fast and smooth (RECOMMENDED) ⭐
+    // 0.6 = Normal speed
+    // 1.0 = Slow
+    var chainModeSpeedMultiplier: Double = 0.4  // ⚡ Buttery smooth!
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
@@ -279,88 +291,105 @@ class GameViewModel {
         isSelectingGemToClear = false
     }
     
+   
     @MainActor
-    func clearGemsOfType(_ type: TileType) async {
-        guard battleManager.canUseAbility(.heroicStrike) else { return }
-        guard !isProcessing else { return }
-        
-        isProcessing = true
-        isSelectingGemToClear = false
-        
-        // Use the ability
-        battleManager.useAbility(.heroicStrike, gemType: type)
-        
-        // Clear all gems of this type from the board
-        let clearedPositions = boardManager.clearAllGemsOfType(type)
-        
-        if !clearedPositions.isEmpty {
-            // Highlight cleared gems briefly
-            shakeTiles = Set(clearedPositions)
-            try? await Task.sleep(for: .milliseconds(200))
-            shakeTiles.removeAll()
+        func clearGemsOfType(_ type: TileType) async {
+            guard battleManager.canUseAbility(.heroicStrike) else { return }
+            guard !isProcessing else { return }
             
-            try? await Task.sleep(for: .milliseconds(150))
+            isProcessing = true
+            isSelectingGemToClear = false
             
-            // ═══════════════════════════════════════════════════════════════
-            // CLEAN SEQUENTIAL ANIMATION: Fall, then spawn
-            // ═══════════════════════════════════════════════════════════════
+            // Use the ability
+            battleManager.useAbility(.heroicStrike, gemType: type)
             
-            // STEP 1: Gravity
-            _ = boardManager.applyGravity()
-            try? await Task.sleep(for: .milliseconds(500))
+            // ✨ IMPORTANT: Get gem positions AND colors BEFORE clearing
+            let gemsToRemove = boardManager.gems.filter { $0.type == type }
+            let gemInfo = gemsToRemove.map { (position: GridPosition(row: $0.row, col: $0.col), color: $0.type.color) }
             
-            // Clear fall delays
+            // DON'T clear the gems yet! We need them visible for the shrink animation
             
-            // STEP 2: Spawn new gems
-            let spawnInfo = boardManager.fillEmptySpacesWithFastCascade()
-            if spawnInfo.newTileCount > 0 {
-                let spawnWaitTime = 20 * boardManager.size + Int(SpawnAnimation.duration * 1000)
-                try? await Task.sleep(for: .milliseconds(spawnWaitTime))
+            if !gemInfo.isEmpty {
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ GEM SELECTOR ANIMATION TIMING CONTROLS
+                // ═══════════════════════════════════════════════════════════════
+                
+                // How long gems shake/highlight before starting to shrink (milliseconds)
+                // 200 = Default shake time
+                // 300 = Longer shake
+                // 100 = Quick shake
+                let shakeBeforeShrinkDelay: Int = 200  // ⚡ CONTROL 1
+                
+                // How long AFTER shake to trigger explosions (milliseconds)
+                // 0 = Explosions start immediately after shake
+                // 100 = Brief delay after shake
+                // 200 = Longer delay (explosions appear after gems start shrinking)
+                let explosionDelay: Int = 0  // ⚡ CONTROL 2
+                
+                // How long gems take to shrink/fade away (milliseconds)
+                // 300 = Default (smooth shrink)
+                // 500 = Slow dramatic shrink
+                // 150 = Fast shrink
+                let shrinkDuration: Int = 300  // ⚡ CONTROL 3
+                
+                // ═══════════════════════════════════════════════════════════════
+                
+                // STEP 1: Highlight cleared gems briefly (they shake)
+                shakeTiles = Set(gemInfo.map { $0.position })
+                try? await Task.sleep(for: .milliseconds(shakeBeforeShrinkDelay))
+                
+                // STEP 2: Trigger explosions (based on your timing setting)
+                try? await Task.sleep(for: .milliseconds(explosionDelay))
+                
+                // Create explosions using saved gem info
+                for info in gemInfo {
+                    explosionParticles.append((
+                        position: info.position,
+                        color: info.color,
+                        id: UUID()
+                    ))
+                }
+                
+                // STEP 3: Start shrink animation (gems still visible but marked for removal)
+                // The shake removal triggers the disappear animation in GemTileView
+                shakeTiles.removeAll()
+                
+                // NOW remove the gems from the board (this triggers the scale-down)
+                withAnimation(.easeOut(duration: Double(shrinkDuration) / 1000.0)) {
+                    boardManager.gems.removeAll { $0.type == type }
+                }
+                
+                // Wait for shrink animation to complete
+                try? await Task.sleep(for: .milliseconds(shrinkDuration))
+                
+                // ═══════════════════════════════════════════════════════════════
+                // CLEAN SEQUENTIAL ANIMATION: Fall, then spawn
+                // ═══════════════════════════════════════════════════════════════
+                
+                // STEP 4: Gravity
+                _ = boardManager.applyGravity()
+                try? await Task.sleep(for: .milliseconds(500))
+                
+                // STEP 5: Spawn new gems
+                let spawnInfo = boardManager.fillEmptySpacesWithFastCascade()
+                if spawnInfo.newTileCount > 0 {
+                    let spawnWaitTime = 20 * boardManager.size + Int(SpawnAnimation.duration * 1000)
+                    try? await Task.sleep(for: .milliseconds(spawnWaitTime))
+                }
+                
+                // Clear explosions after they finish
+                try? await Task.sleep(for: .milliseconds(100))
+                explosionParticles.removeAll()
+                
+                // STEP 6: Process any new matches that formed
+                await processCascades()
             }
             
-            // Process any new matches that formed
-            await processCascades()
+            // Enemy turn
+            await enemyTurn()
+            
+            isProcessing = false
         }
-        
-        // Enemy turn
-        await enemyTurn()
-        
-        isProcessing = false
-    }
-    
-    @MainActor
-    func useAbility(_ ability: Ability) async {
-        // For heroic strike, start gem selection mode
-        if ability == .heroicStrike {
-            startGemClearSelection()
-            return
-        }
-        
-        guard !isProcessing else { return }
-        guard battleManager.canUseAbility(ability) else { return }
-        
-        isProcessing = true
-        
-        // Use the ability
-        battleManager.useAbility(ability)
-        
-        // Play appropriate animation based on ability
-        switch ability {
-        case .divineShield, .greaterHeal:
-            // Flash player for defensive/healing abilities
-            flashPlayer = true
-            try? await Task.sleep(for: .milliseconds(350))
-            flashPlayer = false
-        default:
-            break
-        }
-        
-        // Enemy turn after ability use
-        await enemyTurn()
-        
-        isProcessing = false
-    }
-    
     // MARK: - Chain Mode Support
     
     @MainActor
@@ -373,6 +402,9 @@ class GameViewModel {
         // Update chain handler's tile type
         chainHandler?.chainTileType = type
         
+        // ⚡ BUTTERY SMOOTH: Use chainModeSpeedMultiplier for all delays
+        let speed = chainModeSpeedMultiplier
+        
         // Remove the matched gems from the flat array
         let positionsSet = Set(positions)
         boardManager.gems.removeAll { gem in
@@ -380,7 +412,7 @@ class GameViewModel {
         }
         
         // Brief pause to show the match
-        try? await Task.sleep(for: .milliseconds(150))
+        try? await Task.sleep(for: .milliseconds(Int(100 * speed)))
         
         // ═══════════════════════════════════════════════════════════════
         // CLEAN SEQUENTIAL ANIMATION: Fall, then spawn
@@ -389,14 +421,14 @@ class GameViewModel {
         // STEP 1: Gravity (existing gems fall)
         let gravityMoved = boardManager.applyGravity()
         if gravityMoved {
-            let fallWaitTime = 30 * boardManager.size + 300
+            let fallWaitTime = Int(Double(30 * boardManager.size + 300) * speed)
             try? await Task.sleep(for: .milliseconds(fallWaitTime))
         }
         
         // STEP 2: Spawn new gems
         let spawnInfo = boardManager.fillEmptySpacesWithFastCascade()
         if spawnInfo.newTileCount > 0 {
-            let spawnWaitTime = 20 * boardManager.size + Int(SpawnAnimation.duration * 1000)
+            let spawnWaitTime = Int(Double(20 * boardManager.size + Int(SpawnAnimation.duration * 1000)) * speed)
             try? await Task.sleep(for: .milliseconds(spawnWaitTime))
         }
         
@@ -414,7 +446,7 @@ class GameViewModel {
         // Show attack animation
         isPlayerAttacking = true
         flashEnemy = true
-        try? await Task.sleep(for: .milliseconds(350))
+        try? await Task.sleep(for: .milliseconds(Int(350 * speed)))
         isPlayerAttacking = false
         flashEnemy = false
         

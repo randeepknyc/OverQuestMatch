@@ -14,6 +14,7 @@
 		7F0094A52F6926B200E10AEB /* GameMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0094A42F6926B200E10AEB /* GameMode.swift */; };
 		7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0094A62F6926BE00E10AEB /* ChainInputHandler2.swift */; };
 		7F0094D92F6A4D4600E10AEB /* context_cascade.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0094D82F6A4D4600E10AEB /* context_cascade.md */; };
+		7F0094DB2F6A5B1600E10AEB /* ChainVisualConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075322F5D2A5800BD0591 /* BoardManager.swift */; };
@@ -43,6 +44,7 @@
 		7F0094A42F6926B200E10AEB /* GameMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameMode.swift; sourceTree = "<group>"; };
 		7F0094A62F6926BE00E10AEB /* ChainInputHandler2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainInputHandler2.swift; sourceTree = "<group>"; };
 		7F0094D82F6A4D4600E10AEB /* context_cascade.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = context_cascade.md; sourceTree = "<group>"; };
+		7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainVisualConfig.swift; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverQuestMatch3.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -100,6 +102,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */,
 				7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */,
 				7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */,
 				7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */,
@@ -266,6 +269,7 @@
 				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
 				7FB075412F5D300100BD0591 /* BattleEvent.swift in Sources */,
+				7F0094DB2F6A5B1600E10AEB /* ChainVisualConfig.swift in Sources */,
 				7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */,
 				7FB075E82F5E95EB00BD0591 /* Ability.swift in Sources */,
 				7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */,

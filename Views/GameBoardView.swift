@@ -481,30 +481,89 @@ struct GemTileView: View {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ✨ CHAIN MODE VIEWS
+// ✨ CHAIN MODE VIEWS (With Rainbow Pulse & Custom Assets Support!)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 struct ChainConnectionView: View {
     let chainPositions: [GridPosition]
     let tileSize: CGFloat
     let color: Color
     
+    @State private var rainbowPhase: Double = 0
+    
     var body: some View {
-        Canvas { context, size in
-            guard chainPositions.count > 1 else { return }
-            
-            var path = Path()
-            for (index, pos) in chainPositions.enumerated() {
-                let x = CGFloat(pos.col) * tileSize + tileSize / 2
-                let y = CGFloat(pos.row) * tileSize + tileSize / 2 - (tileSize / 2)
-                
-                if index == 0 {
-                    path.move(to: CGPoint(x: x, y: y))
-                } else {
-                    path.addLine(to: CGPoint(x: x, y: y))
-                }
+        ZStack {
+            // Optional: Custom background image for line
+            if ChainVisualConfig.useCustomLineImage {
+                customLineImage
             }
             
-            context.stroke(path, with: .color(color.opacity(0.6)), lineWidth: 8)
+            // The actual chain line (rainbow or solid color)
+            Canvas { context, size in
+                guard chainPositions.count > 1 else { return }
+                
+                var path = Path()
+                for (index, pos) in chainPositions.enumerated() {
+                    let x = CGFloat(pos.col) * tileSize + tileSize / 2
+                    let y = CGFloat(pos.row) * tileSize + tileSize / 2 - (tileSize / 2)
+                    
+                    if index == 0 {
+                        path.move(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+                
+                // Choose color: rainbow or original gem color
+                let strokeColor = ChainVisualConfig.enableRainbowPulse
+                    ? currentRainbowColor()
+                    : color.opacity(ChainVisualConfig.lineOpacity)
+                
+                // Draw the line
+                context.stroke(
+                    path,
+                    with: .color(strokeColor),
+                    lineWidth: ChainVisualConfig.lineWidth
+                )
+            }
+            .shadow(
+                color: ChainVisualConfig.enableLineGlow
+                    ? (ChainVisualConfig.enableRainbowPulse ? currentRainbowColor() : color)
+                    : .clear,
+                radius: ChainVisualConfig.lineGlowRadius
+            )
+        }
+        .onAppear {
+            if ChainVisualConfig.enableRainbowPulse {
+                startRainbowAnimation()
+            }
+        }
+    }
+    
+    private var customLineImage: some View {
+        // If you add a custom image, it will display here
+        Image(ChainVisualConfig.customLineImageName)
+            .resizable(resizingMode: .tile)
+            .opacity(0.3)
+    }
+    
+    private func currentRainbowColor() -> Color {
+        let colors = ChainVisualConfig.rainbowColors
+        let index = Int(rainbowPhase) % colors.count
+        let nextIndex = (index + 1) % colors.count
+        let progress = rainbowPhase.truncatingRemainder(dividingBy: 1.0)
+        
+        // Smooth blend between colors
+        return colors[index].opacity(1.0 - progress)
+            .blended(with: colors[nextIndex].opacity(progress))
+    }
+    
+    private func startRainbowAnimation() {
+        withAnimation(
+            .linear(duration: ChainVisualConfig.rainbowSpeed)
+            .repeatForever(autoreverses: false)
+        ) {
+            rainbowPhase = Double(ChainVisualConfig.rainbowColors.count)
         }
     }
 }
@@ -514,32 +573,134 @@ struct ChainCounterView: View {
     let isValid: Bool
     let tileType: TileType
     
+    @State private var rainbowPhase: Double = 0
+    @State private var pulseScale: CGFloat = 1.0
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "link")
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: ChainVisualConfig.counterIconSize, weight: .bold))
             
             Text("\(chainLength)")
-                .font(.system(size: 32, weight: .bold))
+                .font(.gameScore(size: ChainVisualConfig.counterFontSize))
             
             Image(tileType.imageName)
                 .resizable()
-                .frame(width: 32, height: 32)
+                .frame(width: ChainVisualConfig.counterGemSize, height: ChainVisualConfig.counterGemSize)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, ChainVisualConfig.counterPaddingH)
+        .padding(.vertical, ChainVisualConfig.counterPaddingV)
         .background(
-            Capsule()
-                .fill(isValid ? tileType.color.opacity(0.9) : Color.gray.opacity(0.7))
+            ZStack {
+                // Option 1: Custom background image
+                if ChainVisualConfig.useCustomCounterImage {
+                    Image(ChainVisualConfig.customCounterImageName)
+                        .resizable()
+                } else {
+                    // Option 2: Default capsule with rainbow or solid color
+                    Capsule()
+                        .fill(backgroundColor)
+                }
+            }
         )
         .foregroundColor(.white)
-        .shadow(radius: 8)
+        .shadow(
+            color: ChainVisualConfig.enableRainbowPulse
+                ? currentRainbowColor()
+                : tileType.color,
+            radius: ChainVisualConfig.counterShadowRadius
+        )
+        .scaleEffect(pulseScale)
+        .onAppear {
+            if ChainVisualConfig.enableRainbowPulse {
+                startRainbowAnimation()
+            }
+            startPulseAnimation()
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if ChainVisualConfig.enableRainbowPulse {
+            return currentRainbowColor()
+                .opacity(isValid ? ChainVisualConfig.counterValidOpacity : ChainVisualConfig.counterInvalidOpacity)
+        } else {
+            return isValid
+                ? tileType.color.opacity(ChainVisualConfig.counterValidOpacity)
+                : Color.gray.opacity(ChainVisualConfig.counterInvalidOpacity)
+        }
+    }
+    
+    private func currentRainbowColor() -> Color {
+        let colors = ChainVisualConfig.rainbowColors
+        let index = Int(rainbowPhase) % colors.count
+        let nextIndex = (index + 1) % colors.count
+        let progress = rainbowPhase.truncatingRemainder(dividingBy: 1.0)
+        
+        return colors[index].opacity(1.0 - progress)
+            .blended(with: colors[nextIndex].opacity(progress))
+    }
+    
+    private func startRainbowAnimation() {
+        withAnimation(
+            .linear(duration: ChainVisualConfig.rainbowSpeed)
+            .repeatForever(autoreverses: false)
+        ) {
+            rainbowPhase = Double(ChainVisualConfig.rainbowColors.count)
+        }
+    }
+    
+    private func startPulseAnimation() {
+        withAnimation(
+            .easeInOut(duration: ChainVisualConfig.pulseDuration)
+            .repeatForever(autoreverses: true)
+        ) {
+            pulseScale = ChainVisualConfig.counterPulseScale
+        }
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELPER EXTENSIONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+extension Color {
+    func blended(with other: Color) -> Color {
+        let selfComponents = self.components
+        let otherComponents = other.components
+        
+        return Color(
+            red: min(1.0, selfComponents.red + otherComponents.red),
+            green: min(1.0, selfComponents.green + otherComponents.green),
+            blue: min(1.0, selfComponents.blue + otherComponents.blue)
+        )
+    }
+    
+    var components: (red: Double, green: Double, blue: Double, opacity: Double) {
+        #if canImport(UIKit)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var o: CGFloat = 0
+        
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &o)
+        return (Double(r), Double(g), Double(b), Double(o))
+        #else
+        let nsColor = NSColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var o: CGFloat = 0
+        
+        nsColor.getRed(&r, green: &g, blue: &b, alpha: &o)
+        return (Double(r), Double(g), Double(b), Double(o))
+        #endif
     }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VIEW MODIFIERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 extension View {
     @ViewBuilder
     func chainGlow(isInChain: Bool, color: Color) -> some View {
@@ -564,8 +725,8 @@ extension View {
                     DragGesture(minimumDistance: 10)
                         .onChanged { value in
                             let maxOffset = size * 0.35
-                            let clampedX = clampWithEasing(value.translation.width, max: maxOffset)
-                            let clampedY = clampWithEasing(value.translation.height, max: maxOffset)
+                            let clampedX = Self.clampWithEasing(value.translation.width, max: maxOffset)
+                            let clampedY = Self.clampWithEasing(value.translation.height, max: maxOffset)
                             dragOffset.wrappedValue = CGSize(width: clampedX, height: clampedY)
                         }
                         .onEnded { value in
@@ -590,7 +751,7 @@ extension View {
         }
     }
     
-    private func clampWithEasing(_ value: CGFloat, max: CGFloat) -> CGFloat {
+    private static func clampWithEasing(_ value: CGFloat, max: CGFloat) -> CGFloat {
         let absValue = abs(value)
         if absValue <= max { return value }
         let excess = absValue - max
@@ -604,6 +765,7 @@ enum SwipeDirection { case up, down, left, right }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 💥 EXPLOSION PARTICLE VIEW
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 struct ExplosionParticleView: View {
     let color: Color
     let tileSize: CGFloat
@@ -658,9 +820,11 @@ struct ExplosionParticleView: View {
         }
     }
 }
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HELPER SHAPES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 struct HexagonShape: InsettableShape {
     var inset: CGFloat = 0
     
@@ -710,4 +874,3 @@ struct PlaceholderTileView: View {
             }
     }
 }
-
