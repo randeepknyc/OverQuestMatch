@@ -1,4 +1,4 @@
-# AI Context & Project Knowledge Base
+# AI Context & Project Knowledge Base!
 **OverQuestMatch3 - Match-3 RPG Battle Game**
 
 > **IMPORTANT**: This file MUST be read at the start of EVERY new conversation. After EVERY user request, update this file with what was changed, what works, what doesn't work, and what needs to be done next.
