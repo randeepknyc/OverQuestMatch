@@ -45,7 +45,7 @@ struct TitleScreenView: View {
                     Image("title_logo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width * 0.7) // 70% of screen width
+                        .frame(width: geometry.size.width * 1.0) // 70% of screen width
                         .offset(y: logoOffset)
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)

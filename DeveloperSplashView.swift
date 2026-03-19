@@ -25,7 +25,7 @@ struct DeveloperSplashView: View {
                 Image("splash_screen")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .padding(40)
+                    .padding(0)
                     .opacity(opacity)
                     .scaleEffect(scale)
             } else {
