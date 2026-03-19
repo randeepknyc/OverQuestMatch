@@ -17,6 +17,7 @@
 		7F0094DB2F6A5B1600E10AEB /* ChainVisualConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */; };
 		7F0094DD2F6B719400E10AEB /* recreate_gatcha.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0094DC2F6B717800E10AEB /* recreate_gatcha.md */; };
 		7F0094DF2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0094DE2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md */; };
+		7F0094E12F6BA4E200E10AEB /* DeveloperSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0094E02F6BA4E200E10AEB /* DeveloperSplashView.swift */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075322F5D2A5800BD0591 /* BoardManager.swift */; };
@@ -49,6 +50,7 @@
 		7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainVisualConfig.swift; sourceTree = "<group>"; };
 		7F0094DC2F6B717800E10AEB /* recreate_gatcha.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = recreate_gatcha.md; sourceTree = "<group>"; };
 		7F0094DE2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTICS_INTEGRATION_SUMMARY.md; sourceTree = "<group>"; };
+		7F0094E02F6BA4E200E10AEB /* DeveloperSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperSplashView.swift; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverQuestMatch3.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +108,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F0094E02F6BA4E200E10AEB /* DeveloperSplashView.swift */,
 				7F0094DA2F6A5B1600E10AEB /* ChainVisualConfig.swift */,
 				7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */,
 				7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */,
@@ -287,6 +290,7 @@
 				7FB075EA2F5EA7EE00BD0591 /* MapScreenView.swift in Sources */,
 				7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */,
 				7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */,
+				7F0094E12F6BA4E200E10AEB /* DeveloperSplashView.swift in Sources */,
 				7F0094A52F6926B200E10AEB /* GameMode.swift in Sources */,
 				7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */,
 				7FB0753F2F5D2FF600BD0591 /* GameOverView.swift in Sources */,

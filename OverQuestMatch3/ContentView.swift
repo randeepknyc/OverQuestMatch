@@ -7,7 +7,10 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = GameViewModel()
-    @State private var hapticManager = HapticManager()  // ✨ NEW: Haptic feedback
+    @State private var hapticManager = HapticManager()  // ✨ Haptic feedback
+    
+    // Screen management
+    @State private var showSplashScreen = GameConfig.enableDeveloperSplash  // 🎬 Developer splash
     @State private var showTitleScreen = true
     @State private var showMapScreen = false
     @State private var showPauseMenu = false
@@ -15,7 +18,20 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Main game (only visible when both screens are dismissed)
+            // ═══════════════════════════════════════════════════════════════
+            // 🎬 LAYER 1: DEVELOPER SPLASH SCREEN (TOP - APPEARS FIRST)
+            // ═══════════════════════════════════════════════════════════════
+            // "IT CAME FROM THE DEEP" - Shows before everything else
+            // Toggle in GameConfig: enableDeveloperSplash = true/false
+            if showSplashScreen {
+                DeveloperSplashView(showSplash: $showSplashScreen)
+                    .transition(.opacity)
+                    .zIndex(2000) // Above everything
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // LAYER 2: MAIN GAME (Only visible when screens dismissed)
+            // ═══════════════════════════════════════════════════════════════
             if !showTitleScreen && !showMapScreen {
                 GameScreen(viewModel: viewModel, hapticManager: hapticManager, showPauseMenu: $showPauseMenu, gameMode: $currentGameMode)
                     .onAppear {
@@ -25,19 +41,25 @@ struct ContentView: View {
                     }
             }
             
-            // Map screen (appears after title screen)
+            // ═══════════════════════════════════════════════════════════════
+            // LAYER 3: MAP SCREEN (Appears after title screen)
+            // ═══════════════════════════════════════════════════════════════
             if showMapScreen && !showTitleScreen {
                 MapScreenView(showMapScreen: $showMapScreen)
                     .transition(.opacity)
             }
             
-            // Title screen overlay (first screen)
-            if showTitleScreen {
+            // ═══════════════════════════════════════════════════════════════
+            // LAYER 4: TITLE SCREEN (Appears after splash screen)
+            // ═══════════════════════════════════════════════════════════════
+            if showTitleScreen && !showSplashScreen {
                 TitleScreenView(showTitleScreen: $showTitleScreen, showMapScreen: $showMapScreen)
                     .transition(.opacity)
             }
             
-            // FULL SCREEN PAUSE MENU - AT TOP LEVEL
+            // ═══════════════════════════════════════════════════════════════
+            // LAYER 5: PAUSE MENU (Top level overlay)
+            // ═══════════════════════════════════════════════════════════════
             if showPauseMenu {
                 PauseMenuView(
                     isPresented: $showPauseMenu,
@@ -53,7 +75,7 @@ struct ContentView: View {
 
 struct GameScreen: View {
     @Bindable var viewModel: GameViewModel
-    var hapticManager: HapticManager  // ✨ NEW: Receive haptic manager
+    var hapticManager: HapticManager
     @Binding var showPauseMenu: Bool
     @Binding var gameMode: GameMode
     
@@ -82,10 +104,9 @@ struct GameScreen: View {
                     viewModel.currentGameMode = gameMode
                 }
                 
-                // Full-screen tap-away overlay for gem selector (covers entire game)
+                // Full-screen tap-away overlay for gem selector
                 if viewModel.isSelectingGemToClear {
                     ZStack {
-                        // Invisible tap-catcher that covers everywhere
                         Color.clear
                             .ignoresSafeArea()
                             .contentShape(Rectangle())
@@ -94,35 +115,30 @@ struct GameScreen: View {
                             }
                     }
                     .transition(.opacity)
-                    .zIndex(90) // Below gem selector
+                    .zIndex(90)
                 }
                 
-                // Circular gem selector around Ramp's portrait (TOP LEVEL)
+                // Circular gem selector around Ramp's portrait
                 if viewModel.isSelectingGemToClear {
-                    // Calculate Ramp's portrait center position
-                    let rampCenterX = geometry.size.width * 0.25 // Approximate left side
-                    let rampCenterY = 60 + (geometry.size.height * 0.42 * 0.35)-10 // HUD + partial battle scene
+                    let rampCenterX = geometry.size.width * 0.25
+                    let rampCenterY = 60 + (geometry.size.height * 0.42 * 0.35)-10
                     
                     CircularGemSelector(
                         viewModel: viewModel,
                         centerPosition: CGPoint(x: rampCenterX, y: rampCenterY)
                     )
                     .transition(.scale.combined(with: .opacity))
-                    .zIndex(200) // Above tap-away overlay
+                    .zIndex(200)
                 }
                 
                 // ═══════════════════════════════════════════════════════════════
-                // 🔥 SESSION 2 ADDITION: POWER SURGE FULL SCREEN EFFECT (START)
+                // 🔥 POWER SURGE FULL SCREEN EFFECT
                 // ═══════════════════════════════════════════════════════════════
-                // POWER SURGE EFFECT - COVERS ENTIRE SCREEN
                 if GameConfig.enablePowerSurgeEffect && viewModel.battleManager.triggeredPowerSurge {
                     PowerSurgeEffect()
                         .transition(.opacity)
-                        .zIndex(500) // Above game, below pause menu
+                        .zIndex(500)
                 }
-                // ═══════════════════════════════════════════════════════════════
-                // 🔥 SESSION 2 ADDITION: POWER SURGE FULL SCREEN EFFECT (END)
-                // ═══════════════════════════════════════════════════════════════
                 
                 // Game over overlay
                 if viewModel.battleManager.gameState != .playing {

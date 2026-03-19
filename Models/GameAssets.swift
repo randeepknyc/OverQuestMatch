@@ -75,13 +75,36 @@ struct GameConfig {
     static let greaterHealAmount = 40        // HP restored
     
     // ═══════════════════════════════════════════════════════════════
-    // 🔥 SESSION 2 ADDITION: POWER SURGE EFFECT CONFIG (START)
+    // 🔥 POWER SURGE EFFECT CONFIG
     // ═══════════════════════════════════════════════════════════════
     // MARK: - Chain Combo Effects
     static let enablePowerSurgeEffect = true  // ⚠️ Set to false to disable 4-chain visual effect
     static let powerSurgeChainThreshold = 4   // Number of combos needed for Power Surge
     static let powerSurgeManaBonus = 2        // Extra mana awarded on Power Surge
+    
     // ═══════════════════════════════════════════════════════════════
-    // 🔥 SESSION 2 ADDITION: POWER SURGE EFFECT CONFIG (END)
+    // 🎬 DEVELOPER SPLASH SCREEN - "IT CAME FROM THE DEEP"
     // ═══════════════════════════════════════════════════════════════
+    // MARK: - Developer Splash Screen
+    static let enableDeveloperSplash = true           // Toggle splash screen on/off (true = show, false = skip)
+    static let splashDuration: Double = 2.0           // How long splash shows (seconds)
+    static let useAnimatedSplash = false              // false = static image, true = animated frames
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 🎨 TITLE SCREEN ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Title Screen Animation
+    static let titleAnimationStyle: TitleAnimationStyle = .floatAndPulse
+    // Available options: .none, .slideAndSettle, .floatAndPulse, .scaleAndBounce, .parallaxScroll
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🎨 TITLE ANIMATION STYLES
+// ═══════════════════════════════════════════════════════════════
+enum TitleAnimationStyle {
+    case none              // No animation, static display
+    case slideAndSettle    // Logo slides from bottom, bounces to top
+    case floatAndPulse     // Gentle float + glow pulse (DEFAULT)
+    case scaleAndBounce    // Logo grows from small, bounces to size
+    case parallaxScroll    // Background drifts slowly
 }
