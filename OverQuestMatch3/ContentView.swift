@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = GameViewModel()
+    @State private var hapticManager = HapticManager()  // ✨ NEW: Haptic feedback
     @State private var showTitleScreen = true
     @State private var showMapScreen = false
     @State private var showPauseMenu = false
@@ -16,7 +17,12 @@ struct ContentView: View {
         ZStack {
             // Main game (only visible when both screens are dismissed)
             if !showTitleScreen && !showMapScreen {
-                GameScreen(viewModel: viewModel, showPauseMenu: $showPauseMenu, gameMode: $currentGameMode)
+                GameScreen(viewModel: viewModel, hapticManager: hapticManager, showPauseMenu: $showPauseMenu, gameMode: $currentGameMode)
+                    .onAppear {
+                        // ✨ Wire up haptics to ViewModel and BattleManager
+                        viewModel.hapticManager = hapticManager
+                        viewModel.battleManager.hapticManager = hapticManager
+                    }
             }
             
             // Map screen (appears after title screen)
@@ -47,6 +53,7 @@ struct ContentView: View {
 
 struct GameScreen: View {
     @Bindable var viewModel: GameViewModel
+    var hapticManager: HapticManager  // ✨ NEW: Receive haptic manager
     @Binding var showPauseMenu: Bool
     @Binding var gameMode: GameMode
     

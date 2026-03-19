@@ -9,6 +9,7 @@ import SwiftUI
 class GameViewModel {
     var boardManager: BoardManager
     var battleManager: BattleManager
+    var hapticManager: HapticManager?  // ✨ NEW: Haptic feedback manager
     
     var selectedPosition: GridPosition?
     var isProcessing = false
@@ -77,15 +78,19 @@ class GameViewModel {
             if selected == position {
                 // Deselect
                 selectedPosition = nil
+                hapticManager?.tileTapped()  // ✨ Tap feedback
             } else if boardManager.canSwap(from: selected, to: position) {
                 selectedPosition = nil
+                hapticManager?.swapStarted()  // ✨ Swap started
                 await performSwap(from: selected, to: position)
             } else {
                 // Select new tile
                 selectedPosition = position
+                hapticManager?.tileSelected()  // ✨ Selection change
             }
         } else {
             selectedPosition = position
+            hapticManager?.tileSelected()  // ✨ Initial selection
         }
     }
     
@@ -113,6 +118,7 @@ class GameViewModel {
             
             // 2. Show it's wrong with shake
             shakeTiles = [from, to]
+            hapticManager?.swapRejected()  // ✨ Invalid swap haptic
             try? await Task.sleep(for: .milliseconds(200))
             
             // 3. Swap back with animation
@@ -138,6 +144,7 @@ class GameViewModel {
         
         // 1. Perform the actual swap with animation
         boardManager.swap(from: from, to: to)
+        hapticManager?.swapCompleted()  // ✨ Successful swap haptic
         try? await Task.sleep(for: .milliseconds(400)) // Let swap animation complete
         
         // 2. Now process the matches (wiggle + disappear)
@@ -167,6 +174,10 @@ class GameViewModel {
             // ⚡ SPEED CONTROL: First match = normal speed, auto-chains = faster
             let speedMultiplier = cascadeCount == 1 ? 1.0 : autoChainSpeedMultiplier
             
+            // ✨ HAPTIC: Match detected (intensity scales with match size)
+            let totalMatchedTiles = matches.reduce(0) { $0 + $1.count }
+            hapticManager?.matchDetected(tileCount: totalMatchedTiles)
+            
             // ═══════════════════════════════════════════════════════════════
             // STEP 1: MATCHED GEMS DISAPPEAR
             // ═══════════════════════════════════════════════════════════════
@@ -186,6 +197,11 @@ class GameViewModel {
                         ))
                     }
                 }
+            }
+            
+            // ✨ HAPTIC: Explosion burst when gems clear
+            if !explosionParticles.isEmpty {
+                hapticManager?.matchDetected(tileCount: min(5, totalMatchedTiles))
             }
             
             // Remove matched tiles (they shrink/fade away)
@@ -229,6 +245,7 @@ class GameViewModel {
             
             // Check for Power Surge effect
             if battleManager.triggeredPowerSurge {
+                hapticManager?.powerSurgeTriggered()  // ✨ POWER SURGE HAPTIC!
                 try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
                 try? await Task.sleep(for: .milliseconds(Int(1500 * speedMultiplier)))
                 battleManager.triggeredPowerSurge = false
@@ -236,6 +253,11 @@ class GameViewModel {
             
             // Play attack animation
             await playAttackAnimation()
+            
+            // ✨ HAPTIC: Cascade combo feedback
+            if cascadeCount > 1 {
+                hapticManager?.cascadeTriggered(comboNumber: cascadeCount)
+            }
             
             // Update score
             for match in matches {
@@ -300,6 +322,9 @@ class GameViewModel {
             isProcessing = true
             isSelectingGemToClear = false
             
+            // ✨ HAPTIC: Coffee cup ability activated!
+            hapticManager?.abilityActivated()
+            
             // Use the ability
             battleManager.useAbility(.heroicStrike, gemType: type)
             
@@ -340,6 +365,9 @@ class GameViewModel {
                 
                 // STEP 2: Trigger explosions (based on your timing setting)
                 try? await Task.sleep(for: .milliseconds(explosionDelay))
+                
+                // ✨ HAPTIC: Massive explosion as gems clear!
+                hapticManager?.matchDetected(tileCount: 5)  // Max intensity burst
                 
                 // Create explosions using saved gem info
                 for info in gemInfo {
@@ -398,6 +426,9 @@ class GameViewModel {
         guard battleManager.gameState == .playing else { return }
         
         isProcessing = true
+        
+        // ✨ HAPTIC: Chain completed (intensity based on chain length)
+        hapticManager?.matchDetected(tileCount: positions.count)
         
         // Update chain handler's tile type
         chainHandler?.chainTileType = type
