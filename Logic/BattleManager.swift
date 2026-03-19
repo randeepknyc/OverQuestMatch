@@ -13,6 +13,7 @@ class BattleManager {
     var recentEvents: [BattleEvent] = []
     var comboCount: Int = 0
     var turnCount: Int = 0
+    var hapticManager: HapticManager?  // ✨ NEW: Haptic feedback
     
     var gameState: GameState = .playing
     
@@ -134,15 +135,19 @@ class BattleManager {
         // Apply effects
         if totalDamage > 0 {
             enemy.takeDamage(totalDamage)
+            hapticManager?.enemyDamaged(damage: totalDamage)  // ✨ Enemy damage haptic
         }
         if totalHealing > 0 {
             player.heal(totalHealing)
+            hapticManager?.manaGained()  // ✨ Healing haptic (reuse mana sound)
         }
         if totalShield > 0 {
             player.addShield(totalShield)
+            hapticManager?.shieldActivated()  // ✨ Shield haptic
         }
         if totalMana > 0 {
             mana = min(GameConfig.maxMana, mana + totalMana)
+            hapticManager?.manaGained()  // ✨ Mana gain haptic
         }
         
         // ═══════════════════════════════════════════════════════════════
@@ -184,6 +189,7 @@ class BattleManager {
         // ═══════════════════════════════════════════════════════════════
         
         player.takeDamage(damage)
+        hapticManager?.playerDamaged(damage: damage)  // ✨ Player damage haptic
         addEvent(enemyAttackMessage(damage: damage))
         
         // ═══════════════════════════════════════════════════════════════
@@ -209,6 +215,7 @@ class BattleManager {
             player.currentState = .victory
             // ═══════════════════════════════════════════════════════════════
             
+            hapticManager?.victory()  // ✨ Victory haptic celebration!
             addEvent(BattleEvent(text: "Victory! The Toad King croaks his last!", type: .special))
         } else if !player.isAlive {
             gameState = .defeat
@@ -219,6 +226,7 @@ class BattleManager {
             player.currentState = .defeat
             // ═══════════════════════════════════════════════════════════════
             
+            hapticManager?.defeat()  // ✨ Defeat haptic
             addEvent(BattleEvent(text: "Defeated! The swamp claims another hero...", type: .special))
         }
     }
