@@ -31,7 +31,7 @@ class GameViewModel {
     /// Skip artificial waiting pauses (animations still play at same speed)
     /// true = Board unlocks faster, snappier gameplay
     /// false = Original timing with all pauses (REVERT TO THIS IF ISSUES)
-    var skipWaitingPauses: Bool = true  // ⚡ NEW: Faster board unlock!
+    var skipWaitingPauses: Bool = false  // ⚡ NEW: Faster board unlock!
     
     /// Allow enemy turn to happen in background after board unlocks
     /// true = You can make next move while enemy attacks
