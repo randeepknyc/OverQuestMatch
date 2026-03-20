@@ -12,8 +12,13 @@ import SwiftUI
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 💥 MATCH DISAPPEAR ANIMATION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚡ EXPERIMENT: Change "duration" to adjust disappear speed
+// 0.15 = Very fast (snappy!)
+// 0.2 = Fast
+// 0.3 = Normal (default)
+// 0.5 = Slow and dramatic
 struct MatchDisappearAnimation {
-    static let duration: Double = 0.3
+    static let duration: Double = 0.2
     static let scaleEnd: Double = 0.01
     static let useOpacityFade: Bool = false
     static let useBuzzShake: Bool = true
@@ -741,7 +746,7 @@ extension View {
                                 onSwipe(value.translation.height > 0 ? .down : .up)
                             }
                             
-                            withAnimation(.interpolatingSpring(stiffness: 450, damping: 5)) {
+                            withAnimation(.interpolatingSpring(stiffness: 450, damping: 9)) {
                                 dragOffset.wrappedValue = .zero
                             }
                         }
