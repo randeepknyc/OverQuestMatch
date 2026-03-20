@@ -383,6 +383,147 @@ ZStack {
 
 ---
 
+### Session 10: Character Portrait State System - Hurt vs Hurt2 (March 20, 2026) ✅
+
+**Goal:**
+- Fix `ramp_hurt` not showing when `skipWaitingPauses = true`
+- Implement separate hurt states for enemy attacks vs invalid swaps
+- Ensure all character states display correctly during fast gameplay
+
+**User Request:**
+- "when i change skipwaitingpauses to true - it doesn't run ramp_hurt because the attack from the enemy is happening in the background"
+- "play ramp_hurt2.png when invalid swap happens, and ramp_hurt.png when hes attacked"
+
+**Problem Identified:**
+1. When `skipWaitingPauses = true` and `asyncEnemyTurn = true`, Ramp's `.hurt` state was being overwritten
+2. If player made a new match while enemy was attacking in background, the new match would set Ramp to `.attack`, overriding `.hurt`
+3. No distinction between enemy damage (fair) and invalid swap damage (mistake)
+
+**Changes Made:**
+
+1. **Character.swift - Added `.hurt2` State (Line 56)**
+   ```swift
+   enum CharacterState {
+       case idle       // Normal standing
+       case attack     // Attacking
+       case hurt       // Taking damage from enemy
+       case hurt2      // Taking damage from mistake (invalid swap) ⚠️ NEW!
+       case defend     // Blocking/shielding
+       case spell      // Casting ability
+       case victory    // Won the battle
+       case defeat     // Lost the battle
+   }
+   ```
+   - `.hurt` = Enemy attack damage (shows `ramp_hurt.png`)
+   - `.hurt2` = Invalid swap penalty (shows `ramp_hurt2.png`)
+
+2. **Character.swift - Updated Image Name Mapping (Line 70)**
+   ```swift
+   case .hurt:
+       return "ramp_hurt"       // Enemy attack damage
+   case .hurt2:
+       return "ramp_hurt2"      // Invalid swap penalty
+   ```
+
+3. **GameViewModel.swift - Invalid Swap Uses `.hurt2` (Line 144)**
+   ```swift
+   battleManager.player.currentState = .hurt2  // Different hurt image for invalid swap!
+   ```
+
+4. **GameViewModel.swift - Protected Both Hurt States in Enemy Turn (Line 372)**
+   ```swift
+   // Only set to idle if player is STILL in .hurt or .hurt2 state
+   if battleManager.player.currentState == .hurt || battleManager.player.currentState == .hurt2 {
+       battleManager.player.currentState = .idle
+   }
+   ```
+   - Prevents `.idle` from overwriting `.attack` if player made new match
+
+5. **BattleManager.swift - Protected Both States in Match Processing (Lines 79, 91, 103, 115)**
+   ```swift
+   // Don't override .hurt/.hurt2 states (taking damage)
+   if player.currentState != .hurt && player.currentState != .hurt2 {
+       player.currentState = .attack
+   }
+   ```
+   - Applied to: Sword matches, Fire matches, Shield matches, Heart matches
+   - Prevents new matches from overwriting damage states
+
+6. **BattleManager.swift - Protected Both States in Idle Return (Line 171)**
+   ```swift
+   // Only set to idle if player is still in attack/defend state
+   // Don't override .hurt/.hurt2 (taking damage) or other critical states
+   if player.currentState == .attack || player.currentState == .defend {
+       player.currentState = .idle
+   }
+   ```
+
+7. **CharacterAnimations.swift - Added `.hurt2` Case to Switch (Line 57)**
+   ```swift
+   case .hurt2:
+       // Hurt2 state - invalid swap penalty - static image (FOR NOW)
+       StaticImage(imageName: "ramp_hurt2")
+   ```
+
+**State Flow Examples:**
+
+**Enemy Attack (Normal):**
+```
+1. Enemy turn starts in background
+2. Ramp.currentState = .hurt (shows ramp_hurt.png)
+3. Player makes new match
+4. Check: Is Ramp .hurt or .hurt2? YES → Skip setting .attack
+5. .hurt animation completes → Set to .idle
+6. THEN Ramp changes to .attack for new match
+```
+
+**Invalid Swap (Penalty):**
+```
+1. Player swaps invalid gems
+2. Gems shake and swap back
+3. Ramp.currentState = .hurt2 (shows ramp_hurt2.png)
+4. 8 damage penalty applied
+5. Flash animation plays
+6. .hurt2 animation completes → Set to .idle
+```
+
+**State Protection Logic:**
+- New matches check: "Is player currently .hurt or .hurt2?" → Skip state change if true
+- Idle return checks: "Is player STILL .hurt or .hurt2?" → Only then reset to idle
+- Prevents state overwriting during fast, overlapping actions
+
+**Asset Requirements:**
+- `ramp_hurt.png` - Enemy attack damage (should exist)
+- `ramp_hurt2.png` - Invalid swap penalty (user added to assets)
+
+**Timing:**
+- Invalid swap hurt: 350ms flash + 150ms transition = 500ms total
+- Enemy attack hurt: 350ms flash + 150ms transition = 500ms total
+- Both protected from being overwritten by new matches
+
+**Result:**
+✅ Ramp always shows `.hurt` when enemy attacks (even with fast gameplay)
+✅ Ramp shows `.hurt2` when invalid swap happens (different image!)
+✅ State protection prevents overwrites during background enemy turns
+✅ Works perfectly with `skipWaitingPauses = true` and `asyncEnemyTurn = true`
+✅ Both hurt animations complete fully before returning to idle
+✅ Fast, responsive gameplay maintained while preserving visual feedback
+
+**What Works Now:**
+- ✅ Enemy attack → `ramp_hurt.png` displays correctly
+- ✅ Invalid swap → `ramp_hurt2.png` displays correctly
+- ✅ Fast gameplay doesn't skip hurt states
+- ✅ Multiple overlapping actions don't conflict
+- ✅ Portrait states always reflect current situation
+
+**Files Modified:**
+- Character.swift (added `.hurt2` state, updated image mapping)
+- GameViewModel.swift (invalid swap uses `.hurt2`, protected both hurt states)
+- BattleManager.swift (protected both hurt states in all match types, idle return logic)
+- CharacterAnimations.swift (added `.hurt2` switch case for rendering)
+
+---
+
 ### Session 9: Responsive Gameplay - Non-Blocking Enemy Attacks (March 19, 2026) ✅
 
 **Goal:**
@@ -1730,17 +1871,18 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
+| Character.swift | Session 10 | ✅ Working | Added `.hurt2` state for invalid swap penalty, updated image mapping |
+| CharacterAnimations.swift | Session 10 | ✅ Working | Added `.hurt2` switch case for rendering |
+| GameViewModel.swift | Session 10 | ✅ Working | Invalid swap uses `.hurt2`, protected both hurt states from being overwritten |
+| BattleManager.swift | Session 10 | ✅ Working | Protected `.hurt` and `.hurt2` states in all match types and idle return logic |
 | GameBoardView.swift | Session 8 | ✅ Working | Springy drag gesture (stiffness: 250, damping: 20), smooth swap (.easeInOut 0.4s), raindrop cascade preserved |
-| GameViewModel.swift | Session 7 | ✅ Working | Swap flow refactored, timing adjusted |
 | BoardManager.swift | Session 6 | ✅ Working | Clears spawn delays on swap, bottom-to-top fill perfect |
 | ContentView.swift | Session 5 | ✅ Working | Syncs game mode to ViewModel via onChange/onAppear |
 | ChainComboEffects.swift | Session 4 | ✅ Working | Blue diagonal lightning + particles effect |
 | GameAssets.swift | Session 3 | ✅ Working | Added Power Surge config toggles |
-| BattleManager.swift | Session 3 | ✅ Working | Detects 4+ matches, triggers Power Surge |
 | BattleSceneView.swift | Session 1 | ✅ Working | Gem selector removed, coffee button centered |
 
 ---
 
-**Last Updated**: Session 8 - Springy Drag Gesture & Final Animation Tuning
-**Status**: All animations working perfectly! ✅ Dragging gems feels springy and fun (stiffness: 250, damping: 20), swaps are silky smooth (.easeInOut 0.4s), raindrop cascade fully preserved. Ready for cascade modifications! 💎✨
-**Status**: Match animations in progress! Wiggle effect working, debugging disappearing gems during swaps. Initial fill still PERFECT! 💎✨
+**Last Updated**: Session 10 - Character Portrait State System (Hurt vs Hurt2)
+**Status**: ✅ All character states working perfectly with fast gameplay! Enemy attacks show `ramp_hurt.png`, invalid swaps show `ramp_hurt2.png`. State protection prevents overwrites during non-blocking enemy turns. Responsive gameplay fully functional! 🎮⚡

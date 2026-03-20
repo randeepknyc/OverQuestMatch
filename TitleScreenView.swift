@@ -16,6 +16,9 @@ struct TitleScreenView: View {
     @State private var logoGlow: Double = 0
     @State private var backgroundOffset: CGFloat = 0
     
+    // ✨ NEW: Leaf animation state
+    @State private var currentLeafFrame = 1
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -31,6 +34,20 @@ struct TitleScreenView: View {
                         height: geometry.size.height + abs(backgroundOffset)
                     )
                     .offset(y: backgroundOffset)
+                    .ignoresSafeArea()
+                
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ NEW: LEAF ANIMATION LAYER (ON TOP OF BACKGROUND)
+                // ═══════════════════════════════════════════════════════════════
+                // Cycles through leaf1.png → leaf17.png with 1 second delay
+                // Your hand-animated leaves flying across the screen
+                Image("leaf\(currentLeafFrame)")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(
+                        width: geometry.size.width,
+                        height: geometry.size.height
+                    )
                     .ignoresSafeArea()
                 
                 // ═══════════════════════════════════════════════════════════════
@@ -82,6 +99,33 @@ struct TitleScreenView: View {
         .ignoresSafeArea()
         .onAppear {
             startAnimation()
+            startLeafAnimation()  // ✨ NEW: Start leaf cycling
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ✨ NEW: LEAF ANIMATION LOGIC WITH LOOP DELAY
+    // ═══════════════════════════════════════════════════════════════
+    // Cycles through leaf1.png → leaf17.png, then pauses before looping
+    func startLeafAnimation() {
+        // ⚠️ ADJUST THESE TIMING VALUES:
+        let frameDelay = 0.1        // Time between each leaf frame (0.1s = 10fps)
+        let loopPauseDelay = 2.0    // Pause AFTER leaf17 before restarting (2 seconds)
+        
+        Timer.scheduledTimer(withTimeInterval: frameDelay, repeats: true) { timer in
+            if currentLeafFrame < 17 {
+                // Normal playback: leaf1 → leaf17
+                currentLeafFrame += 1
+            } else {
+                // We're at leaf17 - stop the timer temporarily
+                timer.invalidate()
+                
+                // Wait for loop pause, then restart from leaf1
+                DispatchQueue.main.asyncAfter(deadline: .now() + loopPauseDelay) {
+                    currentLeafFrame = 1
+                    startLeafAnimation()  // Restart the animation
+                }
+            }
         }
     }
     

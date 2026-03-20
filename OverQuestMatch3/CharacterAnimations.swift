@@ -54,9 +54,14 @@ struct RampAnimatedPortrait: View {
                 StaticImage(imageName: "ramp_attack")
                 
             case .hurt:
-                // Hurt state - static image (FOR NOW)
+                // Hurt state - enemy damage - static image (FOR NOW)
                 // FUTURE: Change to LineBoilAnimation(framePrefix: "ramp_hurt_boil", frameCount: 3)
                 StaticImage(imageName: "ramp_hurt")
+                
+            case .hurt2:
+                // Hurt2 state - invalid swap penalty - static image (FOR NOW)
+                // FUTURE: Change to LineBoilAnimation(framePrefix: "ramp_hurt2_boil", frameCount: 3)
+                StaticImage(imageName: "ramp_hurt2")
                 
             case .defend:
                 // Defend state - static image (FOR NOW)
@@ -114,31 +119,17 @@ struct LineBoilAnimation: View {
         }
     }
     
-    // Creates smooth back-and-forth sequence: 1, 2, 3, 2, 1, 2, 3, 2...
-    // This prevents "snapping" when looping
+    // Creates simple forward loop: 1, 2, 3, 1, 2, 3...
     private func buildFrameSequence() -> [String] {
         guard frameCount > 0 else { return [] }
         
-        if frameCount == 1 {
-            return ["\(framePrefix)1"]
-        } else if frameCount == 2 {
-            return ["\(framePrefix)1", "\(framePrefix)2"]
-        } else {
-            // For 3+ frames: forward then backward (skip first/last to avoid stutter)
-            var sequence: [String] = []
-            
-            // Forward: 1, 2, 3
-            for i in 1...frameCount {
-                sequence.append("\(framePrefix)\(i)")
-            }
-            
-            // Backward (skip first and last): 2
-            for i in stride(from: frameCount - 1, through: 2, by: -1) {
-                sequence.append("\(framePrefix)\(i)")
-            }
-            
-            return sequence
+        // Simple forward loop for all frame counts
+        var sequence: [String] = []
+        for i in 1...frameCount {
+            sequence.append("\(framePrefix)\(i)")
         }
+        
+        return sequence
     }
 }
 

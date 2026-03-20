@@ -55,7 +55,8 @@ class Character {
 enum CharacterState {
     case idle       // Normal standing
     case attack     // Attacking
-    case hurt       // Taking damage
+    case hurt       // Taking damage from enemy
+    case hurt2      // Taking damage from mistake (invalid swap) ⚠️ NEW!
     case defend     // Blocking/shielding
     case spell      // Casting ability
     case victory    // Won the battle
@@ -71,7 +72,9 @@ enum CharacterState {
             case .attack:
                 return "ramp_attack"
             case .hurt:
-                return "ramp_hurt"
+                return "ramp_hurt"       // Enemy attack damage
+            case .hurt2:
+                return "ramp_hurt2"      // Invalid swap penalty
             case .defend:
                 return "ramp_defend"
             case .spell:

@@ -146,12 +146,25 @@ class GameViewModel {
             // PENALTY: Enemy attacks for 8 damage due to invalid move
             battleManager.player.takeDamage(8)
             
-            // Show enemy attack animation
-            isEnemyAttacking = true
-            flashPlayer = true
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 RAMP TAKES DAMAGE FROM MISTAKE (set to hurt2 state)
+            // ═══════════════════════════════════════════════════════════════
+            battleManager.player.currentState = .hurt2  // Different hurt image for invalid swap!
+            // ═══════════════════════════════════════════════════════════════
+            
+            // Show hurt animation
+            isEnemyAttacking = true  // Enemy punishment visual
+            flashPlayer = true       // Ramp flashes (taking damage)
             try? await Task.sleep(for: .milliseconds(350))
             isEnemyAttacking = false
             flashPlayer = false
+            
+            // ═══════════════════════════════════════════════════════════════
+            // 🎨 RETURN RAMP TO IDLE
+            // ═══════════════════════════════════════════════════════════════
+            try? await Task.sleep(for: .milliseconds(150))
+            battleManager.player.currentState = .idle
+            // ═══════════════════════════════════════════════════════════════
             
             isProcessing = false
             return
@@ -338,12 +351,39 @@ class GameViewModel {
             try? await Task.sleep(for: .milliseconds(400))
         }
         
-        isEnemyAttacking = true
-        flashPlayer = true
+        // ═══════════════════════════════════════════════════════════════
+        // 🎨 SET PORTRAIT STATES FIRST (so they animate immediately)
+        // ═══════════════════════════════════════════════════════════════
+        battleManager.enemy.currentState = .attack  // Ednar attacks!
+        battleManager.player.currentState = .hurt   // Ramp gets hurt!
+        // ═══════════════════════════════════════════════════════════════
+        
+        // Show visual attack effects
+        isEnemyAttacking = true  // Ednar portrait slides forward
+        flashPlayer = true       // Ramp flashes white
+        
+        // Apply damage (happens instantly)
         battleManager.enemyTurn()
+        
+        // Wait for animation to complete
         try? await Task.sleep(for: .milliseconds(350))
         isEnemyAttacking = false
         flashPlayer = false
+        
+        // ═══════════════════════════════════════════════════════════════
+        // 🎨 RETURN BOTH TO IDLE (brief delay for smooth transition)
+        // ═══════════════════════════════════════════════════════════════
+        try? await Task.sleep(for: .milliseconds(150))
+        
+        // ⚠️ CRITICAL: Only set to idle if player hasn't started a NEW action
+        // This prevents .hurt from being overwritten by .idle if player made a new match
+        // Also protects .hurt2 (invalid swap punishment)
+        if battleManager.player.currentState == .hurt || battleManager.player.currentState == .hurt2 {
+            battleManager.player.currentState = .idle
+        }
+        
+        battleManager.enemy.currentState = .idle
+        // ═══════════════════════════════════════════════════════════════
     }
     
     func resetGame() {

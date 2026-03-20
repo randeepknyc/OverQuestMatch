@@ -11,6 +11,10 @@ struct DeveloperSplashView: View {
     @State private var scale: Double = 0.8
     @State private var canSkip = false  // ✨ NEW: Prevents instant skip
     
+    // ✨ NEW: Character animation states (4fps = 0.25s per frame)
+    @State private var currentRKFrame = 1
+    @State private var currentMiloFrame = 1
+    
     var body: some View {
         ZStack {
             // ═══════════════════════════════════════════════════════════════
@@ -31,14 +35,35 @@ struct DeveloperSplashView: View {
             }
             
             // ═══════════════════════════════════════════════════════════════
-            // LAYER 2: STATIC LOGO (ALWAYS SHOWS)
+            // LAYER 2: STATIC BACKGROUND (splash_screen.png)
             // ═══════════════════════════════════════════════════════════════
-            // Uses "splash_screen.png" from Assets
-            // This appears on top of the animated background
+            // Base splash screen image
             Image("splash_screen")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .padding(0)  // ⚠️ Change this number to adjust logo size (0 = full screen, 40 = smaller with margin)
+                .padding(0)
+                .opacity(opacity)
+                .scaleEffect(scale)
+            
+            // ═══════════════════════════════════════════════════════════════
+            // ✨ NEW: LAYER 3: ANIMATED CHARACTER - RK (splashrk1-3)
+            // ═══════════════════════════════════════════════════════════════
+            // Cycles through splashrk1.png → splashrk2.png → splashrk3.png at 4fps
+            Image("splashrk\(currentRKFrame)")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .padding(0)
+                .opacity(opacity)
+                .scaleEffect(scale)
+            
+            // ═══════════════════════════════════════════════════════════════
+            // ✨ NEW: LAYER 4: ANIMATED CHARACTER - MILO (splashmilo1-3)
+            // ═══════════════════════════════════════════════════════════════
+            // Cycles through splashmilo1.png → splashmilo2.png → splashmilo3.png at 4fps
+            Image("splashmilo\(currentMiloFrame)")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .padding(0)
                 .opacity(opacity)
                 .scaleEffect(scale)
             
@@ -74,6 +99,29 @@ struct DeveloperSplashView: View {
         }
         .onAppear {
             startSplashSequence()
+            startCharacterAnimations()  // ✨ NEW: Start RK and Milo animations
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ✨ CHARACTER ANIMATION LOGIC (4fps = 0.25 seconds per frame)
+    // ═══════════════════════════════════════════════════════════════
+    func startCharacterAnimations() {
+        // RK animation: splashrk1 → splashrk2 → splashrk3 → loop (FORWARD)
+        Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+            currentRKFrame += 1
+            if currentRKFrame > 3 {
+                currentRKFrame = 1  // Loop back to frame 1
+            }
+        }
+        
+        // Milo animation: splashmilo3 → splashmilo2 → splashmilo1 → loop (REVERSE) ✨
+        currentMiloFrame = 3  // Start at frame 3 instead of 1
+        Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+            currentMiloFrame -= 1  // Subtract instead of add (goes backwards)
+            if currentMiloFrame < 1 {
+                currentMiloFrame = 3  // Loop back to frame 3
+            }
         }
     }
     
@@ -95,7 +143,8 @@ struct DeveloperSplashView: View {
         }
         
         // Auto-dismiss after full duration (if user doesn't skip)
-        DispatchQueue.main.asyncAfter(deadline: .now() + GameConfig.splashDuration) {
+        // ⚠️ CHANGE THE NUMBER BELOW TO ADJUST SPLASH DURATION:
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {  // ⬅️ 3.0 = 3 seconds
             skipSplash()
         }
     }

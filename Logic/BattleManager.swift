@@ -79,8 +79,11 @@ class BattleManager {
                 
                 // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO ATTACK STATE
+                // ⚠️ PROTECTED: Don't override .hurt/.hurt2 states (taking damage)
                 // ═══════════════════════════════════════════════════════════════
-                player.currentState = .attack
+                if player.currentState != .hurt && player.currentState != .hurt2 {
+                    player.currentState = .attack
+                }
                 // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(barbarianAttackMessage(damage: damage, isCombo: isCombo))
@@ -91,8 +94,11 @@ class BattleManager {
                 
                 // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO ATTACK STATE
+                // ⚠️ PROTECTED: Don't override .hurt/.hurt2 states (taking damage)
                 // ═══════════════════════════════════════════════════════════════
-                player.currentState = .attack
+                if player.currentState != .hurt && player.currentState != .hurt2 {
+                    player.currentState = .attack
+                }
                 // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(magicAttackMessage(damage: damage, isCombo: isCombo))
@@ -103,8 +109,11 @@ class BattleManager {
                 
                 // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO DEFEND STATE
+                // ⚠️ PROTECTED: Don't override .hurt/.hurt2 states (taking damage)
                 // ═══════════════════════════════════════════════════════════════
-                player.currentState = .defend
+                if player.currentState != .hurt && player.currentState != .hurt2 {
+                    player.currentState = .defend
+                }
                 // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(shieldMessage(amount: shield, isCombo: isCombo))
@@ -115,8 +124,11 @@ class BattleManager {
                 
                 // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO DEFEND STATE (healing = defensive action)
+                // ⚠️ PROTECTED: Don't override .hurt/.hurt2 states (taking damage)
                 // ═══════════════════════════════════════════════════════════════
-                player.currentState = .defend
+                if player.currentState != .hurt && player.currentState != .hurt2 {
+                    player.currentState = .defend
+                }
                 // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(healMessage(amount: healing, isCombo: isCombo))
@@ -177,28 +189,20 @@ class BattleManager {
         checkGameOver()
     }
     
+    @MainActor
     func enemyTurn() {
         guard gameState == .playing else { return }
         
         let damage = Int.random(in: GameConfig.enemyMinDamage...GameConfig.enemyMaxDamage)
         
-        // ═══════════════════════════════════════════════════════════════
-        // 🎨 SET PLAYER TO HURT STATE WHEN TAKING DAMAGE
-        // ═══════════════════════════════════════════════════════════════
-        player.currentState = .hurt
-        // ═══════════════════════════════════════════════════════════════
-        
+        // Apply damage and effects
         player.takeDamage(damage)
         hapticManager?.playerDamaged(damage: damage)  // ✨ Player damage haptic
         addEvent(enemyAttackMessage(damage: damage))
         
         // ═══════════════════════════════════════════════════════════════
-        // 🎨 RETURN TO IDLE AFTER DELAY
-        // ═══════════════════════════════════════════════════════════════
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(500))
-            player.currentState = .idle
-        }
+        // 🎨 NOTE: Portrait states are set in GameViewModel.enemyTurn()
+        // This keeps visual animations in sync with async enemy turns
         // ═══════════════════════════════════════════════════════════════
         
         turnCount += 1

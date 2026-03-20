@@ -150,31 +150,12 @@ struct CharacterPortraitWithHealthBorder: View {
                 .rotationEffect(.degrees(-90)) // Start from top
                 .animation(.easeInOut(duration: 0.4), value: character.currentHealth)
             
-            // Portrait Image - uses character state
-            Group {
-                // Special handling for Ramp - use line boil animation
-                if character.name == "Ramp" {
-                    RampLineBoilPortrait()
-                        .frame(width: 165, height: 165)
-                        .clipShape(Circle())
-                } else if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 165, height: 165)
-                        .clipShape(Circle())
-                } else {
-                    // Fallback if image not found
-                    Circle()
-                        .fill(Color.blue.opacity(0.3))
-                        .frame(width: 165, height: 165)
-                        .overlay(
-                            Text(String(character.name.prefix(1)))
-                                .font(.system(size: 55, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
+            // Portrait Image - uses StateBasedCharacterPortrait from CharacterAnimations.swift
+            StateBasedCharacterPortrait(character: character)
+                .frame(width: 165, height: 165)
+                .clipShape(Circle())
+                .id(character.currentState)  // ← FORCE UPDATE when state changes!
+                .animation(.none, value: character.currentState)  // ← NO transition animation between states
             .offset(x: isAttacking ? 15 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
             .overlay(
@@ -609,36 +590,5 @@ struct GemButton: View {
         }
     }
 }
-// MARK: - Ramp Line Boil Animation
 
-struct RampLineBoilPortrait: View {
-    @State private var currentFrame = 0
-    
-    // 4-frame cycle: boil1, boil2, boil3, boil2 (creates smooth back-and-forth)
-    private let frameSequence = ["ramp_boil1", "ramp_boil2", "ramp_boil3", "ramp_boil2"]
-    
-    private let timer = Timer.publish(every: 0.15, on: .main, in: .common).autoconnect()
-    
-    var body: some View {
-        Group {
-            if let image = UIImage(named: frameSequence[currentFrame]) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                // Fallback if boil images not found
-                Circle()
-                    .fill(Color.blue.opacity(0.3))
-                    .overlay(
-                        Text("R")
-                            .font(.system(size: 55, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-            }
-        }
-        .onReceive(timer) { _ in
-            currentFrame = (currentFrame + 1) % frameSequence.count
-        }
-    }
-}
 
