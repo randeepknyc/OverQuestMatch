@@ -24,6 +24,23 @@ class GameViewModel {
     var flashEnemy = false
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ⚡ RESPONSIVE GAMEPLAY CONTROLS (NEW!)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🎯 EASY REVERT: Change these back to `false` to restore original behavior
+    
+    /// Skip artificial waiting pauses (animations still play at same speed)
+    /// true = Board unlocks faster, snappier gameplay
+    /// false = Original timing with all pauses (REVERT TO THIS IF ISSUES)
+    var skipWaitingPauses: Bool = true  // ⚡ NEW: Faster board unlock!
+    
+    /// Allow enemy turn to happen in background after board unlocks
+    /// true = You can make next move while enemy attacks
+    /// false = Wait for enemy turn to fully complete (REVERT TO THIS IF ISSUES)
+    var asyncEnemyTurn: Bool = true  // ⚡ NEW: Non-blocking enemy attacks!
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ⚡ AUTO-CHAIN SPEED CONTROL (Multi-Match Cascades Only!)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // This multiplier ONLY affects cascade 2, 3, 4, etc. (auto-matches)
@@ -151,7 +168,16 @@ class GameViewModel {
         await processCascades()
         
         // 3. Enemy turn
-        await enemyTurn()
+        if asyncEnemyTurn {
+            // ⚡ ASYNC MODE: Enemy attacks in background, board unlocks immediately
+            Task {
+                await enemyTurn()
+            }
+            // Board unlocks NOW - you can make next match!
+        } else {
+            // 🐢 ORIGINAL MODE: Wait for enemy turn to complete
+            await enemyTurn()
+        }
         
         isProcessing = false
     }
@@ -184,7 +210,9 @@ class GameViewModel {
             
             // Highlight matched tiles with buzz animation
             shakeTiles = Set(matches.flatMap { $0.positions })
-            try? await Task.sleep(for: .milliseconds(Int(150 * speedMultiplier)))
+            if !skipWaitingPauses {
+                try? await Task.sleep(for: .milliseconds(Int(150 * speedMultiplier)))
+            }
             
             // ✨ NEW: Create explosions for matched gems
             for match in matches {
@@ -209,10 +237,18 @@ class GameViewModel {
                 boardManager.clearMatches(matches)
             }
             shakeTiles.removeAll()
-            try? await Task.sleep(for: .milliseconds(Int(300 * speedMultiplier)))
+            
+            // ⚡ RESPONSIVE MODE: Only wait for animation duration, skip extra pauses
+            if skipWaitingPauses {
+                try? await Task.sleep(for: .milliseconds(Int(200 * speedMultiplier)))  // Just enough for disappear animation
+            } else {
+                try? await Task.sleep(for: .milliseconds(Int(300 * speedMultiplier)))  // Original
+            }
             
             // Clear explosions after they finish
-            try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
+            if !skipWaitingPauses {
+                try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
+            }
             explosionParticles.removeAll()
             
             // ═══════════════════════════════════════════════════════════════
@@ -223,7 +259,11 @@ class GameViewModel {
             _ = boardManager.applyGravity()
             
             // Wait for visual cascade animation
-            try? await Task.sleep(for: .milliseconds(Int(500 * speedMultiplier)))
+            if skipWaitingPauses {
+                try? await Task.sleep(for: .milliseconds(Int(300 * speedMultiplier)))  // Shorter wait, just for animation
+            } else {
+                try? await Task.sleep(for: .milliseconds(Int(500 * speedMultiplier)))  // Original
+            }
             
             // ═══════════════════════════════════════════════════════════════
             // STEP 3: NEW GEMS SPAWN FROM TOP
@@ -233,7 +273,13 @@ class GameViewModel {
             
             if spawnInfo.newTileCount > 0 {
                 let spawnWaitTime = 20 * boardManager.size + Int(SpawnAnimation.duration * 1000)
-                try? await Task.sleep(for: .milliseconds(Int(Double(spawnWaitTime) * speedMultiplier)))
+                
+                // ⚡ RESPONSIVE MODE: Cut spawn wait time slightly
+                if skipWaitingPauses {
+                    try? await Task.sleep(for: .milliseconds(Int(Double(spawnWaitTime) * speedMultiplier * 0.7)))  // 30% faster
+                } else {
+                    try? await Task.sleep(for: .milliseconds(Int(Double(spawnWaitTime) * speedMultiplier)))  // Original
+                }
             }
             
             // ═══════════════════════════════════════════════════════════════
@@ -246,12 +292,16 @@ class GameViewModel {
             // Check for Power Surge effect
             if battleManager.triggeredPowerSurge {
                 hapticManager?.powerSurgeTriggered()  // ✨ POWER SURGE HAPTIC!
-                try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
-                try? await Task.sleep(for: .milliseconds(Int(1500 * speedMultiplier)))
+                
+                // ⚡ RESPONSIVE MODE: Skip power surge delays
+                if !skipWaitingPauses {
+                    try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
+                    try? await Task.sleep(for: .milliseconds(Int(1500 * speedMultiplier)))
+                }
                 battleManager.triggeredPowerSurge = false
             }
             
-            // Play attack animation
+            // Play attack animation (still plays, just doesn't block as long)
             await playAttackAnimation()
             
             // ✨ HAPTIC: Cascade combo feedback
@@ -265,7 +315,10 @@ class GameViewModel {
             }
             
             // Small pause before checking for next cascade
-            try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
+            if !skipWaitingPauses {
+                try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
+            }
+            // ⚡ RESPONSIVE MODE: No pause, check immediately for next cascade
         }
     }
     
@@ -280,7 +333,10 @@ class GameViewModel {
     
     @MainActor
     private func enemyTurn() async {
-        try? await Task.sleep(for: .milliseconds(400))
+        // ⚡ RESPONSIVE MODE: Skip pre-enemy pause
+        if !skipWaitingPauses {
+            try? await Task.sleep(for: .milliseconds(400))
+        }
         
         isEnemyAttacking = true
         flashPlayer = true
