@@ -87,7 +87,7 @@ struct GameConfig {
     // ═══════════════════════════════════════════════════════════════
     // MARK: - Developer Splash Screen
     static let enableDeveloperSplash = true           // Toggle splash screen on/off (true = show, false = skip)
-    static let splashDuration: Double = 2.0           // How long splash shows (seconds)
+    static let splashDuration: Double = 4.0           // How long splash shows (seconds)
     static let useAnimatedSplash = false              // false = static image, true = animated frames
     
     // ═══════════════════════════════════════════════════════════════
