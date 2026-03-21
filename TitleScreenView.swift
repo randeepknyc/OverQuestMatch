@@ -110,10 +110,10 @@ struct TitleScreenView: View {
     func startLeafAnimation() {
         // ⚠️ ADJUST THESE TIMING VALUES:
         let frameDelay = 0.1        // Time between each leaf frame (0.1s = 10fps)
-        let loopPauseDelay = 2.0    // Pause AFTER leaf17 before restarting (2 seconds)
+        let loopPauseDelay = 2.0    // Pause AFTER leaf18 before restarting (2 seconds)
         
         Timer.scheduledTimer(withTimeInterval: frameDelay, repeats: true) { timer in
-            if currentLeafFrame < 17 {
+            if currentLeafFrame < 18 {
                 // Normal playback: leaf1 → leaf17
                 currentLeafFrame += 1
             } else {

@@ -57,12 +57,26 @@ struct Tile: Identifiable, Equatable {
     var spawnDelay: Double = 0
     var fallDelay: Double = 0
     
+    // ☕ NEW: Bonus tile tracking
+    var isBonusTile: Bool = false
+    
     static func random(row: Int, col: Int) -> Tile {
         Tile(
             type: TileType.allCases.randomElement()!,
             row: row,
             col: col
         )
+    }
+    
+    // ☕ NEW: Create bonus tile
+    static func bonusTile(row: Int, col: Int) -> Tile {
+        var tile = Tile(
+            type: .mana,  // Type doesn't matter, will show coffee image
+            row: row,
+            col: col
+        )
+        tile.isBonusTile = true
+        return tile
     }
     
     static func == (lhs: Tile, rhs: Tile) -> Bool {

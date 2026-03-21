@@ -75,7 +75,7 @@ struct DebugMenuView: View {
             Image(systemName: "hammer.fill")
                 .foregroundColor(.orange)
             Text("DEBUG MENU")
-                .font(.gameTitle(size: 24))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.white)
             Spacer()
             Button(action: { isShowing = false }) {
@@ -98,17 +98,17 @@ struct DebugMenuView: View {
             
             HStack(spacing: 10) {
                 debugButton(title: "Fill Mana (7/7)", icon: "battery.100", color: .yellow) {
-                    viewModel.battleManager.player.mana = 7
+                    viewModel.battleManager.mana = 7
                 }
                 
                 debugButton(title: "Full HP", icon: "heart.fill", color: .red) {
-                    viewModel.battleManager.player.health = viewModel.battleManager.player.maxHealth
+                    viewModel.battleManager.player.currentHealth = viewModel.battleManager.player.maxHealth
                 }
             }
             
             HStack(spacing: 10) {
                 debugButton(title: "Kill Enemy", icon: "skull.fill", color: .purple) {
-                    viewModel.battleManager.enemy.health = 1
+                    viewModel.battleManager.enemy.currentHealth = 1
                 }
                 
                 debugButton(title: "+50 Shield", icon: "shield.fill", color: .cyan) {
@@ -131,7 +131,11 @@ struct DebugMenuView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white.opacity(0.8))
             
-            LazyVGrid(columns: [GridColumn(.flexible()), GridColumn(.flexible()), GridColumn(.flexible())], spacing: 8) {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 8) {
                 ForEach(TileType.allCases, id: \.self) { tileType in
                     debugButton(
                         title: tileType.rawValue.capitalized,
@@ -165,9 +169,9 @@ struct DebugMenuView: View {
             sectionHeader(title: "⚔️ BATTLE STATS", icon: "chart.bar.fill")
             
             VStack(spacing: 8) {
-                statRow(label: "Player HP", value: "\(viewModel.battleManager.player.health)/\(viewModel.battleManager.player.maxHealth)")
-                statRow(label: "Enemy HP", value: "\(viewModel.battleManager.enemy.health)/\(viewModel.battleManager.enemy.maxHealth)")
-                statRow(label: "Mana", value: "\(viewModel.battleManager.player.mana)/7")
+                statRow(label: "Player HP", value: "\(viewModel.battleManager.player.currentHealth)/\(viewModel.battleManager.player.maxHealth)")
+                statRow(label: "Enemy HP", value: "\(viewModel.battleManager.enemy.currentHealth)/\(viewModel.battleManager.enemy.maxHealth)")
+                statRow(label: "Mana", value: "\(viewModel.battleManager.mana)/7")
                 statRow(label: "Shield", value: "\(viewModel.battleManager.player.shield)")
                 statRow(label: "Score", value: "\(viewModel.score)")
             }
@@ -216,12 +220,32 @@ struct DebugMenuView: View {
             
             HStack(spacing: 10) {
                 debugButton(title: "Spawn at (3,3)", icon: "plus.circle", color: .brown) {
-                    viewModel.boardManager.spawnBonusTile(at: GridPosition(row: 3, col: 3))
+                    let position = GridPosition(row: 3, col: 3)
+                    // ☕ REMOVE EXISTING GEM FIRST, THEN SPAWN BONUS
+                    viewModel.boardManager.gems.removeAll { $0.row == position.row && $0.col == position.col }
+                    viewModel.boardManager.spawnBonusTile(at: position)
                 }
                 
                 debugButton(title: "Spawn at (5,5)", icon: "plus.circle", color: .brown) {
-                    viewModel.boardManager.spawnBonusTile(at: GridPosition(row: 5, col: 5))
+                    let position = GridPosition(row: 5, col: 5)
+                    // ☕ REMOVE EXISTING GEM FIRST, THEN SPAWN BONUS
+                    viewModel.boardManager.gems.removeAll { $0.row == position.row && $0.col == position.col }
+                    viewModel.boardManager.spawnBonusTile(at: position)
                 }
+            }
+            
+            // ⚔️ NEW: Spawn TWO bonus tiles next to each other (for cross blast testing!)
+            debugButton(title: "⚔️ Spawn TWO at (4,4) + (4,5) [CROSS TEST]", icon: "plus.circle.fill", color: .orange) {
+                let position1 = GridPosition(row: 4, col: 4)
+                let position2 = GridPosition(row: 4, col: 5)
+                
+                // Remove any existing gems at both positions
+                viewModel.boardManager.gems.removeAll { $0.row == position1.row && $0.col == position1.col }
+                viewModel.boardManager.gems.removeAll { $0.row == position2.row && $0.col == position2.col }
+                
+                // Spawn bonus tiles at both positions
+                viewModel.boardManager.spawnBonusTile(at: position1)
+                viewModel.boardManager.spawnBonusTile(at: position2)
             }
             
             debugButton(title: "Remove All Bonus Tiles", icon: "xmark.circle", color: .red) {
@@ -299,7 +323,11 @@ struct DebugMenuView: View {
     
     private func spawnCoffeeAtCenter() {
         let center = viewModel.boardManager.size / 2
-        viewModel.boardManager.spawnBonusTile(at: GridPosition(row: center, col: center))
+        let position = GridPosition(row: center, col: center)
+        
+        // ☕ REMOVE EXISTING GEM FIRST, THEN SPAWN BONUS
+        viewModel.boardManager.gems.removeAll { $0.row == position.row && $0.col == position.col }
+        viewModel.boardManager.spawnBonusTile(at: position)
     }
     
     private func clearBoard() {
@@ -314,18 +342,5 @@ struct DebugMenuView: View {
     
     private func removeAllBonusTiles() {
         viewModel.boardManager.gems.removeAll { $0.isBonusTile }
-    }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GRID COLUMN HELPER (for lazy grid)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-struct GridColumn: Identifiable {
-    let id = UUID()
-    let size: GridItem.Size
-    
-    init(_ size: GridItem.Size) {
-        self.size = size
     }
 }

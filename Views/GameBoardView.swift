@@ -136,6 +136,16 @@ struct GameBoardView: View {
                 }
             }
             
+            // ☕ BONUS BLAST EFFECTS (can show multiple for cross blast!)
+            ForEach(viewModel.bonusBlasts) { bonusBlast in
+                BonusBlastView(
+                    blastData: bonusBlast,
+                    boardSize: viewModel.boardManager.size,
+                    tileSize: tileSize
+                )
+                .allowsHitTesting(false)
+            }
+            
             if gameMode == .chain, let handler = viewModel.chainHandler {
                 if handler.chainLength > 0, let chainType = handler.chainTileType {
                     ChainConnectionView(
@@ -320,12 +330,18 @@ struct GemTileView: View {
     @ViewBuilder
     private var mainContent: some View {
         ZStack {
-            Image(tile.type.imageName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.85, height: size * 0.85)
-                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
-                .chainGlow(isInChain: isInChain, color: tile.type.color)
+            // ☕ BONUS TILE: Show coffee image if it's a bonus tile
+            if tile.isBonusTile {
+                bonusTileContent
+            } else {
+                // Regular tile
+                Image(tile.type.imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size * 0.85, height: size * 0.85)
+                    .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                    .chainGlow(isInChain: isInChain, color: tile.type.color)
+            }
             
             if isSelected {
                 selectedOverlay
@@ -335,6 +351,26 @@ struct GemTileView: View {
                 specialBadge
             }
         }
+    }
+    
+    // ☕ BONUS TILE: Special rendering for bonus tiles
+    @ViewBuilder
+    private var bonusTileContent: some View {
+        Image(BonusTileConfig.imageName)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size * 0.85, height: size * 0.85)
+            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+            .modifier(BonusTileGlowModifier(
+                isEnabled: BonusTileConfig.enableGlow,
+                color: Color(
+                    red: BonusTileConfig.glowColor.red,
+                    green: BonusTileConfig.glowColor.green,
+                    blue: BonusTileConfig.glowColor.blue
+                ),
+                opacity: BonusTileConfig.glowOpacity,
+                speed: BonusTileConfig.glowSpeed
+            ))
     }
     
     @ViewBuilder
@@ -746,7 +782,7 @@ extension View {
                                 onSwipe(value.translation.height > 0 ? .down : .up)
                             }
                             
-                            withAnimation(.interpolatingSpring(stiffness: 450, damping: 9)) {
+                            withAnimation(.interpolatingSpring(stiffness: 250, damping: 12)) {
                                 dragOffset.wrappedValue = .zero
                             }
                         }
@@ -822,6 +858,37 @@ struct ExplosionParticleView: View {
                 }
                 particles[i].scale = 0.5
             }
+        }
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ☕ BONUS TILE GLOW MODIFIER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+struct BonusTileGlowModifier: ViewModifier {
+    let isEnabled: Bool
+    let color: Color
+    let opacity: Double
+    let speed: Double
+    
+    @State private var glowIntensity: Double = 0.5
+    
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .shadow(color: color.opacity(opacity * glowIntensity), radius: 20)
+                .shadow(color: color.opacity(opacity * glowIntensity * 0.6), radius: 10)
+                .onAppear {
+                    withAnimation(
+                        .easeInOut(duration: speed)
+                        .repeatForever(autoreverses: true)
+                    ) {
+                        glowIntensity = 1.0
+                    }
+                }
+        } else {
+            content
         }
     }
 }

@@ -79,6 +79,9 @@ struct GameScreen: View {
     @Binding var showPauseMenu: Bool
     @Binding var gameMode: GameMode
     
+    // 🛠️ DEBUG MENU
+    @State private var showDebugMenu = false
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -97,6 +100,25 @@ struct GameScreen: View {
                     GameBoardView(viewModel: viewModel, gameMode: gameMode)
                         .frame(height: geometry.size.height * 0.58)
                 }
+                
+                // 🛠️ DEBUG BUTTON (Top-right corner)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { showDebugMenu = true }) {
+                            Image(systemName: "hammer.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.orange)
+                                .padding(12)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                                .shadow(color: .orange.opacity(0.5), radius: 5)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.top, 16)
+                    }
+                    Spacer()
+                }
+                .zIndex(100)
                 .onChange(of: gameMode) { _, newMode in
                     viewModel.currentGameMode = newMode
                 }
@@ -138,6 +160,13 @@ struct GameScreen: View {
                     PowerSurgeEffect()
                         .transition(.opacity)
                         .zIndex(500)
+                }
+                
+                // 🛠️ DEBUG MENU OVERLAY
+                if showDebugMenu {
+                    DebugMenuView(viewModel: viewModel, isShowing: $showDebugMenu)
+                        .transition(.opacity)
+                        .zIndex(1500)
                 }
                 
                 // Game over overlay

@@ -300,6 +300,406 @@ ZStack {
 
 ## 🔧 RECENT CHANGES
 
+### Session 12: Coffee Bonus Tile System + Debug Menu (March 20, 2026) ✅
+
+**Goal:**
+- Add bonus tile that spawns on 5-gem matches (straight lines or L-shapes)
+- Bonus tiles clear row/column based on swipe direction
+- Bonus tiles immune to auto-matching (persist through cascades)
+- Add comprehensive debug menu for testing
+- Support L-shape detection (3 horizontal + 3 vertical sharing corner)
+
+**User Requests:**
+1. "i want to add a bonus tile that appears when a 5 gem match happens. can that tile be animated?"
+2. "can you add a debug mode so i can force 5 match tiles, force coffee mana, and add other options as needed"
+3. "make sure when the coffee cup appears, it doesn't appear OVER an existing tile"
+4. "Let's change whether a row or a column disappears, based on which direction the user swipes"
+5. "if the coffee cup is part of a cascade, it should remain on the board and not disappear til the user swipes it"
+6. "i want 3 across, 2 down in any combo, an L shape facing any direction basically made of 5 gems"
+
+**Changes Made:**
+
+1. **BonusTileConfig.swift - NEW FILE (Complete bonus tile settings)**
+   ```swift
+   struct BonusTileConfig {
+       static let enabled: Bool = true
+       static let minimumMatchSize: Int = 5
+       static let enableGlow: Bool = true
+       static let glowSpeed: Double = 1.0
+       static let glowColor = (1.0, 0.9, 0.3)  // Golden
+       static let glowOpacity: Double = 0.5
+       static let imageName: String = "coffee_bonus"
+       static let allowMultiple: Bool = true
+   }
+   ```
+   - All configurable settings in one place
+   - Easy toggle for feature, glow, colors
+   - Multiple bonus tiles support
+
+2. **DebugMenuView.swift - NEW FILE (Complete debug system)**
+   ```swift
+   struct DebugMenuView: View {
+       // Quick Actions: Fill Mana, Full HP, Kill Enemy, +50 Shield
+       // Board Manipulation: Force 5-Match (all types), Spawn Coffee, Clear Board
+       // Battle Stats: Real-time HP, Mana, Shield, Score display
+       // Game Speed: Toggle Skip Pauses, Async Enemy, Auto-Chain Speed slider
+       // Bonus Testing: Spawn at specific positions, Remove all bonuses
+   }
+   ```
+   - Orange hammer icon in top-right corner
+   - Force 5-match for any tile type (top row, columns 2-6)
+   - Manual coffee spawn at center, (3,3), or (5,5)
+   - Real-time battle stats display
+   - Speed controls (skip pauses, async enemy, chain speed)
+
+3. **TileType.swift - Added Bonus Tile Tracking**
+   ```swift
+   struct Tile {
+       var isBonusTile: Bool = false  // ☕ NEW
+       
+       static func bonusTile(row: Int, col: Int) -> Tile {
+           var tile = Tile(type: .mana, row: row, col: col)
+           tile.isBonusTile = true
+           return tile
+       }
+   }
+   ```
+
+4. **BoardManager.swift - Complete Bonus Tile Logic**
+   - `findMatches()` - Skip bonus tiles entirely (lines 94-152)
+     - Bonus tiles don't start matches
+     - Bonus tiles break match chains
+   - `clearMatches()` - Protect bonus tiles from removal (line 163)
+     - `!gemToRemove.isBonusTile` protection
+   - `shouldSpawnBonusTile()` - Detect 5-matches and L-shapes (lines 171-189)
+     - Checks L-shapes first
+     - Then checks straight 5s
+   - `detectLShapeMatch()` - NEW FUNCTION (lines 195-223)
+     - Finds pairs of matches sharing corner
+     - Must be same type
+     - Must share exactly 1 tile
+     - Total unique tiles ≥ 5
+     - Returns corner position
+   - `clearWithBonusTile()` - Direction-based clearing (lines 241-265)
+     - `clearRow: true` → Clear horizontal row
+     - `clearRow: false` → Clear vertical column
+   - `spawnBonusTile()` - Create bonus tile (lines 229-236)
+   - `isBonusTileSwap()` - Check if swap involves bonus (lines 232-236)
+   - `calculateBonusSpawnPosition()` - Find spawn position (lines 195-215)
+
+5. **GameViewModel.swift - Bonus Tile Activation**
+   - `performSwap()` - Detect bonus swaps and direction (lines 128-150)
+     ```swift
+     let isBonusSwap = boardManager.isBonusTileSwap(from: from, to: to)
+     if isBonusSwap {
+         let isHorizontalSwipe = from.row == to.row
+         let bonusPosition = ...
+         await processBonusTile(at: bonusPosition, clearRow: isHorizontalSwipe)
+     }
+     ```
+   - `processCascades()` - Spawn bonus after clearing (lines 270-285)
+     ```swift
+     let bonusSpawnPosition = boardManager.shouldSpawnBonusTile(for: matches)
+     withAnimation(.easeOut(duration: 0.3)) {
+         let clearedPositions = boardManager.clearMatches(matches)
+     }
+     if let spawnPos = bonusSpawnPosition {
+         try? await Task.sleep(for: .milliseconds(Int(300 * speedMultiplier)))
+         boardManager.spawnBonusTile(at: spawnPos)
+     }
+     ```
+   - `processBonusTile()` - NEW FUNCTION (lines 421-447)
+     - Highlights bonus tile
+     - Clears row or column based on direction
+     - Creates explosions
+     - Applies gravity and refill
+     - Processes battle effects
+
+6. **GameBoardView.swift - Bonus Tile Rendering**
+   - `mainContent` - Conditional rendering (lines 325-345)
+     ```swift
+     if tile.isBonusTile {
+         bonusTileContent
+     } else {
+         // Regular tile
+     }
+     ```
+   - `bonusTileContent` - NEW VIEW (lines 348-362)
+     - Shows coffee_bonus image
+     - Applies BonusTileGlowModifier
+   - `BonusTileGlowModifier` - NEW STRUCT (lines 853-872)
+     - Pulsing glow effect
+     - Two shadow layers
+     - Animates between 0.5 and 1.0 intensity
+     - Repeats forever with autoreverses
+
+7. **ContentView.swift - Debug Menu Integration**
+   - `@State private var showDebugMenu = false` (line 82)
+   - Debug button in top-right corner (lines 111-127)
+     - Orange hammer icon
+     - Circle background
+     - Opens menu on tap
+   - Debug menu overlay (lines 164-168)
+     - Shows when `showDebugMenu = true`
+     - Z-index 1500 (above game, below pause)
+
+**Asset Requirements:**
+- `coffee_bonus.png` - Static coffee cup image for bonus tile
+  - Add to Assets.xcassets
+  - Name exactly "coffee_bonus"
+  - Place in 1x slot
+
+**Bonus Tile Behavior:**
+- ✅ Spawns on 5-gem straight lines (horizontal or vertical)
+- ✅ Spawns on L-shapes (3+3 sharing corner = 5 unique tiles)
+- ✅ Appears AFTER matched gems disappear (not on top)
+- ✅ Immune to auto-matching (won't be included in cascades)
+- ✅ Falls with gravity (moves down like normal gems)
+- ✅ Persists until player swipes it
+- ✅ Horizontal swipe = clear row
+- ✅ Vertical swipe = clear column
+- ✅ Optional animated glow effect
+
+**Debug Menu Features:**
+- ⚡ Quick Actions: Mana, HP, Kill Enemy, Shield
+- 🎲 Board Tools: Force 5-match (all 6 types), Spawn Coffee, Clear Board
+- ⚔️ Stats Display: Real-time HP, Mana, Shield, Score
+- ⏱️ Speed Controls: Skip Pauses, Async Enemy, Chain Speed slider
+- ☕ Bonus Testing: Spawn at positions, Remove all
+
+**What Works Now:**
+- ✅ 5-gem straight matches spawn coffee at center
+- ✅ L-shape matches spawn coffee at corner
+- ✅ Coffee tiles immune to auto-matching
+- ✅ Coffee tiles fall with gravity
+- ✅ Coffee tiles persist through cascades
+- ✅ Horizontal swipe clears row
+- ✅ Vertical swipe clears column
+- ✅ Glow effect animates smoothly
+- ✅ Debug menu fully functional
+- ✅ Force 5-match works for all tile types
+- ✅ Manual coffee spawning works
+- ✅ Real-time stat display updates correctly
+
+**L-Shape Detection Examples:**
+```
+Pattern 1:            Pattern 2:            Pattern 3:
+[S] [S] [S]                  [S]          [S]
+        [S]                  [S]          [S]
+        [S]          [S] [S] [S]          [S] [S] [S]
+
+All spawn coffee at corner position
+```
+
+**Documentation Created:**
+- `BONUS_TILE_INSTRUCTIONS.md` - Complete user guide
+- `DEBUG_MODE_GUIDE.md` - Debug menu documentation  
+- `SESSION_12_BONUS_TILES_COMPLETE.md` - Full session transcript
+
+**Files Modified:**
+- TileType.swift (added isBonusTile tracking, bonusTile() function)
+- BoardManager.swift (L-shape detection, match immunity, direction-based clearing)
+- GameViewModel.swift (bonus activation, spawn timing, direction detection)
+- GameBoardView.swift (coffee rendering, glow effect)
+- ContentView.swift (debug button, debug menu overlay)
+
+**Files Created:**
+- BonusTileConfig.swift (all bonus settings)
+- DebugMenuView.swift (complete debug UI)
+- BONUS_TILE_INSTRUCTIONS.md (user guide)
+- DEBUG_MODE_GUIDE.md (debug documentation)
+- SESSION_12_BONUS_TILES_COMPLETE.md (session transcript)
+
+---
+
+### Session 11: Title & Splash Screen Animations + Enemy Turn Fix (March 20, 2026) ✅
+
+**Goal:**
+- Add leaf animation to title screen (leaf1-17 cycling)
+- Add character animations to splash screen (RK and Milo)
+- Fix `ramp_hurt` not displaying during async enemy turns
+- Add loop delay option for leaf animation
+
+**User Requests:**
+1. "add leaf1.png-leaf17.png cycling with a 1s delay between loops on top of title_screen.png"
+2. "add splashrk1.png-splashrk3.png, and splashmilo1.png-splashmilo3.png overlaid on to splash_screen.png at 4fps"
+3. "wait, ramp_hurt isn't working again"
+4. "can i add a delay between the leaf looping"
+5. "can we do splashmilo3/2/1, and splashrk1/2/3" (reverse Milo)
+
+**Changes Made:**
+
+1. **TitleScreenView.swift - Leaf Animation (Lines 18, 40-51, 113-129)**
+   ```swift
+   @State private var currentLeafFrame = 1  // New state variable
+   
+   // Leaf animation layer
+   Image("leaf\(currentLeafFrame)")
+       .resizable()
+       .aspectRatio(contentMode: .fit)
+       .frame(width: geometry.size.width, height: geometry.size.height)
+   
+   // Animation function with loop pause
+   func startLeafAnimation() {
+       let frameDelay = 0.1        // 10fps playback
+       let loopPauseDelay = 2.0    // 2 second pause after leaf17
+       
+       Timer.scheduledTimer(withTimeInterval: frameDelay, repeats: true) { timer in
+           if currentLeafFrame < 17 {
+               currentLeafFrame += 1
+           } else {
+               timer.invalidate()
+               DispatchQueue.main.asyncAfter(deadline: .now() + loopPauseDelay) {
+                   currentLeafFrame = 1
+                   startLeafAnimation()
+               }
+           }
+       }
+   }
+   ```
+   - Cycles `leaf1.png` → `leaf17.png` at 10fps
+   - Pauses 2 seconds after `leaf17` before looping
+   - Displayed at full screen size on top of `title_screen.png`
+   - User can adjust `frameDelay` and `loopPauseDelay` as needed
+
+2. **DeveloperSplashView.swift - Character Animations (Lines 13-14, 38-66, 105-125)**
+   ```swift
+   @State private var currentRKFrame = 1      // RK animation state
+   @State private var currentMiloFrame = 1    // Milo animation state
+   
+   // RK character layer (forward: 1→2→3)
+   Image("splashrk\(currentRKFrame)")
+       .resizable()
+       .aspectRatio(contentMode: .fit)
+       .padding(0)
+   
+   // Milo character layer (reverse: 3→2→1)
+   Image("splashmilo\(currentMiloFrame)")
+       .resizable()
+       .aspectRatio(contentMode: .fit)
+       .padding(0)
+   
+   // Animation function
+   func startCharacterAnimations() {
+       // RK: forward 1→2→3→loop
+       Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+           currentRKFrame += 1
+           if currentRKFrame > 3 { currentRKFrame = 1 }
+       }
+       
+       // Milo: reverse 3→2→1→loop
+       currentMiloFrame = 3
+       Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+           currentMiloFrame -= 1
+           if currentMiloFrame < 1 { currentMiloFrame = 3 }
+       }
+   }
+   ```
+   - RK animates forward at 4fps: `splashrk1 → splashrk2 → splashrk3`
+   - Milo animates backward at 4fps: `splashmilo3 → splashmilo2 → splashmilo1`
+   - Both overlaid on `splash_screen.png` at 100% scale
+   - Both loop continuously while splash is visible
+
+3. **GameViewModel.swift - Fixed Enemy Turn State Override (Lines 346-375)**
+   
+   **Problem Identified:**
+   - When `asyncEnemyTurn = true`, enemy turn runs in background
+   - Player could make new match before enemy sets `.hurt` state
+   - Protection code in BattleManager blocked `.hurt` from showing
+   - Result: `ramp_hurt.png` never displayed during fast gameplay
+   
+   **Solution:**
+   ```swift
+   @MainActor
+   private func enemyTurn() async {
+       // Skip pre-enemy pause if responsive mode
+       if !skipWaitingPauses {
+           try? await Task.sleep(for: .milliseconds(400))
+       }
+       
+       // ⚠️ FORCE OVERRIDE: Enemy attack ALWAYS interrupts any other state
+       battleManager.enemy.currentState = .attack
+       battleManager.player.currentState = .hurt  // ALWAYS SET (removed protection)
+       
+       // Show visual effects
+       isEnemyAttacking = true
+       flashPlayer = true
+       battleManager.enemyTurn()
+       
+       try? await Task.sleep(for: .milliseconds(350))
+       isEnemyAttacking = false
+       flashPlayer = false
+       
+       try? await Task.sleep(for: .milliseconds(150))
+       
+       // ⚠️ SAFE IDLE RETURN: Only if still in .hurt state
+       if battleManager.player.currentState == .hurt {
+           battleManager.player.currentState = .idle
+       }
+       // Removed .hurt2 check (invalid swaps don't happen during enemy turn)
+       
+       battleManager.enemy.currentState = .idle
+   }
+   ```
+   
+   **What Changed:**
+   - Enemy turn now FORCES `.hurt` state immediately (ignores current state)
+   - Idle return only happens if Ramp is STILL in `.hurt` (protects new player actions)
+   - Removed `.hurt2` protection from idle return (not needed here)
+   
+   **Result:**
+   - `ramp_hurt.png` always displays when enemy attacks
+   - Works perfectly with `asyncEnemyTurn = true` and fast gameplay
+   - Brief flash of hurt state even if player makes another match immediately
+
+**Asset Requirements:**
+- `leaf1.png` through `leaf17.png` (17 images) - Title screen leaves
+- `splashrk1.png`, `splashrk2.png`, `splashrk3.png` - RK character frames
+- `splashmilo1.png`, `splashmilo2.png`, `splashmilo3.png` - Milo character frames
+- `title_screen.png` - Title background (already exists)
+- `splash_screen.png` - Splash background (already exists)
+
+**Animation Timing:**
+- **Leaf**: 10fps playback (0.1s per frame), 2s pause after loop
+- **RK**: 4fps (0.25s per frame), forward cycle
+- **Milo**: 4fps (0.25s per frame), reverse cycle
+- **Enemy hurt state**: Shows for 350ms minimum, even during async turns
+
+**What Works Now:**
+- ✅ Title screen: Leaves fly across in sequence with loop pause
+- ✅ Splash screen: RK animates forward, Milo animates backward
+- ✅ Enemy attacks: `ramp_hurt.png` always displays correctly
+- ✅ Fast gameplay: Hurt state protected from being overwritten
+- ✅ Async enemy turns: Work perfectly with visual feedback
+
+**Customization Options:**
+
+**Leaf Speed:**
+```swift
+let frameDelay = 0.1        // Change for faster/slower playback
+let loopPauseDelay = 2.0    // Change loop pause duration
+```
+
+**Character Speed:**
+```swift
+Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true)  // Change 0.25 for different fps
+```
+
+**Splash Duration:**
+In `DeveloperSplashView.swift`:
+```swift
+DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {  // Change 3.0 for longer/shorter
+    skipSplash()
+}
+```
+
+**Files Modified:**
+- TitleScreenView.swift (added leaf animation system)
+- DeveloperSplashView.swift (added RK + Milo character animations)
+- GameViewModel.swift (fixed enemy turn state override logic)
+
+---
+
 ### Session 8: Springy Drag Gesture & Final Animation Tuning (March 16, 2026) ✅
 
 **Goal:**
@@ -975,6 +1375,281 @@ var asyncEnemyTurn: Bool = false     // Line 37
 ✅ It appears as a popup BELOW the coffee button
 ✅ Activates when coffee button is pressed
 ✅ Can be dismissed by tapping outside
+
+---
+
+### Session 13: Bonus Blast Visual Effects + Cross Blast Combo (March 21, 2026) ✅
+
+**Goal:**
+- Replace circular explosions with dramatic blast effects across row/column
+- Support custom hand-drawn animated blasts
+- Implement cross blast when two bonus tiles are matched
+- Provide complete PNG specifications for hand-drawn animations
+
+**User Requests:**
+1. "can i change the type of explosion effect during the bonus tile? maybe even a custom one. I want one long blast across the row or column."
+2. "if two bonus gems are swiped with each other, have BOTH the horizontal row and vertical column where the match occurs be cleared."
+3. "can i have the hand drawn animation originate at the match origin"
+4. "provide the image specifications for a png sequenced hand animated blast"
+5. "add two bonus tiles next to each other in the debug menu"
+
+**Changes Made:**
+
+1. **BonusBlastEffects-Views.swift - NEW FILE (Complete blast system)**
+   ```swift
+   struct BlastEffectConfig {
+       static let enabled: Bool = true
+       static let duration: Double = 0.6         // Animation timing
+       static let color: Color = .white          // Blast color
+       static let thickness: CGFloat = 0.8       // Beam width
+       static let particleCount: Int = 15        // Particles along blast
+       static let particleSize: CGFloat = 8      // Particle size
+       static let scatterParticles: Bool = true  // Spray effect
+       static let scatterDistance: CGFloat = 40  // Scatter range
+   }
+   ```
+   - **Code-based blast** (default): Pure SwiftUI, no images needed
+   - **Custom image blast**: Supports hand-drawn PNG sequences
+   - **Cross blast support**: Can show multiple blasts simultaneously
+
+2. **Code-Based Blast Features (BonusBlastEffects-Views.swift)**
+   - **Horizontal blast**: Rectangle with gradient, expands left-to-right
+   - **Vertical blast**: Rectangle with gradient, expands top-to-bottom
+   - **Particle system**: 15 particles scatter perpendicular to blast
+   - **Glow effects**: Triple shadow layers (opacity 0.8, 0.5)
+   - **Screen blend mode**: Additive blending for bright effect
+   - **Customizable**: Color, thickness, speed, particle density
+
+3. **Custom Image Blast Features (BonusBlastEffects-Views.swift)**
+   - **Frame-by-frame animation**: PNG sequences (1-2-3-4-5-6)
+   - **Origin expansion**: Blast expands from match position outward
+   - **Horizontal images**: `bonus_blast_row_1.png` through `bonus_blast_row_6.png`
+   - **Vertical images**: `bonus_blast_col_1.png` through `bonus_blast_col_6.png`
+   - **Adjustable framerate**: 6fps, 12fps (recommended), or custom
+   - **Scale animation**: Expands from 0 to full width/height
+
+4. **GameViewModel.swift - Cross Blast Implementation (Lines 117-165)**
+   ```swift
+   // Check if BOTH tiles are bonus tiles (SUPER COMBO!)
+   let fromIsBonus = boardManager.gem(at: from)?.isBonusTile == true
+   let toIsBonus = boardManager.gem(at: to)?.isBonusTile == true
+   let isSuperCombo = fromIsBonus && toIsBonus
+   
+   if isSuperCombo {
+       await processCrossBlast(at: from)  // Clear BOTH row AND column!
+   }
+   ```
+   - Detects when two bonus tiles are swapped together
+   - Triggers special cross blast instead of single direction
+   - Clears entire row AND entire column simultaneously
+
+5. **GameViewModel.swift - processCrossBlast() Function (Lines 477-520)**
+   ```swift
+   bonusBlasts = [
+       BonusBlastData(position: position, isRow: true, ...),   // Horizontal
+       BonusBlastData(position: position, isRow: false, ...)   // Vertical
+   ]
+   ```
+   - Creates TWO blasts at the same time
+   - Both originate from the match position
+   - Visual **+** cross pattern across the board
+   - Double the damage (clears all positions in row + column)
+
+6. **GameViewModel.swift - Changed bonusBlast to bonusBlasts Array (Line 73)**
+   ```swift
+   var bonusBlasts: [BonusBlastData] = []  // Can show multiple for cross blast
+   ```
+   - Changed from single optional to array
+   - Supports displaying multiple blasts simultaneously
+   - Required for cross blast effect
+
+7. **GameBoardView.swift - Multiple Blast Rendering (Lines 143-150)**
+   ```swift
+   ForEach(viewModel.bonusBlasts) { bonusBlast in
+       BonusBlastView(
+           blastData: bonusBlast,
+           boardSize: viewModel.boardManager.size,
+           tileSize: tileSize
+       )
+   }
+   ```
+   - Renders all active blasts (1 for single, 2 for cross)
+   - Each blast animates independently
+   - Overlays correctly on game board
+
+8. **DebugMenuView.swift - Cross Blast Test Button (Lines 239-250)**
+   ```swift
+   debugButton(title: "⚔️ Spawn TWO at (4,4) + (4,5) [CROSS TEST]", ...) {
+       // Spawns two bonus tiles next to each other
+       // Perfect for testing cross blast effect
+   }
+   ```
+   - New orange button in debug menu
+   - Spawns two bonus tiles at (4,4) and (4,5)
+   - Horizontal neighbors - easy to test cross blast
+   - Removes existing gems first (no overlap)
+
+9. **BONUS_BLAST_PNG_SPECS.md - NEW FILE (Complete art guide)**
+   
+   **Horizontal Blast Specifications:**
+   - **Dimensions**: 2048 × 256 pixels (wide and thin)
+   - **Files**: `bonus_blast_row_1.png` through `bonus_blast_row_6.png`
+   - **Resolution**: 144 DPI
+   - **Format**: PNG with transparency
+   
+   **Vertical Blast Specifications:**
+   - **Dimensions**: 256 × 2048 pixels (tall and thin)
+   - **Files**: `bonus_blast_col_1.png` through `bonus_blast_col_6.png`
+   - **Resolution**: 144 DPI
+   - **Format**: PNG with transparency
+   
+   **6-Frame Animation Sequence:**
+   1. Frame 1: Faint glow (10% size, centered at match origin)
+   2. Frame 2: Expanding beam (40% length from center)
+   3. Frame 3: **PEAK** - Full blast (100% length, maximum brightness)
+   4. Frame 4: Sustaining (100% length, 80% brightness)
+   5. Frame 5: Fading (100% length, 50% brightness)
+   6. Frame 6: Almost gone (100% length, 20% brightness)
+   
+   **Cross Blast Requirements:**
+   - Uses same 12 files (6 horizontal + 6 vertical)
+   - Both animations play simultaneously
+   - Creates **+** pattern across the board
+
+**How It Works:**
+
+**Single Bonus Tile:**
+```
+Swipe horizontal → Horizontal blast → Clear row
+Swipe vertical   → Vertical blast   → Clear column
+```
+
+**Cross Blast (Bonus + Bonus):**
+```
+         ║
+         ║
+═════════⚡═════════  ← Both blasts fire from match position
+         ║
+         ▼
+```
+
+**Custom Image Animation Flow:**
+```
+1. Match occurs at position (4,4)
+2. Blast starts at (4,4) with scale 0
+3. Expands outward to full width/height
+4. Frames 1→2→3→4→5→6 play at 12fps
+5. Frame 3 is peak (brightest, most dramatic)
+6. Fades out after frame 6
+```
+
+**Customization Examples:**
+
+**Fire Blast:**
+```swift
+static let color: Color = .orange
+static let thickness: CGFloat = 1.2
+static let particleCount: Int = 30
+```
+
+**Ice Blast:**
+```swift
+static let color: Color = .cyan
+static let duration: Double = 0.4  // Faster
+static let scatterDistance: CGFloat = 60  // Wide spray
+```
+
+**Laser Beam:**
+```swift
+static let thickness: CGFloat = 0.3  // Thin
+static let scatterParticles: Bool = false  // No scatter
+static let particleCount: Int = 0  // No particles
+```
+
+**Enable Custom Images:**
+
+In `GameViewModel.swift`, line ~435:
+```swift
+bonusBlasts = [BonusBlastData(
+    position: position,
+    isRow: clearRow,
+    color: .yellow,
+    id: UUID(),
+    useCustomImages: true,  // ← ENABLE THIS
+    frameCount: 6,
+    frameRate: 12
+)]
+```
+
+Also in `processCrossBlast`, line ~505.
+
+**Testing Instructions:**
+
+**Test Code-Based Blast:**
+1. Run game (Command+R)
+2. Open debug menu (hammer icon)
+3. Click "⚔️ Spawn TWO at (4,4) + (4,5) [CROSS TEST]"
+4. Swipe them together horizontally
+5. See **white cross blast** (horizontal + vertical)
+
+**Test Custom Images:**
+1. Add 12 PNG files to Assets.xcassets (6 row + 6 col)
+2. Enable `useCustomImages: true` in code
+3. Repeat test above
+4. See your custom animation expand from match origin
+
+**Result:**
+✅ Single bonus blast works (row OR column based on swipe)
+✅ Cross blast works (row AND column when bonus + bonus)
+✅ Code-based blasts look epic (no images needed)
+✅ Custom image support ready (with expansion animation)
+✅ Debug menu has cross blast test button
+✅ Complete PNG specifications provided
+✅ Blast originates from match position and expands outward
+
+**What Works Now:**
+- ✅ Single bonus tile → directional blast (horizontal or vertical)
+- ✅ Double bonus tiles → cross blast (both directions)
+- ✅ Code-based effects with particles and glow
+- ✅ Custom image support with frame-by-frame animation
+- ✅ Expansion animation from match origin
+- ✅ Debug menu test button for cross blast
+- ✅ Full art specifications document
+
+**Assets Requirements:**
+
+**Code-Based (Active Now):**
+- ❌ NO IMAGES REQUIRED - 100% SwiftUI code
+- White blast color (customizable to any color)
+
+**Custom Images (Optional):**
+- `bonus_blast_row_1.png` through `bonus_blast_row_6.png` (2048×256px)
+- `bonus_blast_col_1.png` through `bonus_blast_col_6.png` (256×2048px)
+- Total: 12 PNG files with transparency
+- Frame rate: 12 FPS recommended (adjustable)
+
+**Documentation Created:**
+- `BONUS_BLAST_PNG_SPECS.md` - Complete image specifications and art guide
+- Updated `AI_CONTEXT.md` (this file)
+
+**Files Created:**
+- BonusBlastEffects-Views.swift (complete blast system with code-based + custom image support)
+- BONUS_BLAST_PNG_SPECS.md (art specifications)
+
+**Files Modified:**
+- GameViewModel.swift (added cross blast detection, processCrossBlast function, changed bonusBlast to bonusBlasts array)
+- GameBoardView.swift (renders multiple blasts with ForEach)
+- DebugMenuView.swift (added cross blast test button)
+- AI_CONTEXT.md (documented all changes)
+
+**Customization Guide:**
+- **Colors**: Edit `BlastEffectConfig.color` (line 32 in BonusBlastEffects-Views.swift)
+- **Speed**: Edit `BlastEffectConfig.duration` (line 26)
+- **Thickness**: Edit `BlastEffectConfig.thickness` (line 38)
+- **Particles**: Edit `BlastEffectConfig.particleCount` (line 44)
+- **Spray**: Edit `BlastEffectConfig.scatterDistance` (line 58)
+
+**Status**: ✅ Bonus blast system fully operational! Code-based blasts working, custom image support ready, cross blast implemented! 💥⚡
 
 ---
 
@@ -1871,11 +2546,16 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
+| BonusBlastEffects-Views.swift | Session 13 | ✅ Working | Code-based + custom image blast system, cross blast support, expansion from origin |
+| BONUS_BLAST_PNG_SPECS.md | Session 13 | ✅ Working | Complete PNG specifications for hand-drawn blasts (2048×256, 256×2048) |
+| GameViewModel.swift | Session 13 | ✅ Working | Cross blast detection, processCrossBlast function, bonusBlasts array |
+| GameBoardView.swift | Session 13 | ✅ Working | Multiple blast rendering with ForEach |
+| DebugMenuView.swift | Session 13 | ✅ Working | Cross blast test button (spawn two bonus tiles) |
+| TitleScreenView.swift | Session 11 | ✅ Working | Leaf animation (leaf1-17) with loop pause, 10fps playback |
+| DeveloperSplashView.swift | Session 11 | ✅ Working | RK + Milo character animations at 4fps, Milo plays in reverse |
 | Character.swift | Session 10 | ✅ Working | Added `.hurt2` state for invalid swap penalty, updated image mapping |
 | CharacterAnimations.swift | Session 10 | ✅ Working | Added `.hurt2` switch case for rendering |
-| GameViewModel.swift | Session 10 | ✅ Working | Invalid swap uses `.hurt2`, protected both hurt states from being overwritten |
 | BattleManager.swift | Session 10 | ✅ Working | Protected `.hurt` and `.hurt2` states in all match types and idle return logic |
-| GameBoardView.swift | Session 8 | ✅ Working | Springy drag gesture (stiffness: 250, damping: 20), smooth swap (.easeInOut 0.4s), raindrop cascade preserved |
 | BoardManager.swift | Session 6 | ✅ Working | Clears spawn delays on swap, bottom-to-top fill perfect |
 | ContentView.swift | Session 5 | ✅ Working | Syncs game mode to ViewModel via onChange/onAppear |
 | ChainComboEffects.swift | Session 4 | ✅ Working | Blue diagonal lightning + particles effect |
@@ -1884,5 +2564,6 @@ Before submitting ANY code change, verify:
 
 ---
 
-**Last Updated**: Session 10 - Character Portrait State System (Hurt vs Hurt2)
-**Status**: ✅ All character states working perfectly with fast gameplay! Enemy attacks show `ramp_hurt.png`, invalid swaps show `ramp_hurt2.png`. State protection prevents overwrites during non-blocking enemy turns. Responsive gameplay fully functional! 🎮⚡
+**Last Updated**: Session 13 - Bonus Blast Visual Effects + Cross Blast Combo
+
+**Status**: ✅ Epic blast effects working! Code-based blasts (white, customizable), custom PNG support ready (2048×256/256×2048), cross blast when bonus + bonus matched, debug test button added, blast originates from match and expands outward! 💥⚡✨

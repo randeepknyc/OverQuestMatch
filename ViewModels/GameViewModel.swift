@@ -36,7 +36,7 @@ class GameViewModel {
     /// Allow enemy turn to happen in background after board unlocks
     /// true = You can make next move while enemy attacks
     /// false = Wait for enemy turn to fully complete (REVERT TO THIS IF ISSUES)
-    var asyncEnemyTurn: Bool = true  // ⚡ NEW: Non-blocking enemy attacks!
+    var asyncEnemyTurn: Bool = false  // ⚡ NEW: Non-blocking enemy attacks!
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
@@ -69,6 +69,9 @@ class GameViewModel {
     
     // ✨ NEW: Explosion particles
     var explosionParticles: [(position: GridPosition, color: Color, id: UUID)] = []
+    
+    // ☕ NEW: Bonus tile blast effects (can show multiple for cross blast)
+    var bonusBlasts: [BonusBlastData] = []
     
     // Gem clearing ability
     var selectedGemTypeToClear: TileType?
@@ -115,6 +118,64 @@ class GameViewModel {
     private func performSwap(from: GridPosition, to: GridPosition) async {
         isProcessing = true
         
+        // ☕ BONUS TILE: Check if this swap involves a bonus tile
+        let isBonusSwap = boardManager.isBonusTileSwap(from: from, to: to)
+        
+        if isBonusSwap {
+            // ☕ CHECK: Are BOTH tiles bonus tiles? (SUPER COMBO!)
+            let fromIsBonus = boardManager.gem(at: from)?.isBonusTile == true
+            let toIsBonus = boardManager.gem(at: to)?.isBonusTile == true
+            let isSuperCombo = fromIsBonus && toIsBonus
+            
+            if isSuperCombo {
+                // ⚔️ SUPER COMBO: BOTH tiles are bonus - CROSS BLAST!
+                // Clear BOTH row AND column at the bonus tile position
+                
+                boardManager.swap(from: from, to: to)
+                hapticManager?.swapCompleted()
+                try? await Task.sleep(for: .milliseconds(400))
+                
+                // Use the "to" position for the cross blast (where player dragged TO)
+                await processCrossBlast(at: to)
+                
+                // Enemy turn
+                if asyncEnemyTurn {
+                    Task {
+                        await enemyTurn()
+                    }
+                } else {
+                    await enemyTurn()
+                }
+                
+                isProcessing = false
+                return
+            } else {
+                // ☕ SINGLE BONUS TILE: Normal row OR column blast
+                let isHorizontalSwipe = from.row == to.row  // Same row = horizontal swipe (left/right)
+                let bonusPosition = fromIsBonus ? from : to
+                
+                // Swap is always valid for bonus tiles
+                boardManager.swap(from: from, to: to)
+                hapticManager?.swapCompleted()
+                try? await Task.sleep(for: .milliseconds(400))
+                
+                // Trigger bonus tile effect with direction
+                await processBonusTile(at: bonusPosition, clearRow: isHorizontalSwipe)
+                
+                // Enemy turn
+                if asyncEnemyTurn {
+                    Task {
+                        await enemyTurn()
+                    }
+                } else {
+                    await enemyTurn()
+                }
+                
+                isProcessing = false
+                return
+            }
+        }
+        
         // PRE-CHECK: Test if swap would create a valid match BEFORE actually swapping
         // Temporarily swap to check matches
         boardManager.swap(from: from, to: to)
@@ -131,7 +192,7 @@ class GameViewModel {
             
             // 1. Animate the swap
             boardManager.swap(from: from, to: to)
-            try? await Task.sleep(for: .milliseconds(300)) // Let swap animation play
+            try? await Task.sleep(for: .milliseconds(100)) // Let swap animation play
             
             // 2. Show it's wrong with shake
             shakeTiles = [from, to]
@@ -175,7 +236,7 @@ class GameViewModel {
         // 1. Perform the actual swap with animation
         boardManager.swap(from: from, to: to)
         hapticManager?.swapCompleted()  // ✨ Successful swap haptic
-        try? await Task.sleep(for: .milliseconds(400)) // Let swap animation complete
+        try? await Task.sleep(for: .milliseconds(200)) // Let swap animation complete
         
         // 2. Now process the matches (wiggle + disappear)
         await processCascades()
@@ -211,7 +272,7 @@ class GameViewModel {
             cascadeCount += 1
             
             // ⚡ SPEED CONTROL: First match = normal speed, auto-chains = faster
-            let speedMultiplier = cascadeCount == 1 ? 1.0 : autoChainSpeedMultiplier
+            let speedMultiplier = cascadeCount == 1 ? 0.5 : autoChainSpeedMultiplier
             
             // ✨ HAPTIC: Match detected (intensity scales with match size)
             let totalMatchedTiles = matches.reduce(0) { $0 + $1.count }
@@ -245,11 +306,23 @@ class GameViewModel {
                 hapticManager?.matchDetected(tileCount: min(5, totalMatchedTiles))
             }
             
+            // ☕ BONUS TILE: Check if we should spawn a bonus tile BEFORE clearing
+            let bonusSpawnPosition = boardManager.shouldSpawnBonusTile(for: matches)
+            
             // Remove matched tiles (they shrink/fade away)
             withAnimation(.easeOut(duration: 0.3)) {
-                boardManager.clearMatches(matches)
+                let clearedPositions = boardManager.clearMatches(matches)
             }
             shakeTiles.removeAll()
+            
+            // ☕ BONUS TILE: Spawn AFTER tiles disappear, BEFORE gravity
+            if let spawnPos = bonusSpawnPosition {
+                // Wait for disappear animation to finish
+                try? await Task.sleep(for: .milliseconds(Int(300 * speedMultiplier)))
+                
+                // Now spawn the bonus tile in the empty space
+                boardManager.spawnBonusTile(at: spawnPos)
+            }
             
             // ⚡ RESPONSIVE MODE: Only wait for animation duration, skip extra pauses
             if skipWaitingPauses {
@@ -342,6 +415,118 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(350))
         isPlayerAttacking = false
         flashEnemy = false
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Process bonus tile activation
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    @MainActor
+    private func processBonusTile(at position: GridPosition, clearRow: Bool) async {
+        // Highlight the bonus tile
+        shakeTiles = [position]
+        hapticManager?.powerSurgeTriggered()  // Big haptic for special effect
+        
+        try? await Task.sleep(for: .milliseconds(300))
+        
+        // Clear row or column based on swipe direction
+        let clearedPositions = boardManager.clearWithBonusTile(at: position, clearRow: clearRow)
+        
+        // ☕ BONUS BLAST EFFECT - Choose between code-based or custom images
+        
+        // OPTION 1: Code-based blast (currently active)
+        bonusBlasts = [BonusBlastData(
+            position: position,
+            isRow: clearRow,
+            color: .yellow,
+            id: UUID()
+        )]
+        
+        // OPTION 2: Custom images (COMMENTED OUT - uncomment to use)
+        // If you want to use custom blast images:
+        // 1. Add images to Assets.xcassets:
+        //    - bonus_blast_row_1.png through bonus_blast_row_X.png (for horizontal)
+        //    - bonus_blast_col_1.png through bonus_blast_col_X.png (for vertical)
+        // 2. Uncomment this code and comment out bonusBlasts above
+        /*
+        bonusBlasts = [BonusBlastData(
+            position: position,
+            isRow: clearRow,
+            color: .yellow,
+            id: UUID(),
+            useCustomImages: true,
+            frameCount: 6,  // How many frames your animation has
+            frameRate: 12   // How fast to play (frames per second)
+        )]
+        */
+        
+        shakeTiles.removeAll()
+        try? await Task.sleep(for: .milliseconds(600))  // Wait for blast animation
+        bonusBlasts.removeAll()  // Clear blasts
+        
+        // Apply gravity and refill
+        _ = boardManager.applyGravity()
+        try? await Task.sleep(for: .milliseconds(300))
+        
+        let _ = boardManager.fillEmptySpacesWithFastCascade()
+        try? await Task.sleep(for: .milliseconds(400))
+        
+        // Process battle effects (bonus tiles always count as 10 tiles)
+        let fakeMatches = [Match(type: .sword, positions: clearedPositions)]
+        battleManager.processMatches(fakeMatches)
+        
+        await playAttackAnimation()
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ⚔️ CROSS BLAST: Both row AND column (Super Combo!)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    @MainActor
+    private func processCrossBlast(at position: GridPosition) async {
+        // Highlight the position
+        shakeTiles = [position]
+        hapticManager?.powerSurgeTriggered()  // SUPER haptic!
+        
+        try? await Task.sleep(for: .milliseconds(300))
+        
+        // Clear BOTH row and column
+        let rowPositions = boardManager.clearWithBonusTile(at: position, clearRow: true)
+        let colPositions = boardManager.clearWithBonusTile(at: position, clearRow: false)
+        let allClearedPositions = Set(rowPositions + colPositions)
+        
+        // ⚔️ CREATE TWO BLASTS: Horizontal + Vertical (CROSS PATTERN!)
+        bonusBlasts = [
+            // Horizontal blast
+            BonusBlastData(
+                position: position,
+                isRow: true,
+                color: .yellow,
+                id: UUID()
+            ),
+            // Vertical blast
+            BonusBlastData(
+                position: position,
+                isRow: false,
+                color: .yellow,
+                id: UUID()
+            )
+        ]
+        
+        shakeTiles.removeAll()
+        try? await Task.sleep(for: .milliseconds(600))  // Wait for both blasts
+        bonusBlasts.removeAll()
+        
+        // Apply gravity and refill
+        _ = boardManager.applyGravity()
+        try? await Task.sleep(for: .milliseconds(300))
+        
+        let _ = boardManager.fillEmptySpacesWithFastCascade()
+        try? await Task.sleep(for: .milliseconds(400))
+        
+        // Process battle effects (DOUBLE the power!)
+        let fakeMatches = [Match(type: .sword, positions: Array(allClearedPositions))]
+        battleManager.processMatches(fakeMatches)
+        
+        await playAttackAnimation()
     }
     
     @MainActor
@@ -583,3 +768,5 @@ class GameViewModel {
         isProcessing = false
     }
 }
+
+

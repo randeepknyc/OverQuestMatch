@@ -153,13 +153,158 @@ class BoardManager {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CLEAR MATCHES
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    func clearMatches(_ matches: [Match]) {
+    func clearMatches(_ matches: [Match]) -> [GridPosition] {
         let positionsToRemove = Set(matches.flatMap { $0.positions })
         
-        // Remove gems at matched positions
+        // Remove gems at matched positions, BUT PROTECT BONUS TILES
         gems.removeAll { gemToRemove in
-            positionsToRemove.contains(GridPosition(row: gemToRemove.row, col: gemToRemove.col))
+            let position = GridPosition(row: gemToRemove.row, col: gemToRemove.col)
+            // ☕ NEVER remove bonus tiles during auto-matching
+            return positionsToRemove.contains(position) && !gemToRemove.isBonusTile
         }
+        
+        // ☕ Return positions for bonus tile spawning
+        return Array(positionsToRemove)
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Check if any match should spawn bonus tile
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    func shouldSpawnBonusTile(for matches: [Match]) -> GridPosition? {
+        guard BonusTileConfig.enabled else { return nil }
+        
+        // Check for L-shapes (connected matches sharing a corner)
+        if let lShapePosition = detectLShapeMatch(matches: matches) {
+            return lShapePosition
+        }
+        
+        // Check for single straight line of 5+
+        for match in matches {
+            if match.count >= BonusTileConfig.minimumMatchSize {
+                return calculateBonusSpawnPosition(for: match)
+            }
+        }
+        
+        return nil
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Detect L-shape patterns (two matches sharing a corner)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    private func detectLShapeMatch(matches: [Match]) -> GridPosition? {
+        // Look for pairs of matches that share a corner tile
+        for i in 0..<matches.count {
+            for j in (i+1)..<matches.count {
+                let match1 = matches[i]
+                let match2 = matches[j]
+                
+                // Must be same type
+                guard match1.type == match2.type else { continue }
+                
+                // Find shared positions (corner tile)
+                let positions1 = Set(match1.positions)
+                let positions2 = Set(match2.positions)
+                let sharedPositions = positions1.intersection(positions2)
+                
+                // Must share exactly 1 tile (the corner)
+                guard sharedPositions.count == 1 else { continue }
+                
+                // Calculate total unique tiles
+                let allPositions = positions1.union(positions2)
+                
+                // Check if total is 5 or more
+                if allPositions.count >= BonusTileConfig.minimumMatchSize {
+                    // Found an L-shape! Return the corner position
+                    return sharedPositions.first!
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Calculate where to spawn based on match shape
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    private func calculateBonusSpawnPosition(for match: Match) -> GridPosition {
+        let positions = match.positions
+        
+        // Check if it's a straight horizontal line
+        let rows = Set(positions.map { $0.row })
+        let cols = Set(positions.map { $0.col })
+        
+        if rows.count == 1 {
+            // Horizontal line - spawn at center column
+            let sortedCols = cols.sorted()
+            let centerIndex = sortedCols.count / 2
+            return GridPosition(row: rows.first!, col: sortedCols[centerIndex])
+        } else if cols.count == 1 {
+            // Vertical line - spawn at center row
+            let sortedRows = rows.sorted()
+            let centerIndex = sortedRows.count / 2
+            return GridPosition(row: sortedRows[centerIndex], col: cols.first!)
+        } else {
+            // L-shape or complex shape - spawn at corner (min row, min col)
+            let minRow = rows.min()!
+            let minCol = cols.min()!
+            return GridPosition(row: minRow, col: minCol)
+        }
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Spawn bonus tile at position
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    func spawnBonusTile(at position: GridPosition) {
+        // Check if we allow multiple bonus tiles
+        if !BonusTileConfig.allowMultiple {
+            // Remove any existing bonus tiles
+            gems.removeAll { $0.isBonusTile }
+        }
+        
+        // Create bonus tile
+        let bonusTile = Tile.bonusTile(row: position.row, col: position.col)
+        gems.append(bonusTile)
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Check if a swap involves a bonus tile
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    func isBonusTileSwap(from: GridPosition, to: GridPosition) -> Bool {
+        let gem1 = gem(at: from)
+        let gem2 = gem(at: to)
+        return gem1?.isBonusTile == true || gem2?.isBonusTile == true
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ BONUS TILE: Clear row/column based on swipe direction
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    func clearWithBonusTile(at position: GridPosition, clearRow: Bool) -> [GridPosition] {
+        var clearedPositions: [GridPosition] = []
+        
+        if clearRow {
+            // Clear horizontal row (left/right swipe)
+            for col in 0..<size {
+                let pos = GridPosition(row: position.row, col: col)
+                if gem(at: pos) != nil {
+                    clearedPositions.append(pos)
+                }
+            }
+        } else {
+            // Clear vertical column (up/down swipe)
+            for row in 0..<size {
+                let pos = GridPosition(row: row, col: position.col)
+                if gem(at: pos) != nil {
+                    clearedPositions.append(pos)
+                }
+            }
+        }
+        
+        // Remove gems at cleared positions
+        gems.removeAll { gemToRemove in
+            clearedPositions.contains(GridPosition(row: gemToRemove.row, col: gemToRemove.col))
+        }
+        
+        return clearedPositions
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

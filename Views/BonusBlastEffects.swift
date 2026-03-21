@@ -26,7 +26,7 @@ struct BlastEffectConfig {
     /// .orange = Fire blast
     /// .cyan = Ice blast
     /// .purple = Magic blast
-    static let color: Color = .yellow
+    static let color: Color = .white
     
     /// Blast width (for row blasts) or height (for column blasts)
     /// 0.5 = Thin beam
@@ -250,6 +250,7 @@ struct CustomImageBlast: View {
     
     @State private var currentFrame: Int = 1
     @State private var opacity: Double = 1.0
+    @State private var scaleProgress: CGFloat = 0.0  // NEW: Animation scale
     
     var body: some View {
         Group {
@@ -258,11 +259,11 @@ struct CustomImageBlast: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(
-                        width: CGFloat(boardSize) * tileSize,
+                        width: CGFloat(boardSize) * tileSize * scaleProgress,  // Expand from 0 to full width
                         height: tileSize * BlastEffectConfig.thickness
                     )
                     .position(
-                        x: CGFloat(boardSize) * tileSize / 2,
+                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,  // Origin at match position
                         y: CGFloat(blastData.position.row) * tileSize + tileSize / 2
                     )
                     .opacity(opacity)
@@ -273,17 +274,21 @@ struct CustomImageBlast: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(
                         width: tileSize * BlastEffectConfig.thickness,
-                        height: CGFloat(boardSize) * tileSize
+                        height: CGFloat(boardSize) * tileSize * scaleProgress  // Expand from 0 to full height
                     )
                     .position(
                         x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,
-                        y: CGFloat(boardSize) * tileSize / 2
+                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2  // Origin at match position
                     )
                     .opacity(opacity)
                     .blendMode(.screen)
             }
         }
         .onAppear {
+            // Animate the expansion
+            withAnimation(.easeOut(duration: BlastEffectConfig.duration * 0.4)) {
+                scaleProgress = 1.0
+            }
             animateFrames()
         }
     }
