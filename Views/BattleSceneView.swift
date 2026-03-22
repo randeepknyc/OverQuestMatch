@@ -123,7 +123,7 @@ struct BattleSceneView: View {
 // MARK: - Character Portrait WITH HEALTH BORDER
 
 struct CharacterPortraitWithHealthBorder: View {
-    let character: Character
+    @Bindable var character: Character
     let isAttacking: Bool
     let isFlashing: Bool
     let showShield: Bool

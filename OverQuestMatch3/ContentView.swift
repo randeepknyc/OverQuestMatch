@@ -64,7 +64,8 @@ struct ContentView: View {
                 PauseMenuView(
                     isPresented: $showPauseMenu,
                     viewModel: viewModel,
-                    gameMode: $currentGameMode
+                    gameMode: $currentGameMode,
+                    showTitleScreen: $showTitleScreen  // ✅ NEW: Pass binding for END GAME
                 )
                 .transition(.opacity)
                 .zIndex(1000)

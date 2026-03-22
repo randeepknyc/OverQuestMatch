@@ -58,7 +58,16 @@ class BoardManager {
     func canSwap(from: GridPosition, to: GridPosition) -> Bool {
         guard isAdjacent(from, to) else { return false }
         guard isValid(from) && isValid(to) else { return false }
-        guard gem(at: from) != nil && gem(at: to) != nil else { return false }
+        guard let gem1 = gem(at: from), let gem2 = gem(at: to) else { return false }
+        
+        // ☕ BONUS TILE: ALWAYS allow swaps involving bonus tiles
+        if gem1.isBonusTile || gem2.isBonusTile {
+            return true
+        }
+        
+        // 🎮 SESSION 14: Bejeweled-style - can only swap stable gems
+        guard gem1.isStable && gem2.isStable else { return false }
+        
         return true
     }
     
@@ -100,12 +109,19 @@ class BoardManager {
                     continue
                 }
                 
+                // ☕ BONUS TILE: Skip bonus tiles - they don't start matches
+                if gemToCheck.isBonusTile {
+                    col += 1
+                    continue
+                }
+                
                 var matchLength = 1
                 var matchPositions = [GridPosition(row: row, col: col)]
                 
                 // Check consecutive tiles to the right
                 while col + matchLength < size,
                       let nextGem = gem(at: GridPosition(row: row, col: col + matchLength)),
+                      !nextGem.isBonusTile,  // ☕ BONUS TILE: Stop chain if we hit a bonus
                       nextGem.type == gemToCheck.type {
                     matchPositions.append(GridPosition(row: row, col: col + matchLength))
                     matchLength += 1
@@ -128,12 +144,19 @@ class BoardManager {
                     continue
                 }
                 
+                // ☕ BONUS TILE: Skip bonus tiles - they don't start matches
+                if gemToCheck.isBonusTile {
+                    row += 1
+                    continue
+                }
+                
                 var matchLength = 1
                 var matchPositions = [GridPosition(row: row, col: col)]
                 
                 // Check consecutive tiles downward
                 while row + matchLength < size,
                       let nextGem = gem(at: GridPosition(row: row + matchLength, col: col)),
+                      !nextGem.isBonusTile,  // ☕ BONUS TILE: Stop chain if we hit a bonus
                       nextGem.type == gemToCheck.type {
                     matchPositions.append(GridPosition(row: row + matchLength, col: col))
                     matchLength += 1
@@ -331,6 +354,9 @@ class BoardManager {
                         // Add staggered delay (lower gems land first)
                         gems[gemIndex].fallDelay = Double(i) * 0.04
                         
+                        // 🎮 SESSION 14: Mark as unstable while falling
+                        gems[gemIndex].isStable = false
+                        
                         anyMoved = true
                     }
                     
@@ -368,6 +394,9 @@ class BoardManager {
                 let randomOffset = Double.random(in: 0...0.02)
                 newGem.spawnDelay = columnBaseDelay + randomOffset
                 newGem.fallDelay = 0
+                
+                // 🎮 SESSION 14: Mark new gems as unstable until they finish spawning
+                newGem.isStable = false
                 
                 gems.append(newGem)
                 newTileCount += 1
@@ -421,6 +450,15 @@ class BoardManager {
         gems.removeAll { $0.type == type }
         
         return positions
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // SESSION 14: Mark all gems as stable (after animations complete)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    func markAllGemsStable() {
+        for i in 0..<gems.count {
+            gems[i].isStable = true
+        }
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

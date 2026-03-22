@@ -51,6 +51,9 @@ struct PauseMenuView: View {
     @Binding var isPresented: Bool
     @Bindable var viewModel: GameViewModel
     @Binding var gameMode: GameMode
+    @Binding var showTitleScreen: Bool  // ✅ NEW: For END GAME button
+    
+    @State private var showEndGameConfirmation = false  // ✅ NEW: Dialog state
     
     var body: some View {
         ZStack {
@@ -61,6 +64,23 @@ struct PauseMenuView: View {
                 titleHeader
                 gameModeSlider
                 menuButtons
+            }
+            
+            // ✅ END GAME CONFIRMATION DIALOG (appears on top of pause menu)
+            if showEndGameConfirmation {
+                EndGameConfirmationDialog(
+                    isPresented: $showEndGameConfirmation,
+                    onConfirm: {
+                        // Reset game, close menus, return to title
+                        viewModel.resetGame()
+                        withAnimation {
+                            showEndGameConfirmation = false
+                            isPresented = false
+                            showTitleScreen = true
+                        }
+                    }
+                )
+                .zIndex(2000)  // Above pause menu
             }
         }
     }
@@ -177,8 +197,8 @@ struct PauseMenuView: View {
                 iconAsset: "quit_icon",  // ✅ YOUR ICON
                 iconFallback: "xmark.circle.fill"
             ) {
-                // You can add logic to return to title screen here later
-                withAnimation { isPresented = false }
+                // ✅ Show confirmation dialog instead of closing menu
+                withAnimation { showEndGameConfirmation = true }
             }
         }
     }
@@ -233,3 +253,148 @@ struct PauseMenuButton: View {
         .buttonStyle(.plain)
     }
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ END GAME CONFIRMATION DIALOG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+struct EndGameConfirmationDialog: View {
+    @Binding var isPresented: Bool
+    let onConfirm: () -> Void
+    
+    @State private var scale: CGFloat = 0.8
+    @State private var opacity: Double = 0.0
+    
+    var body: some View {
+        ZStack {
+            // Dark overlay backdrop
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    // Tap outside to dismiss
+                    dismissDialog()
+                }
+            
+            // Dialog box
+            VStack(spacing: 20) {
+                // Image or emoji at top
+                warningImage
+                
+                // Title text
+                Text("ARE YOU SURE?")
+                    .font(.gameScore(size: 38))
+                    .foregroundStyle(.yellow)
+                    .shadow(color: .black, radius: 5, y: 3)
+                
+                // Message text
+                Text("Your progress will be lost!")
+                    .font(.gameUI(size: 20))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                
+                // Buttons
+                HStack(spacing: 20) {
+                    // CANCEL button (green)
+                    Button {
+                        dismissDialog()
+                    } label: {
+                        Text("CANCEL")
+                            .font(.gameUI(size: 24))
+                            .foregroundStyle(.white)
+                            .frame(width: 130, height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.green.opacity(0.8), Color.green.opacity(0.6)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                            )
+                            .shadow(color: .green.opacity(0.5), radius: 8, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // END GAME button (red)
+                    Button {
+                        onConfirm()
+                    } label: {
+                        Text("END GAME")
+                            .font(.gameUI(size: 24))
+                            .foregroundStyle(.white)
+                            .frame(width: 130, height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.red.opacity(0.9), Color.red.opacity(0.7)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                            )
+                            .shadow(color: .red.opacity(0.5), radius: 8, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 10)
+            }
+            .padding(30)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.3, green: 0.15, blue: 0.5),
+                                Color(red: 0.2, green: 0.1, blue: 0.4)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.yellow, lineWidth: 3)
+            )
+            .shadow(color: .black.opacity(0.7), radius: 20, y: 10)
+            .scaleEffect(scale)
+            .opacity(opacity)
+        }
+        .onAppear {
+            // Animate dialog appearance
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                scale = 1.0
+                opacity = 1.0
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var warningImage: some View {
+        // Try to load custom image, fallback to emoji
+        if let customImage = UIImage(named: "end_game_warning") {
+            Image(uiImage: customImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 200, height: 150)
+        } else {
+            // Emoji fallback
+            Text("💀")
+                .font(.system(size: 80))
+        }
+    }
+    
+    private func dismissDialog() {
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+            scale = 0.8
+            opacity = 0.0
+        }
+        
+        // Delay actual dismissal to let animation play
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            isPresented = false
+        }
+    }
+}
+

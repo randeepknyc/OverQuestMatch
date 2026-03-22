@@ -87,11 +87,23 @@ class GameViewModel {
         self.boardManager = BoardManager()
         self.battleManager = BattleManager()
         self.chainHandler = ChainInputHandler()
+        
+        // 🎮 Initialize board with gems
+        boardManager.generateInitialBoard()
+        
+        // 🎮 FIX: Mark all initial gems as stable after spawn animation completes
+        // This ensures gems can be swapped after game start animation finishes
+        Task { @MainActor in
+            // Wait for initial spawn animation to complete (longest delay is ~1.5 seconds)
+            try? await Task.sleep(for: .milliseconds(2000))
+            boardManager.markAllGemsStable()
+        }
     }
     
     @MainActor
     func handleTileTap(at position: GridPosition) async {
-        guard !isProcessing else { return }
+        // 🎮 SESSION 14: Allow matching stable gems even during cascades (Bejeweled-style)
+        // Only block if game is over
         guard battleManager.gameState == .playing else { return }
         
         if let selected = selectedPosition {
@@ -100,6 +112,7 @@ class GameViewModel {
                 selectedPosition = nil
                 hapticManager?.tileTapped()  // ✨ Tap feedback
             } else if boardManager.canSwap(from: selected, to: position) {
+                // canSwap already checks if both gems are stable!
                 selectedPosition = nil
                 hapticManager?.swapStarted()  // ✨ Swap started
                 await performSwap(from: selected, to: position)
@@ -116,7 +129,11 @@ class GameViewModel {
     
     @MainActor
     private func performSwap(from: GridPosition, to: GridPosition) async {
-        isProcessing = true
+        // 🎮 SESSION 14: Bejeweled-style allows multiple swaps
+        // Gem stability (isStable) prevents invalid swaps during cascades
+        // No need for global isProcessing lock!
+        
+        isProcessing = true  // Still track for UI feedback
         
         // ☕ BONUS TILE: Check if this swap involves a bonus tile
         let isBonusSwap = boardManager.isBonusTileSwap(from: from, to: to)
@@ -207,11 +224,8 @@ class GameViewModel {
             // PENALTY: Enemy attacks for 8 damage due to invalid move
             battleManager.player.takeDamage(8)
             
-            // ═══════════════════════════════════════════════════════════════
             // 🎨 RAMP TAKES DAMAGE FROM MISTAKE (set to hurt2 state)
-            // ═══════════════════════════════════════════════════════════════
-            battleManager.player.currentState = .hurt2  // Different hurt image for invalid swap!
-            // ═══════════════════════════════════════════════════════════════
+            battleManager.player.currentState = .hurt2
             
             // Show hurt animation
             isEnemyAttacking = true  // Enemy punishment visual
@@ -220,12 +234,9 @@ class GameViewModel {
             isEnemyAttacking = false
             flashPlayer = false
             
-            // ═══════════════════════════════════════════════════════════════
             // 🎨 RETURN RAMP TO IDLE
-            // ═══════════════════════════════════════════════════════════════
             try? await Task.sleep(for: .milliseconds(150))
             battleManager.player.currentState = .idle
-            // ═══════════════════════════════════════════════════════════════
             
             isProcessing = false
             return
@@ -400,6 +411,10 @@ class GameViewModel {
                 score += match.count * 10 * cascadeCount
             }
             
+            // 🎮 SESSION 14: Mark all gems as stable after cascade completes
+            // This allows Bejeweled-style continuous matching
+            boardManager.markAllGemsStable()
+            
             // Small pause before checking for next cascade
             if !skipWaitingPauses {
                 try? await Task.sleep(for: .milliseconds(Int(100 * speedMultiplier)))
@@ -536,12 +551,9 @@ class GameViewModel {
             try? await Task.sleep(for: .milliseconds(400))
         }
         
-        // ═══════════════════════════════════════════════════════════════
-        // 🎨 SET PORTRAIT STATES FIRST (so they animate immediately)
-        // ═══════════════════════════════════════════════════════════════
-        battleManager.enemy.currentState = .attack  // Ednar attacks!
-        battleManager.player.currentState = .hurt   // Ramp gets hurt!
-        // ═══════════════════════════════════════════════════════════════
+        // 🎨 SET PORTRAIT STATES (direct update)
+        battleManager.enemy.currentState = .attack
+        battleManager.player.currentState = .hurt
         
         // Show visual attack effects
         isEnemyAttacking = true  // Ednar portrait slides forward
@@ -555,20 +567,10 @@ class GameViewModel {
         isEnemyAttacking = false
         flashPlayer = false
         
-        // ═══════════════════════════════════════════════════════════════
-        // 🎨 RETURN BOTH TO IDLE (brief delay for smooth transition)
-        // ═══════════════════════════════════════════════════════════════
+        // 🎨 RETURN BOTH TO IDLE
         try? await Task.sleep(for: .milliseconds(150))
-        
-        // ⚠️ CRITICAL: Only set to idle if player hasn't started a NEW action
-        // This prevents .hurt from being overwritten by .idle if player made a new match
-        // Also protects .hurt2 (invalid swap punishment)
-        if battleManager.player.currentState == .hurt || battleManager.player.currentState == .hurt2 {
-            battleManager.player.currentState = .idle
-        }
-        
+        battleManager.player.currentState = .idle
         battleManager.enemy.currentState = .idle
-        // ═══════════════════════════════════════════════════════════════
     }
     
     func resetGame() {

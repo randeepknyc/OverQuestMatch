@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 @Observable
 class Character {
@@ -16,7 +17,15 @@ class Character {
     // ═══════════════════════════════════════════════════════════════
     // 🎨 CHARACTER STATE SYSTEM
     // ═══════════════════════════════════════════════════════════════
-    var currentState: CharacterState = .idle
+    var currentState: CharacterState = .idle {
+        didSet {
+            // Force SwiftUI to notice the change
+            stateChangeID = UUID()
+        }
+    }
+    
+    // Helper property that changes every time state changes (forces SwiftUI updates)
+    var stateChangeID: UUID = UUID()
     // ═══════════════════════════════════════════════════════════════
     
     var healthPercentage: Double {

@@ -14,23 +14,27 @@ import Combine
 /// Main portrait view that switches between static images and line boil animations
 /// based on character name and current state
 struct StateBasedCharacterPortrait: View {
-    let character: Character
+    @Bindable var character: Character
     
     var body: some View {
+        // 🎬 SESSION 14 FIX: Read state and use stateChangeID for forced updates
+        let displayState = character.currentState
+        
         Group {
             // Ramp uses line boil animations (expandable to all states)
             if character.name == "Ramp" {
-                RampAnimatedPortrait(state: character.currentState)
+                RampAnimatedPortrait(state: displayState)
             }
             // Ednar uses static images for all states (for now)
             else if character.name == "Ednar" || character.name == "Toad King" {
-                StaticCharacterPortrait(character: character)
+                StaticCharacterPortrait(character: character, displayState: displayState)
             }
             // Fallback for unknown characters
             else {
                 FallbackPortrait(characterName: character.name)
             }
         }
+        .id(character.stateChangeID) // ← Force refresh when stateChangeID changes
     }
 }
 
@@ -139,9 +143,10 @@ struct LineBoilAnimation: View {
 /// Used for Ednar and any character without line boil animations
 struct StaticCharacterPortrait: View {
     let character: Character
+    let displayState: CharacterState  // 🎬 SESSION 14: Use animation manager state
     
     var body: some View {
-        let imageName = character.currentState.imageName(for: character.name)
+        let imageName = displayState.imageName(for: character.name)
         
         if let image = UIImage(named: imageName) {
             Image(uiImage: image)

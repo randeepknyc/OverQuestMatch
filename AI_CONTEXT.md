@@ -300,7 +300,7 @@ ZStack {
 
 ## 🔧 RECENT CHANGES
 
-### Session 12: Coffee Bonus Tile System + Debug Menu (March 20, 2026) ✅
+### Session 12: Coffee Bonus Tile System + Debug Menu (March 20-22, 2026) ✅ FULLY WORKING
 
 **Goal:**
 - Add bonus tile that spawns on 5-gem matches (straight lines or L-shapes)
@@ -308,6 +308,8 @@ ZStack {
 - Bonus tiles immune to auto-matching (persist through cascades)
 - Add comprehensive debug menu for testing
 - Support L-shape detection (3 horizontal + 3 vertical sharing corner)
+- **FIXED**: Match detection bug (bonuses breaking chains)
+- **FIXED**: Swap validation bug (bonuses can always swap)
 
 **User Requests:**
 1. "i want to add a bonus tile that appears when a 5 gem match happens. can that tile be animated?"
@@ -316,6 +318,7 @@ ZStack {
 4. "Let's change whether a row or a column disappears, based on which direction the user swipes"
 5. "if the coffee cup is part of a cascade, it should remain on the board and not disappear til the user swipes it"
 6. "i want 3 across, 2 down in any combo, an L shape facing any direction basically made of 5 gems"
+7. "sometimes when a single bonus tile is on the board, it shows a bounding box when i try to match, instead of actually swiping/matching" → **FIXED**
 
 **Changes Made:**
 
@@ -366,11 +369,17 @@ ZStack {
    ```
 
 4. **BoardManager.swift - Complete Bonus Tile Logic**
-   - `findMatches()` - Skip bonus tiles entirely (lines 94-152)
-     - Bonus tiles don't start matches
-     - Bonus tiles break match chains
+   - `findMatches()` - **FIXED:** Skip bonus tiles entirely (lines 94-152)
+     - ✅ Bonus tiles don't start matches
+     - ✅ Bonus tiles break match chains
+     - Added `if gemToCheck.isBonusTile { col/row += 1; continue }`
+     - Added `!nextGem.isBonusTile` check in while loops
    - `clearMatches()` - Protect bonus tiles from removal (line 163)
      - `!gemToRemove.isBonusTile` protection
+   - `canSwap()` - **FIXED:** Always allow bonus swaps (line 60-67)
+     - ✅ Added special case: `if gem1.isBonusTile || gem2.isBonusTile { return true }`
+     - Bypasses stability check for bonus tiles
+     - Fixes "bounding box" rejection bug
    - `shouldSpawnBonusTile()` - Detect 5-matches and L-shapes (lines 171-189)
      - Checks L-shapes first
      - Then checks straight 5s
@@ -453,12 +462,35 @@ ZStack {
 - ✅ Spawns on 5-gem straight lines (horizontal or vertical)
 - ✅ Spawns on L-shapes (3+3 sharing corner = 5 unique tiles)
 - ✅ Appears AFTER matched gems disappear (not on top)
-- ✅ Immune to auto-matching (won't be included in cascades)
+- ✅ **IMMUNE to auto-matching** (won't be included in cascades) - FIXED
+- ✅ **BREAKS match chains** (3 Red + Bonus + 3 Red = TWO matches) - FIXED
 - ✅ Falls with gravity (moves down like normal gems)
 - ✅ Persists until player swipes it
+- ✅ **CAN ALWAYS BE SWAPPED** (bypasses stability check) - FIXED
 - ✅ Horizontal swipe = clear row
 - ✅ Vertical swipe = clear column
 - ✅ Optional animated glow effect
+
+**Critical Bugs Fixed:**
+1. **Match Detection Bug** - `findMatches()` now skips bonus tiles:
+   - Added `if gemToCheck.isBonusTile { continue }` before checking matches
+   - Added `!nextGem.isBonusTile` in while loops to break chains
+   - Result: Bonus tiles no longer participate in automatic matching
+
+2. **Swap Validation Bug** - `canSwap()` now allows bonus swaps:
+   - Added special case: `if gem1.isBonusTile || gem2.isBonusTile { return true }`
+   - Bypasses `isStable` check for bonus tiles
+   - Result: Bonus tiles can be swapped even if other gem is unstable
+
+**Before Fixes:**
+- ❌ 3 Red + Bonus + 3 Red = ONE match of 7 (bonus included)
+- ❌ Bonus tiles could get caught in auto-matching
+- ❌ Tapping bonus showed bounding box rejection
+
+**After Fixes:**
+- ✅ 3 Red + Bonus + 3 Red = TWO separate matches of 3
+- ✅ Bonus tiles immune to auto-matching
+- ✅ Tapping bonus always allows swap
 
 **Debug Menu Features:**
 - ⚡ Quick Actions: Mana, HP, Kill Enemy, Shield
@@ -470,7 +502,9 @@ ZStack {
 **What Works Now:**
 - ✅ 5-gem straight matches spawn coffee at center
 - ✅ L-shape matches spawn coffee at corner
-- ✅ Coffee tiles immune to auto-matching
+- ✅ **Coffee tiles IMMUNE to auto-matching (FIXED)**
+- ✅ **Coffee tiles BREAK match chains (FIXED)**
+- ✅ **Coffee tiles CAN ALWAYS SWAP (FIXED - no more bounding box)**
 - ✅ Coffee tiles fall with gravity
 - ✅ Coffee tiles persist through cascades
 - ✅ Horizontal swipe clears row
@@ -509,6 +543,190 @@ All spawn coffee at corner position
 - BONUS_TILE_INSTRUCTIONS.md (user guide)
 - DEBUG_MODE_GUIDE.md (debug documentation)
 - SESSION_12_BONUS_TILES_COMPLETE.md (session transcript)
+
+---
+
+### Session 14: Character Animation Priority System + Portrait Fix (March 21, 2026) ✅
+
+**Goal:**
+- Implement animation priority system for character states
+- Fix character portraits not updating during gameplay
+- Support Bejeweled-style continuous matching (stable gems during cascades)
+
+**User Requests:**
+1. "Create animation priority system so attacks don't interrupt hurt animations"
+2. "Fix portraits not changing - they're stuck on idle even when states change"
+3. "Allow matching stable gems during cascades (like Bejeweled)"
+
+**Changes Made:**
+
+1. **CharacterAnimationConfig.swift - NEW FILE (Animation Priority System)**
+   ```swift
+   enum AnimationPriority: Int {
+       case canSkip = 1        // Idle, defend - interruptible
+       case high = 2           // Attack, spell - important
+       case critical = 3       // Hurt, hurt2, victory, defeat - never skip
+   }
+   
+   enum InterruptBehavior {
+       case queue     // Add to queue, play in order
+       case override  // Higher priority interrupts immediately
+   }
+   ```
+   - **3-tier priority system**: Critical > High > CanSkip
+   - **Configurable durations**: Each state has specific timing
+   - **Interrupt behavior**: Queue or override modes
+   - **Auto-idle**: Returns to idle after animations complete
+
+2. **CharacterAnimationManager.swift - NEW FILE (Queue & State Management)**
+   ```swift
+   @Observable
+   class CharacterAnimationManager {
+       var currentState: CharacterState {
+           didSet {
+               // ✅ Updates character.currentState automatically
+               character.currentState = currentState
+           }
+       }
+       
+       func requestState(_ newState: CharacterState, force: Bool = false)
+       func setStateImmediately(_ state: CharacterState)
+   }
+   ```
+   - **Priority-based queuing**: High priority can interrupt low
+   - **Animation timers**: Auto-return to idle after duration
+   - **Force mode**: Victory/defeat always show immediately
+   - **🎯 KEY FIX**: `didSet` updates `character.currentState` so SwiftUI sees changes
+
+3. **CharacterAnimations.swift - Simplified State Reading (Lines 14-27)**
+   ```swift
+   var body: some View {
+       let displayState = character.currentState  // ✅ Just read from character
+       
+       Group {
+           if character.name == "Ramp" {
+               RampAnimatedPortrait(state: displayState)
+           } else {
+               StaticCharacterPortrait(character: character, displayState: displayState)
+           }
+       }
+   }
+   ```
+   - **Removed**: Hacky `.id()` modifier with timestamp
+   - **Removed**: `getDisplayState()` helper function
+   - **Now**: Simply reads `character.currentState` (controlled by animation manager)
+   - **Result**: SwiftUI's `@Observable` system works correctly
+
+4. **GameViewModel.swift - All State Changes Use Animation Manager**
+   - Line 210: Invalid swap → `.requestState(.hurt2)`
+   - Line 231: Return to idle → `.requestState(.idle)`
+   - Line 550: Enemy attacks → `.requestState(.hurt)`
+   - Line 567: Return to idle → `.requestState(.idle)`
+   - **Benefit**: All state changes respect priority and queueing
+
+5. **BattleManager.swift - Animation Manager Integration**
+   - Lines 82, 97, 112, 127: Match processing → `.requestState(.attack)`
+   - Lines 219, 230: Victory/defeat → `.requestState(.victory/.defeat, force: true)`
+   - Lines 272, 289, 306: Spell casts → `.requestState(.spell)`
+   - **Force mode**: Victory/defeat always show (bypass queue)
+
+6. **TileType.swift - Per-Gem Stability Tracking (Line 60)**
+   ```swift
+   var isStable: Bool = true  // ✅ NEW: Tracks if gem can be swapped
+   ```
+   - **Purpose**: Prevent swapping gems that are falling or spawning
+   - **Bejeweled-style**: Can match stable gems during cascades
+
+7. **BoardManager.swift - Stability System**
+   - **Line 64**: `canSwap()` checks both gems are stable
+   - **Line 335**: `applyGravity()` marks falling gems unstable
+   - **Line 377**: `fillEmptySpaces()` marks spawning gems unstable
+   - **Line 441**: `markAllGemsStable()` restores after cascades
+   - **Result**: Can match stable gems even during cascades!
+
+8. **GameViewModel.swift - Removed Global Processing Lock (Line 96)**
+   ```swift
+   // REMOVED: guard !isProcessing else { return }
+   // NOW: Only check if gems are stable (per-gem check)
+   ```
+   - **Before**: Entire board locked during cascades
+   - **After**: Only falling/spawning gems locked
+   - **Bejeweled-style**: Can make new matches during cascades
+
+**Animation Priority Examples:**
+
+**Low Priority (idle) → High Priority (attack)**:
+```
+Player idle → Match made → Attack interrupts immediately
+```
+
+**High Priority (attack) → Critical (hurt)**:
+```
+Player attacking → Enemy hits → Hurt interrupts attack (higher priority)
+```
+
+**Critical (hurt) → High (attack)**:
+```
+Player taking damage → New match made → Attack QUEUED (waits for hurt to finish)
+```
+
+**Force Mode (victory)**:
+```
+Any state → Victory called with force: true → Victory shows immediately
+```
+
+**How Portrait Fix Works:**
+
+**Problem**:
+- Animation manager tracked state separately from character
+- Views tried to read from global `AnimationManagers` (not `@Observable`)
+- SwiftUI never detected state changes
+- Portraits stuck on idle
+
+**Solution (Option 4)**:
+1. Animation manager's `currentState` has `didSet`
+2. `didSet` automatically updates `character.currentState`
+3. Views read from `character.currentState` (which is `@Observable`)
+4. SwiftUI detects changes and updates views
+5. No hacky workarounds needed!
+
+**Result:**
+✅ Ramp shows `.hurt` when enemy attacks (even during async turns)
+✅ Ramp shows `.hurt2` when invalid swap (different image!)
+✅ Ramp shows `.attack` when matching gems
+✅ All portraits update instantly when states change
+✅ Animation priority system prevents state conflicts
+✅ Bejeweled-style continuous matching works perfectly
+
+**Documentation Created:**
+- `CharacterAnimationConfig.swift` - Priority system configuration
+- `CharacterAnimationManager.swift` - Queue and state management
+- `SESSION_14_PORTRAIT_FIX_COMPLETE.md` - Complete fix documentation
+- `SESSION_14_QUICK_STATUS.md` - Session status summary
+
+**Files Created:**
+- CharacterAnimationConfig.swift (121 lines)
+- CharacterAnimationManager.swift (224 lines)
+- SESSION_14_PORTRAIT_FIX_COMPLETE.md
+- SESSION_14_QUICK_STATUS.md
+
+**Files Modified:**
+- TileType.swift (added isStable property)
+- BoardManager.swift (stability tracking, canSwap check, markAllGemsStable)
+- GameViewModel.swift (removed isProcessing lock, all state changes use animation manager)
+- BattleManager.swift (all state changes use animation manager, force mode for victory/defeat)
+- CharacterAnimations.swift (simplified to read character.currentState directly)
+
+**What Works Now:**
+- ✅ Character portraits update correctly during all gameplay
+- ✅ Animation priority system prevents conflicts
+- ✅ Bejeweled-style continuous matching (match stable gems during cascades)
+- ✅ Per-gem stability prevents invalid swaps
+- ✅ Victory/defeat always show (force mode)
+- ✅ Auto-return to idle after animations
+- ✅ Queue system for overlapping animations
+
+**Status**: ✅ Session 14 100% Complete! All systems working perfectly!
 
 ---
 
@@ -2546,16 +2764,19 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
+| CharacterAnimationManager.swift | Session 14 | ✅ Working | Priority queue system, didSet updates character.currentState automatically |
+| CharacterAnimations.swift | Session 14 | ✅ Working | Simplified to read character.currentState directly, portraits update correctly |
+| TileType.swift | Session 14 | ✅ Working | Added isStable property for Bejeweled-style matching |
+| BoardManager.swift | Session 14 | ✅ Working | Stability tracking, canSwap check, markAllGemsStable function |
+| GameViewModel.swift | Session 14 | ✅ Working | Removed global isProcessing lock, all state changes use animation manager |
+| BattleManager.swift | Session 14 | ✅ Working | All state changes use animation manager, force mode for victory/defeat |
+| CharacterAnimationConfig.swift | Session 14 | ✅ Working | 3-tier priority system config |
 | BonusBlastEffects-Views.swift | Session 13 | ✅ Working | Code-based + custom image blast system, cross blast support, expansion from origin |
 | BONUS_BLAST_PNG_SPECS.md | Session 13 | ✅ Working | Complete PNG specifications for hand-drawn blasts (2048×256, 256×2048) |
-| GameViewModel.swift | Session 13 | ✅ Working | Cross blast detection, processCrossBlast function, bonusBlasts array |
-| GameBoardView.swift | Session 13 | ✅ Working | Multiple blast rendering with ForEach |
 | DebugMenuView.swift | Session 13 | ✅ Working | Cross blast test button (spawn two bonus tiles) |
 | TitleScreenView.swift | Session 11 | ✅ Working | Leaf animation (leaf1-17) with loop pause, 10fps playback |
 | DeveloperSplashView.swift | Session 11 | ✅ Working | RK + Milo character animations at 4fps, Milo plays in reverse |
 | Character.swift | Session 10 | ✅ Working | Added `.hurt2` state for invalid swap penalty, updated image mapping |
-| CharacterAnimations.swift | Session 10 | ✅ Working | Added `.hurt2` switch case for rendering |
-| BattleManager.swift | Session 10 | ✅ Working | Protected `.hurt` and `.hurt2` states in all match types and idle return logic |
 | BoardManager.swift | Session 6 | ✅ Working | Clears spawn delays on swap, bottom-to-top fill perfect |
 | ContentView.swift | Session 5 | ✅ Working | Syncs game mode to ViewModel via onChange/onAppear |
 | ChainComboEffects.swift | Session 4 | ✅ Working | Blue diagonal lightning + particles effect |
@@ -2564,6 +2785,6 @@ Before submitting ANY code change, verify:
 
 ---
 
-**Last Updated**: Session 13 - Bonus Blast Visual Effects + Cross Blast Combo
+**Last Updated**: Session 14 - Character Animation Priority System + Portrait Fix Complete
 
 **Status**: ✅ Epic blast effects working! Code-based blasts (white, customizable), custom PNG support ready (2048×256/256×2048), cross blast when bonus + bonus matched, debug test button added, blast originates from match and expands outward! 💥⚡✨
