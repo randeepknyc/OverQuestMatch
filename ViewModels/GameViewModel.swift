@@ -155,6 +155,19 @@ class GameViewModel {
                 // Use the "to" position for the cross blast (where player dragged TO)
                 await processCrossBlast(at: to)
                 
+                // ✅ REFILL BOARD: Apply gravity and spawn new gems
+                _ = boardManager.applyGravity()
+                try? await Task.sleep(for: .milliseconds(300))
+                
+                let _ = boardManager.fillEmptySpacesWithFastCascade()
+                try? await Task.sleep(for: .milliseconds(400))
+                
+                // Mark gems stable
+                boardManager.markAllGemsStable()
+                
+                // NOW check for cascading matches
+                await processCascades()
+                
                 // Enemy turn
                 if asyncEnemyTurn {
                     Task {
@@ -178,6 +191,19 @@ class GameViewModel {
                 
                 // Trigger bonus tile effect with direction
                 await processBonusTile(at: bonusPosition, clearRow: isHorizontalSwipe)
+                
+                // ✅ REFILL BOARD: Apply gravity and spawn new gems
+                _ = boardManager.applyGravity()
+                try? await Task.sleep(for: .milliseconds(300))
+                
+                let _ = boardManager.fillEmptySpacesWithFastCascade()
+                try? await Task.sleep(for: .milliseconds(400))
+                
+                // Mark gems stable
+                boardManager.markAllGemsStable()
+                
+                // NOW check for cascading matches
+                await processCascades()
                 
                 // Enemy turn
                 if asyncEnemyTurn {
@@ -478,18 +504,11 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(600))  // Wait for blast animation
         bonusBlasts.removeAll()  // Clear blasts
         
-        // Apply gravity and refill
-        _ = boardManager.applyGravity()
-        try? await Task.sleep(for: .milliseconds(300))
+        // ✅ REMOVED: Gravity and refill - processCascades() will handle this!
+        // ✅ REMOVED: Battle effects - processCascades() will handle this!
+        // ✅ REMOVED: Attack animation - processCascades() will handle this!
         
-        let _ = boardManager.fillEmptySpacesWithFastCascade()
-        try? await Task.sleep(for: .milliseconds(400))
-        
-        // Process battle effects (bonus tiles always count as 10 tiles)
-        let fakeMatches = [Match(type: .sword, positions: clearedPositions)]
-        battleManager.processMatches(fakeMatches)
-        
-        await playAttackAnimation()
+        // Just wait for blast to finish, then let processCascades() do the rest
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -530,18 +549,11 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(600))  // Wait for both blasts
         bonusBlasts.removeAll()
         
-        // Apply gravity and refill
-        _ = boardManager.applyGravity()
-        try? await Task.sleep(for: .milliseconds(300))
+        // ✅ REMOVED: Gravity and refill - processCascades() will handle this!
+        // ✅ REMOVED: Battle effects - processCascades() will handle this!
+        // ✅ REMOVED: Attack animation - processCascades() will handle this!
         
-        let _ = boardManager.fillEmptySpacesWithFastCascade()
-        try? await Task.sleep(for: .milliseconds(400))
-        
-        // Process battle effects (DOUBLE the power!)
-        let fakeMatches = [Match(type: .sword, positions: Array(allClearedPositions))]
-        battleManager.processMatches(fakeMatches)
-        
-        await playAttackAnimation()
+        // Just wait for blast to finish, then let processCascades() do the rest
     }
     
     @MainActor

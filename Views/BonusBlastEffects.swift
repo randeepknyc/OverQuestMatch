@@ -103,6 +103,7 @@ struct CodeBasedBlast: View {
     private var blastBeam: some View {
         Group {
             if blastData.isRow {
+                // ☕ HORIZONTAL BLAST: Expands FROM bonus gem position outward (left AND right)
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -123,7 +124,8 @@ struct CodeBasedBlast: View {
                         height: tileSize * BlastEffectConfig.thickness
                     )
                     .position(
-                        x: (CGFloat(boardSize) * tileSize * animationProgress) / 2,
+                        // ✅ FIXED: Center the blast AT the bonus gem column (not board center)
+                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,
                         y: CGFloat(blastData.position.row) * tileSize + tileSize / 2
                     )
                     .opacity(opacity)
@@ -131,6 +133,7 @@ struct CodeBasedBlast: View {
                     .shadow(color: BlastEffectConfig.color.opacity(0.5), radius: 40)
                     .blendMode(.screen)
             } else {
+                // ☕ VERTICAL BLAST: Expands FROM bonus gem position outward (up AND down)
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -151,8 +154,9 @@ struct CodeBasedBlast: View {
                         height: CGFloat(boardSize) * tileSize * animationProgress
                     )
                     .position(
+                        // ✅ FIXED: Center the blast AT the bonus gem row (not board center)
                         x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,
-                        y: (CGFloat(boardSize) * tileSize * animationProgress) / 2
+                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2
                     )
                     .opacity(opacity)
                     .shadow(color: BlastEffectConfig.color.opacity(0.8), radius: 20)

@@ -1596,13 +1596,14 @@ var asyncEnemyTurn: Bool = false     // Line 37
 
 ---
 
-### Session 13: Bonus Blast Visual Effects + Cross Blast Combo (March 21, 2026) ✅
+### Session 13: Bonus Blast Visual Effects + Cross Blast Combo (March 21-22, 2026) ✅ FULLY WORKING
 
 **Goal:**
 - Replace circular explosions with dramatic blast effects across row/column
 - Support custom hand-drawn animated blasts
 - Implement cross blast when two bonus tiles are matched
 - Provide complete PNG specifications for hand-drawn animations
+- **FIXED**: Blast now originates FROM bonus gem position and expands outward
 
 **User Requests:**
 1. "can i change the type of explosion effect during the bonus tile? maybe even a custom one. I want one long blast across the row or column."
@@ -1610,6 +1611,7 @@ var asyncEnemyTurn: Bool = false     // Line 37
 3. "can i have the hand drawn animation originate at the match origin"
 4. "provide the image specifications for a png sequenced hand animated blast"
 5. "add two bonus tiles next to each other in the debug menu"
+6. "is it possible to have the blast visual originate at the bonus gem position and blast outwards in the relevant directions" → **FIXED**
 
 **Changes Made:**
 
@@ -1631,8 +1633,10 @@ var asyncEnemyTurn: Bool = false     // Line 37
    - **Cross blast support**: Can show multiple blasts simultaneously
 
 2. **Code-Based Blast Features (BonusBlastEffects-Views.swift)**
-   - **Horizontal blast**: Rectangle with gradient, expands left-to-right
-   - **Vertical blast**: Rectangle with gradient, expands top-to-bottom
+   - **Horizontal blast**: Rectangle with gradient, expands left-to-right FROM bonus position ✅
+   - **Vertical blast**: Rectangle with gradient, expands top-to-bottom FROM bonus position ✅
+   - **Origin point**: Blast centered AT bonus gem (col * tileSize + tileSize/2) ✅
+   - **Expansion**: Width/height scales from 0 → full board size ✅
    - **Particle system**: 15 particles scatter perpendicular to blast
    - **Glow effects**: Triple shadow layers (opacity 0.8, 0.5)
    - **Screen blend mode**: Additive blending for bright effect
@@ -1738,18 +1742,25 @@ var asyncEnemyTurn: Bool = false     // Line 37
 
 **Single Bonus Tile:**
 ```
-Swipe horizontal → Horizontal blast → Clear row
-Swipe vertical   → Vertical blast   → Clear column
+Horizontal Swap → Blast expands FROM bonus gem left AND right → Clear row
+Vertical Swap   → Blast expands FROM bonus gem up AND down     → Clear column
 ```
 
 **Cross Blast (Bonus + Bonus):**
 ```
          ║
-         ║
-═════════⚡═════════  ← Both blasts fire from match position
-         ║
-         ▼
+         ║ (up)
+═════════☕═════════  ← Blasts originate AT the bonus gem position
+  (left)  ║ (down)
+          ║
 ```
+
+**Blast Origin Animation:**
+- Blast starts at 0 scale (invisible)
+- Position is FIXED at bonus gem location (col * tileSize + tileSize/2)
+- Width/height expands from 0 → full board size
+- Rectangle stays centered at origin while growing
+- Creates "explosion FROM the gem" effect
 
 **Custom Image Animation Flow:**
 ```
@@ -1820,17 +1831,18 @@ Also in `processCrossBlast`, line ~505.
 ✅ Single bonus blast works (row OR column based on swipe)
 ✅ Cross blast works (row AND column when bonus + bonus)
 ✅ Code-based blasts look epic (no images needed)
+✅ **Blasts originate FROM bonus gem and expand outward (FIXED)**
 ✅ Custom image support ready (with expansion animation)
 ✅ Debug menu has cross blast test button
 ✅ Complete PNG specifications provided
-✅ Blast originates from match position and expands outward
 
 **What Works Now:**
 - ✅ Single bonus tile → directional blast (horizontal or vertical)
 - ✅ Double bonus tiles → cross blast (both directions)
 - ✅ Code-based effects with particles and glow
+- ✅ **Blast originates FROM bonus gem position** ✅
+- ✅ **Expansion animation (0 → full size) centered at match** ✅
 - ✅ Custom image support with frame-by-frame animation
-- ✅ Expansion animation from match origin
 - ✅ Debug menu test button for cross blast
 - ✅ Full art specifications document
 

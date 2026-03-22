@@ -31,9 +31,14 @@ struct BonusTileConfig {
     static let clearMode: String = "row"
     
     /// Should the bonus tile have a glowing effect?
-    /// true = Pulsing glow animation
+    /// true = Pulsing rainbow glow animation 🌈
     /// false = Static image only
     static let enableGlow: Bool = true
+    
+    /// Use rainbow glow instead of single color?
+    /// true = Rainbow cycling glow 🌈✨ (RECOMMENDED!)
+    /// false = Single color glow (uses glowColor below)
+    static let useRainbowGlow: Bool = true
     
     /// Glow animation speed (if enabled)
     /// 1.0 = Normal speed (1 second per pulse)
@@ -41,7 +46,13 @@ struct BonusTileConfig {
     /// 2.0 = Slow pulse
     static let glowSpeed: Double = 1.0
     
-    /// Glow color (if enabled)
+    /// Rainbow cycle speed (if useRainbowGlow is true)
+    /// 3.0 = Slow color shift (recommended) 🌈
+    /// 1.5 = Fast rainbow
+    /// 6.0 = Very slow, subtle shift
+    static let rainbowCycleSpeed: Double = 1.5
+    
+    /// Glow color (if useRainbowGlow is FALSE)
     /// You can change these RGB values to customize glow color
     /// Current: Golden/yellow glow
     static let glowColor: (red: Double, green: Double, blue: Double) = (1.0, 0.9, 0.3)
@@ -50,7 +61,7 @@ struct BonusTileConfig {
     /// 0.3 = Subtle glow
     /// 0.5 = Medium glow (recommended)
     /// 0.8 = Bright glow
-    static let glowOpacity: Double = 0.5
+    static let glowOpacity: Double = 1.5
     
     /// Image name for bonus tile (must match name in Assets.xcassets)
     static let imageName: String = "coffee_bonus"

@@ -863,7 +863,7 @@ struct ExplosionParticleView: View {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ☕ BONUS TILE GLOW MODIFIER
+// ☕ BONUS TILE GLOW MODIFIER - NOW WITH RAINBOW! 🌈
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 struct BonusTileGlowModifier: ViewModifier {
@@ -873,23 +873,56 @@ struct BonusTileGlowModifier: ViewModifier {
     let speed: Double
     
     @State private var glowIntensity: Double = 0.5
+    @State private var rainbowPhase: Double = 0.0  // 🌈 Rainbow color cycle
     
     func body(content: Content) -> some View {
         if isEnabled {
-            content
-                .shadow(color: color.opacity(opacity * glowIntensity), radius: 20)
-                .shadow(color: color.opacity(opacity * glowIntensity * 0.6), radius: 10)
-                .onAppear {
-                    withAnimation(
-                        .easeInOut(duration: speed)
-                        .repeatForever(autoreverses: true)
-                    ) {
-                        glowIntensity = 1.0
+            if BonusTileConfig.useRainbowGlow {
+                // 🌈 RAINBOW MODE: Cycle through rainbow colors
+                content
+                    .shadow(color: rainbowColor.opacity(opacity * glowIntensity), radius: 20)
+                    .shadow(color: rainbowColor.opacity(opacity * glowIntensity * 0.6), radius: 10)
+                    .onAppear {
+                        // Pulse animation (intensity)
+                        withAnimation(
+                            .easeInOut(duration: speed)
+                            .repeatForever(autoreverses: true)
+                        ) {
+                            glowIntensity = 1.0
+                        }
+                        
+                        // Rainbow cycle animation (color shift)
+                        withAnimation(
+                            .linear(duration: BonusTileConfig.rainbowCycleSpeed)
+                            .repeatForever(autoreverses: false)
+                        ) {
+                            rainbowPhase = 1.0
+                        }
                     }
-                }
+            } else {
+                // ⭐ SINGLE COLOR MODE: Original golden glow
+                content
+                    .shadow(color: color.opacity(opacity * glowIntensity), radius: 20)
+                    .shadow(color: color.opacity(opacity * glowIntensity * 0.6), radius: 10)
+                    .onAppear {
+                        withAnimation(
+                            .easeInOut(duration: speed)
+                            .repeatForever(autoreverses: true)
+                        ) {
+                            glowIntensity = 1.0
+                        }
+                    }
+            }
         } else {
             content
         }
+    }
+    
+    // 🌈 RAINBOW COLOR GENERATOR
+    // Cycles through: Red → Orange → Yellow → Green → Cyan → Blue → Purple → Pink → Red
+    private var rainbowColor: Color {
+        let hue = rainbowPhase  // 0.0 to 1.0 makes a full rainbow cycle
+        return Color(hue: hue, saturation: 0.9, brightness: 1.0)
     }
 }
 
