@@ -286,12 +286,15 @@ class GameViewModel {
             }
             // Board unlocks NOW - you can make next match!
         } else {
-            // 🐢 ORIGINAL MODE: Wait for enemy turn to complete
-            await enemyTurn()
-        }
-        
-        isProcessing = false
-    }
+                    // 🐢 ORIGINAL MODE: Wait for enemy turn to complete
+                    await enemyTurn()
+                }
+                
+                // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
+                battleManager.finalizeGameOver()
+                
+                isProcessing = false
+            }
     
     @MainActor
     private func processCascades() async {
@@ -709,10 +712,13 @@ class GameViewModel {
             }
             
             // Enemy turn
-            await enemyTurn()
-            
-            isProcessing = false
-        }
+                        await enemyTurn()
+                        
+                        // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
+                        battleManager.finalizeGameOver()
+                        
+                        isProcessing = false
+                    }
     // MARK: - Chain Mode Support
     
     @MainActor
@@ -777,10 +783,13 @@ class GameViewModel {
         flashEnemy = false
         
         // Enemy turn
-        await enemyTurn()
-        
-        isProcessing = false
-    }
-}
+                await enemyTurn()
+                
+                // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
+                battleManager.finalizeGameOver()
+                
+                isProcessing = false
+            }
+        }
 
 

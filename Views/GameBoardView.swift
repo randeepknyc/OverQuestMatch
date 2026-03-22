@@ -761,7 +761,6 @@ extension View {
     func conditionalGestures(gameMode: GameMode, onTap: @escaping () -> Void, onSwipe: @escaping (SwipeDirection) -> Void, size: CGFloat, dragOffset: Binding<CGSize>) -> some View {
         if gameMode == .swap {
             self
-                .onTapGesture { onTap() }
                 .gesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { value in
@@ -780,6 +779,9 @@ extension View {
                                 onSwipe(value.translation.width > 0 ? .right : .left)
                             } else if !horizontal && absHeight > threshold {
                                 onSwipe(value.translation.height > 0 ? .down : .up)
+                            } else {
+                                // 🐛 FIX: Only trigger tap if drag was too small (not a swipe attempt)
+                                onTap()
                             }
                             
                             withAnimation(.interpolatingSpring(stiffness: 250, damping: 12)) {

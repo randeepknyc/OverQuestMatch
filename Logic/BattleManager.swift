@@ -16,7 +16,7 @@ class BattleManager {
     var hapticManager: HapticManager?  // ✨ NEW: Haptic feedback
     
     var gameState: GameState = .playing
-    
+    var pendingGameOver: GameState? = nil  // ✨ NEW: Holds victory/defeat until animations finish
     // ═══════════════════════════════════════════════════════════════
     // 🔥 SESSION 2 ADDITION: POWER SURGE FLAG (START)
     // ═══════════════════════════════════════════════════════════════
@@ -190,17 +190,19 @@ class BattleManager {
     
     private func checkGameOver() {
         if !enemy.isAlive {
-            gameState = .victory
+            // ✨ DON'T show game over yet - store it for later!
+            pendingGameOver = .victory
             
-            // 🎨 SET PLAYER TO VICTORY STATE
+            // 🎨 SET PLAYER TO VICTORY STATE (animation will play)
             player.currentState = .victory
             
             hapticManager?.victory()  // ✨ Victory haptic celebration!
             addEvent(BattleEvent(text: "Victory! The Toad King croaks his last!", type: .special))
         } else if !player.isAlive {
-            gameState = .defeat
+            // ✨ DON'T show game over yet - store it for later!
+            pendingGameOver = .defeat
             
-            // 🎨 SET PLAYER TO DEFEAT STATE
+            // 🎨 SET PLAYER TO DEFEAT STATE (animation will play)
             player.currentState = .defeat
             
             hapticManager?.defeat()  // ✨ Defeat haptic
@@ -335,4 +337,11 @@ class BattleManager {
         ]
         return BattleEvent(text: messages.randomElement()!, type: .enemyAttack)
     }
+    // ✨ NEW: Call this after ALL animations complete to show game over screen
+        func finalizeGameOver() {
+            if let pending = pendingGameOver {
+                gameState = pending
+                pendingGameOver = nil
+            }
+        }
 }
