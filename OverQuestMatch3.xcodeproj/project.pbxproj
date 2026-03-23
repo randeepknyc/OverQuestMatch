@@ -34,8 +34,11 @@
 		7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
+		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
+		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
 		7F86C3AD2F70A47900DC5759 /* BattleMechanicsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */; };
 		7F86C3AF2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3AE2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md */; };
+		7F86C3B22F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3B12F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md */; };
 		7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075322F5D2A5800BD0591 /* BoardManager.swift */; };
 		7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075312F5D2A5600BD0591 /* BattleManager.swift */; };
 		7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */; };
@@ -83,8 +86,11 @@
 		7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "final_charactersystem_WORKING-ramp.md"; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
+		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
+		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleMechanicsConfig.swift; sourceTree = "<group>"; };
 		7F86C3AE2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_SUMMARY_MARCH_22_2026.md; sourceTree = "<group>"; };
+		7F86C3B12F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GEM_CLEAR_EFFECTS_GUIDE.md; sourceTree = "<group>"; };
 		7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverQuestMatch3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FB0752D2F5D29D800BD0591 /* GameAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAssets.swift; sourceTree = "<group>"; };
 		7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleEvent.swift; sourceTree = "<group>"; };
@@ -137,6 +143,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7F86C3B02F70EA9400DC5759 /* ReadFilesForContext */ = {
+			isa = PBXGroup;
+			children = (
+				7F0094DE2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md */,
+				7F0094E42F6CEDE900E10AEB /* RESPONSIVE_GAMEPLAY_CHANGES.md */,
+				7F00952A2F6F42A100E10AEB /* SESSION_14_ANIMATION_PRIORITY_TRANSCRIPT.md */,
+				7F00952E2F6F47CC00E10AEB /* SESSION_14_QUICK_STATUS.md */,
+				7F00948E2F691AB100E10AEB /* CASCADE_ANIMATION_SUMMARY.md */,
+				7F0094902F691C1E00E10AEB /* REVERT_POINT_spawn_in_place.md */,
+				7F0094A02F6922CC00E10AEB /* GRAVITY_CASCADE_FIX.md */,
+				7F0094D82F6A4D4600E10AEB /* context_cascade.md */,
+				7F0095102F6E580800E10AEB /* BONUS_BLAST_PNG_SPECS.md */,
+				7F0095342F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md */,
+				7F0095362F6F50C500E10AEB /* QUICK_TEST_GUIDE.md */,
+				7F0095302F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md */,
+				7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */,
+				7F86C3AE2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md */,
+				7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */,
+				7F0094DC2F6B717800E10AEB /* recreate_gatcha.md */,
+				7F0094E62F6CF7F400E10AEB /* blocking_nonblocking.md */,
+				7F0094E82F6CF7FA00E10AEB /* chat_transcript.txt */,
+				7F0094EC2F6E2B1D00E10AEB /* blocking_nonblocking 2.md */,
+				7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */,
+				7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */,
+			);
+			path = ReadFilesForContext;
+			sourceTree = "<group>";
+		};
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
@@ -147,6 +181,8 @@
 				7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */,
 				7FB075E72F5E95EB00BD0591 /* Ability.swift */,
 				7FB075482F5D5B0300BD0591 /* TitleScreenView.swift */,
+				7F0094A62F6926BE00E10AEB /* ChainInputHandler2.swift */,
+				7F0094F02F6E384C00E10AEB /* DebugMenuView.swift */,
 				7FB0752C2F5D29A300BD0591 /* Logic */,
 				7FB0752B2F5D29A100BD0591 /* ViewModels */,
 				7FB0752A2F5D299E00BD0591 /* Views */,
@@ -155,13 +191,7 @@
 				7FB0751C2F5D219B00BD0591 /* OverQuestMatch3 */,
 				7FB0751B2F5D219B00BD0591 /* Products */,
 				7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */,
-				7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */,
-				7F0094A62F6926BE00E10AEB /* ChainInputHandler2.swift */,
-				7F0094DC2F6B717800E10AEB /* recreate_gatcha.md */,
-				7F0094E62F6CF7F400E10AEB /* blocking_nonblocking.md */,
-				7F0094E82F6CF7FA00E10AEB /* chat_transcript.txt */,
-				7F0094EC2F6E2B1D00E10AEB /* blocking_nonblocking 2.md */,
-				7F0094F02F6E384C00E10AEB /* DebugMenuView.swift */,
+				7F86C3B02F70EA9400DC5759 /* ReadFilesForContext */,
 			);
 			sourceTree = "<group>";
 		};
@@ -181,10 +211,7 @@
 				7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */,
 				7FB0752D2F5D29D800BD0591 /* GameAssets.swift */,
 				7F0094EE2F6E375B00E10AEB /* BonusTileConfig.swift */,
-				7F0095302F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md */,
-				7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */,
 				7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */,
-				7F86C3AE2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -204,15 +231,8 @@
 				7FB075362F5D2AA000BD0591 /* GameBoardView.swift */,
 				7FB075352F5D2A9E00BD0591 /* GameHUDview.swift */,
 				7FB075342F5D2A9C00BD0591 /* GameOverView.swift */,
-				7F00948E2F691AB100E10AEB /* CASCADE_ANIMATION_SUMMARY.md */,
-				7F0094902F691C1E00E10AEB /* REVERT_POINT_spawn_in_place.md */,
-				7F0094A02F6922CC00E10AEB /* GRAVITY_CASCADE_FIX.md */,
 				7F0094A42F6926B200E10AEB /* GameMode.swift */,
-				7F0094D82F6A4D4600E10AEB /* context_cascade.md */,
 				7F00950E2F6E52C600E10AEB /* BonusBlastEffects.swift */,
-				7F0095102F6E580800E10AEB /* BONUS_BLAST_PNG_SPECS.md */,
-				7F0095342F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md */,
-				7F0095362F6F50C500E10AEB /* QUICK_TEST_GUIDE.md */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -222,9 +242,7 @@
 			children = (
 				7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */,
 				7F0094A22F69247F00E10AEB /* GridPosition.swift */,
-				7F0094E42F6CEDE900E10AEB /* RESPONSIVE_GAMEPLAY_CHANGES.md */,
-				7F00952A2F6F42A100E10AEB /* SESSION_14_ANIMATION_PRIORITY_TRANSCRIPT.md */,
-				7F00952E2F6F47CC00E10AEB /* SESSION_14_QUICK_STATUS.md */,
+				7F86C3B12F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -234,7 +252,6 @@
 			children = (
 				7FB075322F5D2A5800BD0591 /* BoardManager.swift */,
 				7FB075312F5D2A5600BD0591 /* BattleManager.swift */,
-				7F0094DE2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md */,
 			);
 			path = Logic;
 			sourceTree = "<group>";
@@ -313,10 +330,13 @@
 				7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */,
 				7F0094DD2F6B719400E10AEB /* recreate_gatcha.md in Resources */,
 				7F00952B2F6F42A100E10AEB /* SESSION_14_ANIMATION_PRIORITY_TRANSCRIPT.md in Resources */,
+				7F86C3B22F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md in Resources */,
 				7F00952F2F6F47CC00E10AEB /* SESSION_14_QUICK_STATUS.md in Resources */,
 				7F0094DF2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md in Resources */,
 				7F0094E72F6CF7F400E10AEB /* blocking_nonblocking.md in Resources */,
 				7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */,
+				7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */,
+				7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */,
 				7F0095312F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md in Resources */,
 				7F0094E92F6CF7FA00E10AEB /* chat_transcript.txt in Resources */,
 				7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */,

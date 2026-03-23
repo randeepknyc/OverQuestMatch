@@ -642,12 +642,19 @@ class GameViewModel {
             // ✨ HAPTIC: Coffee cup ability activated!
             hapticManager?.abilityActivated()
             
-            // Use the ability
-            battleManager.useAbility(.heroicStrike, gemType: type)
-            
             // ✨ IMPORTANT: Get gem positions AND colors BEFORE clearing
             let gemsToRemove = boardManager.gems.filter { $0.type == type }
             let gemInfo = gemsToRemove.map { (position: GridPosition(row: $0.row, col: $0.col), color: $0.type.color) }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // ✨ GEM CLEAR EFFECT CALCULATION
+            // ═══════════════════════════════════════════════════════════════
+            // Count how many gems of this type are on the board
+            // Pass to battleManager to apply effects (damage, healing, etc.)
+            let gemCount = gemsToRemove.count
+            
+            // Use the ability (this applies the gem effects based on count)
+            battleManager.useAbility(.heroicStrike, gemType: type, gemCount: gemCount)
             
             // DON'T clear the gems yet! We need them visible for the shrink animation
             

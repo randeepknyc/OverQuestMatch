@@ -243,7 +243,7 @@ class BattleManager {
         return gameState == .playing && mana >= ability.manaCost
     }
     
-    func useAbility(_ ability: Ability, gemType: TileType? = nil) {
+    func useAbility(_ ability: Ability, gemType: TileType? = nil, gemCount: Int = 0) {
         guard canUseAbility(ability) else { return }
         
         // Spend mana
@@ -257,10 +257,76 @@ class BattleManager {
                 // 🎨 SET PLAYER TO SPELL STATE
                 player.currentState = .spell
                 
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ GEM CLEAR EFFECTS: Apply gem effects based on count
+                // ═══════════════════════════════════════════════════════════════
+                // Formula: (Number of gems cleared) × (effect per gem) = Total effect
+                // Example: 12 swords cleared × 2 damage = 24 damage
+                
+                var totalDamage = 0
+                var totalShield = 0
+                var totalHealing = 0
+                var totalMana = 0
+                
+                switch gemType {
+                case .sword:
+                    if BattleMechanicsConfig.gemClearApplySwordDamage {
+                        totalDamage = gemCount * BattleMechanicsConfig.swordDamagePerGem
+                        enemy.takeDamage(totalDamage)
+                    }
+                    
+                case .fire:
+                    if BattleMechanicsConfig.gemClearApplyFireDamage {
+                        totalDamage = gemCount * BattleMechanicsConfig.fireDamagePerGem
+                        enemy.takeDamage(totalDamage)
+                    }
+                    
+                case .shield:
+                    if BattleMechanicsConfig.gemClearApplyShield {
+                        totalShield = gemCount * BattleMechanicsConfig.shieldPerGem
+                        player.addShield(totalShield)
+                    }
+                    
+                case .heart:
+                    if BattleMechanicsConfig.gemClearApplyHealing {
+                        totalHealing = gemCount * BattleMechanicsConfig.healingPerGem
+                        player.heal(totalHealing)
+                    }
+                    
+                case .mana:
+                    if BattleMechanicsConfig.gemClearApplyMana {
+                        totalMana = gemCount * BattleMechanicsConfig.manaPerGem
+                        mana = min(mana + totalMana, BattleMechanicsConfig.maxMana)
+                    }
+                    
+                case .poison:
+                    if BattleMechanicsConfig.gemClearApplyPoison {
+                        // Future poison implementation
+                    }
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ GEM CLEAR MESSAGE (shows what happened)
+                // ═══════════════════════════════════════════════════════════════
+                
+                var effectMessage = ""
+                
+                if totalDamage > 0 {
+                    effectMessage = " → \(totalDamage) damage!"
+                } else if totalShield > 0 {
+                    effectMessage = " → +\(totalShield) shield!"
+                } else if totalHealing > 0 {
+                    effectMessage = " → +\(totalHealing) HP!"
+                } else if totalMana > 0 {
+                    effectMessage = " → +\(totalMana) mana!"
+                }
+                
                 // ✅ UPDATED: Use gem clear message from config
-                let message = BattleMechanicsConfig.gemClearMessage
+                let baseMessage = BattleMechanicsConfig.gemClearMessage
                     .replacingOccurrences(of: "{gemType}", with: gemType.battleAction.uppercased())
-                addEvent(BattleEvent(text: message, type: .special))
+                let fullMessage = baseMessage + effectMessage
+                
+                addEvent(BattleEvent(text: fullMessage, type: .special))
             }
             
         case .divineShield:
