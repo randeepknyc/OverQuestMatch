@@ -90,4 +90,93 @@ struct BattleMechanicsConfig {
     
     /// Bonus mana awarded when Power Surge triggers
     static let powerSurgeBonusMana = 2
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Battle Narrative Messages
+    // ═══════════════════════════════════════════════════════════════
+    // All the funny combat text that appears during battle
+    // Easy to expand: Just add more strings to any array!
+    
+    /// Messages when Ramp attacks with SWORD gems
+    /// {damage} will be replaced with actual damage number
+    static let barbarianAttackMessages = [
+        "Ramp swings for {damage}!",
+        "Critical bonk! {damage} damage!",
+        "Barbarian fury! {damage}!",
+        "Mighty strike lands for {damage}!"
+    ]
+    
+    /// Messages when Ramp attacks with FIRE gems (magic)
+    /// {damage} will be replaced with actual damage number
+    static let magicAttackMessages = [
+        "Flames erupt for {damage}!",
+        "Magic missiles strike! {damage}!",
+        "Arcane blast! {damage} damage!",
+        "Fireball scorches for {damage}!"
+    ]
+    
+    /// Messages when Ramp gains SHIELD
+    /// {amount} will be replaced with shield points gained
+    static let shieldMessages = [
+        "Shield wall! +{amount} defense!",
+        "Defenses strengthened!",
+        "Barrier holds strong!",
+        "Protected! +{amount}!"
+    ]
+    
+    /// Messages when Ramp heals with HEART gems
+    /// {amount} will be replaced with HP healed
+    static let healMessages = [
+        "Healing light! +{amount} HP!",
+        "Vitality restored! +{amount}!",
+        "Life force surges! +{amount}!",
+        "Renewed vigor! +{amount}!"
+    ]
+    
+    /// Messages when enemy (Ednar) attacks
+    /// {damage} will be replaced with actual damage number
+    static let enemyAttackMessages = [
+        "EDNAR strikes for {damage}!",
+        "ZAPPY ZAP! {damage} damage!",
+        "Ednar curses! {damage}!",
+        "Ednar throws a book {damage}!",
+        "Wizardly whizzer! {damage}!"
+    ]
+    
+    /// Message when MANA gems are matched
+    /// {amount} will be replaced with mana gained
+    static let manaMessage = "Power surges! +{amount} mana!"
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Special Event Messages
+    // ═══════════════════════════════════════════════════════════════
+    
+    /// Message when Power Surge triggers (4+ gem matches)
+    /// {totalMatches} = total gems matched, {bonusMana} = bonus mana awarded
+    static let powerSurgeMessage = "⚡ POWER SURGE! {totalMatches} MATCHES! +{bonusMana} bonus mana!"
+    
+    /// Message when player wins the battle
+    static let victoryMessage = "Victory! The Toad King croaks his last!"
+    
+    /// Message when player loses the battle
+    static let defeatMessage = "Defeated! The swamp claims another hero..."
+    
+    /// Message when POISON gems are matched (placeholder for future feature)
+    static let poisonMessage = "Toxic miasma swirls..."
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Ability Use Messages
+    // ═══════════════════════════════════════════════════════════════
+    
+    /// Message when Gem Clear ability is used
+    /// {gemType} will be replaced with gem type name (e.g., "SWORD", "FIRE")
+    static let gemClearMessage = "💥 CLEARED ALL {gemType} GEMS!"
+    
+    /// Message when Divine Shield ability is used
+    /// {amount} will be replaced with shield points granted
+    static let divineShieldMessage = "🛡️ DIVINE SHIELD! +{amount} protection!"
+    
+    /// Message when Greater Heal ability is used
+    /// {amount} will be replaced with HP restored
+    static let greaterHealMessage = "💚 GREATER HEAL! +{amount} HP!"
 }

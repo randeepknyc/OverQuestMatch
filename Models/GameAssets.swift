@@ -2,6 +2,8 @@
 //  GameAssets.swift
 //  OverQuestMatch3
 //
+//  Asset names and UI configuration (non-battle related)
+//
 
 import Foundation
 
@@ -50,56 +52,38 @@ struct GameAssets {
     ]
 }
 
-/// Configuration for game balance
+/// Configuration for UI and game structure (non-battle related)
 struct GameConfig {
+    
+    // MARK: - Board Layout
     static let boardSize = 8 // 8x8 for optimal full-screen layout
-    static let barbarianStartHealth = 100
-    static let toadStartHealth = 200
-    
-    static let baseDamage = 8
-    static let magicDamage = 12
-    static let healAmount = 10
-    static let shieldAmount = 5
-    static let manaPerGem = 1
-    static let maxMana = 10
-    
-    static let comboMultiplier = 1.5
     static let specialTileThreshold = 4 // 4+ matches create special tiles
     
-    static let enemyMinDamage = 8
-    static let enemyMaxDamage = 15
-    
-    // MARK: - Ability Effects
-    static let heroicStrikeDamage = 40      // Direct damage, bypasses shield
-    static let divineShieldAmount = 25       // Shield points granted
-    static let greaterHealAmount = 40        // HP restored
-    
     // ═══════════════════════════════════════════════════════════════
-    // 🔥 POWER SURGE EFFECT CONFIG
+    // MARK: - Visual Effects
     // ═══════════════════════════════════════════════════════════════
-    // MARK: - Chain Combo Effects
-    static let enablePowerSurgeEffect = true  // ⚠️ Set to false to disable 4-chain visual effect
-    static let powerSurgeChainThreshold = 4   // Number of combos needed for Power Surge
-    static let powerSurgeManaBonus = 2        // Extra mana awarded on Power Surge
+    
+    /// Enable/disable Power Surge visual effect (golden lightning)
+    static let enablePowerSurgeEffect = true  // ⚠️ Set to false to disable visual effect
     
     // ═══════════════════════════════════════════════════════════════
-    // 🎬 DEVELOPER SPLASH SCREEN - "IT CAME FROM THE DEEP"
+    // MARK: - Splash Screen Settings
     // ═══════════════════════════════════════════════════════════════
-    // MARK: - Developer Splash Screen
-    static let enableDeveloperSplash = true           // Toggle splash screen on/off (true = show, false = skip)
+    
+    static let enableDeveloperSplash = true           // Toggle splash screen on/off
     static let splashDuration: Double = 4.0           // How long splash shows (seconds)
     static let useAnimatedSplash = false              // false = static image, true = animated frames
     
     // ═══════════════════════════════════════════════════════════════
-    // 🎨 TITLE SCREEN ANIMATION
-    // ═══════════════════════════════════════════════════════════════
     // MARK: - Title Screen Animation
+    // ═══════════════════════════════════════════════════════════════
+    
     static let titleAnimationStyle: TitleAnimationStyle = .floatAndPulse
     // Available options: .none, .slideAndSettle, .floatAndPulse, .scaleAndBounce, .parallaxScroll
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 🎨 TITLE ANIMATION STYLES
+// MARK: - Title Animation Styles
 // ═══════════════════════════════════════════════════════════════
 enum TitleAnimationStyle {
     case none              // No animation, static display

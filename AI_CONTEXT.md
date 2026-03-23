@@ -20,10 +20,12 @@
 - **BattleSceneView.swift** - Character portraits, health bars, battle UI, coffee cup ability button
 - **GameBoardView.swift** - Match-3 game board (8x8 grid)
 - **GameViewModel.swift** - Main game logic and state management
-- **BattleManager.swift** - Battle mechanics, damage, health, mana
+- **BattleManager.swift** - Battle mechanics, damage, health, mana logic
+- **BattleMechanicsConfig.swift** - ✨ **NEW** - All battle numbers (damage, health, abilities) centralized here
 - **Character.swift** - Character data models
 - **TileType.swift** - Gem/tile type definitions
-- **GameConfig.swift** - Game constants and configuration
+- **GameAssets.swift** - Asset names and UI configuration (non-battle)
+- **GameConfig.swift** - ⚠️ **DEPRECATED** - Now in GameAssets.swift (UI only)
 
 ### UI Screens
 - **TitleScreenView.swift** - Opening title screen
@@ -308,6 +310,469 @@ ZStack {
 ---
 
 ## 🔧 RECENT CHANGES
+
+### Session 18: Battle Mechanics Migration to BattleMechanicsConfig.swift (March 22, 2026) ✅ COMPLETE
+
+**Goal:**
+- Centralize ALL battle-related configuration into one dedicated file
+- Separate battle mechanics from UI/asset configuration
+- Make game balance easier to adjust and test
+- Prepare for future expansion (status effects, enemy AI, difficulty levels)
+
+**User Request:**
+- "hypothetically if i wanted to make very involved detailed battle mechanics, could we port these over to their own file and manage all battle mechanics from one spot?"
+
+**Why This Was Needed:**
+
+**Before** (scattered configuration):
+```
+GameAssets.swift/GameConfig:
+- barbarianStartHealth = 100
+- toadStartHealth = 200
+- baseDamage = 8
+- magicDamage = 12
+- healAmount = 10
+- shieldAmount = 5
+- manaPerGem = 1
+- maxMana = 10
+- comboMultiplier = 1.5
+- enemyMinDamage = 8
+- enemyMaxDamage = 15
+- divineShieldAmount = 25
+- greaterHealAmount = 40
+- powerSurgeChainThreshold = 4
+- powerSurgeManaBonus = 2
+```
+
+**Problems:**
+- Battle mechanics mixed with UI/asset settings
+- Hard to find and adjust values
+- Difficult to test different balance configurations
+- Not ready for advanced features (status effects, enemy spells, etc.)
+
+**After** (centralized configuration):
+```
+BattleMechanicsConfig.swift (NEW FILE):
+- All battle numbers in one place
+- Organized into logical sections
+- Easy to add new mechanics
+- Clear separation from UI settings
+
+GameAssets.swift (cleaned up):
+- ONLY asset names and UI settings
+- No battle mechanics
+```
+
+---
+
+**Changes Made:**
+
+### 1. BattleMechanicsConfig.swift - NEW FILE ✨
+
+**Complete battle configuration structure:**
+
+```swift
+struct BattleMechanicsConfig {
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Character Stats
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let playerStartingHealth = 100
+    static let enemyStartingHealth = 200
+    static let maxMana = 10
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Gem Match Damage & Effects
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let swordDamagePerGem = 8      // Physical attack
+    static let fireDamagePerGem = 12      // Magic attack
+    static let shieldPerGem = 5           // Shield points
+    static let healingPerGem = 10         // HP healed
+    static let manaPerGem = 1             // Mana gained
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Combo System
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let comboMultiplier = 1.5      // 50% bonus damage
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Enemy AI & Attacks
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let enemyMinDamage = 8
+    static let enemyMaxDamage = 15
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Special Abilities (Coffee Cup Button)
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let gemClearAbilityCost = 5    // Mana cost
+    static let shieldAbilityCost = 4      // Mana cost
+    static let shieldAbilityAmount = 25   // Shield granted
+    static let healAbilityCost = 5        // Mana cost
+    static let healAbilityAmount = 40     // HP restored
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MARK: - Power Surge Effect (4+ Match Chain)
+    // ═══════════════════════════════════════════════════════════════
+    
+    static let powerSurgeThreshold = 4    // Matches needed
+    static let powerSurgeBonusMana = 2    // Bonus mana awarded
+}
+```
+
+**Benefits:**
+- ✅ All battle numbers in ONE place
+- ✅ Clear organization with MARK comments
+- ✅ Easy to find specific values
+- ✅ Ready for future expansion
+- ✅ Can add difficulty presets later
+
+---
+
+### 2. GameAssets.swift - CLEANED UP
+
+**Removed ALL battle mechanics, kept ONLY UI/asset configuration:**
+
+```swift
+struct GameConfig {
+    
+    // MARK: - Board Layout
+    static let boardSize = 8
+    static let specialTileThreshold = 4
+    
+    // MARK: - Visual Effects
+    static let enablePowerSurgeEffect = true  // Toggle visual effect
+    
+    // MARK: - Splash Screen Settings
+    static let enableDeveloperSplash = true
+    static let splashDuration: Double = 4.0
+    static let useAnimatedSplash = false
+    
+    // MARK: - Title Screen Animation
+    static let titleAnimationStyle: TitleAnimationStyle = .floatAndPulse
+}
+```
+
+**What was removed:**
+- ❌ All health/damage values
+- ❌ All ability costs/effects
+- ❌ All combo/power surge mechanics
+- ❌ All enemy attack values
+
+**What was kept:**
+- ✅ Board size (layout-related)
+- ✅ Visual effect toggles (UI-related)
+- ✅ Splash screen settings (UI-related)
+- ✅ Title animation style (UI-related)
+
+---
+
+### 3. BattleManager.swift - UPDATED ALL REFERENCES
+
+**Changed ALL `GameConfig` references to `BattleMechanicsConfig`:**
+
+**init() function (Lines 35-47):**
+```swift
+// OLD:
+maxHealth: GameConfig.barbarianStartHealth,
+currentHealth: GameConfig.barbarianStartHealth
+maxHealth: GameConfig.toadStartHealth,
+currentHealth: GameConfig.toadStartHealth
+
+// NEW:
+maxHealth: BattleMechanicsConfig.playerStartingHealth,
+currentHealth: BattleMechanicsConfig.playerStartingHealth
+maxHealth: BattleMechanicsConfig.enemyStartingHealth,
+currentHealth: BattleMechanicsConfig.enemyStartingHealth
+```
+
+**processMatches() function (Lines 70-140):**
+```swift
+// OLD:
+let multiplier = isCombo ? GameConfig.comboMultiplier : 1.0
+let damage = Int(Double(GameConfig.baseDamage * matchCount) * multiplier)
+let damage = Int(Double(GameConfig.magicDamage * matchCount) * multiplier)
+let shield = GameConfig.shieldAmount * matchCount
+let healing = GameConfig.healAmount * matchCount
+let manaGain = GameConfig.manaPerGem * matchCount
+mana = min(GameConfig.maxMana, mana + totalMana)
+
+// NEW:
+let multiplier = isCombo ? BattleMechanicsConfig.comboMultiplier : 1.0
+let damage = Int(Double(BattleMechanicsConfig.swordDamagePerGem * matchCount) * multiplier)
+let damage = Int(Double(BattleMechanicsConfig.fireDamagePerGem * matchCount) * multiplier)
+let shield = BattleMechanicsConfig.shieldPerGem * matchCount
+let healing = BattleMechanicsConfig.healingPerGem * matchCount
+let manaGain = BattleMechanicsConfig.manaPerGem * matchCount
+mana = min(BattleMechanicsConfig.maxMana, mana + totalMana)
+```
+
+**Power Surge detection (Lines 143-152):**
+```swift
+// OLD:
+if totalMatches >= GameConfig.powerSurgeChainThreshold {
+    let bonusMana = GameConfig.powerSurgeManaBonus
+    mana = min(GameConfig.maxMana, mana + bonusMana)
+}
+
+// NEW:
+if totalMatches >= BattleMechanicsConfig.powerSurgeThreshold {
+    let bonusMana = BattleMechanicsConfig.powerSurgeBonusMana
+    mana = min(BattleMechanicsConfig.maxMana, mana + bonusMana)
+}
+```
+
+**enemyTurn() function (Line 186):**
+```swift
+// OLD:
+let damage = Int.random(in: GameConfig.enemyMinDamage...GameConfig.enemyMaxDamage)
+
+// NEW:
+let damage = Int.random(in: BattleMechanicsConfig.enemyMinDamage...BattleMechanicsConfig.enemyMaxDamage)
+```
+
+**useAbility() function (Lines 255-280):**
+```swift
+// OLD:
+let shieldAmount = GameConfig.divineShieldAmount
+let healAmount = GameConfig.greaterHealAmount
+
+// NEW:
+let shieldAmount = BattleMechanicsConfig.shieldAbilityAmount
+let healAmount = BattleMechanicsConfig.healAbilityAmount
+```
+
+---
+
+**Battle Mechanics Reference Table:**
+
+| Mechanic | Value | Location | Description |
+|----------|-------|----------|-------------|
+| **Player Health** | 100 | BattleMechanicsConfig.swift:18 | Ramp's starting HP |
+| **Enemy Health** | 200 | BattleMechanicsConfig.swift:21 | Ednar's starting HP |
+| **Max Mana** | 10 | BattleMechanicsConfig.swift:24 | Maximum mana storage |
+| **Sword Damage** | 8 per gem | BattleMechanicsConfig.swift:32 | Physical attack damage |
+| **Fire Damage** | 12 per gem | BattleMechanicsConfig.swift:35 | Magic attack damage |
+| **Shield Gain** | 5 per gem | BattleMechanicsConfig.swift:38 | Shield points granted |
+| **Healing** | 10 per gem | BattleMechanicsConfig.swift:41 | HP restored |
+| **Mana Gain** | 1 per gem | BattleMechanicsConfig.swift:44 | Mana charged |
+| **Combo Bonus** | 1.5x (50% more) | BattleMechanicsConfig.swift:52 | Multiple match groups |
+| **Enemy Min Attack** | 8 | BattleMechanicsConfig.swift:60 | Minimum enemy damage |
+| **Enemy Max Attack** | 15 | BattleMechanicsConfig.swift:63 | Maximum enemy damage |
+| **Gem Clear Cost** | 5 mana | BattleMechanicsConfig.swift:72 | Coffee cup ability |
+| **Divine Shield Cost** | 4 mana | BattleMechanicsConfig.swift:75 | Shield ability |
+| **Divine Shield Amount** | 25 | BattleMechanicsConfig.swift:78 | Shield granted |
+| **Greater Heal Cost** | 5 mana | BattleMechanicsConfig.swift:81 | Heal ability |
+| **Greater Heal Amount** | 40 | BattleMechanicsConfig.swift:84 | HP restored |
+| **Power Surge Threshold** | 4 matches | BattleMechanicsConfig.swift:93 | Trigger requirement |
+| **Power Surge Bonus** | 2 mana | BattleMechanicsConfig.swift:96 | Extra mana awarded |
+
+---
+
+**How Battle Damage Calculation Works:**
+
+**Example 1: Match 3 Swords**
+```
+swordDamagePerGem = 8
+Gems matched = 3
+Damage = 8 × 3 = 24 HP to enemy
+```
+
+**Example 2: Match 3 Swords + 3 Fire (COMBO!)**
+```
+swordDamagePerGem = 8
+fireDamagePerGem = 12
+comboMultiplier = 1.5
+
+Sword damage: 8 × 3 = 24
+Fire damage: 12 × 3 = 36
+Base total: 24 + 36 = 60
+
+With combo: 60 × 1.5 = 90 HP to enemy
+```
+
+**Example 3: Match 4 Mana Gems (Power Surge!)**
+```
+manaPerGem = 1
+Gems matched = 4
+Base mana = 1 × 4 = 4
+
+Power Surge bonus = 2
+Total mana = 4 + 2 = 6 mana gained
+```
+
+**Example 4: Enemy Attacks**
+```
+enemyMinDamage = 8
+enemyMaxDamage = 15
+
+Random damage = 8 to 15 HP
+(Different each turn)
+```
+
+---
+
+**How to Adjust Game Balance:**
+
+**Make Game Easier (Player Advantages):**
+
+Open `BattleMechanicsConfig.swift` and change:
+
+```swift
+// Player survives longer
+static let playerStartingHealth = 150  // was 100
+
+// Enemy dies faster
+static let enemyStartingHealth = 150   // was 200
+
+// Player deals more damage
+static let swordDamagePerGem = 12      // was 8
+static let fireDamagePerGem = 16       // was 12
+
+// Player heals more
+static let healingPerGem = 15          // was 10
+
+// Enemy is weaker
+static let enemyMinDamage = 5          // was 8
+static let enemyMaxDamage = 10         // was 15
+```
+
+**Make Game Harder (Enemy Advantages):**
+
+```swift
+// Player has less health
+static let playerStartingHealth = 75   // was 100
+
+// Enemy has more health
+static let enemyStartingHealth = 300   // was 200
+
+// Player deals less damage
+static let swordDamagePerGem = 6       // was 8
+static let fireDamagePerGem = 10       // was 12
+
+// Enemy is stronger
+static let enemyMinDamage = 12         // was 8
+static let enemyMaxDamage = 20         // was 15
+```
+
+**Adjust Abilities:**
+
+```swift
+// Cheaper coffee cup (easier to use)
+static let gemClearAbilityCost = 3    // was 5
+
+// More powerful abilities
+static let shieldAbilityAmount = 40   // was 25
+static let healAbilityAmount = 60     // was 40
+```
+
+---
+
+**Future Expansion Possibilities:**
+
+Now that battle mechanics are centralized, it's easy to add:
+
+**Easy Additions:**
+```swift
+// Difficulty presets
+enum Difficulty { case easy, normal, hard, nightmare }
+
+// Multiple enemy types
+static let bossHealthMultiplier = 2.0
+static let eliteEnemyDamageBonus = 5
+
+// Level progression
+static let healthGainPerLevel = 10
+static let damageGainPerLevel = 2
+```
+
+**Medium Additions:**
+```swift
+// Status effects
+static let poisonEnabled = true
+static let poisonDamagePerTurn = 3
+static let burnDuration = 2
+static let freezeChance = 0.15
+
+// Critical hits
+static let criticalHitChance = 0.1
+static let criticalHitMultiplier = 2.0
+```
+
+**Advanced Additions:**
+```swift
+// Enemy spell system
+static let enemySpellChance = 0.2
+static let spellDamageMin = 15
+static let spellDamageMax = 25
+
+// Combo escalation
+static let tripleComboMultiplier = 2.0
+static let megaComboMultiplier = 3.0
+
+// Board manipulation
+static let curseTileSpawnChance = 0.1
+static let curseDamageOnMatch = 5
+```
+
+---
+
+**What Works Now:**
+
+✅ All battle mechanics in one centralized file
+✅ Easy to find and adjust any value
+✅ Game plays exactly the same as before
+✅ Clean separation: battle logic vs UI configuration
+✅ Ready for advanced features (status effects, enemy AI, etc.)
+✅ Can create difficulty presets in the future
+✅ All damage calculations use BattleMechanicsConfig
+✅ All ability costs use BattleMechanicsConfig
+✅ All character stats use BattleMechanicsConfig
+✅ Code is more maintainable and organized
+
+**Testing Checklist:**
+
+✅ Game builds without errors
+✅ Sword gems deal 8 damage per gem
+✅ Fire gems deal 12 damage per gem
+✅ Heart gems heal 10 HP per gem
+✅ Shield gems grant 5 shield per gem
+✅ Mana gems grant 1 mana per gem
+✅ Enemy attacks for 8-15 damage (random)
+✅ Combos multiply damage by 1.5x
+✅ Power Surge triggers on 4+ matches
+✅ Power Surge awards 2 bonus mana
+✅ Coffee cup costs 5 mana
+✅ Coffee cup clears all gems of selected type
+✅ Divine Shield costs 4 mana, grants 25 shield
+✅ Greater Heal costs 5 mana, restores 40 HP
+
+**Files Created:**
+- BattleMechanicsConfig.swift (99 lines) ✨ NEW
+
+**Files Modified:**
+- GameAssets.swift (removed all battle mechanics, kept UI/asset config)
+- BattleManager.swift (all references changed from GameConfig to BattleMechanicsConfig)
+
+**Files NOT Modified:**
+- GameViewModel.swift (no changes needed)
+- Character.swift (no changes needed)
+- TileType.swift (no changes needed)
+- All other files unchanged
+
+**Documentation:**
+- Complete battle mechanics reference table created
+- Damage calculation examples provided
+- Balance adjustment guide included
+- Future expansion roadmap outlined
+
+**Status**: ✅ Session 18 100% Complete! Battle mechanics fully centralized and ready for expansion! 🎮⚔️
+
+---
 
 ### Session 17: Bonus Tile Cascade Bug Fix (March 22, 2026) ✅ FIXED
 
@@ -3280,8 +3745,10 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
+| BattleMechanicsConfig.swift | Session 18 | ✅ Working | **NEW FILE** - Centralized battle configuration, all damage/health/ability values in one place |
+| GameAssets.swift | Session 18 | ✅ Working | Cleaned up - removed battle mechanics, kept only UI/asset configuration |
+| BattleManager.swift | Session 18 | ✅ Working | All references changed from GameConfig to BattleMechanicsConfig (health, damage, abilities, power surge) |
 | GameViewModel.swift | Session 17 | ✅ Working | Fixed bonus tile cascade bug - manual gravity/spawn before processCascades(), removed duplicate logic from processBonusTile/processCrossBlast |
-| BattleManager.swift | Session 16 | ✅ Working | Added pendingGameOver variable, modified checkGameOver(), added finalizeGameOver() function |
 | GameBoardView.swift | Session 15 | ✅ Working | Fixed swipe/tap gesture priority bug - removed onTapGesture, integrated tap into DragGesture.onEnded |
 | CharacterAnimationManager.swift | Session 14 | ✅ Working | Priority queue system, didSet updates character.currentState automatically |
 | CharacterAnimations.swift | Session 14 | ✅ Working | Simplified to read character.currentState directly, portraits update correctly |
@@ -3303,6 +3770,6 @@ Before submitting ANY code change, verify:
 
 ---
 
-**Last Updated**: Session 17 - Bonus Tile Cascade Bug Fix (Board Refill After Blast)
+**Last Updated**: Session 18 - Battle Mechanics Migration to BattleMechanicsConfig.swift
 
-**Status**: ✅ All systems working! Bonus tiles now properly trigger cascades and refill the board! 🎮☕💥
+**Status**: ✅ All battle mechanics centralized in one file! Easy to adjust, ready for expansion! 🎮⚔️

@@ -358,10 +358,16 @@ struct BattleNarrativeColumn: View {
                         .fill(Color.black.opacity(0.6))
                         .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
                 )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .id(event.id)  // ✅ FIX: Force unique identity for each message
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: events.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: events.map { $0.id })  // ✅ FIX: Faster, smoother animation
     }
 }
 

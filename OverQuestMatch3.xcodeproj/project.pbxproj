@@ -34,6 +34,7 @@
 		7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
+		7F86C3AD2F70A47900DC5759 /* BattleMechanicsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */; };
 		7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075322F5D2A5800BD0591 /* BoardManager.swift */; };
 		7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075312F5D2A5600BD0591 /* BattleManager.swift */; };
 		7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075332F5D2A6F00BD0591 /* GameViewModel.swift */; };
@@ -81,6 +82,7 @@
 		7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "final_charactersystem_WORKING-ramp.md"; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
+		7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleMechanicsConfig.swift; sourceTree = "<group>"; };
 		7FB0751A2F5D219B00BD0591 /* OverQuestMatch3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverQuestMatch3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FB0752D2F5D29D800BD0591 /* GameAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAssets.swift; sourceTree = "<group>"; };
 		7FB0752E2F5D29DC00BD0591 /* BattleEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleEvent.swift; sourceTree = "<group>"; };
@@ -179,6 +181,7 @@
 				7F0094EE2F6E375B00E10AEB /* BonusTileConfig.swift */,
 				7F0095302F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md */,
 				7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */,
+				7F86C3AC2F70A47900DC5759 /* BattleMechanicsConfig.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -339,6 +342,7 @@
 				7F0094EF2F6E375B00E10AEB /* BonusTileConfig.swift in Sources */,
 				7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */,
 				7FB075E82F5E95EB00BD0591 /* Ability.swift in Sources */,
+				7F86C3AD2F70A47900DC5759 /* BattleMechanicsConfig.swift in Sources */,
 				7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */,
 				7FB075432F5D300100BD0591 /* Character.swift in Sources */,
 				7FB075442F5D300100BD0591 /* TileType.swift in Sources */,

@@ -589,14 +589,33 @@ class GameViewModel {
     }
     
     func resetGame() {
-        boardManager.generateInitialBoard()
-        battleManager.reset()
-        score = 0
+        // ✅ FIX: Clear selection state FIRST (prevents phantom selection box)
         selectedPosition = nil
+        isSelectingGemToClear = false
         isProcessing = false
+        
+        // Clear visual states
         shakeTiles.removeAll()
         floatingDamage.removeAll()
-        isSelectingGemToClear = false
+        explosionParticles.removeAll()
+        bonusBlasts.removeAll()
+        
+        // Clear animation flags
+        isPlayerAttacking = false
+        isEnemyAttacking = false
+        flashPlayer = false
+        flashEnemy = false
+        
+        // Reset game state
+        score = 0
+        boardManager.generateInitialBoard()
+        battleManager.reset()
+        
+        // 🎮 FIX: Mark all gems stable after reset (ensures gems can be swapped immediately)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            boardManager.markAllGemsStable()
+        }
     }
     
     // MARK: - Ability System
