@@ -122,7 +122,35 @@ ZStack {
 
 ## ✅ WHAT WORKS (TESTED & CONFIRMED)
 
-1. **Swipe/Tap Gesture System** ✨ **FIXED IN SESSION 15!**
+1. **Selection Box Reset Bug** ✨ **FIXED IN SESSION 19!**
+   - No more phantom selection boxes after victory/reset
+   - Works correctly on both simulator AND physical devices
+   - Proper state clearing order prevents race conditions
+   - Gems are immediately swappable after "Play Again"
+   - Board is marked stable after reset
+
+2. **Battle Narrative Slide Animation** ✨ **FIXED IN SESSION 19!**
+   - Messages smoothly slide in from the right edge
+   - No more "popping" into view
+   - Asymmetric transitions (slide in, fade out)
+   - Identity tracking with `.id(event.id)` works perfectly
+   - 0.3s spring animation with 0.75 damping
+
+3. **Gem Selector Animation** ✨ **CUSTOMIZED IN SESSION 19!**
+   - Gems pop in custom order: Mana → Poison → Sword → Fire → Shield → Heart
+   - Creates clockwise-ish wave effect from bottom-left
+   - 60ms stagger between each gem (adjustable)
+   - Bounce animation (1.0 → 1.2 → 1.0) with spring physics
+   - Visual positions unchanged, only timing modified
+
+4. **Battle Narrative Messages** ✨ **CENTRALIZED IN SESSION 18.5!**
+   - ALL battle messages now in BattleMechanicsConfig.swift
+   - Random message selection from arrays (4-5 messages per type)
+   - Template system with placeholders: {damage}, {amount}, {gemType}
+   - Easy to expand (add more messages without code changes)
+   - Special event messages included (Power Surge, Victory, Defeat, Abilities)
+
+5. **Swipe/Tap Gesture System** ✨ **FIXED IN SESSION 15!**
    - Swipe gestures work smoothly (drag 25+ pixels to swap)
    - Tap-to-select still works (tap gem, then tap adjacent gem)
    - No more stuck selection boxes when swiping
@@ -130,30 +158,30 @@ ZStack {
    - Visual drag feedback (gems follow finger)
    - Quick flick gestures responsive
 
-2. **Coffee Cup Button**
+6. **Coffee Cup Button**
    - Displays correctly on battle scene
    - Shows mana fill with pie chart animation
    - Disables when mana < 5
    - Triggers gem selector popup
 
-3. **Gem Selector Popup**
+7. **Gem Selector Popup**
    - Appears BELOW coffee button when activated
    - Shows all 6 tile types with proper images
    - Clears tiles when clicked
    - Dismisses when tapping outside
    - Properly scaled and positioned
 
-4. **Battle Scene Layout**
+8. **Battle Scene Layout**
    - Characters display side-by-side
    - Health bars animate properly
    - Shield badges show when shield > 0
    - Battle narrative shows 3 recent events
 
-5. **No Duplicate Gem Selectors**
+9. **No Duplicate Gem Selectors**
    - Removed permanent gem selector from BattleSceneView
    - Only popup version exists (in ContentView)
 
-6. **4-Match Power Surge Effect** ✨ **FULLY WORKING!**
+10. **4-Match Power Surge Effect** ✨ **FULLY WORKING!**
    - Triggers on 4+ tile matches in any single turn
    - Full-screen golden lightning bolts flash across entire game
    - Giant "⚡ POWER SURGE! ⚡" text with floating animation
@@ -165,7 +193,7 @@ ZStack {
    - Adjustable bonus: `GameConfig.powerSurgeManaBonus` (default: 2)
    - 100% code-based - no image assets required
 
-7. **🌧️ RAINDROP CASCADE ANIMATION - COMPREHENSIVE REFERENCE** ✨ **WORKING PERFECTLY!**
+11. **🌧️ RAINDROP CASCADE ANIMATION - COMPREHENSIVE REFERENCE** ✨ **WORKING PERFECTLY!**
    
    **Overview:**
    - New gems spawn with cascading "raindrop" effect from top of screen
@@ -269,7 +297,7 @@ ZStack {
    - BoardManager.swift - Spawn delay calculation and assignment
    - GridPosition.swift - Position tracking for delays
 
-7. **💎 GEM SWAP ANIMATION** ✅ **WORKING PERFECTLY!**
+12. **💎 GEM SWAP ANIMATION** ✅ **WORKING PERFECTLY!**
    - **Current Configuration**: `.easeInOut(duration: 0.4)` (lines 200-201)
    - Gems glide smoothly when swapping positions
    - Silky smooth ease-in/ease-out curve (like Candy Crush)
@@ -277,20 +305,20 @@ ZStack {
    - Alternative styles available: linear, spring physics
    - Full adjustment guide in Session 8 documentation
 
-8. **🎮 SPRINGY DRAG GESTURE** ✅ **WORKING PERFECTLY!**
+13. **🎮 SPRINGY DRAG GESTURE** ✅ **WORKING PERFECTLY!**
    - **Current Configuration**: `.interpolatingSpring(stiffness: 250, damping: 20)` (line 378)
    - Gems bounce slightly when released from drag
    - Fun, playful, tactile feel when moving gems around
    - Responsive and game-like
    - Adjustable: More springy (300/15), Less springy (200/25)
 
-9. **🎯 MATCH DISAPPEAR ANIMATION** ✅ **WORKING PERFECTLY!**
+14. **🎯 MATCH DISAPPEAR ANIMATION** ✅ **WORKING PERFECTLY!**
    - **Current Configuration**: `.scale(scale: 0.01).combined(with: .opacity)` (lines 193-198)
    - Matched gems shrink to nearly nothing while fading out
    - Simple, clean removal - no wiggle, no buzz
    - Old code style
 
-10. **⚠️ INVALID SWAP SHAKE** ✅ **WORKING PERFECTLY!**
+15. **⚠️ INVALID SWAP SHAKE** ✅ **WORKING PERFECTLY!**
    - **Current Configuration**: `startShaking()` function (lines 321-328)
    - Gentle shake when attempting invalid swap
    - Settings: 6 repeats, ±5 pixels, 0.05s duration, 0.3s timeout
@@ -310,6 +338,378 @@ ZStack {
 ---
 
 ## 🔧 RECENT CHANGES
+
+### Session 19: Bug Fixes & Gem Selector Animation (March 22, 2026) ✅ COMPLETE
+
+**Goal:**
+- Fix selection box bug after victory/reset (especially noticeable on physical devices)
+- Fix battle narrative slide animation (messages were popping instead of sliding)
+- Customize gem selector animation order to create clockwise wave effect
+
+**Items Completed**: 3/3 ✅
+
+---
+
+#### Issue 1: Selection Box Bug After Victory - FIXED ✅
+
+**Problem:**
+- After winning/losing and clicking "Play Again", yellow selection box would appear and prevent gem swapping
+- More noticeable on physical devices due to faster state changes than simulator
+
+**Root Cause:**
+- `pendingGameOver` state not cleared in `BattleManager.reset()`
+- `selectedPosition` and other visual states not cleared in proper order in `GameViewModel.resetGame()`
+- Gems not marked as stable after board regeneration
+
+**Solution Applied:**
+
+**File 1: BattleManager.swift (Line 240)**
+```swift
+func reset() {
+    // ... existing resets ...
+    gameState = .playing
+    pendingGameOver = nil  // ✅ NEW: Clear pending game over state
+}
+```
+
+**File 2: GameViewModel.swift (Lines 591-617)**
+```swift
+func resetGame() {
+    // ✅ FIX: Clear selection state FIRST (prevents phantom selection box)
+    selectedPosition = nil
+    isSelectingGemToClear = false
+    isProcessing = false
+    
+    // Clear visual states
+    shakeTiles.removeAll()
+    floatingDamage.removeAll()
+    explosionParticles.removeAll()
+    bonusBlasts.removeAll()
+    
+    // Clear animation flags
+    isPlayerAttacking = false
+    isEnemyAttacking = false
+    flashPlayer = false
+    flashEnemy = false
+    
+    // Reset game state
+    score = 0
+    boardManager.generateInitialBoard()
+    battleManager.reset()
+    
+    // 🎮 FIX: Mark all gems stable after reset (ensures gems can be swapped immediately)
+    Task { @MainActor in
+        try? await Task.sleep(for: .milliseconds(100))
+        boardManager.markAllGemsStable()
+    }
+}
+```
+
+**Why This Matters:**
+- **Simulator vs Physical Device**: Physical devices process state changes faster, exposing race conditions that simulators mask
+- **Order Matters**: Clearing selection state BEFORE regenerating board prevents phantom UI states
+- **Gem Stability**: Ensures board is immediately interactive after reset
+
+---
+
+#### Issue 2: Battle Narrative Slide Animation - FIXED ✅
+
+**Problem:**
+- Battle narrative messages were "popping" into view instead of sliding in from the right as intended
+
+**Root Cause:**
+- Missing `.id(event.id)` for unique identity tracking
+- Animation watching `events.count` instead of individual event IDs
+- Symmetric transition (same animation in and out)
+
+**Solution Applied:**
+
+**File: BattleSceneView.swift - BattleNarrativeColumn (Lines 380-420)**
+```swift
+struct BattleNarrativeColumn: View {
+    let events: [BattleEvent]
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(events.prefix(3)) { event in
+                HStack(spacing: 6) {
+                    // ... message content ...
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .frame(height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.6))
+                        .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                )
+                .id(event.id)  // ✅ FIX: Force unique identity for each message
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: events.map { $0.id })  // ✅ FIX: Faster, smoother animation
+    }
+}
+```
+
+**Key Changes:**
+1. **`.id(event.id)`** - Forces SwiftUI to track each message uniquely
+2. **`.asymmetric` transition** - Slides in from right, fades out (no slide on removal)
+3. **Animation tracks `events.map { $0.id }`** - Triggers on ID changes, not count
+4. **Faster timing** - 0.3s response (was 0.4s), 0.75 damping (was 0.8)
+
+**Result:**
+✅ Messages now smoothly slide in from the right edge with fade, creating a polished notification effect
+
+---
+
+#### Issue 3: Gem Selector Animation Customization - COMPLETE ✅
+
+**Original Request:**
+- User wanted gems to "pop out from coffee cup" or "spread clockwise like cards" when coffee cup ability is activated
+
+**Design Iterations:**
+
+**Iteration 1: Pop from Coffee Cup (Complex)**
+- Attempted to animate gems from coffee cup center position to circular positions
+- Required passing `centerPosition` through multiple components
+- Added pulse effect to coffee cup button
+- **User Feedback**: "That's not what I want"
+
+**Iteration 2: Simple Animation Order Change (Final) ✅**
+- User clarified: Keep original scale animation, but change the ORDER gems animate in
+- Create clockwise-ish wave starting from bottom-left (Mana at 8 o'clock)
+
+**Requested Order:**
+1. MANA (8 o'clock) - 0ms delay
+2. POISON (10 o'clock) - 60ms delay
+3. SWORD (12 o'clock) - 120ms delay
+4. FIRE (2 o'clock) - 180ms delay
+5. SHIELD (4 o'clock) - 240ms delay
+6. HEART (6 o'clock) - 300ms delay
+
+**Solution Applied:**
+
+**File: BattleSceneView.swift - GemButton (Lines 550-590)**
+```swift
+struct GemButton: View {
+    let type: TileType
+    @Bindable var viewModel: GameViewModel
+    
+    @State private var hasPopped = false
+    @State private var bounceScale: CGFloat = 0.0
+    
+    var body: some View {
+        Button {
+            Task {
+                await viewModel.clearGemsOfType(type)
+            }
+        } label: {
+            ZStack {
+                // ... gem visual content ...
+            }
+            .shadow(color: .yellow, radius: 10)
+            .shadow(color: .black.opacity(0.5), radius: 3)
+            .scaleEffect(bounceScale)
+            .onAppear {
+                // ✨ CUSTOM ANIMATION ORDER: Mana → Poison → Sword → Fire → Shield → Heart
+                // Positions stay the same, only animation timing changes
+                let animationOrder: [TileType] = [.mana, .poison, .sword, .fire, .shield, .heart]
+                let gemIndex = animationOrder.firstIndex(of: type) ?? 0
+                let delay = Double(gemIndex) * 0.06 // 0.06s apart (60ms stagger)
+                
+                // Start small
+                bounceScale = 0.0
+                
+                // Pop out with bounce after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    // First: Pop to overshoot
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        bounceScale = 1.2
+                    }
+                    
+                    // Then: Settle to normal size
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                            bounceScale = 1.0
+                            hasPopped = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+**Gem Positions (Unchanged):**
+```
+        SWORD
+          🗡️
+          12
+
+POISON      FIRE
+  ☠️   10  2   🔥
+
+MANA    8  4    SHIELD
+  💎              🛡️
+
+       HEART
+    6     ❤️
+```
+
+**Animation Flow:**
+- Creates a clockwise-ish wave starting from bottom-left (Mana at 8 o'clock)
+- Sweeps up and around the circle
+- Total animation completes in ~360ms (6 gems × 60ms stagger + 200ms settle)
+
+---
+
+**Files Modified:**
+
+1. **BattleManager.swift** (Line 240)
+   - Added `pendingGameOver = nil` to `reset()` function
+   - Ensures clean game state on restart
+
+2. **GameViewModel.swift** (Lines 591-617)
+   - Complete overhaul of `resetGame()` function
+   - Added proper state clearing order
+   - Added gem stability check after board regeneration
+
+3. **BattleSceneView.swift** (Two changes)
+   - **BattleNarrativeColumn struct** (Lines 380-420) - Fixed slide animation
+     - Added `.id(event.id)` for identity tracking
+     - Changed to `.asymmetric` transition
+     - Updated animation to track event IDs
+   - **GemButton struct** (Lines 550-590) - Custom animation order
+     - Changed animation order array to `[.mana, .poison, .sword, .fire, .shield, .heart]`
+     - Kept 60ms stagger timing
+     - Maintained original bounce animation
+
+4. **ContentView.swift** (Lines 146-147)
+   - Adjusted coffee cup center position calculation (+30px for actual cup position)
+   - **Note**: This change was part of the complex "pop from cup" solution that was ultimately not used, but doesn't hurt to keep
+
+---
+
+**Testing Results:**
+
+**Selection Box Bug:**
+✅ Fixed on both simulator and physical device
+✅ Gems swap normally after "Play Again"
+✅ No more stuck selection boxes
+
+**Battle Narrative Animation:**
+✅ Messages now slide in smoothly from right edge
+✅ Fade effect works perfectly
+✅ No more "popping" into view
+
+**Gem Selector Animation:**
+✅ Gems pop in order: Mana → Poison → Sword → Fire → Shield → Heart
+✅ Clockwise-ish wave effect achieved
+✅ 60ms stagger creates smooth progression
+
+---
+
+**Key Learnings:**
+
+**Physical Device vs Simulator:**
+- Physical devices expose race conditions that simulators hide
+- Always test critical UI flows on real hardware
+- State clearing order matters more on faster devices
+
+**SwiftUI Animation Identity:**
+- `.id()` modifier is crucial for proper transition tracking
+- Animating on `value: array.map { $0.id }` triggers on content changes, not count
+- `.asymmetric` transitions allow different in/out animations
+
+**Animation Customization:**
+- Separating animation **order** from visual **position** provides flexibility
+- Using `animationOrder` array decouples display from timing
+- Simple solutions often better than complex ones (user feedback validated this)
+
+---
+
+**Status**: ✅ Session 19 Complete! All bugs fixed, gem selector animates beautifully!
+
+---
+
+### Session 18.5: Battle Narrative Message Migration (March 22, 2026) ✅ COMPLETE
+
+**Goal:**
+- Move ALL battle narrative messages from BattleManager.swift to BattleMechanicsConfig.swift
+- Centralize all battle text in one file for easy editing
+- Prepare for future expansion (eventually 10 messages per type)
+
+**What Was Completed:**
+
+1. **BattleMechanicsConfig.swift - Added Complete Battle Narrative Section**
+   
+   **Message Arrays Created:**
+   - Barbarian attack messages (4 messages)
+   - Magic attack messages (4 messages)
+   - Shield messages (4 messages)
+   - Heal messages (4 messages)
+   - Enemy attack messages (5 messages)
+   - Mana message (1 message)
+   
+   **Special Event Messages:**
+   - Power Surge message
+   - Victory message
+   - Defeat message
+   - Poison message
+   - Gem Clear ability message
+   - Divine Shield ability message
+   - Greater Heal ability message
+
+2. **BattleManager.swift - Updated to Read from Config**
+   
+   **All 6 Match Type Message Functions Now Use Config:**
+   - Uses `.randomElement()` to pick random messages
+   - Uses `.replacingOccurrences(of:with:)` to insert damage/amount values
+   
+   **7 Hardcoded Special Messages Replaced:**
+   - Line 120: Poison message
+   - Lines 150-153: Power Surge message
+   - Line 223: Victory message
+   - Line 235: Defeat message
+   - Lines 270-272: Gem Clear message
+   - Lines 282-284: Divine Shield message
+   - Lines 294-296: Greater Heal message
+
+**How It Works:**
+
+```swift
+// Messages stored as templates in config:
+static let barbarianAttackMessages = [
+    "Ramp swings for {damage}!",
+    "Critical bonk! {damage} damage!",
+    ...
+]
+
+// BattleManager picks random and fills in values:
+let template = BattleMechanicsConfig.barbarianAttackMessages.randomElement()!
+let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
+```
+
+**Benefits:**
+- ✅ All battle text in ONE place (BattleMechanicsConfig.swift)
+- ✅ Easy to add more messages (just expand arrays)
+- ✅ No code changes needed to add variety
+- ✅ Consistent placeholder system: {damage}, {amount}, {gemType}, {totalMatches}, {bonusMana}
+
+**Files Modified:**
+- BattleMechanicsConfig.swift (added complete battle narrative section with all message arrays)
+- BattleManager.swift (updated 6 message functions + 7 special messages to use config)
+
+**Status**: ✅ Battle narrative message migration 100% complete!
+
+---
 
 ### Session 18: Battle Mechanics Migration to BattleMechanicsConfig.swift (March 22, 2026) ✅ COMPLETE
 
@@ -3745,17 +4145,17 @@ Before submitting ANY code change, verify:
 
 | File | Last Modified | Status | Notes |
 |------|---------------|--------|-------|
-| BattleMechanicsConfig.swift | Session 18 | ✅ Working | **NEW FILE** - Centralized battle configuration, all damage/health/ability values in one place |
+| BattleSceneView.swift | Session 19 | ✅ Working | Fixed battle narrative slide animation (`.id(event.id)`, asymmetric transitions), custom gem selector animation order (clockwise wave) |
+| GameViewModel.swift | Session 19 | ✅ Working | Fixed resetGame() function - proper state clearing order, gem stability check after reset |
+| BattleManager.swift | Session 19 | ✅ Working | Fixed reset() function - clears `pendingGameOver`, reads battle messages from config |
+| ContentView.swift | Session 19 | ✅ Working | Coffee cup position adjustment (not used but harmless) |
+| BattleMechanicsConfig.swift | Session 18.5 | ✅ Working | **ALL battle messages added** - 4-5 messages per type + special events, template placeholder system |
 | GameAssets.swift | Session 18 | ✅ Working | Cleaned up - removed battle mechanics, kept only UI/asset configuration |
-| BattleManager.swift | Session 18 | ✅ Working | All references changed from GameConfig to BattleMechanicsConfig (health, damage, abilities, power surge) |
-| GameViewModel.swift | Session 17 | ✅ Working | Fixed bonus tile cascade bug - manual gravity/spawn before processCascades(), removed duplicate logic from processBonusTile/processCrossBlast |
 | GameBoardView.swift | Session 15 | ✅ Working | Fixed swipe/tap gesture priority bug - removed onTapGesture, integrated tap into DragGesture.onEnded |
 | CharacterAnimationManager.swift | Session 14 | ✅ Working | Priority queue system, didSet updates character.currentState automatically |
 | CharacterAnimations.swift | Session 14 | ✅ Working | Simplified to read character.currentState directly, portraits update correctly |
 | TileType.swift | Session 14 | ✅ Working | Added isStable property for Bejeweled-style matching |
 | BoardManager.swift | Session 14 | ✅ Working | Stability tracking, canSwap check, markAllGemsStable function |
-| GameViewModel.swift | Session 14 | ✅ Working | Removed global isProcessing lock, all state changes use animation manager |
-| BattleManager.swift | Session 14 | ✅ Working | All state changes use animation manager, force mode for victory/defeat |
 | CharacterAnimationConfig.swift | Session 14 | ✅ Working | 3-tier priority system config |
 | BonusBlastEffects-Views.swift | Session 13 | ✅ Working | Code-based + custom image blast system, cross blast support, expansion from origin |
 | BONUS_BLAST_PNG_SPECS.md | Session 13 | ✅ Working | Complete PNG specifications for hand-drawn blasts (2048×256, 256×2048) |
@@ -3763,13 +4163,18 @@ Before submitting ANY code change, verify:
 | TitleScreenView.swift | Session 11 | ✅ Working | Leaf animation (leaf1-17) with loop pause, 10fps playback |
 | DeveloperSplashView.swift | Session 11 | ✅ Working | RK + Milo character animations at 4fps, Milo plays in reverse |
 | Character.swift | Session 10 | ✅ Working | Added `.hurt2` state for invalid swap penalty, updated image mapping |
-| ContentView.swift | Session 5 | ✅ Working | Syncs game mode to ViewModel via onChange/onAppear |
 | ChainComboEffects.swift | Session 4 | ✅ Working | Blue diagonal lightning + particles effect |
-| GameAssets.swift | Session 3 | ✅ Working | Added Power Surge config toggles |
-| BattleSceneView.swift | Session 1 | ✅ Working | Gem selector removed, coffee button centered |
 
 ---
 
-**Last Updated**: Session 18 - Battle Mechanics Migration to BattleMechanicsConfig.swift
+**Last Updated**: Session 19 - Bug Fixes & Gem Selector Animation Complete
 
-**Status**: ✅ All battle mechanics centralized in one file! Easy to adjust, ready for expansion! 🎮⚔️
+**Status**: ✅ All systems operational! Selection box bug fixed, battle narratives slide smoothly, gem selector animates in custom order! 🎮✨
+**Recent Highlights:**
+- ✅ Session 19: Fixed 3 major bugs (selection box, narrative animation, gem selector timing)
+- ✅ Session 18.5: ALL battle messages centralized in BattleMechanicsConfig.swift
+- ✅ Session 18: Battle mechanics fully migrated to dedicated config file
+- ✅ Session 17: Bonus tile cascade bug resolved
+- ✅ Session 16: Game over screen delay implemented
+- ✅ Session 15: Swipe/tap gestures working perfectly
+

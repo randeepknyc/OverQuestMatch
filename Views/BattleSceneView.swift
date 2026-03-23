@@ -570,9 +570,11 @@ struct GemButton: View {
             .shadow(color: .black.opacity(0.5), radius: 3)
             .scaleEffect(bounceScale)
             .onAppear {
-                // Calculate staggered delay based on gem position
-                let gemIndex = [TileType.sword, .fire, .shield, .heart, .mana, .poison].firstIndex(of: type) ?? 0
-                let delay = Double(gemIndex) * 0.08 // 0.08s apart
+                // ✨ CUSTOM ANIMATION ORDER: Mana → Poison → Sword → Fire → Shield → Heart
+                // Positions stay the same, only animation timing changes
+                let animationOrder: [TileType] = [.mana, .poison, .sword, .fire, .shield, .heart]
+                let gemIndex = animationOrder.firstIndex(of: type) ?? 0
+                let delay = Double(gemIndex) * 0.06 // 0.06s apart (60ms stagger)
                 
                 // Start small
                 bounceScale = 0.0
