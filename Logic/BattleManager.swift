@@ -361,7 +361,7 @@ class BattleManager {
     
     // MARK: - Battle Narrative
     
-    private func addEvent(_ event: BattleEvent) {
+    func addEvent(_ event: BattleEvent) {
         recentEvents.insert(event, at: 0)
         if recentEvents.count > 5 {  // Changed from 3 to 5 to show 3 messages
             recentEvents.removeLast()

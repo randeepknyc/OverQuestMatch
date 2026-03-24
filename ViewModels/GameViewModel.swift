@@ -473,7 +473,94 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(300))
         
         // Clear row or column based on swipe direction
-        let clearedPositions = boardManager.clearWithBonusTile(at: position, clearRow: clearRow)
+        // Returns dictionary of gem types and their counts
+        let gemTypeCounts = boardManager.clearWithBonusTile(at: position, clearRow: clearRow)
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ✨ APPLY GEM EFFECTS BASED ON COUNT
+        // ═══════════════════════════════════════════════════════════════
+        // Formula: (Number of gems cleared) × (effect per gem) = Total effect
+        
+        var totalDamage = 0
+        var totalShield = 0
+        var totalHealing = 0
+        var totalMana = 0
+        
+        // Calculate effects for each gem type
+        for (gemType, count) in gemTypeCounts {
+            switch gemType {
+            case .sword:
+                if BattleMechanicsConfig.gemClearApplySwordDamage {
+                    let damage = count * BattleMechanicsConfig.swordDamagePerGem
+                    totalDamage += damage
+                }
+                
+            case .fire:
+                if BattleMechanicsConfig.gemClearApplyFireDamage {
+                    let damage = count * BattleMechanicsConfig.fireDamagePerGem
+                    totalDamage += damage
+                }
+                
+            case .shield:
+                if BattleMechanicsConfig.gemClearApplyShield {
+                    totalShield += count * BattleMechanicsConfig.shieldPerGem
+                }
+                
+            case .heart:
+                if BattleMechanicsConfig.gemClearApplyHealing {
+                    totalHealing += count * BattleMechanicsConfig.healingPerGem
+                }
+                
+            case .mana:
+                if BattleMechanicsConfig.gemClearApplyMana {
+                    totalMana += count * BattleMechanicsConfig.manaPerGem
+                }
+                
+            case .poison:
+                if BattleMechanicsConfig.gemClearApplyPoison {
+                    // Future poison implementation
+                }
+            }
+        }
+        
+        // Apply calculated effects
+        if totalDamage > 0 {
+            battleManager.enemy.takeDamage(totalDamage)
+        }
+        if totalShield > 0 {
+            battleManager.player.addShield(totalShield)
+        }
+        if totalHealing > 0 {
+            battleManager.player.heal(totalHealing)
+        }
+        if totalMana > 0 {
+            battleManager.mana = min(battleManager.mana + totalMana, BattleMechanicsConfig.maxMana)
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ✨ BATTLE MESSAGE
+        // ═══════════════════════════════════════════════════════════════
+        
+        var effectParts: [String] = []
+        
+        if totalDamage > 0 {
+            effectParts.append("\(totalDamage) damage")
+        }
+        if totalShield > 0 {
+            effectParts.append("+\(totalShield) shield")
+        }
+        if totalHealing > 0 {
+            effectParts.append("+\(totalHealing) HP")
+        }
+        if totalMana > 0 {
+            effectParts.append("+\(totalMana) mana")
+        }
+        
+        let direction = clearRow ? "ROW" : "COLUMN"
+        let effectMessage = effectParts.isEmpty ? "" : " → " + effectParts.joined(separator: ", ")
+        let message = "💥 \(direction) BLAST!\(effectMessage)"
+        
+        battleManager.addEvent(BattleEvent(text: message, type: .special))
         
         // ☕ BONUS BLAST EFFECT - Choose between code-based or custom images
         
@@ -507,11 +594,10 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(600))  // Wait for blast animation
         bonusBlasts.removeAll()  // Clear blasts
         
-        // ✅ REMOVED: Gravity and refill - processCascades() will handle this!
-        // ✅ REMOVED: Battle effects - processCascades() will handle this!
-        // ✅ REMOVED: Attack animation - processCascades() will handle this!
+        // ✅ REMOVED: Gravity and refill - performSwap() handles this!
+        // ✅ REMOVED: Attack animation - performSwap() handles this!
         
-        // Just wait for blast to finish, then let processCascades() do the rest
+        // Just wait for blast to finish, then return
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -526,9 +612,108 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(300))
         
         // Clear BOTH row and column
-        let rowPositions = boardManager.clearWithBonusTile(at: position, clearRow: true)
-        let colPositions = boardManager.clearWithBonusTile(at: position, clearRow: false)
-        let allClearedPositions = Set(rowPositions + colPositions)
+        // Get gem type counts from both directions
+        let rowGemCounts = boardManager.clearWithBonusTile(at: position, clearRow: true)
+        let colGemCounts = boardManager.clearWithBonusTile(at: position, clearRow: false)
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ✨ COMBINE GEM COUNTS FROM BOTH ROW AND COLUMN
+        // ═══════════════════════════════════════════════════════════════
+        
+        var combinedCounts: [TileType: Int] = [:]
+        
+        // Add row counts
+        for (gemType, count) in rowGemCounts {
+            combinedCounts[gemType, default: 0] += count
+        }
+        
+        // Add column counts
+        for (gemType, count) in colGemCounts {
+            combinedCounts[gemType, default: 0] += count
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ✨ CALCULATE EFFECTS FOR ALL GEM TYPES
+        // ═══════════════════════════════════════════════════════════════
+        
+        var totalDamage = 0
+        var totalShield = 0
+        var totalHealing = 0
+        var totalMana = 0
+        
+        for (gemType, count) in combinedCounts {
+            switch gemType {
+            case .sword:
+                if BattleMechanicsConfig.gemClearApplySwordDamage {
+                    let damage = count * BattleMechanicsConfig.swordDamagePerGem
+                    totalDamage += damage
+                }
+                
+            case .fire:
+                if BattleMechanicsConfig.gemClearApplyFireDamage {
+                    let damage = count * BattleMechanicsConfig.fireDamagePerGem
+                    totalDamage += damage
+                }
+                
+            case .shield:
+                if BattleMechanicsConfig.gemClearApplyShield {
+                    totalShield += count * BattleMechanicsConfig.shieldPerGem
+                }
+                
+            case .heart:
+                if BattleMechanicsConfig.gemClearApplyHealing {
+                    totalHealing += count * BattleMechanicsConfig.healingPerGem
+                }
+                
+            case .mana:
+                if BattleMechanicsConfig.gemClearApplyMana {
+                    totalMana += count * BattleMechanicsConfig.manaPerGem
+                }
+                
+            case .poison:
+                if BattleMechanicsConfig.gemClearApplyPoison {
+                    // Future poison implementation
+                }
+            }
+        }
+        
+        // Apply calculated effects
+        if totalDamage > 0 {
+            battleManager.enemy.takeDamage(totalDamage)
+        }
+        if totalShield > 0 {
+            battleManager.player.addShield(totalShield)
+        }
+        if totalHealing > 0 {
+            battleManager.player.heal(totalHealing)
+        }
+        if totalMana > 0 {
+            battleManager.mana = min(battleManager.mana + totalMana, BattleMechanicsConfig.maxMana)
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ✨ EPIC CROSS BLAST MESSAGE
+        // ═══════════════════════════════════════════════════════════════
+        
+        var effectParts: [String] = []
+        
+        if totalDamage > 0 {
+            effectParts.append("\(totalDamage) damage")
+        }
+        if totalShield > 0 {
+            effectParts.append("+\(totalShield) shield")
+        }
+        if totalHealing > 0 {
+            effectParts.append("+\(totalHealing) HP")
+        }
+        if totalMana > 0 {
+            effectParts.append("+\(totalMana) mana")
+        }
+        
+        let effectMessage = effectParts.isEmpty ? "" : " → " + effectParts.joined(separator: ", ")
+        let message = "⚔️ CROSS BLAST!\(effectMessage)"
+        
+        battleManager.addEvent(BattleEvent(text: message, type: .special))
         
         // ⚔️ CREATE TWO BLASTS: Horizontal + Vertical (CROSS PATTERN!)
         bonusBlasts = [
@@ -552,11 +737,10 @@ class GameViewModel {
         try? await Task.sleep(for: .milliseconds(600))  // Wait for both blasts
         bonusBlasts.removeAll()
         
-        // ✅ REMOVED: Gravity and refill - processCascades() will handle this!
-        // ✅ REMOVED: Battle effects - processCascades() will handle this!
-        // ✅ REMOVED: Attack animation - processCascades() will handle this!
+        // ✅ REMOVED: Gravity and refill - performSwap() handles this!
+        // ✅ REMOVED: Attack animation - performSwap() handles this!
         
-        // Just wait for blast to finish, then let processCascades() do the rest
+        // Just wait for blast to finish, then return
     }
     
     @MainActor

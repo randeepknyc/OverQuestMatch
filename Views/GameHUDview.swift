@@ -47,31 +47,127 @@ struct GameHUDView: View {
     }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ PAUSE MENU - TWO IMAGES THAT SWAP BASED ON GAME MODE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 struct PauseMenuView: View {
     @Binding var isPresented: Bool
     @Bindable var viewModel: GameViewModel
     @Binding var gameMode: GameMode
-    @Binding var showTitleScreen: Bool  // ✅ NEW: For END GAME button
+    @Binding var showTitleScreen: Bool
     
-    @State private var showEndGameConfirmation = false  // ✅ NEW: Dialog state
+    @State private var showEndGameConfirmation = false
     
     var body: some View {
         ZStack {
-            backgroundOverlay
+            // Dark overlay backdrop
+            Color.black.opacity(0.85)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation { isPresented = false }
+                }
             
-            // ✅ CENTERED MENU
-            VStack(spacing: 25) {
-                titleHeader
-                gameModeSlider
-                menuButtons
+            // ✅ YOUR CUSTOM PAUSE MENU IMAGE (SWAPS BASED ON MODE)
+            ZStack {
+                // Background image changes based on game mode
+                Image(gameMode == .swap ? "pausemenu_swap" : "pausemenu_chain")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 280, height: 500)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.0), value: gameMode)
+                
+                // ✅ INVISIBLE TAP ZONES OVERLAID ON YOUR IMAGE
+                VStack(spacing: 0) {
+                    // Top spacer (for "PAUSED" title area)
+                    Color.clear
+                        .frame(height: 85)
+                    
+                    // Mode slider tap zones (SWAP / CHAIN)
+                    HStack(spacing: 0) {
+                        // SWAP button zone
+                        Color.clear
+                            .frame(width: 140, height: 70)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    gameMode = .swap
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    withAnimation { isPresented = false }
+                                }
+                            }
+                        
+                        // CHAIN button zone
+                        Color.clear
+                            .frame(width: 140, height: 70)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    gameMode = .chain
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    withAnimation { isPresented = false }
+                                }
+                            }
+                    }
+                    
+                    // Spacer between slider and buttons
+                    Color.clear
+                        .frame(height: 25)
+                    
+                    // RESUME button zone
+                    Color.clear
+                        .frame(width: 280, height: 54)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation { isPresented = false }
+                        }
+                    
+                    Spacer().frame(height: 18)
+                    
+                    // RESTART button zone
+                    Color.clear
+                        .frame(width: 280, height: 54)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            viewModel.resetGame()
+                            withAnimation { isPresented = false }
+                        }
+                    
+                    Spacer().frame(height: 18)
+                    
+                    // HOW TO PLAY button zone
+                    Color.clear
+                        .frame(width: 280, height: 54)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Add "how to play" logic here later
+                            withAnimation { isPresented = false }
+                        }
+                    
+                    Spacer().frame(height: 18)
+                    
+                    // END GAME button zone
+                    Color.clear
+                        .frame(width: 280, height: 54)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation { showEndGameConfirmation = true }
+                        }
+                    
+                    // Bottom spacer
+                    Spacer()
+                }
+                .frame(width: 280, height: 500)
             }
             
-            // ✅ END GAME CONFIRMATION DIALOG (appears on top of pause menu)
+            // ✅ END GAME CONFIRMATION DIALOG (appears on top)
             if showEndGameConfirmation {
                 EndGameConfirmationDialog(
                     isPresented: $showEndGameConfirmation,
                     onConfirm: {
-                        // Reset game, close menus, return to title
                         viewModel.resetGame()
                         withAnimation {
                             showEndGameConfirmation = false
@@ -80,181 +176,14 @@ struct PauseMenuView: View {
                         }
                     }
                 )
-                .zIndex(2000)  // Above pause menu
-            }
-        }
-    }
-    
-    private var backgroundOverlay: some View {
-        Color.black.opacity(0.85)
-            .ignoresSafeArea()
-            .onTapGesture {
-                withAnimation { isPresented = false }
-            }
-    }
-    
-    private var titleHeader: some View {
-        Text("PAUSED")
-            .font(.gameScore(size: 56))
-            .foregroundStyle(.yellow)
-            .shadow(color: .black, radius: 10, y: 5)
-    }
-    
-    // ✅ SLIDER WITH AUTO-CLOSE
-    private var gameModeSlider: some View {
-        VStack(spacing: 12) {
-            Text("GAME MODE")
-                .font(.gameUI(size: 18))
-                .foregroundStyle(.white.opacity(0.8))
-                .shadow(color: .black, radius: 5)
-            
-            HStack(spacing: 0) {
-                // SWAP button
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        gameMode = .swap
-                    }
-                    // ✅ AUTO-CLOSE MENU AFTER 0.3 SECONDS
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation { isPresented = false }
-                    }
-                } label: {
-                    Text("SWAP")
-                        .font(.gameUI(size: 22))
-                        .foregroundStyle(gameMode == .swap ? .white : .white.opacity(0.5))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
-                
-                // CHAIN button
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        gameMode = .chain
-                    }
-                    // ✅ AUTO-CLOSE MENU AFTER 0.3 SECONDS
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation { isPresented = false }
-                    }
-                } label: {
-                    Text("CHAIN")
-                        .font(.gameUI(size: 22))
-                        .foregroundStyle(gameMode == .chain ? .white : .white.opacity(0.5))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
-            }
-            .frame(width: 280)
-            .background(
-                // Sliding background indicator
-                GeometryReader { geometry in
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.orange)
-                        .frame(width: geometry.size.width / 2)
-                        .offset(x: gameMode == .chain ? geometry.size.width / 2 : 0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: gameMode)
-                }
-            )
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.gray.opacity(0.4))
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.5), radius: 10, y: 5)
-        }
-    }
-    
-    // ✅ BUTTONS WITH YOUR CUSTOM ICONS
-    private var menuButtons: some View {
-        VStack(spacing: 18) {
-            PauseMenuButton(
-                title: "RESUME",
-                iconAsset: "resume_icon",  // ✅ YOUR ICON
-                iconFallback: "play.fill"
-            ) {
-                withAnimation { isPresented = false }
-            }
-            
-            PauseMenuButton(
-                title: "RESTART",
-                iconAsset: "restart_icon",  // ✅ YOUR ICON
-                iconFallback: "arrow.clockwise"
-            ) {
-                viewModel.resetGame()
-                withAnimation { isPresented = false }
-            }
-            
-            PauseMenuButton(
-                title: "HOW TO PLAY",
-                iconAsset: "instructions_icon",  // ✅ YOUR ICON
-                iconFallback: "questionmark.circle.fill"
-            ) {
-                // You can add "how to play" screen logic here later
-                withAnimation { isPresented = false }
-            }
-            
-            PauseMenuButton(
-                title: "END GAME",
-                iconAsset: "quit_icon",  // ✅ YOUR ICON
-                iconFallback: "xmark.circle.fill"
-            ) {
-                // ✅ Show confirmation dialog instead of closing menu
-                withAnimation { showEndGameConfirmation = true }
+                .zIndex(2000)
             }
         }
     }
 }
 
-// ✅ BUTTON WITH CUSTOM ICON SUPPORT
-struct PauseMenuButton: View {
-    let title: String
-    let iconAsset: String?
-    let iconFallback: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                // ✅ Load YOUR custom icon first, fall back to SF Symbol if not found
-                if let assetName = iconAsset, let uiImage = UIImage(named: assetName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                        .foregroundStyle(.white)
-                } else {
-                    Image(systemName: iconFallback)
-                        .font(.system(size: 22))
-                        .foregroundStyle(.white)
-                        .frame(width: 28)
-                }
-                
-                Text(title)
-                    .font(.gameUI(size: 24))
-                    .foregroundStyle(.white)
-                
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .frame(width: 280)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.red.opacity(0.9), Color.red.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .shadow(color: .red.opacity(0.5), radius: 8, y: 4)
-            .shadow(color: .black.opacity(0.6), radius: 15, y: 8)
-        }
-        .buttonStyle(.plain)
-    }
-}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ✅ END GAME CONFIRMATION DIALOG
+// ✅ END GAME DIALOG - SINGLE BACKGROUND IMAGE WITH INVISIBLE TAP ZONES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 struct EndGameConfirmationDialog: View {
@@ -270,94 +199,47 @@ struct EndGameConfirmationDialog: View {
             Color.black.opacity(0.8)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    // Tap outside to dismiss
                     dismissDialog()
                 }
             
-            // Dialog box
-            VStack(spacing: 20) {
-                // Image or emoji at top
-                warningImage
+            // ✅ YOUR CUSTOM END GAME DIALOG IMAGE
+            ZStack {
+                // Background image (340×380 pixels)
+                Image("endgame_dialog")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 340, height: 380)
                 
-                // Title text
-                Text("ARE YOU SURE?")
-                    .font(.gameScore(size: 38))
-                    .foregroundStyle(.yellow)
-                    .shadow(color: .black, radius: 5, y: 3)
-                
-                // Message text
-                Text("Your progress will be lost!")
-                    .font(.gameUI(size: 20))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                
-                // Buttons
-                HStack(spacing: 20) {
-                    // CANCEL button (green)
-                    Button {
-                        dismissDialog()
-                    } label: {
-                        Text("CANCEL")
-                            .font(.gameUI(size: 24))
-                            .foregroundStyle(.white)
-                            .frame(width: 130, height: 50)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.green.opacity(0.8), Color.green.opacity(0.6)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                            )
-                            .shadow(color: .green.opacity(0.5), radius: 8, y: 4)
-                    }
-                    .buttonStyle(.plain)
+                // ✅ INVISIBLE TAP ZONES OVERLAID ON YOUR IMAGE
+                VStack(spacing: 0) {
+                    // Top spacer (for warning icon + "ARE YOU SURE?" + message)
+                    Color.clear
+                        .frame(height: 280)
                     
-                    // END GAME button (red)
-                    Button {
-                        onConfirm()
-                    } label: {
-                        Text("END GAME")
-                            .font(.gameUI(size: 24))
-                            .foregroundStyle(.white)
+                    // Button zones
+                    HStack(spacing: 20) {
+                        // CANCEL button zone
+                        Color.clear
                             .frame(width: 130, height: 50)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.red.opacity(0.9), Color.red.opacity(0.7)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                            )
-                            .shadow(color: .red.opacity(0.5), radius: 8, y: 4)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                dismissDialog()
+                            }
+                        
+                        // END GAME button zone
+                        Color.clear
+                            .frame(width: 130, height: 50)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                onConfirm()
+                            }
                     }
-                    .buttonStyle(.plain)
+                    
+                    // Bottom spacer
+                    Spacer()
                 }
-                .padding(.top, 10)
+                .frame(width: 340, height: 380)
             }
-            .padding(30)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.3, green: 0.15, blue: 0.5),
-                                Color(red: 0.2, green: 0.1, blue: 0.4)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.yellow, lineWidth: 3)
-            )
-            .shadow(color: .black.opacity(0.7), radius: 20, y: 10)
             .scaleEffect(scale)
             .opacity(opacity)
         }
@@ -370,31 +252,14 @@ struct EndGameConfirmationDialog: View {
         }
     }
     
-    @ViewBuilder
-    private var warningImage: some View {
-        // Try to load custom image, fallback to emoji
-        if let customImage = UIImage(named: "end_game_warning") {
-            Image(uiImage: customImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 200, height: 150)
-        } else {
-            // Emoji fallback
-            Text("💀")
-                .font(.system(size: 80))
-        }
-    }
-    
     private func dismissDialog() {
         withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
             scale = 0.8
             opacity = 0.0
         }
         
-        // Delay actual dismissal to let animation play
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             isPresented = false
         }
     }
 }
-

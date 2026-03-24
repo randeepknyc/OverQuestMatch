@@ -301,33 +301,43 @@ class BoardManager {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ☕ BONUS TILE: Clear row/column based on swipe direction
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    func clearWithBonusTile(at position: GridPosition, clearRow: Bool) -> [GridPosition] {
+    // Returns: Dictionary of gem types and their counts [TileType: Int]
+    func clearWithBonusTile(at position: GridPosition, clearRow: Bool) -> [TileType: Int] {
         var clearedPositions: [GridPosition] = []
+        var gemTypeCounts: [TileType: Int] = [:]
         
         if clearRow {
             // Clear horizontal row (left/right swipe)
             for col in 0..<size {
                 let pos = GridPosition(row: position.row, col: col)
-                if gem(at: pos) != nil {
+                if let gemAtPos = gem(at: pos) {
                     clearedPositions.append(pos)
+                    // Count gem types (exclude bonus tiles from counting, but still clear them)
+                    if !gemAtPos.isBonusTile {
+                        gemTypeCounts[gemAtPos.type, default: 0] += 1
+                    }
                 }
             }
         } else {
             // Clear vertical column (up/down swipe)
             for row in 0..<size {
                 let pos = GridPosition(row: row, col: position.col)
-                if gem(at: pos) != nil {
+                if let gemAtPos = gem(at: pos) {
                     clearedPositions.append(pos)
+                    // Count gem types (exclude bonus tiles from counting, but still clear them)
+                    if !gemAtPos.isBonusTile {
+                        gemTypeCounts[gemAtPos.type, default: 0] += 1
+                    }
                 }
             }
         }
         
-        // Remove gems at cleared positions
+        // Remove ALL gems at cleared positions (including bonus tiles!)
         gems.removeAll { gemToRemove in
             clearedPositions.contains(GridPosition(row: gemToRemove.row, col: gemToRemove.col))
         }
         
-        return clearedPositions
+        return gemTypeCounts
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

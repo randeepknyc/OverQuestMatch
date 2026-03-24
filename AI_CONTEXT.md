@@ -639,6 +639,116 @@ MANA    8  4    SHIELD
 
 ---
 
+### Session 20: Gem Clear & Bonus Tile Effects - Multiply by Gem Count (March 23, 2026) ✅ COMPLETE
+
+**Goal:**
+- Make Gem Clear ability apply gem effects based on number of gems cleared
+- Make Bonus Tile blasts apply gem effects for ALL gem types cleared  
+- Formula: (Number of gems) × (effect per gem) = Total effect
+- Provide configuration to enable/disable effects per gem type
+
+**User Requests:**
+- "when the player uses the coffee cup to clear one type of gem, multiple the effects of that gem with the number of that gem cleared"
+- "can we add this same math/logic to the bonus gem as well"
+- Selected Option C: Apply effects for ALL gem types in cleared row/column
+
+**What Was Completed:**
+
+**1. Coffee Cup Gem Clear - Now Multiplies Effects**
+- Counts how many gems are cleared (e.g., 12 swords)
+- Multiplies by effect value (12 × 2 damage = 24 damage)
+- Shows total in battle message: `"💥 CLEARED ALL ATTACK GEMS! → 24 damage!"`
+
+**2. Bonus Tile Row/Column Blast - Now Applies ALL Gem Effects**
+- Counts ALL gem types in cleared row/column
+- Applies effects for EACH type found
+- Example: Row with 3 swords, 2 fires, 2 hearts → 12 damage + 6 HP
+- Message: `"💥 ROW BLAST! → 12 damage, +6 HP"`
+
+**3. Cross Blast - Combines Row + Column**
+- Counts gems from BOTH row AND column
+- Combines totals (2 swords in row + 3 in column = 5 total)
+- Applies combined effects
+- Message: `"⚔️ CROSS BLAST! → 24 damage, +8 shield, +9 HP, +3 mana"`
+
+**Files Modified:**
+
+1. **BattleMechanicsConfig.swift** (Lines 95-130)
+   - Added 6 boolean flags to control which gem types apply effects
+   - Same config used for BOTH Gem Clear AND Bonus Tiles
+   - `gemClearApplySwordDamage`, `gemClearApplyFireDamage`, etc.
+
+2. **BattleManager.swift**
+   - Line 246: Modified `useAbility()` to accept `gemCount` parameter
+   - Added effect calculation for all 6 gem types
+   - Line 364: Changed `addEvent()` from private to public (fixes error)
+
+3. **BoardManager.swift** (Lines 304-337)
+   - Modified `clearWithBonusTile()` return type
+   - **Before:** Returns `[GridPosition]`
+   - **After:** Returns `[TileType: Int]` (dictionary of gem counts)
+   - **Critical fix:** Bonus tiles now clear correctly (were staying on board)
+
+4. **GameViewModel.swift**
+   - `clearGemsOfType()`: Counts gems, passes to BattleManager
+   - `processBonusTile()`: Calculates effects from gem counts, applies effects
+   - `processCrossBlast()`: Combines row + column counts, applies effects
+
+**Files Created:**
+- GEM_CLEAR_EFFECTS_GUIDE.md - Complete user documentation
+- BONUS_TILE_EFFECTS_SUMMARY.md - Bonus tile documentation
+
+**Critical Bug Fixed:**
+- **Bonus tiles now disappear after blast**
+- Problem: `if !isBonusTile` check excluded bonus from removal list
+- Fixed: Add ALL positions to clear list, only count non-bonus for effects
+
+**Examples:**
+
+**Coffee Cup - 12 Swords:**
+```
+12 gems × 2 damage = 24 damage
+Message: "💥 CLEARED ALL ATTACK GEMS! → 24 damage!"
+```
+
+**Row Blast - Mixed:**
+```
+3 swords × 2 = 6 damage
+2 fires × 3 = 6 damage
+2 hearts × 3 = 6 HP
+Total: 12 damage, +6 HP
+Message: "💥 ROW BLAST! → 12 damage, +6 HP"
+```
+
+**Cross Blast:**
+```
+Row: 4 swords, 3 fires  
+Column: 3 hearts, 4 shields
+Combined: 4 swords, 3 fires, 3 hearts, 4 shields
+Effects: 17 damage, +9 HP, +8 shield
+Message: "⚔️ CROSS BLAST! → 17 damage, +8 shield, +9 HP"
+```
+
+**Configuration:**
+```swift
+// Turn off shield/mana effects:
+static let gemClearApplyShield = false
+static let gemClearApplyMana = false
+```
+
+**What Works Now:**
+- ✅ Gem Clear multiplies by count (12 × 2 = 24 damage)
+- ✅ Bonus row blast applies ALL gem type effects
+- ✅ Bonus column blast applies ALL gem type effects  
+- ✅ Cross blast combines row + column counts
+- ✅ Battle messages show all effects
+- ✅ Configuration works for both abilities
+- ✅ Bonus tiles disappear correctly
+
+**Status**: ✅ Session 20 Complete! All effects working! 💎✨
+
+---
+
 ### Session 18.5: Battle Narrative Message Migration (March 22, 2026) ✅ COMPLETE
 
 **Goal:**
@@ -4167,10 +4277,11 @@ Before submitting ANY code change, verify:
 
 ---
 
-**Last Updated**: Session 19 - Bug Fixes & Gem Selector Animation Complete
+**Last Updated**: Session 20 - Gem Clear & Bonus Tile Effects Complete
 
-**Status**: ✅ All systems operational! Selection box bug fixed, battle narratives slide smoothly, gem selector animates in custom order! 🎮✨
+**Status**: ✅ All systems operational! Gem Clear & Bonus Tiles apply multiplied effects! 🎮✨
 **Recent Highlights:**
+- ✅ Session 20: Gem Clear & Bonus Tile effects multiply by count (NEW!)
 - ✅ Session 19: Fixed 3 major bugs (selection box, narrative animation, gem selector timing)
 - ✅ Session 18.5: ALL battle messages centralized in BattleMechanicsConfig.swift
 - ✅ Session 18: Battle mechanics fully migrated to dedicated config file
