@@ -73,6 +73,9 @@ class GameViewModel {
     // ☕ NEW: Bonus tile blast effects (can show multiple for cross blast)
     var bonusBlasts: [BonusBlastData] = []
     
+    // 🧪 NEW: Poison pill screen effect
+    var showPoisonPillEffect: Bool = false
+    
     // Gem clearing ability
     var selectedGemTypeToClear: TileType?
     var isSelectingGemToClear = false
@@ -91,6 +94,9 @@ class GameViewModel {
         // 🎮 Initialize board with gems
         boardManager.generateInitialBoard()
         
+        // 🧪 Setup poison pill
+        boardManager.setupPoisonPill(poisonManager: battleManager.poisonPillManager)
+        
         // 🎮 FIX: Mark all initial gems as stable after spawn animation completes
         // This ensures gems can be swapped after game start animation finishes
         Task { @MainActor in
@@ -100,30 +106,117 @@ class GameViewModel {
         }
     }
     
+    // 🎯 NEW: Handle swipes WITHOUT selection system
     @MainActor
-    func handleTileTap(at position: GridPosition) async {
-        // 🎮 SESSION 14: Allow matching stable gems even during cascades (Bejeweled-style)
-        // Only block if game is over
+    func handleSwipe(from: GridPosition, to: GridPosition) async {
         guard battleManager.gameState == .playing else { return }
         
+        // 🧪 PREVENT SWIPES: Don't process while poison effect is showing
+        guard !showPoisonPillEffect else { return }
+        
+        // 🧪 CHECK: Is either position a poison pill?
+        if battleManager.poisonPillManager.checkForPoisonSwipe(position: from) ||
+           battleManager.poisonPillManager.checkForPoisonSwipe(position: to) {
+            
+            // Show screen effect
+            showPoisonPillEffect = true
+            
+            // Apply immediate damage
+            battleManager.player.takeDamage(3)
+            hapticManager?.playerDamaged(damage: 3)
+            battleManager.player.currentState = .hurt2
+            
+            battleManager.addEvent(BattleEvent(
+                text: "💀 POISON PILL REVEALED!",
+                type: .enemyAttack
+            ))
+            
+            // Wait for screen effect
+            try? await Task.sleep(for: .milliseconds(1500))
+            showPoisonPillEffect = false
+            
+            // Hide poison tile from board
+            battleManager.poisonPillManager.hidePoisonTile()
+            
+            // Return to idle
+            if battleManager.gameState == .playing {
+                battleManager.player.currentState = .idle
+            }
+            
+            return  // Don't process normal swap
+        }
+        
+        // Normal swipe processing - NO SELECTION!
+        if boardManager.canSwap(from: from, to: to) {
+            hapticManager?.swapStarted()
+            await performSwap(from: from, to: to)
+        } else {
+            // Invalid swap - shake the tiles
+            shakeTiles.insert(from)
+            shakeTiles.insert(to)
+            hapticManager?.swapRejected()
+            try? await Task.sleep(for: .milliseconds(300))
+            shakeTiles.remove(from)
+            shakeTiles.remove(to)
+        }
+    }
+    
+    @MainActor
+    func handleTileTap(at position: GridPosition) async {
+        guard battleManager.gameState == .playing else { return }
+        
+        // 🧪 PREVENT TAPS: Don't process any taps while poison effect is showing
+        guard !showPoisonPillEffect else { return }
+        
+        // 🧪 CHECK: Did player tap on hidden poison pill?
+        if battleManager.poisonPillManager.checkForPoisonSwipe(position: position) {
+            // 🎯 FIX: Clear selection immediately to prevent white border from showing
+            selectedPosition = nil
+            
+            // Show screen effect
+            showPoisonPillEffect = true
+            
+            // Apply immediate damage
+            battleManager.player.takeDamage(3)
+            hapticManager?.playerDamaged(damage: 3)
+            battleManager.player.currentState = .hurt2
+            
+            battleManager.addEvent(BattleEvent(
+                text: "💀 POISON PILL REVEALED!",
+                type: .enemyAttack
+            ))
+            
+            // Wait for screen effect
+            try? await Task.sleep(for: .milliseconds(1500))
+            showPoisonPillEffect = false
+            
+            // Hide poison tile from board
+            battleManager.poisonPillManager.hidePoisonTile()
+            
+            // Return to idle
+            if battleManager.gameState == .playing {
+                battleManager.player.currentState = .idle
+            }
+            
+            return  // Don't process normal tap
+        }
+        
+        // Normal tap processing - SELECTION ONLY FOR TAPS!
         if let selected = selectedPosition {
             if selected == position {
-                // Deselect
                 selectedPosition = nil
-                hapticManager?.tileTapped()  // ✨ Tap feedback
+                hapticManager?.tileTapped()
             } else if boardManager.canSwap(from: selected, to: position) {
-                // canSwap already checks if both gems are stable!
                 selectedPosition = nil
-                hapticManager?.swapStarted()  // ✨ Swap started
+                hapticManager?.swapStarted()
                 await performSwap(from: selected, to: position)
             } else {
-                // Select new tile
                 selectedPosition = position
-                hapticManager?.tileSelected()  // ✨ Selection change
+                hapticManager?.tileSelected()
             }
         } else {
             selectedPosition = position
-            hapticManager?.tileSelected()  // ✨ Initial selection
+            hapticManager?.tileSelected()
         }
     }
     
@@ -328,6 +421,37 @@ class GameViewModel {
                 try? await Task.sleep(for: .milliseconds(Int(150 * speedMultiplier)))
             }
             
+            // 🧪 CHECK FOR POISON PILL REVEAL (from matches)
+            let allMatchedPositions = matches.flatMap { $0.positions }
+            let poisonRevealed = battleManager.poisonPillManager.checkForPoisonReveal(matchedPositions: allMatchedPositions)
+            
+            if poisonRevealed {
+                // Show screen effect
+                showPoisonPillEffect = true
+                
+                // Apply immediate damage
+                battleManager.player.takeDamage(3)
+                hapticManager?.playerDamaged(damage: 3)
+                battleManager.player.currentState = .hurt2
+                
+                battleManager.addEvent(BattleEvent(
+                    text: "💀 POISON PILL REVEALED!",
+                    type: .enemyAttack
+                ))
+                
+                // Wait for screen effect to finish
+                try? await Task.sleep(for: .milliseconds(1500))
+                showPoisonPillEffect = false
+                
+                // Hide poison tile from board
+                battleManager.poisonPillManager.hidePoisonTile()
+                
+                // Return to idle
+                if battleManager.gameState == .playing {
+                    battleManager.player.currentState = .idle
+                }
+            }
+            
             // ✨ NEW: Create explosions for matched gems
             for match in matches {
                 for pos in match.positions {
@@ -351,7 +475,7 @@ class GameViewModel {
             
             // Remove matched tiles (they shrink/fade away)
             withAnimation(.easeOut(duration: 0.3)) {
-                let clearedPositions = boardManager.clearMatches(matches)
+                _ = boardManager.clearMatches(matches)
             }
             shakeTiles.removeAll()
             
@@ -745,6 +869,22 @@ class GameViewModel {
     
     @MainActor
     private func enemyTurn() async {
+        // 🧪 FIRST: Apply poison damage at start of turn
+        let poisonDamage = battleManager.poisonPillManager.getPoisonDamageForTurn()
+        if poisonDamage > 0 {
+            // Show poison damage happening
+            battleManager.player.currentState = .hurt2
+            flashPlayer = true
+            
+            battleManager.applyPoisonDamage()
+            
+            try? await Task.sleep(for: .milliseconds(350))
+            flashPlayer = false
+            battleManager.player.currentState = .idle
+            
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        
         // ⚡ RESPONSIVE MODE: Skip pre-enemy pause
         if !skipWaitingPauses {
             try? await Task.sleep(for: .milliseconds(400))
@@ -794,6 +934,9 @@ class GameViewModel {
         score = 0
         boardManager.generateInitialBoard()
         battleManager.reset()
+        
+        // 🧪 Setup new poison pill for next game
+        boardManager.setupPoisonPill(poisonManager: battleManager.poisonPillManager)
         
         // 🎮 FIX: Mark all gems stable after reset (ensures gems can be swapped immediately)
         Task { @MainActor in

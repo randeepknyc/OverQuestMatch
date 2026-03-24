@@ -52,6 +52,11 @@ class BoardManager {
         clearAllMatches()
     }
     
+    // 🧪 NEW: Setup poison pill after board is generated
+    func setupPoisonPill(poisonManager: PoisonPillManager) {
+        poisonManager.setupPoisonPill(boardSize: size)
+    }
+    
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SWAP VALIDATION
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

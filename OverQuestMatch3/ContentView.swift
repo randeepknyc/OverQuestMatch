@@ -163,6 +163,15 @@ struct GameScreen: View {
                         .zIndex(500)
                 }
                 
+                // ═══════════════════════════════════════════════════════════════
+                // 🧪 POISON PILL FULL SCREEN EFFECT
+                // ═══════════════════════════════════════════════════════════════
+                if viewModel.showPoisonPillEffect {
+                    PoisonPillScreenEffect()
+                        .transition(.opacity)
+                        .zIndex(600)
+                }
+                
                 // 🛠️ DEBUG MENU OVERLAY
                 if showDebugMenu {
                     DebugMenuView(viewModel: viewModel, isShowing: $showDebugMenu)

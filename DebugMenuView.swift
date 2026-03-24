@@ -49,6 +49,11 @@ struct DebugMenuView: View {
                         
                         // Bonus Tile Testing
                         bonusTileSection
+                        
+                        Divider()
+                        
+                        // Poison Pill Testing
+                        poisonPillSection
                     }
                     .padding(20)
                 }
@@ -260,6 +265,79 @@ struct DebugMenuView: View {
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // POISON PILL TESTING
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    private var poisonPillSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader(title: "🧪 POISON PILL TESTING", icon: "cross.vial")
+            
+            // Status display
+            VStack(alignment: .leading, spacing: 6) {
+                if let pillPos = viewModel.battleManager.poisonPillManager.poisonPillPosition {
+                    HStack {
+                        Text("💀 Hidden at:")
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.7))
+                        Text("Row \(pillPos.row), Col \(pillPos.col)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.purple)
+                    }
+                } else if viewModel.battleManager.poisonPillManager.isPoisoned {
+                    HStack {
+                        Text("☣️ POISONED:")
+                            .font(.system(size: 13))
+                            .foregroundColor(.purple)
+                        Text("Turn \(viewModel.battleManager.poisonPillManager.poisonTurnCounter)/3")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                } else {
+                    Text("✅ No Poison Active")
+                        .font(.system(size: 13))
+                        .foregroundColor(.green)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(8)
+            
+            // Actions
+            HStack(spacing: 10) {
+                debugButton(title: "Place at (4,4)", icon: "location.fill", color: .purple) {
+                    placePoisonPill(at: GridPosition(row: 4, col: 4))
+                }
+                
+                debugButton(title: "Random Position", icon: "shuffle", color: .purple) {
+                    viewModel.battleManager.poisonPillManager.setupPoisonPill(boardSize: viewModel.boardManager.size)
+                }
+            }
+            
+            HStack(spacing: 10) {
+                debugButton(title: "Show Location", icon: "eye.fill", color: .orange) {
+                    showPoisonPillLocation()
+                }
+                
+                debugButton(title: "Trigger Poison", icon: "exclamationmark.triangle.fill", color: .red) {
+                    triggerPoison()
+                }
+            }
+            
+            debugButton(title: "Clear Poison Status", icon: "bandage.fill", color: .green) {
+                viewModel.battleManager.poisonPillManager.reset()
+                viewModel.battleManager.poisonPillManager.setupPoisonPill(boardSize: viewModel.boardManager.size)
+            }
+            
+            // Info
+            Text("Damage: 3 (immediately) → 3 → 4 → 5 over 3 turns")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.5))
+                .padding(.top, 4)
+        }
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // HELPER VIEWS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
@@ -342,5 +420,57 @@ struct DebugMenuView: View {
     
     private func removeAllBonusTiles() {
         viewModel.boardManager.gems.removeAll { $0.isBonusTile }
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // POISON PILL ACTIONS
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    private func placePoisonPill(at position: GridPosition) {
+        let manager = viewModel.battleManager.poisonPillManager
+        manager.poisonPillPosition = position
+        manager.isPoisoned = false
+        manager.poisonTurnCounter = 0
+        manager.revealedPoisonEffect = nil
+        print("🧪 DEBUG: Poison pill placed at \(position)")
+    }
+    
+    private func showPoisonPillLocation() {
+        guard let position = viewModel.battleManager.poisonPillManager.poisonPillPosition else {
+            print("❌ No hidden poison pill found")
+            return
+        }
+        
+        // Highlight the position with shake effect for 2 seconds
+        viewModel.shakeTiles = [position]
+        
+        Task {
+            try? await Task.sleep(for: .milliseconds(2000))
+            viewModel.shakeTiles.removeAll()
+        }
+        
+        print("👁️ Poison pill location highlighted: Row \(position.row), Col \(position.col)")
+    }
+    
+    private func triggerPoison() {
+        let manager = viewModel.battleManager.poisonPillManager
+        
+        if let pillPos = manager.poisonPillPosition {
+            // Reveal the poison pill
+            _ = manager.checkForPoisonReveal(matchedPositions: [pillPos])
+            
+            // Apply immediate damage
+            viewModel.battleManager.player.takeDamage(3)
+            viewModel.battleManager.addEvent(BattleEvent(
+                text: "💀 DEBUG: Poison triggered manually!",
+                type: .enemyAttack
+            ))
+            
+            print("💀 DEBUG: Poison pill triggered at \(pillPos)")
+        } else if manager.isPoisoned {
+            print("⚠️ Already poisoned! Turn \(manager.poisonTurnCounter)/3")
+        } else {
+            print("❌ No poison pill to trigger. Place one first!")
+        }
     }
 }

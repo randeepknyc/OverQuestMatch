@@ -136,6 +136,21 @@ struct GameBoardView: View {
                 }
             }
             
+            // 🧪 POISON TILE ON BOARD (shows poison pill after reveal, before it disappears)
+            if viewModel.battleManager.poisonPillManager.showPoisonTileOnBoard,
+               let tilePos = viewModel.battleManager.poisonPillManager.revealedTilePosition {
+                Image("poisonpill_tile")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: tileSize * 0.9, height: tileSize * 0.9)
+                    .position(
+                        x: CGFloat(tilePos.col) * tileSize + tileSize / 2,
+                        y: CGFloat(tilePos.row) * tileSize + tileSize / 2 - (tileSize / 2)
+                    )
+                    .transition(.scale.combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+            
             // ☕ BONUS BLAST EFFECTS (can show multiple for cross blast!)
             ForEach(viewModel.bonusBlasts) { bonusBlast in
                 BonusBlastView(
@@ -231,59 +246,65 @@ struct GameBoardView: View {
     private func gemView(gem: Tile, tileSize: CGFloat) -> some View {
         let position = GridPosition(row: gem.row, col: gem.col)
         
-        GemTileView(
-            tile: gem,
-            position: position,
-            isSelected: viewModel.selectedPosition == position,
-            isShaking: viewModel.shakeTiles.contains(position),
-            isInChain: gameMode == .chain && (viewModel.chainHandler?.isInChain(position) ?? false),
-            size: tileSize,
-            gameMode: gameMode,
-            spawnDelay: gem.spawnDelay,
-            fallDelay: gem.fallDelay,
-            matchCenter: nil,
-            onTap: {
-                Task { await viewModel.handleTileTap(at: position) }
-            },
-            onSwipe: { direction in
-                let targetPosition: GridPosition?
-                switch direction {
-                case .up:
-                    targetPosition = gem.row > 0 ? GridPosition(row: gem.row - 1, col: gem.col) : nil
-                case .down:
-                    targetPosition = gem.row < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row + 1, col: gem.col) : nil
-                case .left:
-                    targetPosition = gem.col > 0 ? GridPosition(row: gem.row, col: gem.col - 1) : nil
-                case .right:
-                    targetPosition = gem.col < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row, col: gem.col + 1) : nil
-                }
-                
-                if let target = targetPosition {
-                    Task {
-                        await viewModel.handleTileTap(at: position)
-                        await viewModel.handleTileTap(at: target)
+        // 🧪 HIDE GEM if poison pill is showing at this position
+        let isPoisonTilePosition = viewModel.battleManager.poisonPillManager.showPoisonTileOnBoard &&
+                                   viewModel.battleManager.poisonPillManager.revealedTilePosition == position
+        
+        if !isPoisonTilePosition {
+            GemTileView(
+                tile: gem,
+                position: position,
+                isSelected: viewModel.selectedPosition == position,
+                isShaking: viewModel.shakeTiles.contains(position),
+                isInChain: gameMode == .chain && (viewModel.chainHandler?.isInChain(position) ?? false),
+                size: tileSize,
+                gameMode: gameMode,
+                spawnDelay: gem.spawnDelay,
+                fallDelay: gem.fallDelay,
+                matchCenter: nil,
+                onTap: {
+                    Task { await viewModel.handleTileTap(at: position) }
+                },
+                onSwipe: { direction in
+                    let targetPosition: GridPosition?
+                    switch direction {
+                    case .up:
+                        targetPosition = gem.row > 0 ? GridPosition(row: gem.row - 1, col: gem.col) : nil
+                    case .down:
+                        targetPosition = gem.row < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row + 1, col: gem.col) : nil
+                    case .left:
+                        targetPosition = gem.col > 0 ? GridPosition(row: gem.row, col: gem.col - 1) : nil
+                    case .right:
+                        targetPosition = gem.col < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row, col: gem.col + 1) : nil
+                    }
+                    
+                    if let target = targetPosition {
+                        Task {
+                            // 🎯 Use handleSwipe instead of double tap - NO SELECTION!
+                            await viewModel.handleSwipe(from: position, to: target)
+                        }
                     }
                 }
-            }
-        )
-        .id(gem.id)
-        .position(
-            x: CGFloat(gem.col) * tileSize + tileSize / 2,
-            y: CGFloat(gem.row) * tileSize + tileSize / 2 - (tileSize / 2)
-        )
-        .animation(
-            gem.fallDelay > 0
-                ? .easeIn(duration: 0.3).delay(gem.fallDelay)
-                : .easeIn(duration: 0.3),
-            value: gem.row
-        )
-        .animation(.easeInOut(duration: 0.4), value: gem.col)
-        .transition(
-            .asymmetric(
-                insertion: .identity,
-                removal: .opacity
             )
-        )
+            .id(gem.id)
+            .position(
+                x: CGFloat(gem.col) * tileSize + tileSize / 2,
+                y: CGFloat(gem.row) * tileSize + tileSize / 2 - (tileSize / 2)
+            )
+            .animation(
+                gem.fallDelay > 0
+                    ? .easeIn(duration: 0.3).delay(gem.fallDelay)
+                    : .easeIn(duration: 0.3),
+                value: gem.row
+            )
+            .animation(.easeInOut(duration: 0.4), value: gem.col)
+            .transition(
+                .asymmetric(
+                    insertion: .identity,
+                    removal: .opacity
+                )
+            )
+        }
     }
 }
 

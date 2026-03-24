@@ -35,6 +35,13 @@ struct BattleSceneView: View {
                                 isFlashing: viewModel.flashPlayer,
                                 showShield: true
                             )
+                            .overlay {
+                                // 🧪 POISON GLOW OVERLAY
+                                PoisonGlowOverlay(
+                                    isPoisoned: viewModel.battleManager.poisonPillManager.isPoisoned,
+                                    turnCounter: viewModel.battleManager.poisonPillManager.poisonTurnCounter
+                                )
+                            }
                             
                             // Health badge (top-right corner)
                             // ONLY SHOW when gem selector is NOT active

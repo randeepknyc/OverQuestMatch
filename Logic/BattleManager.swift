@@ -17,6 +17,9 @@ class BattleManager {
     
     var gameState: GameState = .playing
     var pendingGameOver: GameState? = nil  // ✨ NEW: Holds victory/defeat until animations finish
+    
+    // 🧪 POISON PILL SYSTEM
+    var poisonPillManager: PoisonPillManager = PoisonPillManager()
     // ═══════════════════════════════════════════════════════════════
     // 🔥 SESSION 2 ADDITION: POWER SURGE FLAG (START)
     // ═══════════════════════════════════════════════════════════════
@@ -193,6 +196,29 @@ class BattleManager {
         checkGameOver()
     }
     
+    // 🧪 NEW: Start-of-turn poison damage
+    @MainActor
+    func applyPoisonDamage() {
+        let poisonDamage = poisonPillManager.getPoisonDamageForTurn()
+        
+        if poisonDamage > 0 {
+            player.takeDamage(poisonDamage)
+            hapticManager?.playerDamaged(damage: poisonDamage)
+            
+            // Show poison damage message
+            let turnNum = poisonPillManager.poisonTurnCounter
+            addEvent(BattleEvent(
+                text: "💀 POISON! \(poisonDamage) damage (Turn \(turnNum)/3)",
+                type: .enemyAttack
+            ))
+            
+            // Advance to next poison turn
+            poisonPillManager.advancePoisonTurn()
+            
+            checkGameOver()
+        }
+    }
+    
     private func checkGameOver() {
         if !enemy.isAlive {
             // ✨ DON'T show game over yet - store it for later!
@@ -235,6 +261,9 @@ class BattleManager {
         
         gameState = .playing
         pendingGameOver = nil  // ✅ FIX: Clear pending game over state
+        
+        // 🧪 Reset poison pill system
+        poisonPillManager.reset()
     }
     
     // MARK: - Ability System
