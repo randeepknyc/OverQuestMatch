@@ -421,36 +421,9 @@ class GameViewModel {
                 try? await Task.sleep(for: .milliseconds(Int(150 * speedMultiplier)))
             }
             
-            // 🧪 CHECK FOR POISON PILL REVEAL (from matches)
-            let allMatchedPositions = matches.flatMap { $0.positions }
-            let poisonRevealed = battleManager.poisonPillManager.checkForPoisonReveal(matchedPositions: allMatchedPositions)
-            
-            if poisonRevealed {
-                // Show screen effect
-                showPoisonPillEffect = true
-                
-                // Apply immediate damage
-                battleManager.player.takeDamage(3)
-                hapticManager?.playerDamaged(damage: 3)
-                battleManager.player.currentState = .hurt2
-                
-                battleManager.addEvent(BattleEvent(
-                    text: "💀 POISON PILL REVEALED!",
-                    type: .enemyAttack
-                ))
-                
-                // Wait for screen effect to finish
-                try? await Task.sleep(for: .milliseconds(1500))
-                showPoisonPillEffect = false
-                
-                // Hide poison tile from board
-                battleManager.poisonPillManager.hidePoisonTile()
-                
-                // Return to idle
-                if battleManager.gameState == .playing {
-                    battleManager.player.currentState = .idle
-                }
-            }
+            // 🧪 REMOVED: Poison pill cascade detection
+            // Poison pills now ONLY reveal on direct player interaction (tap/swipe)
+            // NOT on automatic cascade matches
             
             // ✨ NEW: Create explosions for matched gems
             for match in matches {
@@ -1064,14 +1037,16 @@ class GameViewModel {
                 await processCascades()
             }
             
-            // Enemy turn
-                        await enemyTurn()
-                        
-                        // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
-                        battleManager.finalizeGameOver()
-                        
-                        isProcessing = false
-                    }
+            // Enemy turn (always happens, even if no gems were cleared)
+            await enemyTurn()
+            
+            // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
+            battleManager.finalizeGameOver()
+            
+            // 🐛 FIX: ALWAYS reset isProcessing, even if gemInfo was empty
+            isProcessing = false
+        }
+    
     // MARK: - Chain Mode Support
     
     @MainActor

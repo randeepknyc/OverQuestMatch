@@ -37,6 +37,7 @@
 		7F3124512F7249C000316079 /* POISON_PILL_COMPLETE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */; };
 		7F3124532F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F3124522F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md */; };
 		7F3124552F72513B00316079 /* PoisonPillScreenEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */; };
+		7F55742D2F735C9800081E01 /* SESSION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -93,6 +94,7 @@
 		7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_COMPLETE.md; sourceTree = "<group>"; };
 		7F3124522F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md; sourceTree = "<group>"; };
 		7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoisonPillScreenEffect.swift; sourceTree = "<group>"; };
+		7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_SUMMARY.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 				7F0094A22F69247F00E10AEB /* GridPosition.swift */,
 				7F86C3B12F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md */,
 				7F3124522F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md */,
+				7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -355,6 +358,7 @@
 				7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */,
 				7F3124532F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md in Resources */,
 				7F00948F2F691AB200E10AEB /* CASCADE_ANIMATION_SUMMARY.md in Resources */,
+				7F55742D2F735C9800081E01 /* SESSION_SUMMARY.md in Resources */,
 				7F3124512F7249C000316079 /* POISON_PILL_COMPLETE.md in Resources */,
 				7F0094E52F6CEDE900E10AEB /* RESPONSIVE_GAMEPLAY_CHANGES.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
