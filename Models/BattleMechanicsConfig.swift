@@ -204,7 +204,7 @@ struct BattleMechanicsConfig {
         "ZAPPY ZAP! {damage} damage!",
         "Ednar curses! {damage}!",
         "Ednar throws a book {damage}!",
-        "Wizardly whizzer! {damage}!"
+        "Ednar throws a plant! {damage}!"
     ]
     
     /// Message when MANA gems are matched
@@ -220,13 +220,13 @@ struct BattleMechanicsConfig {
     static let powerSurgeMessage = "⚡ POWER SURGE! {totalMatches} MATCHES! +{bonusMana} bonus mana!"
     
     /// Message when player wins the battle
-    static let victoryMessage = "Victory! Ednar needs more practice!"
+    static let victoryMessage = "Victory! Bulk up, Ednar!"
     
     /// Message when player loses the battle
     static let defeatMessage = "Defeated! Ramp's busted!"
     
     /// Message when POISON gems are matched (placeholder for future feature)
-    static let poisonMessage = "Toxic miasma swirls..."
+    static let poisonMessage = "Ew, gross skulls"
     
     // ═══════════════════════════════════════════════════════════════
     // MARK: - Ability Use Messages

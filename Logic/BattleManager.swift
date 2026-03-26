@@ -208,7 +208,7 @@ class BattleManager {
             // Show poison damage message
             let turnNum = poisonPillManager.poisonTurnCounter
             addEvent(BattleEvent(
-                text: "💀 POISON! \(poisonDamage) damage (Turn \(turnNum)/3)",
+                text: "Poisoned for 3 turns! \(poisonDamage) damage (Turn \(turnNum)/3)",
                 type: .enemyAttack
             ))
             

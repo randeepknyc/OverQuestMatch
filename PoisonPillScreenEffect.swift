@@ -15,18 +15,28 @@ struct PoisonPillScreenEffect: View {
     @State private var smokeOpacity: Double = 0.0
     @State private var currentFrogFrame: String = "frog01"
     @State private var frogOpacity: Double = 0.0
+    @State private var backgroundOpacity: Double = 0.9  // ✨ Separate opacity for background overlay
     
     // 🐸 FROG ANIMATION POSITION CONTROLS
     var frogXOffset: CGFloat = 0      // Left/right from center (positive = right)
-    var frogYOffset: CGFloat = -80    // Up/down from "You've found the" text (negative = up)
+    var frogYOffset: CGFloat = -85    // Up/down from "You've found the" text (negative = up)
     var frogScale: CGFloat = 3.0      // Size multiplier (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
     
     // 📝 TEXT POSITION CONTROLS
     var textXOffset: CGFloat = 0      // Left/right from center (positive = right)
-    var textYOffset: CGFloat = -30      // Up/down from center (negative = up, positive = down)
+    var textYOffset: CGFloat = -25      // Up/down from center (negative = up, positive = down)
     
     var body: some View {
         ZStack {
+            // ═══════════════════════════════════════════════════════════════
+            // ✨ SEMI-TRANSPARENT BACKGROUND OVERLAY
+            // ═══════════════════════════════════════════════════════════════
+            // Dark overlay behind all effects for better visibility
+            Rectangle()
+                .fill(Color.black.opacity(0.7))
+                .ignoresSafeArea()
+                .opacity(backgroundOpacity)  // ✨ Uses separate opacity control
+            
             // PURPLE SCREEN FLASH
             screenFlash
             
@@ -122,8 +132,8 @@ struct PoisonPillScreenEffect: View {
                     .opacity(textOpacity)
                 
                 // Subtitle (damage info)
-                Text("3 DAMAGE NOW!")
-                    .font(.gameUI(size: 30))
+                Text("You've been poisoned!")
+                    .font(.gameUI(size: 50))
                     .foregroundColor(.red)
                     .shadow(color: .black, radius: 5)
                     .shadow(color: .red, radius: 12)
@@ -173,6 +183,7 @@ struct PoisonPillScreenEffect: View {
                 textOpacity = 0.0
                 poisonOpacity = 0.0
                 frogOpacity = 0.0  // Fade out frog too
+                backgroundOpacity = 0.0  // ✨ Fade out background at the same time
             }
         }
     }
