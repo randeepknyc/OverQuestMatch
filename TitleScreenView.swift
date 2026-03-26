@@ -23,6 +23,9 @@ struct TitleScreenView: View {
     @State private var showInitialBackground = true
     @State private var initialBackgroundOpacity: Double = 1.0
     
+    // ✨ NEW: Screen fade-in animation state (for splash → title transition)
+    @State private var screenOpacity: Double = 0.0
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -117,7 +120,13 @@ struct TitleScreenView: View {
             }
         }
         .ignoresSafeArea()
+        .opacity(screenOpacity)  // ✨ NEW: Fade in the entire title screen
         .onAppear {
+            // ✨ NEW: Fade in when appearing after splash screen
+            withAnimation(.easeIn(duration: 0.2)) {
+                screenOpacity = 1.0
+            }
+            
             startBackgroundFade()  // ✨ NEW: Start background fade animation
             startAnimation()
             startLeafAnimation()  // ✨ NEW: Start leaf cycling

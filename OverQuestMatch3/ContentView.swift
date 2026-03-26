@@ -71,6 +71,8 @@ struct ContentView: View {
                 .zIndex(1000)
             }
         }
+        .animation(.easeInOut(duration: 0.8), value: showSplashScreen)  // ✨ Smooth splash → title transition
+        .animation(.easeInOut(duration: 0.8), value: showTitleScreen)   // ✨ Smooth title → map/game transition
     }
 }
 

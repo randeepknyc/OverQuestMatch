@@ -39,6 +39,7 @@
 		7F3124552F72513B00316079 /* PoisonPillScreenEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */; };
 		7F55742D2F735C9800081E01 /* SESSION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */; };
 		7F55742F2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F55742E2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md */; };
+		7F55745B2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F55745A2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -97,6 +98,7 @@
 		7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoisonPillScreenEffect.swift; sourceTree = "<group>"; };
 		7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_SUMMARY.md; sourceTree = "<group>"; };
 		7F55742E2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_15_SWIPE_TAP_GESTURE_FIX.md; sourceTree = "<group>"; };
+		7F55745A2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GAME_PLANNING_TAVERN_TSUM_MATCH.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 				7F55742C2F735C9800081E01 /* SESSION_SUMMARY.md */,
 				7F31244E2F7249A200316079 /* POISON_PILL_SYSTEM.md */,
 				7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */,
+				7F55742E2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md */,
 			);
 			path = ReadFilesForContext;
 			sourceTree = "<group>";
@@ -200,6 +203,7 @@
 				7FB075482F5D5B0300BD0591 /* TitleScreenView.swift */,
 				7F0094A62F6926BE00E10AEB /* ChainInputHandler2.swift */,
 				7F0094F02F6E384C00E10AEB /* DebugMenuView.swift */,
+				7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */,
 				7FB0752C2F5D29A300BD0591 /* Logic */,
 				7FB0752B2F5D29A100BD0591 /* ViewModels */,
 				7FB0752A2F5D299E00BD0591 /* Views */,
@@ -208,8 +212,8 @@
 				7FB0751C2F5D219B00BD0591 /* OverQuestMatch3 */,
 				7FB0751B2F5D219B00BD0591 /* Products */,
 				7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */,
+				7F55745A2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md */,
 				7F86C3B02F70EA9400DC5759 /* ReadFilesForContext */,
-				7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -251,7 +255,6 @@
 				7FB075342F5D2A9C00BD0591 /* GameOverView.swift */,
 				7F0094A42F6926B200E10AEB /* GameMode.swift */,
 				7F00950E2F6E52C600E10AEB /* BonusBlastEffects.swift */,
-				7F55742E2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -357,6 +360,7 @@
 				7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */,
 				7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */,
 				7F0095312F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md in Resources */,
+				7F55745B2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md in Resources */,
 				7F0094E92F6CF7FA00E10AEB /* chat_transcript.txt in Resources */,
 				7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */,
 				7F3124532F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md in Resources */,
