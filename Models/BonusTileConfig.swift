@@ -77,6 +77,32 @@ struct BonusTileConfig {
     static let allowMultiple: Bool = true
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ☕ ANIMATED COFFEE CUP SETTINGS (NEW!)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    /// Enable cross-fade animation between coffee images?
+    /// true = Coffee cup cycles through frames with smooth fade
+    /// false = Static coffee_bonus.png image only
+    static let enableAnimatedFrames: Bool = true
+    
+    /// How many coffee images do you have?
+    /// Your images: coffee_bonus.png, coffee_bonus2.png ... coffee_bonus6.png
+    /// So total frames = 6
+    static let totalFrames: Int = 6
+    
+    /// Time to display each frame (seconds)
+    /// 0.5 = Fast (energetic) ⚡
+    /// 1.0 = Medium
+    /// 2.0 = Slow (relaxed)
+    static let frameDisplayDuration: Double = 0.5
+    
+    /// Cross-fade transition time (seconds)
+    /// 0.2 = Quick fade
+    /// 0.3 = Smooth fade (recommended) ✨
+    /// 0.5 = Slow, dreamy fade
+    static let fadeDuration: Double = 0.3
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // HELPER FUNCTIONS (Don't modify these)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
@@ -86,5 +112,17 @@ struct BonusTileConfig {
     
     static func shouldClearColumn() -> Bool {
         clearMode == "column" || clearMode == "both"
+    }
+    
+    /// Get the image name for a specific frame
+    /// Frame 1 = "coffee_bonus"
+    /// Frame 2 = "coffee_bonus2"
+    /// Frame 3 = "coffee_bonus3", etc.
+    static func imageNameForFrame(_ frame: Int) -> String {
+        if frame == 1 {
+            return "coffee_bonus"
+        } else {
+            return "coffee_bonus\(frame)"
+        }
     }
 }

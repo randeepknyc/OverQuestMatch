@@ -111,6 +111,9 @@ class GameViewModel {
     func handleSwipe(from: GridPosition, to: GridPosition) async {
         guard battleManager.gameState == .playing else { return }
         
+        // 🎯 FIX: Always clear selection when ANY swipe starts (prevents stuck selection boxes)
+        selectedPosition = nil
+        
         // 🧪 PREVENT SWIPES: Don't process while poison effect is showing
         guard !showPoisonPillEffect else { return }
         
@@ -131,8 +134,8 @@ class GameViewModel {
                 type: .enemyAttack
             ))
             
-            // Wait for screen effect
-            try? await Task.sleep(for: .milliseconds(1500))
+            // Wait for screen effect (3.5 seconds)
+            try? await Task.sleep(for: .milliseconds(3500))
             showPoisonPillEffect = false
             
             // Hide poison tile from board
@@ -170,35 +173,8 @@ class GameViewModel {
         
         // 🧪 CHECK: Did player tap on hidden poison pill?
         if battleManager.poisonPillManager.checkForPoisonSwipe(position: position) {
-            // 🎯 FIX: Clear selection immediately to prevent white border from showing
-            selectedPosition = nil
-            
-            // Show screen effect
-            showPoisonPillEffect = true
-            
-            // Apply immediate damage
-            battleManager.player.takeDamage(3)
-            hapticManager?.playerDamaged(damage: 3)
-            battleManager.player.currentState = .hurt2
-            
-            battleManager.addEvent(BattleEvent(
-                text: "💀 POISON PILL REVEALED!",
-                type: .enemyAttack
-            ))
-            
-            // Wait for screen effect
-            try? await Task.sleep(for: .milliseconds(1500))
-            showPoisonPillEffect = false
-            
-            // Hide poison tile from board
-            battleManager.poisonPillManager.hidePoisonTile()
-            
-            // Return to idle
-            if battleManager.gameState == .playing {
-                battleManager.player.currentState = .idle
-            }
-            
-            return  // Don't process normal tap
+            await handlePoisonPillTap(at: position)
+            return
         }
         
         // Normal tap processing - SELECTION ONLY FOR TAPS!
@@ -220,11 +196,49 @@ class GameViewModel {
         }
     }
     
+    // 🧪 POISON PILL: Separate handler for poison pill taps
     @MainActor
-    private func performSwap(from: GridPosition, to: GridPosition) async {
+    func handlePoisonPillTap(at position: GridPosition) async {
+        guard battleManager.gameState == .playing else { return }
+        guard !showPoisonPillEffect else { return }
+        
+        // 🎯 FIX: Clear selection immediately to prevent white border from showing
+        selectedPosition = nil
+        
+        // Show screen effect
+        showPoisonPillEffect = true
+        
+        // Apply immediate damage
+        battleManager.player.takeDamage(3)
+        hapticManager?.playerDamaged(damage: 3)
+        battleManager.player.currentState = .hurt2
+        
+        battleManager.addEvent(BattleEvent(
+            text: "💀 POISON PILL REVEALED!",
+            type: .enemyAttack
+        ))
+        
+        // Wait for screen effect (3.5 seconds)
+        try? await Task.sleep(for: .milliseconds(3500))
+        showPoisonPillEffect = false
+        
+        // Hide poison tile from board
+        battleManager.poisonPillManager.hidePoisonTile()
+        
+        // Return to idle
+        if battleManager.gameState == .playing {
+            battleManager.player.currentState = .idle
+        }
+    }
+    
+    @MainActor
+    func performSwap(from: GridPosition, to: GridPosition) async {
         // 🎮 SESSION 14: Bejeweled-style allows multiple swaps
         // Gem stability (isStable) prevents invalid swaps during cascades
         // No need for global isProcessing lock!
+        
+        // 🎯 FIX: Always clear selection when ANY swap starts (prevents stuck selection boxes)
+        selectedPosition = nil
         
         isProcessing = true  // Still track for UI feedback
         
@@ -936,6 +950,9 @@ class GameViewModel {
             guard battleManager.canUseAbility(.heroicStrike) else { return }
             guard !isProcessing else { return }
             
+            // 🎯 FIX: Always clear selection when coffee cup ability starts
+            selectedPosition = nil
+            
             isProcessing = true
             isSelectingGemToClear = false
             
@@ -1035,6 +1052,9 @@ class GameViewModel {
                 
                 // STEP 6: Process any new matches that formed
                 await processCascades()
+                
+                // 🐛 FIX: Mark all gems stable AFTER cascades finish
+                boardManager.markAllGemsStable()
             }
             
             // Enemy turn (always happens, even if no gems were cleared)
