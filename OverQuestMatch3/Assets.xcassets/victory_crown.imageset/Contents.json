@@ -1,11 +1,11 @@
 {
   "images" : [
     {
+      "filename" : "victory_crown.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "victory_crown.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
