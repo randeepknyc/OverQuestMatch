@@ -669,33 +669,16 @@ class GameViewModel {
         
         battleManager.addEvent(BattleEvent(text: message, type: .special))
         
-        // ☕ BONUS BLAST EFFECT - Choose between code-based or custom images
-        
-        // OPTION 1: Code-based blast (currently active)
-        bonusBlasts = [BonusBlastData(
-            position: position,
-            isRow: clearRow,
-            color: .yellow,
-            id: UUID()
-        )]
-        
-        // OPTION 2: Custom images (COMMENTED OUT - uncomment to use)
-        // If you want to use custom blast images:
-        // 1. Add images to Assets.xcassets:
-        //    - bonus_blast_row_1.png through bonus_blast_row_X.png (for horizontal)
-        //    - bonus_blast_col_1.png through bonus_blast_col_X.png (for vertical)
-        // 2. Uncomment this code and comment out bonusBlasts above
-        /*
+        // ☕ BONUS BLAST EFFECT - Using custom PNG images for BOTH directions!
         bonusBlasts = [BonusBlastData(
             position: position,
             isRow: clearRow,
             color: .yellow,
             id: UUID(),
-            useCustomImages: true,
-            frameCount: 6,  // How many frames your animation has
-            frameRate: 12   // How fast to play (frames per second)
+            useCustomImages: true,  // ✅ Now enabled for both horizontal AND vertical!
+            frameCount: 6,           // How many frames your animation has
+            frameRate: 12            // How fast to play (frames per second)
         )]
-        */
         
         shakeTiles.removeAll()
         try? await Task.sleep(for: .milliseconds(600))  // Wait for blast animation
@@ -822,21 +805,27 @@ class GameViewModel {
         
         battleManager.addEvent(BattleEvent(text: message, type: .special))
         
-        // ⚔️ CREATE TWO BLASTS: Horizontal + Vertical (CROSS PATTERN!)
+        // ⚔️ CREATE TWO BLASTS: Horizontal + Vertical (CROSS PATTERN!) - Using PNG images!
         bonusBlasts = [
-            // Horizontal blast
+            // Horizontal blast (using custom PNG images)
             BonusBlastData(
                 position: position,
                 isRow: true,
                 color: .yellow,
-                id: UUID()
+                id: UUID(),
+                useCustomImages: true,  // ✅ PNG images for cross blast horizontal
+                frameCount: 6,
+                frameRate: 12
             ),
-            // Vertical blast
+            // Vertical blast (using custom PNG images)
             BonusBlastData(
                 position: position,
                 isRow: false,
                 color: .yellow,
-                id: UUID()
+                id: UUID(),
+                useCustomImages: true,  // ✅ PNG images for cross blast vertical
+                frameCount: 6,
+                frameRate: 12
             )
         ]
         

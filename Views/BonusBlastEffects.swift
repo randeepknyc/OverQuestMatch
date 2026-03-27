@@ -256,33 +256,95 @@ struct CustomImageBlast: View {
     @State private var opacity: Double = 1.0
     @State private var scaleProgress: CGFloat = 0.0  // NEW: Animation scale
     
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ⚡ BLAST POSITIONING & STRETCH CONTROLS
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    // 📏 HORIZONTAL BLAST CONTROLS (when isRow == true)
+    // ════════════════════════════════════════════════════════════════
+    
+    /// Width multiplier for HORIZONTAL blasts (how far left/right it extends)
+    /// 1.0 = Exactly board width (default)
+    /// 2.0 = 2x wider than board (extends beyond edges)
+    /// 0.8 = 80% of board width (doesn't reach edges)
+    private let horizontalWidthMultiplier: CGFloat = 2.0
+    
+    /// Thickness multiplier for HORIZONTAL blasts (how tall the beam is)
+    /// 1.0 = Normal thickness (default)
+    /// 1.5 = 50% thicker beam
+    /// 0.5 = 50% thinner beam
+    private let horizontalThicknessMultiplier: CGFloat = 1.0
+    
+    /// Horizontal offset for HORIZONTAL blasts (moves blast left/right)
+    /// 0 = Centered at bonus gem (default)
+    /// 20 = Shifted 20 pixels right
+    /// -20 = Shifted 20 pixels left
+    private let horizontalXOffset: CGFloat = 0
+    
+    /// Vertical offset for HORIZONTAL blasts (moves blast up/down)
+    /// 0 = Centered at bonus gem (default)
+    /// -30 = Shifted 30 pixels up
+    /// 20 = Shifted 20 pixels down
+    private let horizontalYOffset: CGFloat = -30
+    
+    // 📏 VERTICAL BLAST CONTROLS (when isRow == false)
+    // ════════════════════════════════════════════════════════════════
+    
+    /// Height multiplier for VERTICAL blasts (how far up/down it extends)
+    /// 1.0 = Exactly board height (default)
+    /// 2.0 = 2x taller than board
+    /// 0.8 = 80% of board height
+    private let verticalHeightMultiplier: CGFloat = 2.5
+    
+    /// Thickness multiplier for VERTICAL blasts (how wide the beam is)
+    /// 1.0 = Normal thickness (default)
+    /// 1.5 = 50% thicker beam
+    /// 0.5 = 50% thinner beam
+    private let verticalThicknessMultiplier: CGFloat = 1.0
+    
+    /// Horizontal offset for VERTICAL blasts (moves blast left/right)
+    /// 0 = Centered at bonus gem (default)
+    /// -30 = Shifted 30 pixels left
+    /// 20 = Shifted 20 pixels right
+    private let verticalXOffset: CGFloat = 0
+    
+    /// Vertical offset for VERTICAL blasts (moves blast up/down)
+    /// 0 = Centered at bonus gem (default)
+    /// -30 = Shifted 30 pixels up
+    /// 20 = Shifted 20 pixels down
+    private let verticalYOffset: CGFloat = 0
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
     var body: some View {
         Group {
             if blastData.isRow {
+                // HORIZONTAL BLAST: Uses horizontal-specific controls
                 Image(imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(
-                        width: CGFloat(boardSize) * tileSize * scaleProgress,  // Expand from 0 to full width
-                        height: tileSize * BlastEffectConfig.thickness
+                        width: CGFloat(boardSize) * tileSize * scaleProgress * horizontalWidthMultiplier,
+                        height: tileSize * BlastEffectConfig.thickness * horizontalThicknessMultiplier
                     )
                     .position(
-                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,  // Origin at match position
-                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2
+                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2 + horizontalXOffset,
+                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2 + horizontalYOffset
                     )
                     .opacity(opacity)
                     .blendMode(.screen)
             } else {
+                // VERTICAL BLAST: Uses vertical-specific controls
                 Image(imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(
-                        width: tileSize * BlastEffectConfig.thickness,
-                        height: CGFloat(boardSize) * tileSize * scaleProgress  // Expand from 0 to full height
+                        width: tileSize * BlastEffectConfig.thickness * verticalThicknessMultiplier,
+                        height: CGFloat(boardSize) * tileSize * scaleProgress * verticalHeightMultiplier
                     )
                     .position(
-                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2,
-                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2  // Origin at match position
+                        x: CGFloat(blastData.position.col) * tileSize + tileSize / 2 + verticalXOffset,
+                        y: CGFloat(blastData.position.row) * tileSize + tileSize / 2 + verticalYOffset
                     )
                     .opacity(opacity)
                     .blendMode(.screen)
