@@ -64,12 +64,15 @@ struct ContentView: View {
                 PauseMenuView(
                     isPresented: $showPauseMenu,
                     viewModel: viewModel,
-                    gameMode: $currentGameMode
+                    gameMode: $currentGameMode,
+                    showTitleScreen: $showTitleScreen  // ✅ NEW: Pass binding for END GAME
                 )
                 .transition(.opacity)
                 .zIndex(1000)
             }
         }
+        .animation(.easeInOut(duration: 0.8), value: showSplashScreen)  // ✨ Smooth splash → title transition
+        .animation(.easeInOut(duration: 0.8), value: showTitleScreen)   // ✨ Smooth title → map/game transition
     }
 }
 
@@ -78,6 +81,9 @@ struct GameScreen: View {
     var hapticManager: HapticManager
     @Binding var showPauseMenu: Bool
     @Binding var gameMode: GameMode
+    
+    // 🛠️ DEBUG MENU
+    @State private var showDebugMenu = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -97,6 +103,25 @@ struct GameScreen: View {
                     GameBoardView(viewModel: viewModel, gameMode: gameMode)
                         .frame(height: geometry.size.height * 0.58)
                 }
+                
+                // 🛠️ DEBUG BUTTON (Top-right corner)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { showDebugMenu = true }) {
+                            Image(systemName: "hammer.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.orange)
+                                .padding(12)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                                .shadow(color: .orange.opacity(0.5), radius: 5)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.top, 16)
+                    }
+                    Spacer()
+                }
+                .zIndex(100)
                 .onChange(of: gameMode) { _, newMode in
                     viewModel.currentGameMode = newMode
                 }
@@ -138,6 +163,22 @@ struct GameScreen: View {
                     PowerSurgeEffect()
                         .transition(.opacity)
                         .zIndex(500)
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🧪 POISON PILL FULL SCREEN EFFECT
+                // ═══════════════════════════════════════════════════════════════
+                if viewModel.showPoisonPillEffect {
+                    PoisonPillScreenEffect()
+                        .transition(.opacity)
+                        .zIndex(600)
+                }
+                
+                // 🛠️ DEBUG MENU OVERLAY
+                if showDebugMenu {
+                    DebugMenuView(viewModel: viewModel, isShowing: $showDebugMenu)
+                        .transition(.opacity)
+                        .zIndex(1500)
                 }
                 
                 // Game over overlay

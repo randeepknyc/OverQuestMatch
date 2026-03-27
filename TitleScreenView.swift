@@ -16,11 +16,21 @@ struct TitleScreenView: View {
     @State private var logoGlow: Double = 0
     @State private var backgroundOffset: CGFloat = 0
     
+    // ✨ NEW: Leaf animation state
+    @State private var currentLeafFrame = 1
+    
+    // ✨ NEW: Background fade animation state
+    @State private var showInitialBackground = true
+    @State private var initialBackgroundOpacity: Double = 1.0
+    
+    // ✨ NEW: Screen fade-in animation state (for splash → title transition)
+    @State private var screenOpacity: Double = 0.0
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // ═══════════════════════════════════════════════════════════════
-                // BACKGROUND IMAGE - "title_screen.png"
+                // BACKGROUND IMAGE - "title_screen.png" (main background)
                 // ═══════════════════════════════════════════════════════════════
                 // Optional parallax animation if GameConfig.titleAnimationStyle = .parallaxScroll
                 Image("title_screen")
@@ -31,6 +41,36 @@ struct TitleScreenView: View {
                         height: geometry.size.height + abs(backgroundOffset)
                     )
                     .offset(y: backgroundOffset)
+                    .ignoresSafeArea()
+                
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ NEW: INITIAL BACKGROUND - "title_screen01.png"
+                // ═══════════════════════════════════════════════════════════════
+                // Shows first, then fades out to reveal title_screen.png
+                if showInitialBackground {
+                    Image("title_screen01")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                        .opacity(initialBackgroundOpacity)
+                        .ignoresSafeArea()
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ NEW: LEAF ANIMATION LAYER (ON TOP OF BACKGROUND)
+                // ═══════════════════════════════════════════════════════════════
+                // Cycles through leaf1.png → leaf17.png with 1 second delay
+                // Your hand-animated leaves flying across the screen
+                Image("leaf\(currentLeafFrame)")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(
+                        width: geometry.size.width,
+                        height: geometry.size.height
+                    )
                     .ignoresSafeArea()
                 
                 // ═══════════════════════════════════════════════════════════════
@@ -80,8 +120,64 @@ struct TitleScreenView: View {
             }
         }
         .ignoresSafeArea()
+        .opacity(screenOpacity)  // ✨ NEW: Fade in the entire title screen
         .onAppear {
+            // ✨ NEW: Fade in when appearing after splash screen
+            withAnimation(.easeIn(duration: 0.2)) {
+                screenOpacity = 1.0
+            }
+            
+            startBackgroundFade()  // ✨ NEW: Start background fade animation
             startAnimation()
+            startLeafAnimation()  // ✨ NEW: Start leaf cycling
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ✨ NEW: BACKGROUND FADE ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+    // Shows title_screen01.png first, then fades to title_screen.png
+    func startBackgroundFade() {
+        // ⚠️ ADJUST THESE TIMING VALUES:
+        let displayDuration = 2.0  // How long title_screen01 shows before fading
+        let fadeDuration = 1.25     // How long the fade takes
+        
+        // Wait for display duration, then fade out
+        DispatchQueue.main.asyncAfter(deadline: .now() + displayDuration) {
+            withAnimation(.easeInOut(duration: fadeDuration)) {
+                initialBackgroundOpacity = 0.0
+            }
+            
+            // Remove the initial background after fade completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + fadeDuration) {
+                showInitialBackground = false
+            }
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ✨ NEW: LEAF ANIMATION LOGIC WITH LOOP DELAY
+    // ═══════════════════════════════════════════════════════════════
+    // Cycles through leaf1.png → leaf17.png, then pauses before looping
+    func startLeafAnimation() {
+        // ⚠️ ADJUST THESE TIMING VALUES:
+        let frameDelay = 0.1        // Time between each leaf frame (0.1s = 10fps)
+        let loopPauseDelay = 2.0    // Pause AFTER leaf18 before restarting (2 seconds)
+        
+        Timer.scheduledTimer(withTimeInterval: frameDelay, repeats: true) { timer in
+            if currentLeafFrame < 18 {
+                // Normal playback: leaf1 → leaf17
+                currentLeafFrame += 1
+            } else {
+                // We're at leaf17 - stop the timer temporarily
+                timer.invalidate()
+                
+                // Wait for loop pause, then restart from leaf1
+                DispatchQueue.main.asyncAfter(deadline: .now() + loopPauseDelay) {
+                    currentLeafFrame = 1
+                    startLeafAnimation()  // Restart the animation
+                }
+            }
         }
     }
     

@@ -16,7 +16,10 @@ class BattleManager {
     var hapticManager: HapticManager?  // ✨ NEW: Haptic feedback
     
     var gameState: GameState = .playing
+    var pendingGameOver: GameState? = nil  // ✨ NEW: Holds victory/defeat until animations finish
     
+    // 🧪 POISON PILL SYSTEM
+    var poisonPillManager: PoisonPillManager = PoisonPillManager()
     // ═══════════════════════════════════════════════════════════════
     // 🔥 SESSION 2 ADDITION: POWER SURGE FLAG (START)
     // ═══════════════════════════════════════════════════════════════
@@ -36,15 +39,15 @@ class BattleManager {
         self.player = Character(
             name: "Ramp",
             imageName: GameAssets.barbarianImage,
-            maxHealth: GameConfig.barbarianStartHealth,
-            currentHealth: GameConfig.barbarianStartHealth
+            maxHealth: BattleMechanicsConfig.playerStartingHealth,
+            currentHealth: BattleMechanicsConfig.playerStartingHealth
         )
         
         self.enemy = Character(
             name: "Toad King",
             imageName: GameAssets.toadImage,
-            maxHealth: GameConfig.toadStartHealth,
-            currentHealth: GameConfig.toadStartHealth
+            maxHealth: BattleMechanicsConfig.enemyStartingHealth,
+            currentHealth: BattleMechanicsConfig.enemyStartingHealth
         )
     }
     
@@ -70,65 +73,53 @@ class BattleManager {
         for match in matches {
             let matchCount = match.count
             let isCombo = comboCount > 1
-            let multiplier = isCombo ? GameConfig.comboMultiplier : 1.0
+            let multiplier = isCombo ? BattleMechanicsConfig.comboMultiplier : 1.0
             
             switch match.type {
             case .sword:
-                let damage = Int(Double(GameConfig.baseDamage * matchCount) * multiplier)
+                let damage = Int(Double(BattleMechanicsConfig.swordDamagePerGem * matchCount) * multiplier)
                 totalDamage += damage
                 
-                // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO ATTACK STATE
-                // ═══════════════════════════════════════════════════════════════
                 player.currentState = .attack
-                // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(barbarianAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .fire:
-                let damage = Int(Double(GameConfig.magicDamage * matchCount) * multiplier)
+                let damage = Int(Double(BattleMechanicsConfig.fireDamagePerGem * matchCount) * multiplier)
                 totalDamage += damage
                 
-                // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO ATTACK STATE
-                // ═══════════════════════════════════════════════════════════════
                 player.currentState = .attack
-                // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(magicAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .shield:
-                let shield = GameConfig.shieldAmount * matchCount
+                let shield = BattleMechanicsConfig.shieldPerGem * matchCount
                 totalShield += shield
                 
-                // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO DEFEND STATE
-                // ═══════════════════════════════════════════════════════════════
                 player.currentState = .defend
-                // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(shieldMessage(amount: shield, isCombo: isCombo))
                 
             case .heart:
-                let healing = GameConfig.healAmount * matchCount
+                let healing = BattleMechanicsConfig.healingPerGem * matchCount
                 totalHealing += healing
                 
-                // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO DEFEND STATE (healing = defensive action)
-                // ═══════════════════════════════════════════════════════════════
                 player.currentState = .defend
-                // ═══════════════════════════════════════════════════════════════
                 
                 addEvent(healMessage(amount: healing, isCombo: isCombo))
                 
             case .mana:
-                let manaGain = GameConfig.manaPerGem * matchCount
+                let manaGain = BattleMechanicsConfig.manaPerGem * matchCount
                 totalMana += manaGain
                 addEvent(manaMessage(amount: manaGain))
                 
             case .poison:
-                // Future: implement poison status effect
-                addEvent(BattleEvent(text: "Toxic miasma swirls...", type: .special))
+                // ✅ UPDATED: Use poison message from config
+                addEvent(BattleEvent(text: BattleMechanicsConfig.poisonMessage, type: .special))
             }
         }
         
@@ -146,7 +137,7 @@ class BattleManager {
             hapticManager?.shieldActivated()  // ✨ Shield haptic
         }
         if totalMana > 0 {
-            mana = min(GameConfig.maxMana, mana + totalMana)
+            mana = min(BattleMechanicsConfig.maxMana, mana + totalMana)
             hapticManager?.manaGained()  // ✨ Mana gain haptic
         }
         
@@ -155,79 +146,102 @@ class BattleManager {
         // ═══════════════════════════════════════════════════════════════
         // POWER SURGE: 4+ matches in any single match group
         let totalMatches = matches.reduce(0) { $0 + $1.count }
-        if totalMatches >= GameConfig.powerSurgeChainThreshold {
+        if totalMatches >= BattleMechanicsConfig.powerSurgeThreshold {
             triggeredPowerSurge = true
-            let bonusMana = GameConfig.powerSurgeManaBonus
-            mana = min(GameConfig.maxMana, mana + bonusMana)
-            addEvent(BattleEvent(text: "⚡ POWER SURGE! \(totalMatches) MATCHES! +\(bonusMana) bonus mana!", type: .special))
+            let bonusMana = BattleMechanicsConfig.powerSurgeBonusMana
+            mana = min(BattleMechanicsConfig.maxMana, mana + bonusMana)
+            
+            // ✅ UPDATED: Use power surge message from config
+            let message = BattleMechanicsConfig.powerSurgeMessage
+                .replacingOccurrences(of: "{totalMatches}", with: "\(totalMatches)")
+                .replacingOccurrences(of: "{bonusMana}", with: "\(bonusMana)")
+            addEvent(BattleEvent(text: message, type: .special))
         }
         // ═══════════════════════════════════════════════════════════════
         // 🔥 SESSION 2 ADDITION: POWER SURGE DETECTION (END)
         // ═══════════════════════════════════════════════════════════════
         
         // ═══════════════════════════════════════════════════════════════
-        // 🎨 RETURN PLAYER TO IDLE STATE AFTER DELAY
+        // 🎨 RETURN PLAYER TO IDLE STATE AFTER ANIMATIONS
         // ═══════════════════════════════════════════════════════════════
+        // Return to idle after a delay (matches don't overlap)
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(400))
-            player.currentState = .idle
+            try? await Task.sleep(for: .milliseconds(350))
+            if gameState == .playing {
+                player.currentState = .idle
+            }
         }
         // ═══════════════════════════════════════════════════════════════
         
         checkGameOver()
     }
     
+    @MainActor
     func enemyTurn() {
         guard gameState == .playing else { return }
         
-        let damage = Int.random(in: GameConfig.enemyMinDamage...GameConfig.enemyMaxDamage)
+        let damage = Int.random(in: BattleMechanicsConfig.enemyMinDamage...BattleMechanicsConfig.enemyMaxDamage)
         
-        // ═══════════════════════════════════════════════════════════════
-        // 🎨 SET PLAYER TO HURT STATE WHEN TAKING DAMAGE
-        // ═══════════════════════════════════════════════════════════════
-        player.currentState = .hurt
-        // ═══════════════════════════════════════════════════════════════
-        
+        // Apply damage and effects
         player.takeDamage(damage)
         hapticManager?.playerDamaged(damage: damage)  // ✨ Player damage haptic
         addEvent(enemyAttackMessage(damage: damage))
         
         // ═══════════════════════════════════════════════════════════════
-        // 🎨 RETURN TO IDLE AFTER DELAY
-        // ═══════════════════════════════════════════════════════════════
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(500))
-            player.currentState = .idle
-        }
+        // 🎨 NOTE: Portrait states are set in GameViewModel.enemyTurn()
+        // This keeps visual animations in sync with async enemy turns
         // ═══════════════════════════════════════════════════════════════
         
         turnCount += 1
         checkGameOver()
     }
     
+    // 🧪 NEW: Start-of-turn poison damage
+    @MainActor
+    func applyPoisonDamage() {
+        let poisonDamage = poisonPillManager.getPoisonDamageForTurn()
+        
+        if poisonDamage > 0 {
+            player.takeDamage(poisonDamage)
+            hapticManager?.playerDamaged(damage: poisonDamage)
+            
+            // Show poison damage message
+            let turnNum = poisonPillManager.poisonTurnCounter
+            addEvent(BattleEvent(
+                text: "Poisoned for 3 turns! \(poisonDamage) damage (Turn \(turnNum)/3)",
+                type: .enemyAttack
+            ))
+            
+            // Advance to next poison turn
+            poisonPillManager.advancePoisonTurn()
+            
+            checkGameOver()
+        }
+    }
+    
     private func checkGameOver() {
         if !enemy.isAlive {
-            gameState = .victory
+            // ✨ DON'T show game over yet - store it for later!
+            pendingGameOver = .victory
             
-            // ═══════════════════════════════════════════════════════════════
-            // 🎨 SET PLAYER TO VICTORY STATE
-            // ═══════════════════════════════════════════════════════════════
+            // 🎨 SET PLAYER TO VICTORY STATE (animation will play)
             player.currentState = .victory
-            // ═══════════════════════════════════════════════════════════════
             
             hapticManager?.victory()  // ✨ Victory haptic celebration!
-            addEvent(BattleEvent(text: "Victory! The Toad King croaks his last!", type: .special))
-        } else if !player.isAlive {
-            gameState = .defeat
             
-            // ═══════════════════════════════════════════════════════════════
-            // 🎨 SET PLAYER TO DEFEAT STATE
-            // ═══════════════════════════════════════════════════════════════
+            // ✅ UPDATED: Use victory message from config
+            addEvent(BattleEvent(text: BattleMechanicsConfig.victoryMessage, type: .special))
+        } else if !player.isAlive {
+            // ✨ DON'T show game over yet - store it for later!
+            pendingGameOver = .defeat
+            
+            // 🎨 SET PLAYER TO DEFEAT STATE (animation will play)
             player.currentState = .defeat
-            // ═══════════════════════════════════════════════════════════════
             
             hapticManager?.defeat()  // ✨ Defeat haptic
-            addEvent(BattleEvent(text: "Defeated! The swamp claims another hero...", type: .special))
+            
+            // ✅ UPDATED: Use defeat message from config
+            addEvent(BattleEvent(text: BattleMechanicsConfig.defeatMessage, type: .special))
         }
     }
     
@@ -240,9 +254,16 @@ class BattleManager {
         recentEvents.removeAll()
         comboCount = 0
         turnCount = 0
+        
+        // Reset character states
         player.currentState = .idle
         enemy.currentState = .idle
+        
         gameState = .playing
+        pendingGameOver = nil  // ✅ FIX: Clear pending game over state
+        
+        // 🧪 Reset poison pill system
+        poisonPillManager.reset()
     }
     
     // MARK: - Ability System
@@ -251,7 +272,7 @@ class BattleManager {
         return gameState == .playing && mana >= ability.manaCost
     }
     
-    func useAbility(_ ability: Ability, gemType: TileType? = nil) {
+    func useAbility(_ ability: Ability, gemType: TileType? = nil, gemCount: Int = 0) {
         guard canUseAbility(ability) else { return }
         
         // Spend mana
@@ -262,53 +283,106 @@ class BattleManager {
         case .heroicStrike:
             // This now means "Clear Board" - requires gem type selection
             if let gemType = gemType {
-                // ═══════════════════════════════════════════════════════════════
                 // 🎨 SET PLAYER TO SPELL STATE
-                // ═══════════════════════════════════════════════════════════════
                 player.currentState = .spell
                 
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(600))
-                    player.currentState = .idle
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ GEM CLEAR EFFECTS: Apply gem effects based on count
+                // ═══════════════════════════════════════════════════════════════
+                // Formula: (Number of gems cleared) × (effect per gem) = Total effect
+                // Example: 12 swords cleared × 2 damage = 24 damage
+                
+                var totalDamage = 0
+                var totalShield = 0
+                var totalHealing = 0
+                var totalMana = 0
+                
+                switch gemType {
+                case .sword:
+                    if BattleMechanicsConfig.gemClearApplySwordDamage {
+                        totalDamage = gemCount * BattleMechanicsConfig.swordDamagePerGem
+                        enemy.takeDamage(totalDamage)
+                    }
+                    
+                case .fire:
+                    if BattleMechanicsConfig.gemClearApplyFireDamage {
+                        totalDamage = gemCount * BattleMechanicsConfig.fireDamagePerGem
+                        enemy.takeDamage(totalDamage)
+                    }
+                    
+                case .shield:
+                    if BattleMechanicsConfig.gemClearApplyShield {
+                        totalShield = gemCount * BattleMechanicsConfig.shieldPerGem
+                        player.addShield(totalShield)
+                    }
+                    
+                case .heart:
+                    if BattleMechanicsConfig.gemClearApplyHealing {
+                        totalHealing = gemCount * BattleMechanicsConfig.healingPerGem
+                        player.heal(totalHealing)
+                    }
+                    
+                case .mana:
+                    if BattleMechanicsConfig.gemClearApplyMana {
+                        totalMana = gemCount * BattleMechanicsConfig.manaPerGem
+                        mana = min(mana + totalMana, BattleMechanicsConfig.maxMana)
+                    }
+                    
+                case .poison:
+                    if BattleMechanicsConfig.gemClearApplyPoison {
+                        // Future poison implementation
+                    }
                 }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // ✨ GEM CLEAR MESSAGE (shows what happened)
                 // ═══════════════════════════════════════════════════════════════
                 
-                addEvent(BattleEvent(text: "💥 CLEARED ALL \(gemType.battleAction.uppercased()) GEMS!", type: .special))
+                var effectMessage = ""
+                
+                if totalDamage > 0 {
+                    effectMessage = " → \(totalDamage) damage!"
+                } else if totalShield > 0 {
+                    effectMessage = " → +\(totalShield) shield!"
+                } else if totalHealing > 0 {
+                    effectMessage = " → +\(totalHealing) HP!"
+                } else if totalMana > 0 {
+                    effectMessage = " → +\(totalMana) mana!"
+                }
+                
+                // ✅ UPDATED: Use gem clear message from config
+                let baseMessage = BattleMechanicsConfig.gemClearMessage
+                    .replacingOccurrences(of: "{gemType}", with: gemType.battleAction.uppercased())
+                let fullMessage = baseMessage + effectMessage
+                
+                addEvent(BattleEvent(text: fullMessage, type: .special))
             }
             
         case .divineShield:
-            let shieldAmount = GameConfig.divineShieldAmount
+            let shieldAmount = BattleMechanicsConfig.shieldAbilityAmount
             
-            // ═══════════════════════════════════════════════════════════════
             // 🎨 SET PLAYER TO SPELL STATE
-            // ═══════════════════════════════════════════════════════════════
             player.currentState = .spell
-            
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(600))
-                player.currentState = .idle
-            }
-            // ═══════════════════════════════════════════════════════════════
             
             player.addShield(shieldAmount)
-            addEvent(BattleEvent(text: "🛡️ DIVINE SHIELD! +\(shieldAmount) protection!", type: .special))
+            
+            // ✅ UPDATED: Use divine shield message from config
+            let message = BattleMechanicsConfig.divineShieldMessage
+                .replacingOccurrences(of: "{amount}", with: "\(shieldAmount)")
+            addEvent(BattleEvent(text: message, type: .special))
             
         case .greaterHeal:
-            let healAmount = GameConfig.greaterHealAmount
+            let healAmount = BattleMechanicsConfig.healAbilityAmount
             
-            // ═══════════════════════════════════════════════════════════════
             // 🎨 SET PLAYER TO SPELL STATE
-            // ═══════════════════════════════════════════════════════════════
             player.currentState = .spell
             
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(600))
-                player.currentState = .idle
-            }
-            // ═══════════════════════════════════════════════════════════════
-            
             player.heal(healAmount)
-            addEvent(BattleEvent(text: "💚 GREATER HEAL! +\(healAmount) HP!", type: .special))
+            
+            // ✅ UPDATED: Use greater heal message from config
+            let message = BattleMechanicsConfig.greaterHealMessage
+                .replacingOccurrences(of: "{amount}", with: "\(healAmount)")
+            addEvent(BattleEvent(text: message, type: .special))
         }
         
         checkGameOver()
@@ -316,7 +390,7 @@ class BattleManager {
     
     // MARK: - Battle Narrative
     
-    private func addEvent(_ event: BattleEvent) {
+    func addEvent(_ event: BattleEvent) {
         recentEvents.insert(event, at: 0)
         if recentEvents.count > 5 {  // Changed from 3 to 5 to show 3 messages
             recentEvents.removeLast()
@@ -324,59 +398,53 @@ class BattleManager {
     }
     
     private func barbarianAttackMessage(damage: Int, isCombo: Bool) -> BattleEvent {
-        let messages = [
-            "Ramp swings for \(damage)!",
-            "Critical bonk! \(damage) damage!",
-            "Barbarian fury! \(damage)!",
-            "Mighty strike lands for \(damage)!"
-        ]
-        let text = isCombo ? "⚡ COMBO! " + messages.randomElement()! : messages.randomElement()!
+        // Pick random message from config
+        let template = BattleMechanicsConfig.barbarianAttackMessages.randomElement()!
+        let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
+        let text = isCombo ? "⚡ COMBO! " + message : message
         return BattleEvent(text: text, type: .playerAttack)
     }
     
     private func magicAttackMessage(damage: Int, isCombo: Bool) -> BattleEvent {
-        let messages = [
-            "Flames erupt for \(damage)!",
-            "Magic missiles strike! \(damage)!",
-            "Arcane blast! \(damage) damage!",
-            "Fireball scorches for \(damage)!"
-        ]
-        let text = isCombo ? "🔥 COMBO! " + messages.randomElement()! : messages.randomElement()!
+        // Pick random message from config
+        let template = BattleMechanicsConfig.magicAttackMessages.randomElement()!
+        let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
+        let text = isCombo ? "🔥 COMBO! " + message : message
         return BattleEvent(text: text, type: .playerMagic)
     }
     
     private func shieldMessage(amount: Int, isCombo: Bool) -> BattleEvent {
-        let messages = [
-            "Shield wall! +\(amount) defense!",
-            "Defenses strengthened!",
-            "Barrier holds strong!",
-            "Protected! +\(amount)!"
-        ]
-        return BattleEvent(text: messages.randomElement()!, type: .playerDefend)
+        // Pick random message from config
+        let template = BattleMechanicsConfig.shieldMessages.randomElement()!
+        let message = template.replacingOccurrences(of: "{amount}", with: "\(amount)")
+        return BattleEvent(text: message, type: .playerDefend)
     }
     
     private func healMessage(amount: Int, isCombo: Bool) -> BattleEvent {
-        let messages = [
-            "Healing light! +\(amount) HP!",
-            "Vitality restored! +\(amount)!",
-            "Life force surges! +\(amount)!",
-            "Renewed vigor! +\(amount)!"
-        ]
-        return BattleEvent(text: messages.randomElement()!, type: .playerHeal)
+        // Pick random message from config
+        let template = BattleMechanicsConfig.healMessages.randomElement()!
+        let message = template.replacingOccurrences(of: "{amount}", with: "\(amount)")
+        return BattleEvent(text: message, type: .playerHeal)
     }
     
     private func manaMessage(amount: Int) -> BattleEvent {
-        BattleEvent(text: "Power surges! +\(amount) mana!", type: .playerCharge)
+        // Use mana message from config
+        let message = BattleMechanicsConfig.manaMessage.replacingOccurrences(of: "{amount}", with: "\(amount)")
+        return BattleEvent(text: message, type: .playerCharge)
     }
     
     private func enemyAttackMessage(damage: Int) -> BattleEvent {
-        let messages = [
-            "EDNAR strikes for \(damage)!",
-            "ZAPPY ZAP! \(damage) damage!",
-            "Ednar curses! \(damage)!",
-            "Ednar throws a book \(damage)!",
-            "Wizardly whizzer! \(damage)!"
-        ]
-        return BattleEvent(text: messages.randomElement()!, type: .enemyAttack)
+        // Pick random message from config
+        let template = BattleMechanicsConfig.enemyAttackMessages.randomElement()!
+        let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
+        return BattleEvent(text: message, type: .enemyAttack)
+    }
+    
+    // ✨ NEW: Call this after ALL animations complete to show game over screen
+    func finalizeGameOver() {
+        if let pending = pendingGameOver {
+            gameState = pending
+            pendingGameOver = nil
+        }
     }
 }

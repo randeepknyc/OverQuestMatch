@@ -33,7 +33,7 @@ struct MapScreenView: View {
                 Spacer()
                 
                 // Tap to start prompt
-                Text("TAP ANYWHERE TO START")
+                Text("")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.yellow)
                     .shadow(color: .black.opacity(0.7), radius: 4, y: 2)

@@ -4,4 +4,20 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:SESSION_12_BONUS_TILES_COMPLETE.md">
+   </FileRef>
+   <FileRef
+      location = "group:BonusBlastEffects.swift">
+   </FileRef>
+   <FileRef
+      location = "group:BlastEffectConfig.swift">
+   </FileRef>
+   <FileRef
+      location = "group:Untitled.swift">
+   </FileRef>
+   <Group
+      location = "group:to delete"
+      name = "to delete">
+   </Group>
 </Workspace>

@@ -83,7 +83,7 @@ struct PowerSurgeEffect: View {
         VStack {
             Spacer()
             
-            Text("CAFFEINATED!")
+            Text("RAINBOWNANA!")
                 .font(.gameScore(size: 60))
                 .foregroundColor(.white)
                 .shadow(color: .black, radius: 8)

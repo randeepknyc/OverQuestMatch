@@ -57,12 +57,33 @@ struct Tile: Identifiable, Equatable {
     var spawnDelay: Double = 0
     var fallDelay: Double = 0
     
+    // ☕ Bonus tile tracking
+    var isBonusTile: Bool = false
+    
+    // 🎮 SESSION 14: Bejeweled-style continuous matching
+    // Tracks if gem is currently stable (can be swapped)
+    // false = gem is falling/spawning (can't be swapped)
+    // true = gem is stable and ready to match
+    var isStable: Bool = true
+    
     static func random(row: Int, col: Int) -> Tile {
         Tile(
             type: TileType.allCases.randomElement()!,
             row: row,
             col: col
         )
+    }
+    
+    // ☕ Create bonus tile
+    static func bonusTile(row: Int, col: Int) -> Tile {
+        var tile = Tile(
+            type: .mana,  // Type doesn't matter, will show coffee image
+            row: row,
+            col: col
+        )
+        tile.isBonusTile = true
+        tile.isStable = true  // Bonus tiles start stable
+        return tile
     }
     
     static func == (lhs: Tile, rhs: Tile) -> Bool {

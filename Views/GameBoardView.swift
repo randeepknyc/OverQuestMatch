@@ -136,6 +136,31 @@ struct GameBoardView: View {
                 }
             }
             
+            // 🧪 POISON TILE ON BOARD (shows poison pill after reveal, before it disappears)
+            if viewModel.battleManager.poisonPillManager.showPoisonTileOnBoard,
+               let tilePos = viewModel.battleManager.poisonPillManager.revealedTilePosition {
+                Image("poisonpill_tile")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: tileSize * 0.9, height: tileSize * 0.9)
+                    .position(
+                        x: CGFloat(tilePos.col) * tileSize + tileSize / 2,
+                        y: CGFloat(tilePos.row) * tileSize + tileSize / 2 - (tileSize / 2)
+                    )
+                    .transition(.scale.combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+            
+            // ☕ BONUS BLAST EFFECTS (can show multiple for cross blast!)
+            ForEach(viewModel.bonusBlasts) { bonusBlast in
+                BonusBlastView(
+                    blastData: bonusBlast,
+                    boardSize: viewModel.boardManager.size,
+                    tileSize: tileSize
+                )
+                .allowsHitTesting(false)
+            }
+            
             if gameMode == .chain, let handler = viewModel.chainHandler {
                 if handler.chainLength > 0, let chainType = handler.chainTileType {
                     ChainConnectionView(
@@ -208,6 +233,13 @@ struct GameBoardView: View {
                 x: CGFloat(col) * tileSize + tileSize / 2,
                 y: CGFloat(row) * tileSize + tileSize / 2 - (tileSize / 2)
             )
+            .contentShape(Rectangle())  // 🎯 Make entire area tappable
+            .onTapGesture {
+                // 🎯 FIX: Tapping background/empty space clears selection
+                if gameMode == .swap {
+                    viewModel.selectedPosition = nil
+                }
+            }
     }
     
     @ViewBuilder
@@ -221,59 +253,94 @@ struct GameBoardView: View {
     private func gemView(gem: Tile, tileSize: CGFloat) -> some View {
         let position = GridPosition(row: gem.row, col: gem.col)
         
-        GemTileView(
-            tile: gem,
-            position: position,
-            isSelected: viewModel.selectedPosition == position,
-            isShaking: viewModel.shakeTiles.contains(position),
-            isInChain: gameMode == .chain && (viewModel.chainHandler?.isInChain(position) ?? false),
-            size: tileSize,
-            gameMode: gameMode,
-            spawnDelay: gem.spawnDelay,
-            fallDelay: gem.fallDelay,
-            matchCenter: nil,
-            onTap: {
-                Task { await viewModel.handleTileTap(at: position) }
-            },
-            onSwipe: { direction in
-                let targetPosition: GridPosition?
-                switch direction {
-                case .up:
-                    targetPosition = gem.row > 0 ? GridPosition(row: gem.row - 1, col: gem.col) : nil
-                case .down:
-                    targetPosition = gem.row < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row + 1, col: gem.col) : nil
-                case .left:
-                    targetPosition = gem.col > 0 ? GridPosition(row: gem.row, col: gem.col - 1) : nil
-                case .right:
-                    targetPosition = gem.col < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row, col: gem.col + 1) : nil
-                }
-                
-                if let target = targetPosition {
+        // 🧪 HIDE GEM if poison pill is showing at this position
+        let isPoisonTilePosition = viewModel.battleManager.poisonPillManager.showPoisonTileOnBoard &&
+                                   viewModel.battleManager.poisonPillManager.revealedTilePosition == position
+        
+        if !isPoisonTilePosition {
+            GemTileView(
+                tile: gem,
+                position: position,
+                isSelected: viewModel.selectedPosition == position,
+                isShaking: viewModel.shakeTiles.contains(position),
+                isInChain: gameMode == .chain && (viewModel.chainHandler?.isInChain(position) ?? false),
+                size: tileSize,
+                gameMode: gameMode,
+                spawnDelay: gem.spawnDelay,
+                fallDelay: gem.fallDelay,
+                matchCenter: nil,
+                onTap: {
+                    // 🎯 FIX: Handle selection changes IMMEDIATELY (synchronous)
+                    if let selected = viewModel.selectedPosition {
+                        if selected == position {
+                            // BEHAVIOR 1: Tapping same gem deselects it
+                            viewModel.selectedPosition = nil
+                            viewModel.hapticManager?.tileTapped()
+                        } else if viewModel.boardManager.canSwap(from: selected, to: position) {
+                            // BEHAVIOR 2: Valid swap - deselect and swap
+                            let previousSelection = selected
+                            viewModel.selectedPosition = nil
+                            viewModel.hapticManager?.swapStarted()
+                            Task { await viewModel.performSwap(from: previousSelection, to: position) }
+                        } else {
+                            // BEHAVIOR 3: Tapping different non-adjacent gem switches selection
+                            viewModel.selectedPosition = position
+                            viewModel.hapticManager?.tileSelected()
+                        }
+                    } else {
+                        // No selection - select this gem
+                        viewModel.selectedPosition = position
+                        viewModel.hapticManager?.tileSelected()
+                    }
+                    
+                    // Also check for poison pill (async, separate from selection)
                     Task {
-                        await viewModel.handleTileTap(at: position)
-                        await viewModel.handleTileTap(at: target)
+                        if viewModel.battleManager.poisonPillManager.checkForPoisonSwipe(position: position) {
+                            viewModel.selectedPosition = nil
+                            await viewModel.handlePoisonPillTap(at: position)
+                        }
+                    }
+                },
+                onSwipe: { direction in
+                    let targetPosition: GridPosition?
+                    switch direction {
+                    case .up:
+                        targetPosition = gem.row > 0 ? GridPosition(row: gem.row - 1, col: gem.col) : nil
+                    case .down:
+                        targetPosition = gem.row < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row + 1, col: gem.col) : nil
+                    case .left:
+                        targetPosition = gem.col > 0 ? GridPosition(row: gem.row, col: gem.col - 1) : nil
+                    case .right:
+                        targetPosition = gem.col < viewModel.boardManager.size - 1 ? GridPosition(row: gem.row, col: gem.col + 1) : nil
+                    }
+                    
+                    if let target = targetPosition {
+                        Task {
+                            // 🎯 Use handleSwipe instead of double tap - NO SELECTION!
+                            await viewModel.handleSwipe(from: position, to: target)
+                        }
                     }
                 }
-            }
-        )
-        .id(gem.id)
-        .position(
-            x: CGFloat(gem.col) * tileSize + tileSize / 2,
-            y: CGFloat(gem.row) * tileSize + tileSize / 2 - (tileSize / 2)
-        )
-        .animation(
-            gem.fallDelay > 0
-                ? .easeIn(duration: 0.3).delay(gem.fallDelay)
-                : .easeIn(duration: 0.3),
-            value: gem.row
-        )
-        .animation(.easeInOut(duration: 0.4), value: gem.col)
-        .transition(
-            .asymmetric(
-                insertion: .identity,
-                removal: .opacity
             )
-        )
+            .id(gem.id)
+            .position(
+                x: CGFloat(gem.col) * tileSize + tileSize / 2,
+                y: CGFloat(gem.row) * tileSize + tileSize / 2 - (tileSize / 2)
+            )
+            .animation(
+                gem.fallDelay > 0
+                    ? .easeIn(duration: 0.3).delay(gem.fallDelay)
+                    : .easeIn(duration: 0.3),
+                value: gem.row
+            )
+            .animation(.easeInOut(duration: 0.4), value: gem.col)
+            .transition(
+                .asymmetric(
+                    insertion: .identity,
+                    removal: .opacity
+                )
+            )
+        }
     }
 }
 
@@ -320,12 +387,18 @@ struct GemTileView: View {
     @ViewBuilder
     private var mainContent: some View {
         ZStack {
-            Image(tile.type.imageName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.85, height: size * 0.85)
-                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
-                .chainGlow(isInChain: isInChain, color: tile.type.color)
+            // ☕ BONUS TILE: Show coffee image if it's a bonus tile
+            if tile.isBonusTile {
+                bonusTileContent
+            } else {
+                // Regular tile
+                Image(tile.type.imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size * 0.85, height: size * 0.85)
+                    .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                    .chainGlow(isInChain: isInChain, color: tile.type.color)
+            }
             
             if isSelected {
                 selectedOverlay
@@ -337,6 +410,32 @@ struct GemTileView: View {
         }
     }
     
+    // ☕ BONUS TILE: Special rendering for bonus tiles
+    @ViewBuilder
+    private var bonusTileContent: some View {
+        if BonusTileConfig.enableAnimatedFrames {
+            // ☕ ANIMATED COFFEE CUP (cycles through frames with cross-fade)
+            AnimatedBonusTileView(size: size)
+        } else {
+            // ☕ STATIC COFFEE CUP (original behavior)
+            Image(BonusTileConfig.imageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.85, height: size * 0.85)
+                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                .modifier(BonusTileGlowModifier(
+                    isEnabled: BonusTileConfig.enableGlow,
+                    color: Color(
+                        red: BonusTileConfig.glowColor.red,
+                        green: BonusTileConfig.glowColor.green,
+                        blue: BonusTileConfig.glowColor.blue
+                    ),
+                    opacity: BonusTileConfig.glowOpacity,
+                    speed: BonusTileConfig.glowSpeed
+                ))
+        }
+    }
+    
     @ViewBuilder
     private var selectedOverlay: some View {
         Image(tile.type.imageName)
@@ -345,10 +444,11 @@ struct GemTileView: View {
             .frame(width: size * 0.85, height: size * 0.85)
             .overlay(
                 RoundedRectangle(cornerRadius: size * 0.15)
-                    .stroke(Color.white, lineWidth: 4)
-                    .blur(radius: 2)
+                    .stroke(Color.yellow, lineWidth: 6)  // 🎯 Changed to YELLOW and THICKER
+                    .blur(radius: 1)
             )
-            .shadow(color: .white.opacity(0.8), radius: 8)
+            .shadow(color: .yellow.opacity(0.9), radius: 12)  // 🎯 Yellow glow
+            .shadow(color: .yellow, radius: 6)  // 🎯 Extra glow
             .scaleEffect(1.05)
     }
     
@@ -725,7 +825,6 @@ extension View {
     func conditionalGestures(gameMode: GameMode, onTap: @escaping () -> Void, onSwipe: @escaping (SwipeDirection) -> Void, size: CGFloat, dragOffset: Binding<CGSize>) -> some View {
         if gameMode == .swap {
             self
-                .onTapGesture { onTap() }
                 .gesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { value in
@@ -744,9 +843,12 @@ extension View {
                                 onSwipe(value.translation.width > 0 ? .right : .left)
                             } else if !horizontal && absHeight > threshold {
                                 onSwipe(value.translation.height > 0 ? .down : .up)
+                            } else {
+                                // 🐛 FIX: Only trigger tap if drag was too small (not a swipe attempt)
+                                onTap()
                             }
                             
-                            withAnimation(.interpolatingSpring(stiffness: 450, damping: 9)) {
+                            withAnimation(.interpolatingSpring(stiffness: 250, damping: 12)) {
                                 dragOffset.wrappedValue = .zero
                             }
                         }
@@ -827,6 +929,70 @@ struct ExplosionParticleView: View {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ☕ BONUS TILE GLOW MODIFIER - NOW WITH RAINBOW! 🌈
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+struct BonusTileGlowModifier: ViewModifier {
+    let isEnabled: Bool
+    let color: Color
+    let opacity: Double
+    let speed: Double
+    
+    @State private var glowIntensity: Double = 0.5
+    @State private var rainbowPhase: Double = 0.0  // 🌈 Rainbow color cycle
+    
+    func body(content: Content) -> some View {
+        if isEnabled {
+            if BonusTileConfig.useRainbowGlow {
+                // 🌈 RAINBOW MODE: Cycle through rainbow colors
+                content
+                    .shadow(color: rainbowColor.opacity(opacity * glowIntensity), radius: 20)
+                    .shadow(color: rainbowColor.opacity(opacity * glowIntensity * 0.6), radius: 10)
+                    .onAppear {
+                        // Pulse animation (intensity)
+                        withAnimation(
+                            .easeInOut(duration: speed)
+                            .repeatForever(autoreverses: true)
+                        ) {
+                            glowIntensity = 1.0
+                        }
+                        
+                        // Rainbow cycle animation (color shift)
+                        withAnimation(
+                            .linear(duration: BonusTileConfig.rainbowCycleSpeed)
+                            .repeatForever(autoreverses: false)
+                        ) {
+                            rainbowPhase = 1.0
+                        }
+                    }
+            } else {
+                // ⭐ SINGLE COLOR MODE: Original golden glow
+                content
+                    .shadow(color: color.opacity(opacity * glowIntensity), radius: 20)
+                    .shadow(color: color.opacity(opacity * glowIntensity * 0.6), radius: 10)
+                    .onAppear {
+                        withAnimation(
+                            .easeInOut(duration: speed)
+                            .repeatForever(autoreverses: true)
+                        ) {
+                            glowIntensity = 1.0
+                        }
+                    }
+            }
+        } else {
+            content
+        }
+    }
+    
+    // 🌈 RAINBOW COLOR GENERATOR
+    // Cycles through: Red → Orange → Yellow → Green → Cyan → Blue → Purple → Pink → Red
+    private var rainbowColor: Color {
+        let hue = rainbowPhase  // 0.0 to 1.0 makes a full rainbow cycle
+        return Color(hue: hue, saturation: 0.9, brightness: 1.0)
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HELPER SHAPES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -879,3 +1045,71 @@ struct PlaceholderTileView: View {
             }
     }
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ☕ ANIMATED BONUS TILE VIEW - Cycles through coffee images with fade
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+struct AnimatedBonusTileView: View {
+    let size: CGFloat
+    
+    @State private var currentFrame: Int = 1
+    @State private var nextFrame: Int = 2
+    @State private var currentOpacity: Double = 1.0
+    @State private var nextOpacity: Double = 0.0
+    
+    var body: some View {
+        ZStack {
+            // Current frame (fading out)
+            Image(BonusTileConfig.imageNameForFrame(currentFrame))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.85, height: size * 0.85)
+                .opacity(currentOpacity)
+            
+            // Next frame (fading in)
+            Image(BonusTileConfig.imageNameForFrame(nextFrame))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.85, height: size * 0.85)
+                .opacity(nextOpacity)
+        }
+        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+        .modifier(BonusTileGlowModifier(
+            isEnabled: BonusTileConfig.enableGlow,
+            color: Color(
+                red: BonusTileConfig.glowColor.red,
+                green: BonusTileConfig.glowColor.green,
+                blue: BonusTileConfig.glowColor.blue
+            ),
+            opacity: BonusTileConfig.glowOpacity,
+            speed: BonusTileConfig.glowSpeed
+        ))
+        .onAppear {
+            startAnimation()
+        }
+    }
+    
+    private func startAnimation() {
+        // Start the animation cycle
+        Timer.scheduledTimer(withTimeInterval: BonusTileConfig.frameDisplayDuration, repeats: true) { _ in
+            // Start cross-fade to next frame
+            withAnimation(.easeInOut(duration: BonusTileConfig.fadeDuration)) {
+                currentOpacity = 0.0
+                nextOpacity = 1.0
+            }
+            
+            // After fade completes, swap frames and prepare for next cycle
+            DispatchQueue.main.asyncAfter(deadline: .now() + BonusTileConfig.fadeDuration) {
+                // Swap current/next frames
+                currentFrame = nextFrame
+                nextFrame = nextFrame % BonusTileConfig.totalFrames + 1
+                
+                // Reset opacities (current is now visible, next is hidden)
+                currentOpacity = 1.0
+                nextOpacity = 0.0
+            }
+        }
+    }
+}
+
+

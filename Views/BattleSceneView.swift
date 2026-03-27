@@ -35,6 +35,13 @@ struct BattleSceneView: View {
                                 isFlashing: viewModel.flashPlayer,
                                 showShield: true
                             )
+                            .overlay {
+                                // 🧪 POISON GLOW OVERLAY
+                                PoisonGlowOverlay(
+                                    isPoisoned: viewModel.battleManager.poisonPillManager.isPoisoned,
+                                    turnCounter: viewModel.battleManager.poisonPillManager.poisonTurnCounter
+                                )
+                            }
                             
                             // Health badge (top-right corner)
                             // ONLY SHOW when gem selector is NOT active
@@ -123,7 +130,7 @@ struct BattleSceneView: View {
 // MARK: - Character Portrait WITH HEALTH BORDER
 
 struct CharacterPortraitWithHealthBorder: View {
-    let character: Character
+    @Bindable var character: Character
     let isAttacking: Bool
     let isFlashing: Bool
     let showShield: Bool
@@ -150,31 +157,12 @@ struct CharacterPortraitWithHealthBorder: View {
                 .rotationEffect(.degrees(-90)) // Start from top
                 .animation(.easeInOut(duration: 0.4), value: character.currentHealth)
             
-            // Portrait Image - uses character state
-            Group {
-                // Special handling for Ramp - use line boil animation
-                if character.name == "Ramp" {
-                    RampLineBoilPortrait()
-                        .frame(width: 165, height: 165)
-                        .clipShape(Circle())
-                } else if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 165, height: 165)
-                        .clipShape(Circle())
-                } else {
-                    // Fallback if image not found
-                    Circle()
-                        .fill(Color.blue.opacity(0.3))
-                        .frame(width: 165, height: 165)
-                        .overlay(
-                            Text(String(character.name.prefix(1)))
-                                .font(.system(size: 55, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
+            // Portrait Image - uses StateBasedCharacterPortrait from CharacterAnimations.swift
+            StateBasedCharacterPortrait(character: character)
+                .frame(width: 165, height: 165)
+                .clipShape(Circle())
+                .id(character.currentState)  // ← FORCE UPDATE when state changes!
+                .animation(.none, value: character.currentState)  // ← NO transition animation between states
             .offset(x: isAttacking ? 15 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
             .overlay(
@@ -377,10 +365,16 @@ struct BattleNarrativeColumn: View {
                         .fill(Color.black.opacity(0.6))
                         .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
                 )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .id(event.id)  // ✅ FIX: Force unique identity for each message
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: events.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: events.map { $0.id })  // ✅ FIX: Faster, smoother animation
     }
 }
 
@@ -583,9 +577,11 @@ struct GemButton: View {
             .shadow(color: .black.opacity(0.5), radius: 3)
             .scaleEffect(bounceScale)
             .onAppear {
-                // Calculate staggered delay based on gem position
-                let gemIndex = [TileType.sword, .fire, .shield, .heart, .mana, .poison].firstIndex(of: type) ?? 0
-                let delay = Double(gemIndex) * 0.08 // 0.08s apart
+                // ✨ CUSTOM ANIMATION ORDER: Mana → Poison → Sword → Fire → Shield → Heart
+                // Positions stay the same, only animation timing changes
+                let animationOrder: [TileType] = [.mana, .poison, .sword, .fire, .shield, .heart]
+                let gemIndex = animationOrder.firstIndex(of: type) ?? 0
+                let delay = Double(gemIndex) * 0.06 // 0.06s apart (60ms stagger)
                 
                 // Start small
                 bounceScale = 0.0
@@ -609,36 +605,5 @@ struct GemButton: View {
         }
     }
 }
-// MARK: - Ramp Line Boil Animation
 
-struct RampLineBoilPortrait: View {
-    @State private var currentFrame = 0
-    
-    // 4-frame cycle: boil1, boil2, boil3, boil2 (creates smooth back-and-forth)
-    private let frameSequence = ["ramp_boil1", "ramp_boil2", "ramp_boil3", "ramp_boil2"]
-    
-    private let timer = Timer.publish(every: 0.15, on: .main, in: .common).autoconnect()
-    
-    var body: some View {
-        Group {
-            if let image = UIImage(named: frameSequence[currentFrame]) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                // Fallback if boil images not found
-                Circle()
-                    .fill(Color.blue.opacity(0.3))
-                    .overlay(
-                        Text("R")
-                            .font(.system(size: 55, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-            }
-        }
-        .onReceive(timer) { _ in
-            currentFrame = (currentFrame + 1) % frameSequence.count
-        }
-    }
-}
 
