@@ -117,9 +117,8 @@ class GameViewModel {
         // 🧪 PREVENT SWIPES: Don't process while poison effect is showing
         guard !showPoisonPillEffect else { return }
         
-        // 🧪 CHECK: Is either position a poison pill?
-        if battleManager.poisonPillManager.checkForPoisonSwipe(position: from) ||
-           battleManager.poisonPillManager.checkForPoisonSwipe(position: to) {
+        // 🧪 CHECK: Is the FROM position a poison pill? (ONLY check FROM, not TO)
+        if battleManager.poisonPillManager.checkForPoisonSwipe(position: from) {
             
             // Show screen effect
             showPoisonPillEffect = true
@@ -171,11 +170,8 @@ class GameViewModel {
         // 🧪 PREVENT TAPS: Don't process any taps while poison effect is showing
         guard !showPoisonPillEffect else { return }
         
-        // 🧪 CHECK: Did player tap on hidden poison pill?
-        if battleManager.poisonPillManager.checkForPoisonSwipe(position: position) {
-            await handlePoisonPillTap(at: position)
-            return
-        }
+        // 🧪 POISON PILL: Tapping does NOT reveal poison (only swipe FROM reveals)
+        // Removed poison tap detection - taps now treat poison position as normal gem
         
         // Normal tap processing - SELECTION ONLY FOR TAPS!
         if let selected = selectedPosition {
@@ -960,7 +956,8 @@ class GameViewModel {
             hapticManager?.abilityActivated()
             
             // ✨ IMPORTANT: Get gem positions AND colors BEFORE clearing
-            let gemsToRemove = boardManager.gems.filter { $0.type == type }
+            // 🐛 FIX: Exclude bonus tiles when filtering by type
+            let gemsToRemove = boardManager.gems.filter { $0.type == type && !$0.isBonusTile }
             let gemInfo = gemsToRemove.map { (position: GridPosition(row: $0.row, col: $0.col), color: $0.type.color) }
             
             // ═══════════════════════════════════════════════════════════════
@@ -1024,8 +1021,9 @@ class GameViewModel {
                 shakeTiles.removeAll()
                 
                 // NOW remove the gems from the board (this triggers the scale-down)
+                // 🐛 FIX: Exclude bonus tiles when removing by type
                 withAnimation(.easeOut(duration: Double(shrinkDuration) / 1000.0)) {
-                    boardManager.gems.removeAll { $0.type == type }
+                    boardManager.gems.removeAll { $0.type == type && !$0.isBonusTile }
                 }
                 
                 // Wait for shrink animation to complete
