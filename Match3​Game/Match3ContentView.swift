@@ -1,11 +1,11 @@
 //
-//  ContentView.swift
+//  Match3ContentView.swift
 //  OverQuestMatch3
 //
 
 import SwiftUI
 
-struct ContentView: View {
+struct Match3ContentView: View {
     @State private var viewModel = GameViewModel()
     @State private var hapticManager = HapticManager()  // ✨ Haptic feedback
     
@@ -200,5 +200,5 @@ struct GameScreen: View {
 }
 
 #Preview {
-    ContentView()
+    Match3ContentView()
 }

@@ -53,9 +53,8 @@ struct RampAnimatedPortrait: View {
                 LineBoilAnimation(framePrefix: "ramp_boil", frameCount: 3)
                 
             case .attack:
-                // Attack state - static image (FOR NOW)
-                // FUTURE: Change to LineBoilAnimation(framePrefix: "ramp_attack_boil", frameCount: 3)
-                StaticImage(imageName: "ramp_attack")
+                // Attack state - 4-frame animation! ⚔️
+                LineBoilAnimation(framePrefix: "ramp_attack", frameCount: 3)
                 
             case .hurt:
                 // Hurt state - enemy damage - static image (FOR NOW)

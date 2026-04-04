@@ -5,11 +5,11 @@
       "scale" : "1x"
     },
     {
-      "filename" : "ednar_idle.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "ednar_idle2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
