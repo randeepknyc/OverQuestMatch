@@ -95,9 +95,9 @@ struct CommentaryView: View {
     private var backgroundColor: Color {
         switch commentary.speaker {
         case .sword:
-            return Color(red: 0.2, green: 0.2, blue: 0.3).opacity(0.9)
+            return Color(red: 0.2, green: 0.2, blue: 0.3).opacity(0.75) // More translucent - blends better
         case .ednar:
-            return Color(red: 0.3, green: 0.25, blue: 0.2).opacity(0.9)
+            return Color(red: 0.3, green: 0.25, blue: 0.2).opacity(0.75) // More translucent - blends better
         }
     }
 }

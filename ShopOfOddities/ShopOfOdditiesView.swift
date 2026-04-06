@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ShopOfOdditiesView: View {
     
@@ -17,57 +18,47 @@ struct ShopOfOdditiesView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.2, green: 0.15, blue: 0.1),
-                        Color(red: 0.3, green: 0.25, blue: 0.2)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // FULL-SCREEN BACKGROUND (behind everything)
+                backgroundLayer
                 
                 VStack(spacing: 0) {
-                    // SCORE BAR (top)
+                    // 1. SCORE BAR (~5% height) - Semi-transparent HUD overlay
                     scoreBar
-                        .frame(height: geometry.size.height * 0.08)
+                        .frame(height: geometry.size.height * 0.05)
                     
                     Spacer()
                         .frame(height: 8)
                     
-                    // CUSTOMER AREA
+                    // 2. SCENE VIEW (~38% height) - EDGE TO EDGE with padded overlay
                     if let customer = gameState.currentCustomer {
-                        CustomerView(
-                            customer: customer,
-                            nextCustomer: gameState.nextCustomer
-                        )
-                        .frame(height: geometry.size.height * 0.20)
+                        ShopSceneView(customer: customer)
+                            .frame(height: geometry.size.height * 0.38)
+                            .frame(maxWidth: .infinity)
                     }
                     
                     Spacer()
                         .frame(height: 8)
                     
-                    // COMMENTARY AREA
+                    // 3. COMMENTARY AREA (~5% height) - Blends with dark theme
                     commentaryArea
-                        .frame(height: geometry.size.height * 0.07)
+                        .frame(height: geometry.size.height * 0.05)
                     
                     Spacer()
                         .frame(height: 8)
                     
-                    // REPAIR AREA (4 slots)
+                    // 4. REPAIR AREA (~16% height) - Larger cards!
                     repairArea
-                        .frame(height: geometry.size.height * 0.14)
-                    
-                    Spacer()
-                        .frame(height: 12)
-                    
-                    // ✨ NEW: FOUR DECKS SIDE-BY-SIDE (BIGGER!)
-                    decksArea
-                        .frame(height: geometry.size.height * 0.35) // Increased from 0.30
+                        .frame(height: geometry.size.height * 0.16)
                     
                     Spacer()
                         .frame(height: 8)
+                    
+                    // 5. DECKS AREA (~30% height) - Fanned arc with breathing room
+                    decksArea
+                        .frame(height: geometry.size.height * 0.30)
+                    
+                    Spacer()
+                        .frame(height: 8) // Bottom breathing room
                 }
                 .padding(.horizontal, 12)
                 
@@ -110,7 +101,24 @@ struct ShopOfOdditiesView: View {
         }
     }
     
-    // MARK: - Score Bar
+    // MARK: - Background Layer
+    
+    private var backgroundLayer: some View {
+        Group {
+            if let tableBg = UIImage(named: "shop-table-bg") {
+                Image(uiImage: tableBg)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+            } else {
+                // Fallback: dark brown color
+                Color(red: 0.25, green: 0.18, blue: 0.12)
+                    .ignoresSafeArea()
+            }
+        }
+    }
+    
+    // MARK: - Score Bar (Semi-Transparent HUD Overlay)
     
     private var scoreBar: some View {
         HStack(spacing: 16) {
@@ -118,25 +126,19 @@ struct ShopOfOdditiesView: View {
             HStack(spacing: 6) {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
-                    .font(.system(size: 18))
+                    .font(.system(size: 16))
                 
                 Text("\(gameState.score)")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             
             Spacer()
             
             // Customers served count
-            HStack(spacing: 6) {
-                Image(systemName: "person.fill")
-                    .foregroundColor(.orange)
-                    .font(.system(size: 16))
-                
-                Text("\(gameState.customersServed)/13")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-            }
+            Text("\(gameState.customersServed)/13")
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
             
             Spacer()
             
@@ -145,31 +147,22 @@ struct ShopOfOdditiesView: View {
                 showingAssetsDebug = true
             }) {
                 Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                     .foregroundColor(.cyan)
             }
             .sheet(isPresented: $showingAssetsDebug) {
                 AssetsDebugView(gameState: $gameState)
             }
-            
-            // Gear icon (placeholder for future pause/menu)
-            Button(action: {
-                // Future: pause menu
-            }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(.white.opacity(0.7))
-            }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.5))
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.black.opacity(0.35)) // Semi-transparent dark HUD overlay
         )
     }
     
-    // MARK: - Commentary Area
+    // MARK: - Commentary Area (Blends with Dark Theme)
     
     private var commentaryArea: some View {
         Group {
@@ -188,17 +181,17 @@ struct ShopOfOdditiesView: View {
         }
     }
     
-    // MARK: - Repair Area
+    // MARK: - Repair Area (Full Width)
     
     private var repairArea: some View {
         VStack(spacing: 6) {
             // Label
             Text("REPAIR AREA")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.white.opacity(0.7))
                 .tracking(1)
             
-            // 4 slots in a horizontal row
+            // 4 slots in a horizontal row (spans full width)
             HStack(spacing: 8) {
                 ForEach(gameState.repairSlots) { slot in
                     RepairSlotView(slot: slot)
@@ -207,7 +200,7 @@ struct ShopOfOdditiesView: View {
         }
     }
     
-    // MARK: - Decks Area (✨ REDESIGNED: SIDE-BY-SIDE)
+    // MARK: - Decks Area (Fanned Arc with Ghost Cards)
     
     private var decksArea: some View {
         VStack(spacing: 8) {
@@ -217,50 +210,54 @@ struct ShopOfOdditiesView: View {
                 .foregroundColor(.white.opacity(0.6))
                 .tracking(1)
             
-            // ✨ NEW: All 4 decks in ONE horizontal row (side-by-side)
+            // All 4 decks in ONE horizontal row (fanned arc)
             HStack(spacing: 6) {
-                // Structural
+                // Structural (leftmost, rotated -12°)
                 DeckView(
                     type: .structural,
                     topCard: gameState.topCard(of: .structural),
                     cardsRemaining: gameState.cardsRemaining(in: .structural),
                     canDraw: gameState.canDraw(from: .structural),
+                    rotationDegrees: -12,
                     onTap: {
                         gameState.drawCard(from: .structural)
                         checkIfRepairReady()
                     }
                 )
                 
-                // Enchantment
+                // Enchantment (rotated -4°)
                 DeckView(
                     type: .enchantment,
                     topCard: gameState.topCard(of: .enchantment),
                     cardsRemaining: gameState.cardsRemaining(in: .enchantment),
                     canDraw: gameState.canDraw(from: .enchantment),
+                    rotationDegrees: -4,
                     onTap: {
                         gameState.drawCard(from: .enchantment)
                         checkIfRepairReady()
                     }
                 )
                 
-                // Memory
+                // Memory (rotated +4°)
                 DeckView(
                     type: .memory,
                     topCard: gameState.topCard(of: .memory),
                     cardsRemaining: gameState.cardsRemaining(in: .memory),
                     canDraw: gameState.canDraw(from: .memory),
+                    rotationDegrees: 4,
                     onTap: {
                         gameState.drawCard(from: .memory)
                         checkIfRepairReady()
                     }
                 )
                 
-                // Wildcraft
+                // Wildcraft (rightmost, rotated +12°)
                 DeckView(
                     type: .wildcraft,
                     topCard: gameState.topCard(of: .wildcraft),
                     cardsRemaining: gameState.cardsRemaining(in: .wildcraft),
                     canDraw: gameState.canDraw(from: .wildcraft),
+                    rotationDegrees: 12,
                     onTap: {
                         gameState.drawCard(from: .wildcraft)
                         checkIfRepairReady()

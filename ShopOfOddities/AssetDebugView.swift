@@ -53,6 +53,12 @@ struct AssetsDebugView: View {
                     
                     // Card Backgrounds Section
                     cardBackgroundsSection
+                    
+                    Divider()
+                        .padding(.vertical)
+                    
+                    // Scene Images Section
+                    sceneImagesSection
                 }
                 .padding(.vertical)
             }
@@ -468,5 +474,208 @@ struct AssetsDebugView: View {
     private let commentaryIconAssets = [
         AssetInfo(name: "Sword", assetName: "commentary-sword", sfSymbol: "hammer.fill"),
         AssetInfo(name: "Ednar", assetName: "commentary-ednar", sfSymbol: "face.smiling.fill")
+    ]
+    
+    // MARK: - Scene Images Section
+    
+    private var sceneImagesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("SCENE IMAGES")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .padding(.horizontal)
+            
+            Text("Shop scene composite layers + customer scene images")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(.gray)
+                .padding(.horizontal)
+            
+            // Background/Foreground layers
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Shop Layers")
+                    .font(.system(size: 14, weight: .semibold))
+                    .padding(.horizontal)
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 12) {
+                    sceneImagePreview(
+                        name: "Table Background",
+                        assetName: "shop-table-bg",
+                        aspectRatio: 1.2,
+                        tappable: false
+                    )
+                    
+                    sceneImagePreview(
+                        name: "Shop Background",
+                        assetName: "shop-background",
+                        aspectRatio: 1.2,
+                        tappable: false
+                    )
+                    
+                    sceneImagePreview(
+                        name: "Shop Foreground",
+                        assetName: "shop-foreground",
+                        aspectRatio: 1.2,
+                        tappable: false
+                    )
+                }
+                .padding(.horizontal)
+            }
+            
+            Divider()
+                .padding(.vertical, 8)
+            
+            // Customer scene images (TAPPABLE!)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Customer Scene Images (Tap to Force)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .padding(.horizontal)
+                
+                Text("Tap any scene to force that customer and see their scene image")
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 12) {
+                    ForEach(customerSceneAssets, id: \.name) { asset in
+                        if !showCustomOnly || asset.hasCustomImage {
+                            sceneImagePreview(
+                                name: asset.name,
+                                assetName: asset.assetName,
+                                aspectRatio: 1.2,
+                                tappable: true,
+                                onTap: {
+                                    forceCustomer(name: asset.name)
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    // MARK: - Scene Image Preview
+    
+    private func sceneImagePreview(
+        name: String,
+        assetName: String,
+        aspectRatio: CGFloat,
+        tappable: Bool = false,
+        onTap: (() -> Void)? = nil
+    ) -> some View {
+        let hasCustomImage = UIImage(named: assetName) != nil
+        
+        let content = VStack(spacing: 8) {
+            // Image preview
+            ZStack {
+                Rectangle()
+                    .fill(hasCustomImage ? Color.green.opacity(0.2) : Color.orange.opacity(0.2))
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+                    .cornerRadius(8)
+                
+                if let uiImage = UIImage(named: assetName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(aspectRatio, contentMode: .fill)
+                        .cornerRadius(8)
+                        .clipped()
+                } else {
+                    VStack {
+                        Image(systemName: "photo")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white.opacity(0.5))
+                        Text("Missing")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                
+                // Tap indicator for tappable scenes
+                if tappable && hasCustomImage {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Image(systemName: "hand.tap.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.blue)
+                                .padding(8)
+                                .background(Color.white.opacity(0.9))
+                                .clipShape(Circle())
+                                .padding(4)
+                        }
+                        Spacer()
+                    }
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(hasCustomImage ? Color.green : Color.orange, lineWidth: tappable && hasCustomImage ? 3 : 2)
+            )
+            
+            // Name
+            Text(name)
+                .font(.system(size: 10, weight: .semibold))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+            
+            // Asset name
+            Text(assetName)
+                .font(.system(size: 8))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+            
+            // Status badge
+            if hasCustomImage {
+                Text("✅ Custom")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.green)
+            } else {
+                Text("⚠️ Missing")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.orange)
+            }
+        }
+        .padding(8)
+        .background(Color.gray.opacity(tappable && hasCustomImage ? 0.15 : 0.1))
+        .cornerRadius(8)
+        
+        if tappable, let tapAction = onTap {
+            return AnyView(
+                Button(action: tapAction) {
+                    content
+                }
+                .buttonStyle(.plain)
+            )
+        } else {
+            return AnyView(content)
+        }
+    }
+    
+    // MARK: - Scene Asset Lists
+    
+    private let customerSceneAssets = [
+        AssetInfo(name: "Bakasura", assetName: "scene-bakasura", sfSymbol: "photo"),
+        AssetInfo(name: "Noamron", assetName: "scene-noamron", sfSymbol: "photo"),
+        AssetInfo(name: "Gremlock #12", assetName: "scene-gremlock-12", sfSymbol: "photo"),
+        AssetInfo(name: "Gremlock #47", assetName: "scene-gremlock-47", sfSymbol: "photo"),
+        AssetInfo(name: "Gremlock #203", assetName: "scene-gremlock-203", sfSymbol: "photo"),
+        AssetInfo(name: "Merchant", assetName: "scene-merchant", sfSymbol: "photo"),
+        AssetInfo(name: "Soldier", assetName: "scene-soldier", sfSymbol: "photo"),
+        AssetInfo(name: "Family", assetName: "scene-family", sfSymbol: "photo"),
+        AssetInfo(name: "Baker", assetName: "scene-baker", sfSymbol: "photo"),
+        AssetInfo(name: "Ramp", assetName: "scene-ramp", sfSymbol: "photo"),
+        AssetInfo(name: "Wizard", assetName: "scene-wizard", sfSymbol: "photo"),
+        AssetInfo(name: "Guard", assetName: "scene-guard", sfSymbol: "photo"),
+        AssetInfo(name: "Farmer", assetName: "scene-farmer", sfSymbol: "photo"),
+        AssetInfo(name: "Blacksmith", assetName: "scene-blacksmith", sfSymbol: "photo"),
+        AssetInfo(name: "Generic", assetName: "scene-generic", sfSymbol: "photo")
     ]
 }

@@ -2,7 +2,7 @@
 **OverQuestMatch3 - Ednar's Shop of Oddities (Card Repair Game)**
 
 > **Created:** April 4, 2026  
-> **Last Updated:** April 5, 2026 (Debug menu with character forcing + custom assets integration)  
+> **Last Updated:** April 6, 2026 (Added card flip + character slide-in animations)  
 > **Game Status:** ✅ COMPLETE & FULLY PLAYABLE - Ready for custom artwork  
 > **Game Type:** Miracle Merchant-style Card Solitaire
 
@@ -44,10 +44,11 @@ ShopOfOddities/
 │  ├─ ShopGameState.swift (Main game logic and state management + debug forcing)
 │  └─ CommentaryManager.swift (Character commentary system)
 │
-└─ UI Components (10 files) ✅
+└─ UI Components (11 files) ✅
    ├─ ShopOfOdditiesView.swift (Main game screen with debug button)
+   ├─ ShopSceneView.swift (3-layer scene composite with slide-in animation) ✨ UPDATED (April 6, 2026)
    ├─ ComponentCardView.swift (Visual card component)
-   ├─ DeckView.swift (Deck display with top card)
+   ├─ DeckView.swift (Deck display with top card + flip animation) ✨ UPDATED (April 6, 2026)
    ├─ RepairSlotView.swift (Visual repair slot with animations)
    ├─ CustomerView.swift (Customer display panel with custom portraits)
    ├─ RepairResultOverlay.swift (Success popup after repair)
@@ -400,20 +401,109 @@ The game now supports custom images for a fully polished visual experience!
 | Sword | `commentary-sword` | Commentary box (30×30pt circle) | ✅ ADDED |
 | Ednar | `commentary-ednar` | Commentary box (30×30pt circle) | 📋 Future |
 
+**Scene Images (shop environment + customer scenes):** ✨ NEW (April 6, 2026)
+
+| Image Type | Image Asset Name | Where Used | Status |
+|------------|------------------|------------|--------|
+| **Shop Layers** | | | |
+| Table Background | `shop-table-bg` | Full-screen background texture | 📋 Optional |
+| Shop Background | `shop-background` | Scene layer 1 (static shop interior) | 📋 Planned |
+| Shop Foreground | `shop-foreground` | Scene layer 3 (Ednar + Sword) | 📋 Planned |
+| **Customer Scenes** | | | |
+| Bakasura | `scene-bakasura` | Scene layer 2 (customer with item) | 📋 Planned |
+| Noamron | `scene-noamron` | Scene layer 2 | 📋 Planned |
+| Gremlock #12 | `scene-gremlock-12` | Scene layer 2 | 📋 Planned |
+| Gremlock #47 | `scene-gremlock-47` | Scene layer 2 | 📋 Planned |
+| Gremlock #203 | `scene-gremlock-203` | Scene layer 2 | 📋 Planned |
+| Merchant | `scene-merchant` | Scene layer 2 | 📋 Planned |
+| Soldier | `scene-soldier` | Scene layer 2 | 📋 Planned |
+| Family | `scene-family` | Scene layer 2 | 📋 Planned |
+| Baker | `scene-baker` | Scene layer 2 | 📋 Planned |
+| Ramp | `scene-ramp` | Scene layer 2 | 📋 Planned |
+| Wizard | `scene-wizard` | Scene layer 2 | 📋 Planned |
+| Guard | `scene-guard` | Scene layer 2 | 📋 Planned |
+| Farmer | `scene-farmer` | Scene layer 2 | 📋 Planned |
+| Blacksmith | `scene-blacksmith` | Scene layer 2 | 📋 Planned |
+| Generic | `scene-generic` | Scene layer 2 (fallback) | 📋 Planned |
+
 **Image Specifications:**
 - **Icons:** 100×100 px minimum (draw at 1024×1024px), square aspect ratio
 - **Card Backgrounds:** 400×615 px (draw at 2000×3075px), portrait orientation (0.65 aspect ratio)
-- **Customer Portraits:** 200×200 px (draw at 1024×1024px or 2048×2048px), square (displayed as circle)
+- **Customer Portraits:** 200×200 px (draw at 1024×1024px or 2048×2048px), square (displayed as circle) — DEPRECATED in favor of scene images
 - **Commentary Icons:** 100×100 px (draw at 1024×1024px), square (displayed as circle)
+- **Scene Images:** 1200×1000 px or higher (draw at 2400×2000px), portrait/square ~1.2:1 aspect ratio ✨ NEW
+  - Background/foreground layers: Full scene width, slightly taller than wide
+  - Customer scenes: Character positioned in center/right, holding item
+  - All scene images should use same dimensions for consistency
+  - Portrait-oriented or nearly square (NOT landscape 16:9!)
 - **Format:** PNG files added to Assets.xcassets
 - **Integration:** Plug-and-play — images automatically replace SF Symbols when named correctly
 
 **Drawing Workflow:**
+
+**For Regular Assets (Icons, Cards):**
 1. Create canvas at larger size (2-10× bigger) in Procreate/art app
 2. Draw artwork at high resolution
 3. Export and resize to final dimensions
 4. Save with exact asset name (lowercase, hyphens only)
 5. Add to Assets.xcassets in Xcode
+
+**For Scene Images (3-Layer Composite):** ✨ NEW (April 6, 2026)
+
+**Step 1: Set Up Canvas**
+- Create canvas: **2400×2000 px** (1.2:1 ratio) in Procreate
+- DPI: 300
+- Color profile: Display P3 or sRGB
+
+**Step 2: Create All 3 Layers**
+Create 3 separate layer groups or canvases:
+
+1. **Background Layer (`shop-background`):**
+   - Draw shop interior (shelves, window, walls, floor)
+   - This is your static environment
+   - Save as `shop-background.png`
+
+2. **Customer Layer (`scene-[customer]`):**
+   - Draw customer character holding their broken item
+   - Position anywhere in the frame (full width available)
+   - Leave space for foreground elements
+   - Save as `scene-noamron.png` (or whatever customer)
+   - **Create one for EACH customer** (15 total)
+
+3. **Foreground Layer (`shop-foreground`):**
+   - Draw Ednar and Sword in the foreground
+   - Maybe counter edge, hanging objects, etc.
+   - Creates depth and frames the scene
+   - Save as `shop-foreground.png`
+
+**Step 3: Alignment Tips**
+- Draw all 3 on the same canvas with layers, OR
+- Use guides to mark key positions (counter edge, character placement)
+- Export each layer separately
+- All 3 will composite perfectly since they're the same dimensions!
+
+**Step 4: Export**
+- Resize to **1200×1000 px** each
+- Save as PNG with transparency (if needed)
+- Name exactly: `shop-background`, `scene-noamron`, `shop-foreground`
+
+**Step 5: Add to Xcode**
+- Drag PNG files into Assets.xcassets
+- Verify names are exact (lowercase, hyphens, no spaces)
+
+**Step 6: Test**
+1. Run game (Command+R)
+2. Tap wrench 🔧 to open debug menu
+3. Scroll to "Scene Images" section
+4. **Tap the customer scene thumbnail** (e.g., "Noamron")
+5. Debug menu closes, customer is forced
+6. See your 3-layer composite in the game immediately!
+7. Check console for debug output:
+   ```
+   🔍 Looking for scene asset: scene-noamron
+   🔍 Image exists: true
+   ✅ Loaded scene image: scene-noamron - Size: (1200.0, 1000.0)
+   ```
 
 **Customer Portrait SF Symbols (fallback when custom image not found):**
 
@@ -425,7 +515,7 @@ The game now supports custom images for a fully polished visual experience!
 | Merchant | cart.fill |
 | Default Customer | person.fill |
 
-### **UI Design Philosophy:** ✨ UPDATED (April 5, 2026)
+### **UI Design Philosophy:** ✨ UPDATED (April 6, 2026)
 
 **Minimalist, Image-First Design:**
 - **No bounding boxes** around cards or decks
@@ -434,12 +524,27 @@ The game now supports custom images for a fully polished visual experience!
 - **Full-bleed card images** as primary visual elements
 - **Clean shadows** for depth (no borders or outlines)
 - **Side-by-side deck layout** (4 decks horizontal, not 2×2 grid)
+- **Scene-based character display** (not portraits)
+- **3-layer composite scenes** for depth and immersion
+- **Full-screen background texture** for ambient setting
 
 **Visual Hierarchy:**
-1. Card artwork is the focus (largest visual element)
-2. Customer info and score bar (functional UI elements)
-3. Character commentary (contextual dialogue)
-4. Minimal labels (only where necessary)
+1. Scene artwork is the primary focus (largest visual element - 38% height)
+2. Card artwork and deck displays (30% height with fanned arc)
+3. Repair area (16% height with larger card slots)
+4. Customer info and score bar (functional UI elements)
+5. Character commentary (contextual dialogue)
+6. Minimal labels (only where necessary)
+
+**Fanned Deck System:** ✨ NEW (April 6, 2026)
+- **Rotation:** Each deck rotates to create arc (-12°, -4°, +4°, +12°)
+- **Ghost Cards:** Behind each deck, faded cards show depth
+  - 3+ cards → 2 ghost cards
+  - 2 cards → 1 ghost card
+  - 1 card → No ghosts
+- **Card Count:** Badge below each deck shows cards remaining
+- **Tap Target:** Entire deck card is tappable (including ghosts)
+- **Visual Cohesion:** Creates hand-of-cards aesthetic
 
 ---
 
@@ -451,13 +556,70 @@ The game now supports custom images for a fully polished visual experience!
 - Value types (structs) for all data models ✅
 - Class for game state management ✅
 
+### **Animation System:** ✨ UPDATED (April 6, 2026)
+
+**Card Flip Animation (DeckView.swift):**
+- **State:** `@State private var isFlipping: Bool = false`
+- **Effect:** `.rotation3DEffect(.degrees(isFlipping ? 90 : 0), axis: (x: 0.0, y: 1.0, z: 0.0))`
+- **Timing:** 0.15s ease-in animation
+- **Flow:**
+  1. User taps deck
+  2. `isFlipping` set to `true` → Card rotates to 90° + fades out
+  3. After 0.15s, `onTap()` callback fires (draws card)
+  4. `isFlipping` reset to `false` → New card appears
+- **Visual:** Smooth 3D horizontal flip with perspective depth
+- **Why:** Eliminates "weird visual effect" of instant card replacement
+
+**Character Slide-In Animation (ShopSceneView.swift):**
+- **Transition:** `.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity)`
+- **Animation:** `.spring(response: 0.5, dampingFraction: 0.8)`
+- **Flow:**
+  1. Customer changes (repair completes)
+  2. Old customer fades out (`.opacity` removal)
+  3. New customer slides in from right (`.trailing`) + fades in
+  4. Spring physics creates subtle bounce effect
+- **Visual:** Natural entrance like customer walking into shop
+- **Why:** More engaging than simple fade, feels alive
+
+**Current Animation Parameters:**
+- Card flip speed: 0.15s (adjustable via `duration` parameter)
+- Character slide response: 0.5s (how long animation takes)
+- Character bounce: 0.8 dampingFraction (0.5 = bouncy, 1.0 = no bounce)
+- All animations use `.easeInOut` or `.spring` for smooth motion
+
+### **Layout & Geometry:**
+- **Dual Geometry Reading for Edge-to-Edge Overlays:** ✨ NEW (April 6, 2026)
+  - Parent view (`ShopOfOdditiesView`) has `.padding(.horizontal, 12)`
+  - Scene view is inset by 12pt on each side
+  - **Customer info overlay uses TWO width measurements:**
+    - Text HStack: `.frame(width: geometry.size.width)` → Respects parent padding
+    - Background: `.frame(width: UIScreen.main.bounds.width)` → Full screen width
+    - Background uses `.edgesIgnoringSafeArea(.horizontal)` to extend past padding
+  - Result: Background stretches edge-to-edge while text stays properly padded
+  - This technique allows elements to "break out" of parent padding constraints
+
 ### **Animations:**
 - Card placement: 0.3s spring animation (scale 0.5→1.0, fade in) ✅
+- **Card flip animation:** 3D horizontal flip when drawing from deck ✅ NEW (April 6, 2026)
+  - 0.15s ease-in rotation to 90° (edge-on)
+  - Fades out during flip
+  - New card appears after callback
+- **Character entrance animation:** Slide-in from right with spring bounce ✅ NEW (April 6, 2026)
+  - `.move(edge: .trailing)` combined with `.opacity`
+  - Spring animation: response 0.5, dampingFraction 0.8
+  - Smooth, natural customer arrival
 - Repair resolution: 0.5s delay before evaluation ✅
 - Result overlay: 1.5s display duration ✅
 - New repair banner: 1s display duration ✅
 - Commentary display: 2s display duration with fade in/out ✅
 - Overlay transitions: Scale + opacity combined ✅
+
+**Future Animation Enhancement (Planned):**
+- **Variance-based character animations** using mathematical mapping
+- 3-4 different entrance animations (slide-right, slide-left, fade-scale, bounce-up)
+- Hash-based selection from customer name → consistent per-customer
+- Provides visual variety without manual per-customer mapping
+- Potential approaches: modulo rotation, weighted random, story progression, personality types
 
 ### **Character Commentary System:** ✨ NEW
 - `CommentaryManager.swift` manages all dialogue lines ✅
@@ -563,51 +725,130 @@ All major actions print to console:
 
 ## 🎮 USER INTERFACE
 
-### **Screen Layout (Portrait):** ✨ UPDATED (April 5, 2026)
+### **Screen Layout (Portrait):** ✨ UPDATED (April 6, 2026)
 
 ```
 ┌─────────────────────────────────────────┐
-│  ⭐ 123      👤 5/13            ⚙️      │ ← Score bar (8% height)
-├─────────────────────────────────────────┤
-│        [Customer Portrait & Info]       │ ← Customer panel (20% height)
-│        Bakasura - Cracked Shield        │
-│        Required: 🔨  Preferred: ✨      │
-├─────────────────────────────────────────┤
-│   [Character Commentary Area]           │ ← Commentary (7% height)
+│  ⭐ 123      👤 5/13            🔧      │ ← Score bar (5% height)
 ├─────────────────────────────────────────┤
 │                                         │
-│   [Card] [Card] [    ] [    ]          │ ← Repair area (14% height)
+│      [Shop Scene Illustration]          │ ← Scene View (38% height)
+│      (3-layer composite + overlay)      │   Background + Customer + Foreground
+│      Customer: Bakasura                 │   + Semi-transparent info box
+│      Cracked Shield                     │
+│      Required: 🔨  Preferred: ✨        │
+│                                         │
+├─────────────────────────────────────────┤
+│   [Character Commentary Area]           │ ← Commentary (5% height)
+├─────────────────────────────────────────┤
+│                                         │
+│   [Card] [Card] [    ] [    ]          │ ← Repair area (16% height)
 │                                         │   Invisible slots until filled
 ├─────────────────────────────────────────┤
 │                                         │
-│   [Card] [Card] [Card] [Card]          │ ← 4 decks side-by-side (35% height)
-│   Image  Image  Image  Image           │   NO headers, NO boxes
-│   Only   Only   Only   Only            │   Just pure card images
+│  👻 [Deck] 👻  [Deck]  [Deck] 👻 [Deck] │ ← 4 fanned decks (30% height)
+│  -12°  -4°   +4°  +12°                 │   Ghost cards + count badges
+│   13    13    13    13                 │   Side-by-side arc
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
-### **Design Changes (April 5, 2026):**
+### **Scene Composite System:** ✨ NEW (April 6, 2026)
 
-**Old Layout (2×2 Grid with Headers):**
+The game uses a 3-layer composited scene system for immersive character display:
+
+**Layer 1 - Shop Background:**
+- Image: `shop-background`
+- Static (never changes)
+- Shows shop interior (shelves, windows, etc.)
+- Full width of scene view
+- Dimensions: 1200×1000 px (1.2:1 aspect ratio)
+
+**Layer 2 - Customer Scene:**
+- Image: `scene-[customer]` (e.g., `scene-bakasura`, `scene-noamron`)
+- Changes with each customer (fade transition)
+- Shows customer holding their broken item
+- Position: Anywhere in the scene (full-width composite)
+- Dimensions: 1200×1000 px (same as background/foreground)
+- **Loads dynamically** based on customer name mapping
+
+**Layer 3 - Shop Foreground:**
+- Image: `shop-foreground`
+- Static (never changes)
+- Shows Ednar + Sword in foreground
+- Creates depth and framing
+- Dimensions: 1200×1000 px (same as background/customer)
+
+**Customer Info Overlay:** ✨ UPDATED (April 6, 2026 - Edge-to-edge fix)
+- Semi-transparent black box at bottom of scene (0.7 opacity)
+- Left side: Customer name (13pt bold) + Item name (10pt, 80% opacity)
+- Right side: Required type icon (18×18, full color) + Preferred type icon (18×18, 60% opacity)
+- 16pt horizontal padding, 10pt vertical padding
+- **Edge-to-edge background:** Uses TWO separate width measurements
+  - Text content: Uses `geometry.size.width` (respects parent 12pt padding)
+  - Background: Uses `UIScreen.main.bounds.width` with `.edgesIgnoringSafeArea(.horizontal)`
+  - This allows background to extend edge-to-edge while text stays properly padded
+- Text scaling: `.minimumScaleFactor(0.7)` allows text to shrink if needed
+- Renders via SwiftUI (not part of image files)
+- Spacer with minLength ensures minimum gap between text and icons
+
+**Scene Name Mapping:**
+The system automatically maps customer names to scene asset names:
+- "Bakasura" → `scene-bakasura`
+- "Noamron" → `scene-noamron`
+- "Gremlock #12" → `scene-gremlock-12` (extracts number)
+- "Traveling Merchant" → `scene-merchant` (simplified)
+- "The Baker" → `scene-baker` (removes "The")
+- "Ramp (Found It!)" → `scene-ramp` (removes parentheses)
+- Unmapped names → `scene-generic` (fallback)
+
+**Fallback System:**
+1. Try to load `scene-[customer]` (custom scene image)
+2. If not found, try `customer-[customer]` (portrait circle - centered)
+3. If not found, use SF Symbol (centered circle with icon)
+
+**Debug Logging:**
+The scene view prints to console for debugging:
 ```
-[🔨 Structural - 13]  [✨ Enchantment - 13]
-[🧠 Memory - 13]      [🍃 Wildcraft - 13]
+🔍 Looking for scene asset: scene-noamron
+🔍 Image exists: true
+✅ Loaded scene image: scene-noamron - Size: (1200.0, 1000.0)
 ```
 
-**New Layout (Side-by-Side, No Headers):**
+This helps verify images are loading correctly.
+
+### **Design Changes (April 6, 2026):**
+
+**Old Layout (Portrait + Separate Customer Panel):**
 ```
-[Card Image]  [Card Image]  [Card Image]  [Card Image]
+[70×70 Circle Portrait]
+Bakasura - Cracked Shield
+Required: 🔨  Preferred: ✨
+```
+
+**New Layout (Full Scene Illustration):**
+```
+┌───────────────────────────────┐
+│  [Background Layer]           │
+│    [Customer Scene Layer]     │
+│      [Foreground Layer]       │
+│  ┌─────────────────────────┐  │
+│  │ Bakasura                │  │ ← Semi-transparent overlay
+│  │ Cracked Shield          │  │
+│  │ Required: 🔨  Preferred: ✨│  │
+│  └─────────────────────────┘  │
+└───────────────────────────────┘
 ```
 
 **Key Differences:**
-- ✅ All 4 decks in ONE horizontal row (not 2×2 grid)
-- ✅ Removed deck header bars (no names, icons, or counts displayed)
-- ✅ Removed bounding boxes around deck cards
-- ✅ Removed dashed outlines from repair slots
-- ✅ Cards are 16% bigger (35% vs 30% screen height)
-- ✅ Minimalist, image-first design philosophy
-- ✅ Clean shadows instead of borders for depth
+- ✅ Scene-based character display (not portraits)
+- ✅ 3-layer compositing for depth and parallax potential
+- ✅ Full-screen background texture (`shop-table-bg`)
+- ✅ Customer info as overlay (not separate panel)
+- ✅ Larger scene area (38% vs 20% height)
+- ✅ Fanned deck arc with ghost cards
+- ✅ Rotation angles: -12°, -4°, +4°, +12°
+- ✅ Card count badges below decks
 
 ### **Interaction Flow:** ✅ FULLY IMPLEMENTED
 1. Tap a deck to draw its top card
@@ -632,15 +873,15 @@ All major actions print to console:
 
 ### **Debug Menu Features:**
 
-**1. Character Forcing (NEW!):**
+**1. Character Forcing:**
 - Grid of all 15 customer characters
 - **Tap any character** to force them as the current customer
-- Instantly see their portrait in the game
-- Perfect for testing custom portraits
+- Instantly see their scene image in the game (or fallback)
+- Perfect for testing custom scene images
 - Auto-closes after selection
 
 **2. Customer Portraits Section:**
-- View all 15 customer portrait assets
+- View all 15 customer portrait assets (DEPRECATED - use Scene Images)
 - Shows **✅ Custom** (green) if image found in Assets.xcassets
 - Shows **⚠️ SF Symbol** (orange) if using fallback
 - Current status:
@@ -662,8 +903,19 @@ All major actions print to console:
 - View all 5 card background images
 - All show ✅ Custom (4 types + cursed variant)
 
-**6. Toggle:**
-- "Show Only Custom Images" - hides SF Symbol placeholders
+**6. Scene Images Section:** ✨ NEW (April 6, 2026)
+- View all scene-related assets
+- **Shop Layers:** table-bg, shop-background, shop-foreground (not tappable)
+- **Customer Scenes:** scene-bakasura, scene-noamron, etc. (15 total) **→ TAPPABLE!**
+- **Tap any customer scene** to force that customer and see their scene image immediately
+- Shows **✅ Custom** (green) if image found with thick green border
+- Shows **⚠️ Missing** (orange) if not found
+- Preview thumbnails in 1.2:1 aspect ratio
+- Tappable scenes show hand tap icon in corner
+- Perfect for testing scene compositing!
+
+**7. Toggle:**
+- "Show Only Custom Images" - hides missing placeholders
 - Useful for seeing only completed assets
 
 ### **Debug Workflow:**
@@ -927,6 +1179,52 @@ enum GameType {
 
 ## 💡 FUTURE ENHANCEMENTS
 
+### **Animation System Improvements (Planned):**
+
+**Variance-Based Character Entrance Animations:**
+- Multiple entrance animations that vary mathematically, not per-customer manually
+- Goal: Visual variety without excessive manual mapping
+
+**Potential Implementation Approaches:**
+
+1. **Hash-Based Selection (Recommended):**
+   - Hash customer name → Select from animation pool
+   - Same customer always gets same animation (consistent)
+   - Different customers get different animations (variety)
+   - Simple to implement: `customerName.hash % animationPool.count`
+
+2. **Modulo-Based Rotation:**
+   - 3-4 animations: slide-right, slide-left, fade-scale, bounce-up
+   - Customer index % 4 determines animation
+   - Every 4th customer uses same type
+   - Predictable pattern
+
+3. **Weighted Random:**
+   - 60% slide-in from right (most common)
+   - 20% slide-in from left
+   - 10% fade + scale (magical effect)
+   - 10% bounce up (energetic)
+   - Adds unpredictability
+
+4. **Personality-Based Mapping:**
+   - Aggressive characters → Fast slide-in
+   - Calm characters → Gentle fade
+   - Chaotic characters → Bounce/spring
+   - Based on character archetype
+
+5. **Story Progression:**
+   - Early game (customers 1-5) → Simple fade
+   - Mid-game (6-10) → Slide animations
+   - Late game (11-13) → Dramatic effects
+   - Builds excitement
+
+**Why Hash-Based is Best:**
+- ✅ Automatic variety without manual work
+- ✅ Consistent per-customer (feels intentional)
+- ✅ Easy to tweak animation pool
+- ✅ No random unpredictability
+- ✅ Simple implementation
+
 ### **Potential Gameplay Additions:**
 - Special customer requests (e.g., "no cursed cards")
 - Rare legendary cards with unique abilities
@@ -1003,6 +1301,8 @@ enum GameType {
 **Cursed Card Background Support:** ✅ ✨ NEW
 **Customer Portrait Support:** ✅ IN PROGRESS (2/8 added)
 **Commentary Icon Support:** ✅ IN PROGRESS (1/2 added)
+**Card Flip Animation:** ✅ ✨ NEW (April 6, 2026)
+**Character Slide-In Animation:** ✅ ✨ NEW (April 6, 2026)
 **All Features Implemented:** ✅  
 
 **Status:** 🎉 **COMPLETE & READY TO PLAY!**
@@ -1041,14 +1341,14 @@ enum GameType {
 **END OF SHOP OF ODDITIES CONTEXT**
 
 **Game Status:** Fully playable Miracle Merchant-style card game with character commentary and custom artwork  
-**Total Files:** 16 files (7 data models + 9 UI components)  
-**Total Lines of Code:** ~2,000 lines  
+**Total Files:** 18 files (7 data models + 11 UI components)  
+**Total Lines of Code:** ~2,300 lines  
 **Custom Assets:** 12 images complete (4 icons + 5 card backgrounds + 2 portraits + 1 commentary icon)  
 **Remaining Assets:** 7-8 images (6 more portraits + 1 more commentary icon + optional shop background)
 
-**Last Updated:** April 5, 2026 (Custom assets support - cursed cards, portraits, commentary icons)  
-**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + cursed card support  
-**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic and expanding custom artwork
+**Last Updated:** April 6, 2026 (Added card flip + character slide-in animations)  
+**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + scene composite system + overlay fix + animations  
+**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic, edge-to-edge layouts, and polished animations
 
 **UI Changes (April 5, 2026):**
 - Removed all bounding boxes and borders from cards
@@ -1059,12 +1359,29 @@ enum GameType {
 - Added subtle colored shadows for depth
 - Minimalist, image-first design philosophy
 
+**Scene System & Edge-to-Edge Layout (April 6, 2026):** ✨ UPDATED
+- Created ShopSceneView.swift for 3-layer composite system
+- Background, customer, and foreground layers with slide-in transitions
+- **Character entrance animation:** Slide from right with spring bounce
+- **Edge-to-edge overlay fix:** Customer info uses dual geometry reading
+  - Text HStack respects parent padding (geometry.size.width)
+  - Background extends full screen (UIScreen.main.bounds.width)
+  - Background uses `.edgesIgnoringSafeArea(.horizontal)` to break out of parent padding
+  - Result: Text properly padded, background stretches edge-to-edge perfectly
+
+**Card Deck Animations (April 6, 2026):** ✨ NEW
+- Created 3D flip animation for card drawing in DeckView.swift
+- Horizontal flip (rotation3DEffect around Y-axis)
+- 0.15s ease-in animation to 90° with fade-out
+- New card appears after callback completes
+- Smooth, polished interaction feel
+
 **Custom Asset Integration (April 5, 2026):**
 - Component icons and card backgrounds fully integrated ✅
 - Cursed cards use dedicated `card-cursed` background ✅
 - Customer portraits support added (2/8 complete: Bakasura, Noamron) ✅
 - Commentary icons support added (1/2 complete: Sword) ✅
 - All images have SF Symbol fallbacks (no crashes if missing) ✅
-- Code updated: ComponentCardView.swift, CustomerView.swift, CommentaryView.swift ✅
+- Code updated: ComponentCardView.swift, CustomerView.swift, CommentaryView.swift, ShopSceneView.swift ✅
 - Procreate workflow documented with canvas sizes ✅
 

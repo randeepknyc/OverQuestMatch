@@ -3,7 +3,8 @@
 //  OverQuestMatch3 - Shop of Oddities
 //
 //  Created on 4/4/26.
-//  Customer information display panel with custom portrait support
+//  Customer information display panel (legacy - kept for compatibility)
+//  NOTE: Next customer preview removed in Step 1 of UI redesign
 //
 
 import SwiftUI
@@ -12,18 +13,11 @@ import UIKit
 struct CustomerView: View {
     
     let customer: Customer
-    let nextCustomer: Customer?
+    let nextCustomer: Customer? // No longer displayed, kept for API compatibility
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Current customer (main panel)
-            currentCustomerPanel
-            
-            // Next customer preview (small, dimmed)
-            if let next = nextCustomer {
-                nextCustomerPreview(next)
-            }
-        }
+        // Current customer panel (without next customer preview)
+        currentCustomerPanel
     }
     
     // MARK: - Current Customer Panel
@@ -154,42 +148,6 @@ struct CustomerView: View {
         )
     }
     
-    // MARK: - Next Customer Preview
-    
-    private func nextCustomerPreview(_ next: Customer) -> some View {
-        VStack(spacing: 4) {
-            Text("NEXT")
-                .font(.system(size: 8, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.5))
-                .tracking(0.5)
-            
-            // Portrait (smaller)
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(width: 40, height: 40)
-                
-                // Try to load custom image, fallback to SF Symbol
-                portraitImage(for: next.portraitName, size: 20)
-                    .opacity(0.6)
-            }
-            
-            // Name
-            Text(next.name)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white.opacity(0.6))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(width: 60)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.4))
-        )
-    }
-    
     // MARK: - Portrait Image Loading
     
     /// Load custom portrait image from Assets, fallback to SF Symbol if not found
@@ -244,16 +202,7 @@ struct CustomerView: View {
             satisfiedLine: "Perfect! Thank you!",
             failedLine: "What did you do?!"
         ),
-        nextCustomer: Customer(
-            name: "Gremlock #47",
-            itemName: "Broken Compass",
-            requiredType: .memory,
-            preferredType: .wildcraft,
-            portraitName: "customer-gremlock-47",
-            arrivalLine: "I need this fixed!",
-            satisfiedLine: "Yay!",
-            failedLine: "Ugh!"
-        )
+        nextCustomer: nil // No longer displayed
     )
     .frame(height: 180)
     .padding()

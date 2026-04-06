@@ -3,7 +3,7 @@
 //  OverQuestMatch3 - Shop of Oddities
 //
 //  Created on 4/4/26.
-//  Visual rendering for a component deck with tap interaction
+//  Deck display with top card preview (fanned arc with ghost cards + flip animation)
 //
 
 import SwiftUI
@@ -14,114 +14,189 @@ struct DeckView: View {
     let topCard: ComponentCard?
     let cardsRemaining: Int
     let canDraw: Bool
+    let rotationDegrees: Double
     let onTap: () -> Void
     
+    // MARK: - Animation State
+    
+    @State private var isFlipping: Bool = false
+    
+    // MARK: - SIZE CONFIGURATION (Easy to adjust!)
+    
+    /// Main card width (adjust this to change deck size)
+    private let cardWidth: CGFloat = 90  // ← CHANGE THIS to make cards bigger/smaller
+    
+    /// Calculated card height (maintains 0.65 aspect ratio)
+    private var cardHeight: CGFloat {
+        cardWidth / 0.65
+    }
+    
     var body: some View {
-        Button(action: {
-            if canDraw {
-                onTap()
+        VStack(spacing: 8) {
+            // Deck stack (rotated)
+            deckStack
+                .rotationEffect(.degrees(rotationDegrees), anchor: .bottom)
+            
+            // Card count (NOT rotated, stays horizontal)
+            Text("\(cardsRemaining)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.6))
+        }
+    }
+    
+    // MARK: - Deck Stack
+    
+    private var deckStack: some View {
+        ZStack {
+            // Ghost card 2 (furthest back, only if 3+ cards)
+            if cardsRemaining >= 3 {
+                cardBackStack(rotation: -2.5, offsetX: -3, offsetY: -5)
             }
-        }) {
-            // ✨ JUST THE CARD IMAGE - NO HEADER!
+            
+            // Ghost card 1 (middle, only if 2+ cards)
+            if cardsRemaining >= 2 {
+                cardBackStack(rotation: -1.2, offsetX: -1.5, offsetY: -2.5)
+            }
+            
+            // Top card (front, the actual interactive card)
             if let card = topCard {
-                ComponentCardView(card: card, compact: true)
-                    .opacity(canDraw ? 1.0 : 0.5)
-                    .cornerRadius(8)
-                    .shadow(color: type.color.opacity(canDraw ? 0.5 : 0.2), radius: canDraw ? 8 : 4)
+                ComponentCardView(card: card)
+                    .frame(width: cardWidth, height: cardHeight)
+                    .shadow(color: type.color.opacity(0.6), radius: 8, x: 0, y: 4)
+                    .rotation3DEffect(
+                        .degrees(isFlipping ? 90 : 0), // Flip to 90° (edge-on)
+                        axis: (x: 0.0, y: 1.0, z: 0.0), // Flip around Y-axis (horizontal flip)
+                        perspective: 0.5
+                    )
+                    .opacity(isFlipping ? 0.0 : 1.0) // Fade out when flipping
             } else {
-                // Empty deck
+                // Empty deck state
                 emptyDeckPlaceholder
             }
         }
-        .buttonStyle(DeckButtonStyle())
-        .disabled(!canDraw)
+        .opacity(canDraw ? 1.0 : 0.5)
+        .onTapGesture {
+            if canDraw {
+                // Trigger flip animation
+                withAnimation(.easeIn(duration: 0.15)) {
+                    isFlipping = true
+                }
+                
+                // Call onTap callback after half the flip
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    onTap()
+                    
+                    // Reset flip state (new card will appear)
+                    isFlipping = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Card Back Stack (Visual Stack Behind Cards)
+    
+    /// Creates a card back visual showing a stack of cards behind the top card
+    /// Uses the custom card-background.png image for all decks
+    private func cardBackStack(rotation: Double, offsetX: CGFloat, offsetY: CGFloat) -> some View {
+        Image("card-background")
+            .resizable()
+            .aspectRatio(0.65, contentMode: .fill)
+            .frame(width: cardWidth, height: cardHeight)
+            .cornerRadius(8)
+            .rotationEffect(.degrees(rotation), anchor: .bottom)
+            .offset(x: offsetX, y: offsetY)
+            .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
     }
     
     // MARK: - Empty Deck Placeholder
     
     private var emptyDeckPlaceholder: some View {
         RoundedRectangle(cornerRadius: 8)
-            .fill(Color.black.opacity(0.4))
-            .aspectRatio(0.65, contentMode: .fit)
-            .overlay(
-                VStack(spacing: 4) {
-                    Image(systemName: "xmark.circle")
-                        .font(.system(size: 24))
-                        .foregroundColor(.white.opacity(0.4))
-                    
-                    Text("Empty")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
-                }
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.gray.opacity(0.3),
+                        Color.gray.opacity(0.1)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
-    }
-}
-
-// MARK: - Custom Button Style
-
-struct DeckButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .frame(width: cardWidth, height: cardHeight)
+            .overlay(
+                Text("EMPTY")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
 }
 
 // MARK: - Preview
 
-#Preview("Deck with Cards") {
-    DeckView(
-        type: .structural,
-        topCard: ComponentCard(
-            type: .structural,
-            value: 3,
-            isCursed: false,
-            adjacencyBonus: .enchantment,
-            name: "Oak Plank"
-        ),
-        cardsRemaining: 10,
-        canDraw: true,
-        onTap: {
-            print("Tapped Structural deck")
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        
+        VStack(spacing: 40) {
+            // Preview with 3+ cards (both ghost cards visible)
+            DeckView(
+                type: .structural,
+                topCard: ComponentCard(
+                    type: .structural,
+                    value: 3,
+                    isCursed: false,
+                    adjacencyBonus: nil,
+                    name: "Oak Plank"
+                ),
+                cardsRemaining: 5,
+                canDraw: true,
+                rotationDegrees: -12,
+                onTap: { print("Tapped structural deck") }
+            )
+            
+            // Preview with 2 cards (one ghost card)
+            DeckView(
+                type: .enchantment,
+                topCard: ComponentCard(
+                    type: .enchantment,
+                    value: 2,
+                    isCursed: false,
+                    adjacencyBonus: nil,
+                    name: "Arcane Dust"
+                ),
+                cardsRemaining: 2,
+                canDraw: true,
+                rotationDegrees: 4,
+                onTap: { print("Tapped enchantment deck") }
+            )
+            
+            // Preview with 1 card (no ghost cards)
+            DeckView(
+                type: .memory,
+                topCard: ComponentCard(
+                    type: .memory,
+                    value: 1,
+                    isCursed: false,
+                    adjacencyBonus: nil,
+                    name: "Whispered Echo"
+                ),
+                cardsRemaining: 1,
+                canDraw: true,
+                rotationDegrees: 12,
+                onTap: { print("Tapped memory deck") }
+            )
+            
+            // Preview empty deck
+            DeckView(
+                type: .wildcraft,
+                topCard: nil,
+                cardsRemaining: 0,
+                canDraw: false,
+                rotationDegrees: 0,
+                onTap: { print("Empty deck tapped") }
+            )
         }
-    )
-    .frame(width: 150, height: 230)
-    .padding()
-    .background(Color.gray.opacity(0.3))
-}
-
-#Preview("Empty Deck") {
-    DeckView(
-        type: .enchantment,
-        topCard: nil,
-        cardsRemaining: 0,
-        canDraw: false,
-        onTap: {
-            print("Tapped empty deck")
-        }
-    )
-    .frame(width: 150, height: 230)
-    .padding()
-    .background(Color.gray.opacity(0.3))
-}
-
-#Preview("Deck Cannot Draw") {
-    DeckView(
-        type: .memory,
-        topCard: ComponentCard(
-            type: .memory,
-            value: 2,
-            isCursed: false,
-            adjacencyBonus: nil,
-            name: "Whispered Echo"
-        ),
-        cardsRemaining: 8,
-        canDraw: false,
-        onTap: {
-            print("Tapped Memory deck")
-        }
-    )
-    .frame(width: 150, height: 230)
-    .padding()
-    .background(Color.gray.opacity(0.3))
+        .padding()
+    }
 }
