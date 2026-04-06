@@ -32,6 +32,31 @@
 		7F0095352F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0095342F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md */; };
 		7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0095362F6F50C500E10AEB /* QUICK_TEST_GUIDE.md */; };
 		7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */; };
+		7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE442F819CC80078EF4E /* ComponentType.swift */; };
+		7F2ADE472F819CD20078EF4E /* ComponentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE462F819CD20078EF4E /* ComponentCard.swift */; };
+		7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE482F819CD50078EF4E /* Customer.swift */; };
+		7F2ADE4B2F819CD90078EF4E /* RepairSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE4A2F819CD90078EF4E /* RepairSlot.swift */; };
+		7F2ADE4D2F819CDD0078EF4E /* RepairResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE4C2F819CDD0078EF4E /* RepairResult.swift */; };
+		7F2ADE4F2F819CE00078EF4E /* ShopGameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE4E2F819CE00078EF4E /* ShopGameState.swift */; };
+		7F2ADE512F819E4E0078EF4E /* ShopOfOddities_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE502F819E4E0078EF4E /* ShopOfOddities_CONTEXT.md */; };
+		7F2ADE532F81A0800078EF4E /* ShopOfOdditiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE522F81A0800078EF4E /* ShopOfOdditiesView.swift */; };
+		7F2ADE552F81A0830078EF4E /* ComponentCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE542F81A0830078EF4E /* ComponentCardView.swift */; };
+		7F2ADE572F81A0970078EF4E /* CustomerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE562F81A0970078EF4E /* CustomerView.swift */; };
+		7F2ADE592F81A09A0078EF4E /* RepairSlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE582F81A09A0078EF4E /* RepairSlotView.swift */; };
+		7F2ADE5B2F81A09E0078EF4E /* DeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE5A2F81A09E0078EF4E /* DeckView.swift */; };
+		7F2ADE5D2F81A6510078EF4E /* CONTINUE_SHOP_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE5C2F81A6510078EF4E /* CONTINUE_SHOP_IMPLEMENTATION.md */; };
+		7F2ADE5F2F81A6930078EF4E /* RepairResultOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE5E2F81A6930078EF4E /* RepairResultOverlay.swift */; };
+		7F2ADE612F81A6980078EF4E /* ShopGameOverOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE602F81A6980078EF4E /* ShopGameOverOverlay.swift */; };
+		7F2ADE632F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE622F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift */; };
+		7F2ADE662F81AA1E0078EF4E /* CommentaryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE652F81AA170078EF4E /* CommentaryManager.swift */; };
+		7F2ADE682F81AA380078EF4E /* CommentaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE672F81AA350078EF4E /* CommentaryView.swift */; };
+		7F2ADE6A2F81AB3A0078EF4E /* COMMENTARY_SYSTEM_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE692F81AB3A0078EF4E /* COMMENTARY_SYSTEM_SUMMARY.md */; };
+		7F2ADE6C2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE6B2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md */; };
+		7F2ADE6E2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE6D2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md */; };
+		7F2ADE702F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE6F2F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md */; };
+		7F2ADE722F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE712F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md */; };
+		7F2ADE742F8337350078EF4E /* AssetDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE732F83372F0078EF4E /* AssetDebugView.swift */; };
+		7F2ADE762F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F31244F2F7249A200316079 /* POISON_PILL_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F31244E2F7249A200316079 /* POISON_PILL_SYSTEM.md */; };
 		7F3124512F7249C000316079 /* POISON_PILL_COMPLETE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */; };
@@ -109,6 +134,31 @@
 		7F0095342F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PORTRAIT_FIX_FINAL_TEST.md; sourceTree = "<group>"; };
 		7F0095362F6F50C500E10AEB /* QUICK_TEST_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_TEST_GUIDE.md; sourceTree = "<group>"; };
 		7F0095382F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "final_charactersystem_WORKING-ramp.md"; sourceTree = "<group>"; };
+		7F2ADE442F819CC80078EF4E /* ComponentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentType.swift; sourceTree = "<group>"; };
+		7F2ADE462F819CD20078EF4E /* ComponentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentCard.swift; sourceTree = "<group>"; };
+		7F2ADE482F819CD50078EF4E /* Customer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Customer.swift; sourceTree = "<group>"; };
+		7F2ADE4A2F819CD90078EF4E /* RepairSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepairSlot.swift; sourceTree = "<group>"; };
+		7F2ADE4C2F819CDD0078EF4E /* RepairResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepairResult.swift; sourceTree = "<group>"; };
+		7F2ADE4E2F819CE00078EF4E /* ShopGameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopGameState.swift; sourceTree = "<group>"; };
+		7F2ADE502F819E4E0078EF4E /* ShopOfOddities_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ShopOfOddities_CONTEXT.md; sourceTree = "<group>"; };
+		7F2ADE522F81A0800078EF4E /* ShopOfOdditiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopOfOdditiesView.swift; sourceTree = "<group>"; };
+		7F2ADE542F81A0830078EF4E /* ComponentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentCardView.swift; sourceTree = "<group>"; };
+		7F2ADE562F81A0970078EF4E /* CustomerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerView.swift; sourceTree = "<group>"; };
+		7F2ADE582F81A09A0078EF4E /* RepairSlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepairSlotView.swift; sourceTree = "<group>"; };
+		7F2ADE5A2F81A09E0078EF4E /* DeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckView.swift; sourceTree = "<group>"; };
+		7F2ADE5C2F81A6510078EF4E /* CONTINUE_SHOP_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTINUE_SHOP_IMPLEMENTATION.md; sourceTree = "<group>"; };
+		7F2ADE5E2F81A6930078EF4E /* RepairResultOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepairResultOverlay.swift; sourceTree = "<group>"; };
+		7F2ADE602F81A6980078EF4E /* ShopGameOverOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopGameOverOverlay.swift; sourceTree = "<group>"; };
+		7F2ADE622F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewRepairDiscoveredBanner.swift; sourceTree = "<group>"; };
+		7F2ADE652F81AA170078EF4E /* CommentaryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentaryManager.swift; sourceTree = "<group>"; };
+		7F2ADE672F81AA350078EF4E /* CommentaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentaryView.swift; sourceTree = "<group>"; };
+		7F2ADE692F81AB3A0078EF4E /* COMMENTARY_SYSTEM_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMMENTARY_SYSTEM_SUMMARY.md; sourceTree = "<group>"; };
+		7F2ADE6B2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SHOP_IMAGE_ASSETS_REFERENCE.md; sourceTree = "<group>"; };
+		7F2ADE6D2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CUSTOM_IMAGE_INTEGRATION_SUMMARY.md; sourceTree = "<group>"; };
+		7F2ADE6F2F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SHOP_UI_REDESIGN_SUMMARY.md; sourceTree = "<group>"; };
+		7F2ADE712F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_SUMMARY_CUSTOM_ASSETS.md; sourceTree = "<group>"; };
+		7F2ADE732F83372F0078EF4E /* AssetDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetDebugView.swift; sourceTree = "<group>"; };
+		7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MENU_SUMMARY.md; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F31244E2F7249A200316079 /* POISON_PILL_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_SYSTEM.md; sourceTree = "<group>"; };
 		7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_COMPLETE.md; sourceTree = "<group>"; };
@@ -193,6 +243,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7F2ADE432F819B5B0078EF4E /* ShopOfOddities */ = {
+			isa = PBXGroup;
+			children = (
+				7F2ADE732F83372F0078EF4E /* AssetDebugView.swift */,
+				7F2ADE672F81AA350078EF4E /* CommentaryView.swift */,
+				7F2ADE652F81AA170078EF4E /* CommentaryManager.swift */,
+				7F2ADE462F819CD20078EF4E /* ComponentCard.swift */,
+				7F2ADE442F819CC80078EF4E /* ComponentType.swift */,
+				7F2ADE482F819CD50078EF4E /* Customer.swift */,
+				7F2ADE4C2F819CDD0078EF4E /* RepairResult.swift */,
+				7F2ADE4A2F819CD90078EF4E /* RepairSlot.swift */,
+				7F2ADE4E2F819CE00078EF4E /* ShopGameState.swift */,
+				7F2ADE502F819E4E0078EF4E /* ShopOfOddities_CONTEXT.md */,
+				7F2ADE522F81A0800078EF4E /* ShopOfOdditiesView.swift */,
+				7F2ADE542F81A0830078EF4E /* ComponentCardView.swift */,
+				7F2ADE562F81A0970078EF4E /* CustomerView.swift */,
+				7F2ADE582F81A09A0078EF4E /* RepairSlotView.swift */,
+				7F2ADE5A2F81A09E0078EF4E /* DeckView.swift */,
+				7F2ADE5C2F81A6510078EF4E /* CONTINUE_SHOP_IMPLEMENTATION.md */,
+				7F2ADE5E2F81A6930078EF4E /* RepairResultOverlay.swift */,
+				7F2ADE602F81A6980078EF4E /* ShopGameOverOverlay.swift */,
+				7F2ADE622F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift */,
+				7F2ADE6B2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md */,
+				7F2ADE712F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md */,
+			);
+			path = ShopOfOddities;
+			sourceTree = "<group>";
+		};
 		7F5574762F785BBC00081E01 /* Match3​Game */ = {
 			isa = PBXGroup;
 			children = (
@@ -314,6 +392,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F2ADE432F819B5B0078EF4E /* ShopOfOddities */,
 				7F55749E2F78708C00081E01 /* ArchiveDocs_DONOTREAD */,
 				7F55747D2F785C8C00081E01 /* PotionSolitaireGame */,
 				7F55747C2F785C1000081E01 /* Navigation */,
@@ -339,6 +418,10 @@
 				7F5574A12F7872CA00081E01 /* MATCH3_CONTEXT.md */,
 				7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */,
 				7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */,
+				7F2ADE692F81AB3A0078EF4E /* COMMENTARY_SYSTEM_SUMMARY.md */,
+				7F2ADE6D2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md */,
+				7F2ADE6F2F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md */,
+				7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -456,6 +539,7 @@
 				7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */,
 				7F5574A02F78722000081E01 /* MASTER_CONTEXT.md in Resources */,
 				7F0094912F691C1E00E10AEB /* REVERT_POINT_spawn_in_place.md in Resources */,
+				7F2ADE722F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md in Resources */,
 				7F0094D92F6A4D4600E10AEB /* context_cascade.md in Resources */,
 				7F55749B2F786BFC00081E01 /* PHYSICS_CHAIN_NAME_FIX_COMPLETE.md in Resources */,
 				7F86C3AF2F70E60A00DC5759 /* SESSION_SUMMARY_MARCH_22_2026.md in Resources */,
@@ -463,10 +547,14 @@
 				7F0094A12F6922CC00E10AEB /* GRAVITY_CASCADE_FIX.md in Resources */,
 				7F0095112F6E580800E10AEB /* BONUS_BLAST_PNG_SPECS.md in Resources */,
 				7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */,
+				7F2ADE6C2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md in Resources */,
+				7F2ADE762F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md in Resources */,
 				7F0094DD2F6B719400E10AEB /* recreate_gatcha.md in Resources */,
 				7F00952B2F6F42A100E10AEB /* SESSION_14_ANIMATION_PRIORITY_TRANSCRIPT.md in Resources */,
+				7F2ADE702F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md in Resources */,
 				7F31244F2F7249A200316079 /* POISON_PILL_SYSTEM.md in Resources */,
 				7F86C3B22F70F46F00DC5759 /* GEM_CLEAR_EFFECTS_GUIDE.md in Resources */,
+				7F2ADE6A2F81AB3A0078EF4E /* COMMENTARY_SYSTEM_SUMMARY.md in Resources */,
 				7F00952F2F6F47CC00E10AEB /* SESSION_14_QUICK_STATUS.md in Resources */,
 				7F0094DF2F6B71F200E10AEB /* HAPTICS_INTEGRATION_SUMMARY.md in Resources */,
 				7F0094E72F6CF7F400E10AEB /* blocking_nonblocking.md in Resources */,
@@ -483,8 +571,11 @@
 				7F00948F2F691AB200E10AEB /* CASCADE_ANIMATION_SUMMARY.md in Resources */,
 				7F55742D2F735C9800081E01 /* SESSION_SUMMARY.md in Resources */,
 				7F55748B2F7867E500081E01 /* PHYSICS_CHAIN_GAME_COMPLETE.md in Resources */,
+				7F2ADE5D2F81A6510078EF4E /* CONTINUE_SHOP_IMPLEMENTATION.md in Resources */,
 				7F3124512F7249C000316079 /* POISON_PILL_COMPLETE.md in Resources */,
+				7F2ADE512F819E4E0078EF4E /* ShopOfOddities_CONTEXT.md in Resources */,
 				7F0094E52F6CEDE900E10AEB /* RESPONSIVE_GAMEPLAY_CHANGES.md in Resources */,
+				7F2ADE6E2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md in Resources */,
 				7F55742F2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md in Resources */,
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
@@ -499,38 +590,55 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F2ADE4B2F819CD90078EF4E /* RepairSlot.swift in Sources */,
 				7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */,
 				7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */,
 				7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */,
+				7F2ADE5F2F81A6930078EF4E /* RepairResultOverlay.swift in Sources */,
+				7F2ADE632F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift in Sources */,
 				7FB075402F5D2FFA00BD0591 /* AnimationHelpers.swift in Sources */,
 				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
 				7F5574952F786B4500081E01 /* PhysicsTileView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
+				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,
+				7F2ADE742F8337350078EF4E /* AssetDebugView.swift in Sources */,
 				7F5574992F786B4C00081E01 /* PhysicsChainGameView.swift in Sources */,
+				7F2ADE552F81A0830078EF4E /* ComponentCardView.swift in Sources */,
 				7F55748F2F786B2A00081E01 /* PhysicsTileType.swift in Sources */,
+				7F2ADE612F81A6980078EF4E /* ShopGameOverOverlay.swift in Sources */,
 				7FB075412F5D300100BD0591 /* BattleEvent.swift in Sources */,
+				7F2ADE472F819CD20078EF4E /* ComponentCard.swift in Sources */,
+				7F2ADE682F81AA380078EF4E /* CommentaryView.swift in Sources */,
 				7F0094DB2F6A5B1600E10AEB /* ChainVisualConfig.swift in Sources */,
 				7F0094F12F6E384C00E10AEB /* DebugMenuView.swift in Sources */,
 				7F00950F2F6E52C600E10AEB /* BonusBlastEffects.swift in Sources */,
 				7F5574932F786B4000081E01 /* PhysicsGameConfig.swift in Sources */,
 				7F0094EF2F6E375B00E10AEB /* BonusTileConfig.swift in Sources */,
+				7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */,
 				7F5574682F77865000081E01 /* CharacterAnimations.swift in Sources */,
+				7F2ADE592F81A09A0078EF4E /* RepairSlotView.swift in Sources */,
 				7F5574692F77865000081E01 /* Match3ContentView.swift in Sources */,
 				7F55746A2F77865000081E01 /* HapticManager.swift in Sources */,
 				7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */,
 				7FB075E82F5E95EB00BD0591 /* Ability.swift in Sources */,
 				7F86C3AD2F70A47900DC5759 /* BattleMechanicsConfig.swift in Sources */,
+				7F2ADE4D2F819CDD0078EF4E /* RepairResult.swift in Sources */,
 				7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */,
 				7FB075432F5D300100BD0591 /* Character.swift in Sources */,
+				7F2ADE5B2F81A09E0078EF4E /* DeckView.swift in Sources */,
+				7F2ADE572F81A0970078EF4E /* CustomerView.swift in Sources */,
 				7F3124552F72513B00316079 /* PoisonPillScreenEffect.swift in Sources */,
+				7F2ADE532F81A0800078EF4E /* ShopOfOdditiesView.swift in Sources */,
 				7F5574912F786B3B00081E01 /* PhysicsTile.swift in Sources */,
 				7FB075442F5D300100BD0591 /* TileType.swift in Sources */,
 				7FB0753C2F5D2FE800BD0591 /* BattleSceneView.swift in Sources */,
 				7FB075EA2F5EA7EE00BD0591 /* MapScreenView.swift in Sources */,
 				7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */,
 				7FB0753B2F5D2FE200BD0591 /* GameViewModel.swift in Sources */,
+				7F2ADE4F2F819CE00078EF4E /* ShopGameState.swift in Sources */,
 				7F0094E12F6BA4E200E10AEB /* DeveloperSplashView.swift in Sources */,
 				7F0094A52F6926B200E10AEB /* GameMode.swift in Sources */,
+				7F2ADE662F81AA1E0078EF4E /* CommentaryManager.swift in Sources */,
 				7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */,
 				7F5574972F786B4800081E01 /* PhysicsGameViewModel.swift in Sources */,
 				7FB0753F2F5D2FF600BD0591 /* GameOverView.swift in Sources */,

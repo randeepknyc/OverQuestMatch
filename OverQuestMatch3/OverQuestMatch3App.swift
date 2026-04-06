@@ -11,6 +11,7 @@ import SwiftUI
 enum GameType {
     case match3
     case physicsChain
+    case shopOfOddities
     case cooking
     case potionSolitaire
     case mapNavigation
@@ -22,7 +23,7 @@ struct OverQuestMatch3App: App {
     
     // 🎮 DEV SWITCHER: Change this to switch between game types
     // ⚠️ Set to .match3 for your working Match-3 game
-    private let currentGame: GameType = .physicsChain
+    private let currentGame: GameType = .shopOfOddities
     
     var body: some Scene {
         WindowGroup {
@@ -40,6 +41,10 @@ struct OverQuestMatch3App: App {
         case .physicsChain:
             // 🔮 Physics Chain Game (Tsum-Tsum Style!)
             PhysicsChainGameView()
+            
+        case .shopOfOddities:
+            // 🏪 Ednar's Shop of Oddities (Card Repair Game!)
+            ShopOfOdditiesView()
             
         case .cooking:
             // 🍳 Cooking Game (Coming Soon)

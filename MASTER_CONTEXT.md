@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** March 28, 2026  
+> **Last Updated:** April 5, 2026 (Shop of Oddities debug menu + custom assets integration)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete
 
 ---
@@ -16,9 +16,10 @@
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ⚠️ CODE COMPLETE - Debugging tile display issue
-3. **Cooking Game** - 📋 Planned
-4. **Potion Solitaire** - 📋 Planned
-5. **Map Navigation System** - 📋 Planned
+3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing, character forcing for portrait testing, side-by-side deck layout, and image-first design
+4. **Cooking Game** - 📋 Planned
+5. **Potion Solitaire** - 📋 Planned
+6. **Map Navigation System** - 📋 Planned
 
 ---
 
@@ -65,6 +66,25 @@ OverQuestMatch3/ (ROOT)
 │  ├─ PhysicsTileType.swift
 │  └─ PhysicsGameConfig.swift
 │
+├─ ShopOfOddities/ ✅ (COMPLETE & PLAYABLE - Miracle Merchant-style card game)
+│  ├─ ComponentType.swift
+│  ├─ ComponentCard.swift
+│  ├─ Customer.swift (with public portrait helper)
+│  ├─ RepairSlot.swift
+│  ├─ RepairResult.swift
+│  ├─ ShopGameState.swift (with debug forcing method)
+│  ├─ CommentaryManager.swift (character dialogue system)
+│  ├─ ShopOfOdditiesView.swift (with debug button)
+│  ├─ ComponentCardView.swift
+│  ├─ DeckView.swift
+│  ├─ CustomerView.swift (with custom portrait support)
+│  ├─ RepairSlotView.swift
+│  ├─ RepairResultOverlay.swift
+│  ├─ ShopGameOverOverlay.swift
+│  ├─ NewRepairDiscoveredBanner.swift
+│  ├─ CommentaryView.swift (with custom icon support)
+│  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing) ✨ NEW (character commentary display)
+│
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
 ├─ Navigation/ ✅ (Empty - ready for development)
@@ -86,6 +106,7 @@ private let currentGame: GameType = .match3
 **Available Game Types:**
 - `.match3` - Match-3 RPG Battle Game (✅ WORKING)
 - `.physicsChain` - Physics Chain Game (⚠️ CODE COMPLETE - tiles not rendering)
+- `.shopOfOddities` - Shop of Oddities Card Game (✅ COMPLETE & PLAYABLE)
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)
@@ -165,6 +186,7 @@ Later, when ready to connect games:
 Each game has its own image sets:
 - **Match-3:** Tile images, bonus tiles, battle effects
 - **Physics Chain:** Bubble/character tiles (reuses Match-3 images)
+- **Shop of Oddities:** Component icons (4 images) + Card backgrounds (4 images) ✅ IMPLEMENTED
 - **Cooking:** Ingredient images, cooking equipment (TBD)
 - **Potion Solitaire:** Card designs, potion bottles (TBD)
 
@@ -191,11 +213,33 @@ Each game has its own image sets:
 - **Issue:** Tiles not rendering on screen (debugging in progress)
 - **Result:** Code complete, troubleshooting display
 
-### **Phase 4: Additional Games** 📋 PLANNED
+### **Phase 4: Shop of Oddities** ✅ COMPLETE (April 5, 2026)
+- All data model files created (7 files - added CommentaryManager)
+- All UI component files created (10 files - added CommentaryView + AssetsDebugView)
+- Game logic fully implemented (deck generation, scoring, repair names)
+- Customer generation with OverQuest characters
+- Persistent collectible catalog (repair ledger)
+- Card draw animations (scale + fade)
+- Repair result overlay (1.5 second display)
+- New repair discovery banner (1 second display)
+- Character commentary system (Sword + Ednar reactions)
+- Commentary triggers for game events (cursed cards, high scores, customers)
+- Game over/win screens with stats
+- Play Again functionality
+- Custom image asset support (icons + card backgrounds) ✨ (April 5, 2026)
+- Customer portrait support with UIImage loading ✨ (April 5, 2026)
+- Commentary icon support with UIImage loading ✨ (April 5, 2026)
+- Debug menu with asset viewer and character forcing ✨ (April 5, 2026)
+- UI redesign: Side-by-side deck layout (4 decks horizontal) ✨ (April 5, 2026)
+- Removed all bounding boxes and headers for minimalist design ✨ (April 5, 2026)
+- Image-first design philosophy with invisible UI elements ✨ (April 5, 2026)
+- **Result:** Fully playable Miracle Merchant-style card game with minimalist, modern design
+
+### **Phase 5: Additional Games** 📋 PLANNED
 - Cooking game design and implementation
 - Potion Solitaire design and implementation
 
-### **Phase 5: Map/Navigation Integration** 📋 PLANNED
+### **Phase 6: Map/Navigation Integration** 📋 PLANNED
 - Map screen UI
 - Progress tracking system
 - Level unlock logic
@@ -256,6 +300,7 @@ Each game has its own image sets:
 - ✅ Dev switcher functional
 - ✅ Match-3 game fully playable
 - ✅ Physics Chain Game code complete
+- ✅ Shop of Oddities fully playable
 
 ### **What's In Progress:**
 - ⚠️ Physics Chain Game - Debugging tile display issue
@@ -273,6 +318,8 @@ Each game has its own image sets:
 **Detailed Game Context:**
 - `MATCH3_CONTEXT.md` - Complete Match-3 game documentation
 - `PHYSICS_CONTEXT.md` - Physics Chain Game documentation
+- `ShopOfOddities_CONTEXT.md` - Shop of Oddities game documentation
+- `SHOP_IMAGE_ASSETS_REFERENCE.md` - Quick reference for Shop of Oddities custom images
 
 **Project Organization:**
 - `STRUCTURE_CONTEXT.md` - Reorganization tracker and guide
@@ -290,7 +337,7 @@ Each game has its own image sets:
 
 ### **For New Chat Sessions:**
 1. Read this file first for project overview
-2. Read game-specific context file (`MATCH3_CONTEXT.md` or `PHYSICS_CONTEXT.md`)
+2. Read game-specific context file (`MATCH3_CONTEXT.md`, `PHYSICS_CONTEXT.md`, or `ShopOfOddities_CONTEXT.md`)
 3. Check `STRUCTURE_CONTEXT.md` for organization details
 4. Use `query_search` to find additional files if needed
 
@@ -314,6 +361,7 @@ Each game has its own image sets:
 - App Entry: `OverQuestMatch3App.swift`
 - Match-3 Main View: `Match3Game/Match3ContentView.swift`
 - Physics Game Main View: `PhysicsChainGame/PhysicsChainGameView.swift`
+- Shop of Oddities Game State: `ShopOfOddities/ShopGameState.swift`
 - Shared Character Data: `Shared/Character.swift`
 - Game Assets Config: `Shared/GameAssets.swift`
 
@@ -322,6 +370,7 @@ Each game has its own image sets:
 - Add new game: Create folder + ContentView, add to GameType enum
 - Modify Match-3: Edit files in `Match3Game/` folder
 - Modify Physics Game: Edit files in `PhysicsChainGame/` folder
+- Modify Shop Game: Edit files in `ShopOfOddities/` folder
 - Share code: Add to `Shared/` folder
 
 ---
@@ -331,3 +380,4 @@ Each game has its own image sets:
 For game-specific details, see:
 - Match-3 Game: `MATCH3_CONTEXT.md`
 - Physics Chain Game: `PHYSICS_CONTEXT.md`
+- Shop of Oddities: `ShopOfOddities_CONTEXT.md`

@@ -55,6 +55,7 @@ OverQuestMatch3/ (ROOT)
 │  ├─ CharacterAnimations-Shared.swift
 │  └─ HapticManager.swift
 ├─ PhysicsChainGame/ ✅ NEW (empty)
+├─ ShopOfOddities/ ✅ NEW (card repair game - data models complete)
 ├─ CookingGame/ ✅ NEW (empty)
 ├─ PotionSolitaireGame/ ✅ NEW (empty)
 ├─ Navigation/ ✅ NEW (empty)
@@ -88,6 +89,7 @@ OverQuestMatch3/
 │  ├─ PauseMenuView.swift
 │  └─ GameOverView.swift
 ├─ PhysicsChainGame/ (NEW - empty for now)
+├─ ShopOfOddities/ (NEW - card repair game)
 ├─ CookingGame/ (NEW - empty for now)
 ├─ PotionSolitaireGame/ (NEW - empty for now)
 ├─ Navigation/ (NEW - empty for now)
@@ -228,6 +230,7 @@ If you're starting a new chat and continuing this reorganization:
 **Goal:** Transform single-game project into multi-game project with:
 - Match-3 RPG Battle (existing game)
 - Physics Chain Game (falling bubble physics with chain matching)
+- Shop of Oddities (card-based repair solitaire game)
 - Cooking Game (real-time cooking resource management)
 - Potion Solitaire Game (card-based potion crafting puzzle)
 - Story-driven map connecting all games
