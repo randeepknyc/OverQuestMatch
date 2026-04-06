@@ -14,6 +14,7 @@ struct ShopOfOdditiesView: View {
     @State private var gameState = ShopGameState()
     @State private var repairsDiscoveredBeforeGame: Set<String> = []
     @State private var showingAssetsDebug = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         GeometryReader { geometry in
@@ -151,7 +152,9 @@ struct ShopOfOdditiesView: View {
                     .foregroundColor(.cyan)
             }
             .sheet(isPresented: $showingAssetsDebug) {
-                AssetsDebugView(gameState: $gameState)
+                AssetsDebugView(gameState: $gameState, onEndGame: {
+                    dismiss()
+                })
             }
         }
         .padding(.horizontal, 16)

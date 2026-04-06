@@ -1,8 +1,8 @@
 # MATCH-3 GAME CONTEXT
 **OverQuestMatch3 - Match-3 RPG Battle Game**
 
-> **Last Updated:** March 28, 2026  
-> **Status:** ✅ COMPLETE & FULLY WORKING
+> **Last Updated:** April 6, 2026 (Added Pause Menu "End Game" button)  
+> **Status:** ✅ COMPLETE & FULLY WORKING - No splash/title/map in Match3ContentView anymore
 
 ---
 
@@ -10,8 +10,14 @@
 
 **Game Type:** Match-3 RPG Battle System  
 **Platform:** iOS (SwiftUI)  
-**Main View:** `Match3ContentView.swift` (renamed from ContentView.swift)  
+**Main View:** `Match3ContentView.swift` (simplified - just game board)  
 **Folder:** `Match3Game/` (all game-specific files organized here)
+
+**Important:** Splash/title/map screens are now in **OverQuestMatch3App.swift** (the main app), not in Match3ContentView. This prevents the infinite loop bug and allows all games to share the same perfected intro sequence.
+
+**Exit Options:** Match-3 has TWO ways to return to title screen:
+1. **Debug Menu** (🔨 hammer icon) → "End Game" button (red, top of menu)
+2. **Pause Menu** (☰ hamburger icon) → "End Game" button → Confirmation dialog → Returns to title
 
 ### **Core Gameplay:**
 - 8×8 grid of colorful gem tiles
@@ -35,7 +41,7 @@ Match3Game/
 ├─ BattleSceneView.swift          // Character portraits, health, UI
 ├─ TileType.swift                 // Gem types & tile data models
 ├─ GameOverView.swift             // Victory/defeat screen
-├─ GameHUDview.swift              // Top HUD (score, pause button)
+├─ GameHUDview.swift              // Top HUD (score, pause button, pause menu, end game dialog)
 ├─ DebugMenuView.swift            // Debug tools (force matches, spawn bonuses)
 ├─ GameMode.swift                 // Swap vs Chain mode enum
 ├─ BattleEvent.swift              // Battle narrative message model
@@ -232,6 +238,8 @@ ZStack (z-index layers):
 
 ### **Debug & Testing**
 - ✅ Debug menu (orange hammer icon)
+- ✅ Pause menu (hamburger icon with custom images)
+- ✅ End game options (debug menu + pause menu)
 - ✅ Force 5-match for all gem types
 - ✅ Manual bonus tile spawning
 - ✅ Fill mana, HP, shield buttons
@@ -357,6 +365,26 @@ titleAnimationStyle = .floatAndPulse
 
 ## 🎯 BATTLE MECHANICS REFERENCE
 
+### **How to Launch Match-3 Game:**
+
+**From Main App:**
+1. Splash → Title → Map → Game Selector → Tap "Match-3 RPG Battle"
+2. Game launches directly to game board (no duplicate splash/title)
+
+**Exit Options (Two Ways to Return to Title):**
+
+**Option 1 - Debug Menu:**
+- Tap orange hammer icon (🔨) in top-right corner
+- "End Game" button (red) returns to title screen
+- No confirmation required
+- All debug features available below End Game button
+
+**Option 2 - Pause Menu:**
+- Tap hamburger icon (☰) in top-left corner
+- Tap "End Game" button
+- Confirmation dialog appears: "ARE YOU SURE?"
+- Confirm to return to title screen
+
 ### **Damage Calculation Examples**
 
 **Example 1: Simple Match**
@@ -475,6 +503,51 @@ All major issues resolved! Game is stable and fully playable.
 - Spawn at (3,3)
 - Spawn at (5,5)
 - **Spawn TWO at (4,4) + (4,5)** - Cross blast test
+
+### **End Game Button:**
+- Red button at top of debug menu
+- Returns to title screen immediately
+- No confirmation required
+
+---
+
+## ☰ PAUSE MENU
+
+**Access:** Hamburger icon (☰) in top-left corner
+
+### **Features:**
+- **Resume** - Continue playing
+- **Restart** - Start new game (same battle)
+- **How to Play** - (Future: Show tutorial)
+- **End Game** - Return to title screen (with confirmation)
+
+### **Game Mode Switcher:**
+- **Swap Mode** - Tap two adjacent tiles to swap
+- **Chain Mode** - Draw line connecting same-type tiles
+- Toggle between modes from pause menu
+- Menu image changes based on current mode:
+  - `pausemenu_swap` when in Swap mode
+  - `pausemenu_chain` when in Chain mode
+
+### **End Game Flow:**
+1. Tap hamburger icon (☰)
+2. Pause menu appears with custom image
+3. Tap "End Game" button zone
+4. Confirmation dialog pops up: "ARE YOU SURE?"
+5. Tap "END GAME" on dialog to confirm
+6. OR tap "CANCEL" to go back to pause menu
+7. On confirm: Returns to title screen
+
+### **Custom Images:**
+- `pausemenu_swap` (280×500 px) - Pause menu in Swap mode
+- `pausemenu_chain` (280×500 px) - Pause menu in Chain mode
+- `endgame_dialog` (340×380 px) - Confirmation dialog
+
+### **Technical Details:**
+- Uses invisible tap zones overlaid on custom images
+- Smooth animations (scale + opacity)
+- 0.3s delay before dismissing to title (allows animations to complete)
+- Calls `onEndGame()` closure to properly dismiss game view
 
 ---
 

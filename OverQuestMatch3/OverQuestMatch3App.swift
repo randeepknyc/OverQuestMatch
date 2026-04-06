@@ -2,13 +2,74 @@
 //  OverQuestMatch3App.swift
 //  OverQuestMatch3
 //
-//  Created by Randeep Katari on 3/7/26.
+//  Main app entry point with perfected splash/title/map flow
 //
 
 import SwiftUI
 
+@main
+struct OverQuestMatch3App: App {
+    
+    @State private var showSplash = GameConfig.enableDeveloperSplash
+    @State private var showTitleScreen = false
+    @State private var showMapScreen = false
+    
+    var body: some Scene {
+        WindowGroup {
+            ZStack {
+                // Base view (hidden under overlays)
+                Color.black.ignoresSafeArea()
+                
+                // ═══════════════════════════════════════════════════════════════
+                // 🎬 LAYER 1: DEVELOPER SPLASH SCREEN (TOP - APPEARS FIRST)
+                // ═══════════════════════════════════════════════════════════════
+                if showSplash && GameConfig.enableDeveloperSplash {
+                    DeveloperSplashView(showSplash: $showSplash)
+                        .transition(.opacity)
+                        .zIndex(3)
+                        .onDisappear {
+                            // After splash disappears, show title screen
+                            showTitleScreen = true
+                        }
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // LAYER 2: TITLE SCREEN (Appears after splash)
+                // ═══════════════════════════════════════════════════════════════
+                if showTitleScreen {
+                    TitleScreenView(
+                        showTitleScreen: $showTitleScreen,
+                        showMapScreen: $showMapScreen
+                    )
+                    .transition(.opacity)
+                    .zIndex(2)
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // LAYER 3: MAP SCREEN (Shows after title, then goes to game selector)
+                // ═══════════════════════════════════════════════════════════════
+                if showMapScreen {
+                    MapScreenView(showMapScreen: $showMapScreen)
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .onAppear {
+                // If splash is disabled, start at title screen
+                if !GameConfig.enableDeveloperSplash {
+                    showSplash = false
+                    showTitleScreen = true
+                }
+            }
+            .animation(.easeInOut(duration: 0.8), value: showSplash)
+            .animation(.easeInOut(duration: 0.8), value: showTitleScreen)
+        }
+    }
+}
+
 // MARK: - Game Type Enum
-enum GameType {
+
+enum GameType: CaseIterable {
     case match3
     case physicsChain
     case shopOfOddities
@@ -17,88 +78,29 @@ enum GameType {
     case mapNavigation
 }
 
-// MARK: - Main App
-@main
-struct OverQuestMatch3App: App {
-    
-    // 🎮 DEV SWITCHER: Change this to switch between game types
-    // ⚠️ Set to .match3 for your working Match-3 game
-    private let currentGame: GameType = .shopOfOddities
-    
-    var body: some Scene {
-        WindowGroup {
-            mainView
-        }
-    }
-    
-    @ViewBuilder
-    private var mainView: some View {
-        switch currentGame {
-        case .match3:
-            // ✅ Your existing Match-3 RPG Battle Game
-            Match3ContentView()
-            
-        case .physicsChain:
-            // 🔮 Physics Chain Game (Tsum-Tsum Style!)
-            PhysicsChainGameView()
-            
-        case .shopOfOddities:
-            // 🏪 Ednar's Shop of Oddities (Card Repair Game!)
-            ShopOfOdditiesView()
-            
-        case .cooking:
-            // 🍳 Cooking Game (Coming Soon)
-            PlaceholderView(gameName: "Cooking Game")
-            
-        case .potionSolitaire:
-            // 🧪 Potion Solitaire Game (Coming Soon)
-            PlaceholderView(gameName: "Potion Solitaire Game")
-            
-        case .mapNavigation:
-            // 🗺️ Map Navigation System (Coming Soon)
-            PlaceholderView(gameName: "Map Navigation")
-        }
-    }
-}
-// MARK: - Placeholder View
+// MARK: - Placeholder View (for unfinished games)
+
 struct PlaceholderView: View {
     let gameName: String
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [.purple.opacity(0.3), .blue.opacity(0.3)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color(red: 0.2, green: 0.2, blue: 0.25)
+                .ignoresSafeArea()
             
             VStack(spacing: 20) {
-                // Icon
-                Image(systemName: "sparkles")
+                Image(systemName: "hammer.fill")
                     .font(.system(size: 80))
-                    .foregroundColor(.white)
+                    .foregroundColor(.orange)
                 
-                // Title
                 Text(gameName)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.title)
                     .foregroundColor(.white)
                 
-                // Subtitle
                 Text("Coming Soon")
-                    .font(.title2)
-                    .foregroundColor(.white.opacity(0.8))
-                
-                // Description
-                Text("This game is under development.\nSwitch back to .match3 in OverQuestMatch3App.swift")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.white.opacity(0.6))
-                    .padding()
+                    .font(.headline)
+                    .foregroundColor(.white.opacity(0.7))
             }
-            .padding()
         }
     }
 }
-

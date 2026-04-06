@@ -1,8 +1,8 @@
 # PHYSICS CHAIN GAME CONTEXT
 **OverQuestMatch3 - Physics-Based Chain Matching Game**
 
-> **Last Updated:** March 28, 2026  
-> **Status:** ✅ FULLY WORKING! Tiles rendering, physics working, gameplay functional!
+> **Last Updated:** April 6, 2026 (Added debug menu with End Game button)  
+> **Status:** ✅ FULLY WORKING! Tiles rendering, physics working, gameplay functional, debug menu complete!
 
 ---
 
@@ -29,7 +29,7 @@
 
 ```
 PhysicsChainGame/
-├─ PhysicsChainGameView.swift     // Main game UI (107 lines) ✅
+├─ PhysicsChainGameView.swift     // Main game UI with debug menu (185 lines) ✅
 ├─ PhysicsGameViewModel.swift     // Physics engine & logic (285 lines) ✅
 ├─ PhysicsTileView.swift          // Tile rendering (29 lines) ✅
 ├─ PhysicsTile.swift              // Tile model (26 lines) ✅
@@ -37,11 +37,7 @@ PhysicsChainGame/
 └─ PhysicsGameConfig.swift        // All settings (79 lines) ✅
 ```
 
-**Shared Assets** (reused from Match-3):
-- Tile images: `sword_tile.png`, `fire_tile.png`, `shield_tile.png`, `heart_tile.png`, `mana_tile.png`, `poison_tile.png`
-- `HapticManager.swift` (optional)
-
-**Total:** 6 files, ~580 lines of code ✅
+**Total:** 6 files, ~660 lines of code ✅
 
 ---
 
@@ -49,9 +45,9 @@ PhysicsChainGame/
 
 ### **What Works:**
 - ✅ App builds without errors
-- ✅ Dev switcher routes to PhysicsChainGameView correctly
+- ✅ Game selector routes to PhysicsChainGameView correctly
 - ✅ Background gradient displays
-- ✅ Score header displays
+- ✅ Score header displays with wrench icon
 - ✅ **90 TILES RENDER AND FALL WITH PHYSICS!** 🎉
 - ✅ Tiles bounce off floor and walls
 - ✅ Tile-to-tile collision detection working
@@ -62,6 +58,8 @@ PhysicsChainGame/
 - ✅ Animated chain line connects selected tiles
 - ✅ Glow effect on selected tiles
 - ✅ Match disappear animation
+- ✅ **Debug menu with End Game button** 🎉
+- ✅ **Returns to title screen on End Game** 🎉
 
 ---
 
@@ -440,6 +438,61 @@ static let boardHeight: CGFloat = 600.0
 static let initialTileCount: Int = 90
 static let spawnAreaTop: CGFloat = 0.0
 static let spawnAreaBottom: CGFloat = 400.0  // Top 2/3
+```
+
+---
+
+## 🔧 DEBUG MENU ✨ NEW (April 6, 2026)
+
+### **Accessing the Debug Menu:**
+
+1. Run the Physics Chain Game
+2. Look for the **🔧 cyan wrench icon** in the top-right corner (next to COMBO)
+3. Tap the wrench to open the debug menu
+4. Modal sheet appears with "End Game" option
+
+### **Debug Menu Features:**
+
+**"End Game" Button:**
+- Large red button (centered)
+- Icon: Arrow left circle
+- Text: "End Game"
+- Description: "Return to title screen"
+- Cleans up physics timer properly
+- Dismisses game and returns to title screen
+
+**"Cancel" Button:**
+- Top-right navigation bar
+- Dismisses debug menu
+- Continues playing game
+
+### **How It Works:**
+
+**User Flow:**
+1. Playing Physics Chain Game
+2. Tap wrench icon 🔧
+3. Debug menu opens
+4. Choose:
+   - **"End Game"** → Returns to title screen
+   - **"Cancel"** → Continues playing
+
+**Technical Details:**
+- Uses `@Environment(\.dismiss)` to dismiss game view
+- Cleans up physics timer before dismissing
+- Calls `timer?.invalidate()` and sets `timer = nil`
+- Smooth transition back to title screen
+- No memory leaks or hanging timers
+
+**Code Structure:**
+```swift
+struct PhysicsDebugMenuView: View {
+    @Environment(\.dismiss) private var dismiss
+    let onEndGame: () -> Void
+    
+    // Shows "End Game" button
+    // Calls onEndGame closure when tapped
+    // Cleanup handled by PhysicsChainGameView
+}
 ```
 
 ---
@@ -880,6 +933,41 @@ ZStack {
 - Physics tuning is subjective - get user feedback
 - Debug output is crucial for invisible bugs
 - Visual debug (colored shapes) helps isolate rendering issues
+
+---
+
+### **Session 25 (April 6, 2026) - Debug Menu with End Game** ✅ COMPLETE
+**Goal:** Add debug menu and End Game button to return to title screen  
+**Status:** ✅ FULLY WORKING!
+
+**Features Added:**
+1. ✅ Wrench icon button in top-right of score header (cyan with white circle)
+2. ✅ Debug menu sheet with NavigationView
+3. ✅ "End Game" button (red, centered, with icon)
+4. ✅ "Cancel" button in navigation bar
+5. ✅ Proper timer cleanup when ending game
+6. ✅ Smooth transition back to title screen
+
+**Files Modified:**
+- `PhysicsChainGameView.swift` - Added debug menu state and sheet
+
+**New Components:**
+- `PhysicsDebugMenuView` - Debug menu view with End Game button
+
+**Testing Completed:**
+1. ✅ Wrench icon appears in score header
+2. ✅ Tapping wrench opens debug menu
+3. ✅ "End Game" button works
+4. ✅ Returns to title screen properly
+5. ✅ Timer cleanup prevents memory leaks
+6. ✅ "Cancel" button closes menu and continues game
+7. ✅ Works on both simulator and physical device
+
+**User Benefits:**
+- Easy exit from game during testing
+- No need to force-quit app
+- Clean return to title screen
+- Works great on physical iPhone for testing
 
 ---
 

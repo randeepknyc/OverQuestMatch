@@ -2,77 +2,33 @@
 //  Match3ContentView.swift
 //  OverQuestMatch3
 //
+//  Match-3 Game Board (no splash/title/map - those are in main app now)
+//
 
 import SwiftUI
 
 struct Match3ContentView: View {
     @State private var viewModel = GameViewModel()
-    @State private var hapticManager = HapticManager()  // ✨ Haptic feedback
-    
-    // Screen management
-    @State private var showSplashScreen = GameConfig.enableDeveloperSplash  // 🎬 Developer splash
-    @State private var showTitleScreen = true
-    @State private var showMapScreen = false
+    @State private var hapticManager = HapticManager()
     @State private var showPauseMenu = false
     @State private var currentGameMode: GameMode = .swap
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ZStack {
-            // ═══════════════════════════════════════════════════════════════
-            // 🎬 LAYER 1: DEVELOPER SPLASH SCREEN (TOP - APPEARS FIRST)
-            // ═══════════════════════════════════════════════════════════════
-            // "IT CAME FROM THE DEEP" - Shows before everything else
-            // Toggle in GameConfig: enableDeveloperSplash = true/false
-            if showSplashScreen {
-                DeveloperSplashView(showSplash: $showSplashScreen)
-                    .transition(.opacity)
-                    .zIndex(2000) // Above everything
+        GameScreen(
+            viewModel: viewModel,
+            hapticManager: hapticManager,
+            showPauseMenu: $showPauseMenu,
+            gameMode: $currentGameMode,
+            onEndGame: {
+                dismiss()
             }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // LAYER 2: MAIN GAME (Only visible when screens dismissed)
-            // ═══════════════════════════════════════════════════════════════
-            if !showTitleScreen && !showMapScreen {
-                GameScreen(viewModel: viewModel, hapticManager: hapticManager, showPauseMenu: $showPauseMenu, gameMode: $currentGameMode)
-                    .onAppear {
-                        // ✨ Wire up haptics to ViewModel and BattleManager
-                        viewModel.hapticManager = hapticManager
-                        viewModel.battleManager.hapticManager = hapticManager
-                    }
-            }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // LAYER 3: MAP SCREEN (Appears after title screen)
-            // ═══════════════════════════════════════════════════════════════
-            if showMapScreen && !showTitleScreen {
-                MapScreenView(showMapScreen: $showMapScreen)
-                    .transition(.opacity)
-            }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // LAYER 4: TITLE SCREEN (Appears after splash screen)
-            // ═══════════════════════════════════════════════════════════════
-            if showTitleScreen && !showSplashScreen {
-                TitleScreenView(showTitleScreen: $showTitleScreen, showMapScreen: $showMapScreen)
-                    .transition(.opacity)
-            }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // LAYER 5: PAUSE MENU (Top level overlay)
-            // ═══════════════════════════════════════════════════════════════
-            if showPauseMenu {
-                PauseMenuView(
-                    isPresented: $showPauseMenu,
-                    viewModel: viewModel,
-                    gameMode: $currentGameMode,
-                    showTitleScreen: $showTitleScreen  // ✅ NEW: Pass binding for END GAME
-                )
-                .transition(.opacity)
-                .zIndex(1000)
-            }
+        )
+        .onAppear {
+            // ✨ Wire up haptics to ViewModel and BattleManager
+            viewModel.hapticManager = hapticManager
+            viewModel.battleManager.hapticManager = hapticManager
         }
-        .animation(.easeInOut(duration: 0.8), value: showSplashScreen)  // ✨ Smooth splash → title transition
-        .animation(.easeInOut(duration: 0.8), value: showTitleScreen)   // ✨ Smooth title → map/game transition
     }
 }
 
@@ -81,6 +37,7 @@ struct GameScreen: View {
     var hapticManager: HapticManager
     @Binding var showPauseMenu: Bool
     @Binding var gameMode: GameMode
+    let onEndGame: () -> Void
     
     // 🛠️ DEBUG MENU
     @State private var showDebugMenu = false
@@ -176,9 +133,27 @@ struct GameScreen: View {
                 
                 // 🛠️ DEBUG MENU OVERLAY
                 if showDebugMenu {
-                    DebugMenuView(viewModel: viewModel, isShowing: $showDebugMenu)
-                        .transition(.opacity)
-                        .zIndex(1500)
+                    Match3DebugMenuView(
+                        viewModel: viewModel,
+                        isShowing: $showDebugMenu,
+                        onEndGame: onEndGame
+                    )
+                    .transition(.opacity)
+                    .zIndex(1500)
+                }
+                
+                // ═══════════════════════════════════════════════════════════════
+                // PAUSE MENU OVERLAY
+                // ═══════════════════════════════════════════════════════════════
+                if showPauseMenu {
+                    PauseMenuView(
+                        isPresented: $showPauseMenu,
+                        viewModel: viewModel,
+                        gameMode: $gameMode,
+                        onEndGame: onEndGame
+                    )
+                    .transition(.opacity)
+                    .zIndex(1000)
                 }
                 
                 // Game over overlay
@@ -196,6 +171,67 @@ struct GameScreen: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+    }
+}
+
+// MARK: - Match-3 Debug Menu with End Game Button
+
+struct Match3DebugMenuView: View {
+    @Bindable var viewModel: GameViewModel
+    @Binding var isShowing: Bool
+    let onEndGame: () -> Void
+    
+    var body: some View {
+        ZStack {
+            // Semi-transparent overlay
+            Color.black.opacity(0.85)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    isShowing = false
+                }
+            
+            VStack(spacing: 30) {
+                // Title
+                Text("🛠️ DEBUG MENU")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.orange)
+                
+                // End Game Button (RED - top of menu)
+                Button(action: {
+                    isShowing = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onEndGame()
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.left.circle.fill")
+                            .font(.system(size: 20))
+                        Text("End Game")
+                            .font(.system(size: 20, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.red)
+                            .shadow(color: .red.opacity(0.3), radius: 8, x: 0, y: 4)
+                    )
+                }
+                .padding(.horizontal, 40)
+                
+                Text("Returns to title screen")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.horizontal, 40)
+                
+                // Existing debug menu content
+                DebugMenuView(viewModel: viewModel, isShowing: $isShowing)
+            }
+        }
     }
 }
 

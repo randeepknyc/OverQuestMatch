@@ -14,6 +14,7 @@ struct AssetsDebugView: View {
     @State private var showCustomOnly = false
     @Binding var gameState: ShopGameState
     @Environment(\.dismiss) private var dismiss
+    let onEndGame: () -> Void
     
     var body: some View {
         NavigationView {
@@ -65,6 +66,21 @@ struct AssetsDebugView: View {
             .navigationTitle("Asset Debug")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onEndGame()
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.left.circle.fill")
+                            Text("End Game")
+                        }
+                        .foregroundColor(.red)
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()

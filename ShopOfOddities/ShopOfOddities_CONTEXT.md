@@ -873,14 +873,21 @@ Required: 🔨  Preferred: ✨
 
 ### **Debug Menu Features:**
 
-**1. Character Forcing:**
+**1. End Game Button:** ✨ NEW (April 6, 2026)
+- Located in top-left of navigation bar (red color)
+- Icon: Arrow left circle + "End Game" text
+- Returns to title screen when tapped
+- Dismisses debug menu first, then dismisses game
+- Proper cleanup of game state
+
+**2. Character Forcing:**
 - Grid of all 15 customer characters
 - **Tap any character** to force them as the current customer
 - Instantly see their scene image in the game (or fallback)
 - Perfect for testing custom scene images
 - Auto-closes after selection
 
-**2. Customer Portraits Section:**
+**3. Customer Portraits Section:**
 - View all 15 customer portrait assets (DEPRECATED - use Scene Images)
 - Shows **✅ Custom** (green) if image found in Assets.xcassets
 - Shows **⚠️ SF Symbol** (orange) if using fallback
@@ -889,21 +896,21 @@ Required: 🔨  Preferred: ✨
   - ✅ Noamron (custom image)
   - ⚠️ All others (SF Symbol fallbacks)
 
-**3. Commentary Icons Section:**
+**4. Commentary Icons Section:**
 - View both commentary character icons (Sword, Ednar)
 - Current status:
   - ✅ Sword (custom image)
   - ⚠️ Ednar (SF Symbol fallback)
 
-**4. Component Icons Section:**
+**5. Component Icons Section:**
 - View all 4 component type icons
 - All show ✅ Custom (structural, enchantment, memory, wildcraft)
 
-**5. Card Backgrounds Section:**
+**6. Card Backgrounds Section:**
 - View all 5 card background images
 - All show ✅ Custom (4 types + cursed variant)
 
-**6. Scene Images Section:** ✨ NEW (April 6, 2026)
+**7. Scene Images Section:** ✨ NEW (April 6, 2026)
 - View all scene-related assets
 - **Shop Layers:** table-bg, shop-background, shop-foreground (not tappable)
 - **Customer Scenes:** scene-bakasura, scene-noamron, etc. (15 total) **→ TAPPABLE!**
@@ -914,7 +921,7 @@ Required: 🔨  Preferred: ✨
 - Tappable scenes show hand tap icon in corner
 - Perfect for testing scene compositing!
 
-**7. Toggle:**
+**8. Toggle:**
 - "Show Only Custom Images" - hides missing placeholders
 - Useful for seeing only completed assets
 

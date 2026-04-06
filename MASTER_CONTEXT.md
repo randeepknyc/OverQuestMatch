@@ -1,8 +1,8 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** April 5, 2026 (Shop of Oddities debug menu + custom assets integration)  
-> **Project Status:** Active Development - Multi-Game Architecture Complete
+> **Last Updated:** April 6, 2026 (Fixed splash/title/map flow - moved to main app)  
+> **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow
 
 ---
 
@@ -15,11 +15,21 @@
 
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
-2. **Physics Chain Game** - ⚠️ CODE COMPLETE - Debugging tile display issue
-3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing, character forcing for portrait testing, side-by-side deck layout, and image-first design
+2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
+3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing + End Game button
 4. **Cooking Game** - 📋 Planned
 5. **Potion Solitaire** - 📋 Planned
 6. **Map Navigation System** - 📋 Planned
+
+### **Testing Flow:**
+**Current (PERFECTED):** Splash → Title → Map → Game Selector → All Games Work  
+**How It Works:**
+- Splash/Title/Map are now in **OverQuestMatch3App.swift** (the main app)
+- All animations and timing from Match-3 preserved (`.easeInOut(duration: 0.8)`)
+- `GameConfig.enableDeveloperSplash` toggle still works
+- Match-3, Physics, and Shop all launch directly to game boards (no looping!)
+- All 3 games have "End Game" buttons in debug menus that return to title screen
+- **Match-3 also has "End Game" in Pause Menu** (☰ hamburger menu → End Game → Confirm)
 
 ---
 
@@ -87,7 +97,10 @@ OverQuestMatch3/ (ROOT)
 │
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
-├─ Navigation/ ✅ (Empty - ready for development)
+├─ Navigation/ ✅ (Game selector + map placeholder for testing)
+│  ├─ MapScreenView.swift (real map with "Continue to Games" button)
+│  ├─ GameSelectorView.swift (debug game picker for device testing)
+│  └─ (Map placeholder removed - using real flow)
 ├─ Utilities/ (Existing - unchanged)
 ├─ Models/ (Existing - mostly empty after migration)
 └─ ReadFilesForContext/ (Documentation and context files)
@@ -95,28 +108,83 @@ OverQuestMatch3/ (ROOT)
 
 ---
 
-## 🎮 DEV SWITCHER SYSTEM
+## 🎮 GAME SELECTOR SYSTEM (TEMPORARY FOR TESTING)
 
-**Location:** `OverQuestMatch3App.swift` (Line 25)
+**Location:** Splash → Title → Map → **Game Selector** → Games
 
+**Purpose:** Easy game switching on physical device for testing
+
+### **Flow:**
+1. **Splash Screen** (if enabled in GameConfig)
+2. **Title Screen** (with animated logo and leaves)
+3. **Map Screen** (shows map image with "Continue to Games" button)
+4. **Game Selector** (3 working games displayed)
+5. **Play Selected Game**
+
+### **Game Selector Features:**
+- Clean list-style interface
+- Shows only working games (Match-3, Physics Chain, Shop of Oddities)
+- Tap any game → Launches full-screen
+- "Back to Map" button to return
+- Clearly labeled as "🎮 DEBUG TEST 🎮"
+
+**To Access:**
+1. Run app (splash/title/map flow)
+2. Tap "Continue to Games" on map screen
+3. See game selector with 3 options
+4. Tap any game to play
+
+**Future Plans:**
+- Replace game selector with direct game launch from map
+- Map will show unlockable game locations
+- Progression system will gate access to games
+
+---
+
+## 🎮 DEBUG MENUS WITH END GAME BUTTONS
+
+### **Physics Chain Game Debug Menu:**
+**Access:** Tap wrench icon (🔧) in top-right of score header
+
+**Features:**
+- "End Game" button (red, centered)
+- Returns to title screen
+- Cleans up physics timer properly
+- "Cancel" button to continue playing
+
+### **Shop of Oddities Debug Menu:**
+**Access:** Tap wrench icon (🔧) in score bar
+
+**Features:**
+- "End Game" button (red, top-left navigation bar)
+- Asset viewer for all custom images
+- Character forcing for testing portraits
+- Returns to title screen
+- "Done" button to continue playing
+
+---
+
+## 🎮 OLD DEV SWITCHER SYSTEM (DEPRECATED)
+
+**Previous Location:** `OverQuestMatch3App.swift` (Line 25)
+
+**Previous Method (No Longer Used):**
 ```swift
 private let currentGame: GameType = .match3
 ```
 
-**Available Game Types:**
+**This has been replaced by:**
+- Splash → Title → Map → Game Selector flow
+- Easier to test on physical devices
+- No code editing required to switch games
+
+**Available Game Types (Still Used Internally):**
 - `.match3` - Match-3 RPG Battle Game (✅ WORKING)
-- `.physicsChain` - Physics Chain Game (⚠️ CODE COMPLETE - tiles not rendering)
+- `.physicsChain` - Physics Chain Game (✅ WORKING)
 - `.shopOfOddities` - Shop of Oddities Card Game (✅ COMPLETE & PLAYABLE)
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)
-
-**How to Switch Games:**
-1. Open `OverQuestMatch3App.swift`
-2. Find line 25: `private let currentGame: GameType = .match3`
-3. Change `.match3` to another game type
-4. Press Command+R to run
-5. App launches with selected game
 
 ---
 
@@ -207,39 +275,71 @@ Each game has its own image sets:
 - Debug menu for testing
 - **Result:** Polished, playable Match-3 RPG battle game
 
-### **Phase 3: Physics Chain Game** ⚠️ IN PROGRESS (March 28, 2026)
+### **Phase 3: Physics Chain Game** ✅ COMPLETE (March 28, 2026)
 - All code files created (6 files, ~700 lines total)
 - Physics engine, spawning, collision detection complete
-- **Issue:** Tiles not rendering on screen (debugging in progress)
-- **Result:** Code complete, troubleshooting display
+- Tiles rendering and falling properly
+- Debug menu added with End Game button (April 6, 2026)
+- **Result:** Fully playable Tsum-Tsum style physics game
 
-### **Phase 4: Shop of Oddities** ✅ COMPLETE (April 5, 2026)
+### **Phase 4: Shop of Oddities** ✅ COMPLETE (April 6, 2026)
 - All data model files created (7 files - added CommentaryManager)
-- All UI component files created (10 files - added CommentaryView + AssetsDebugView)
+- All UI component files created (11 files - added CommentaryView + AssetsDebugView)
 - Game logic fully implemented (deck generation, scoring, repair names)
 - Customer generation with OverQuest characters
 - Persistent collectible catalog (repair ledger)
-- Card draw animations (scale + fade)
+- Card draw animations (scale + fade + 3D flip)
 - Repair result overlay (1.5 second display)
 - New repair discovery banner (1 second display)
 - Character commentary system (Sword + Ednar reactions)
 - Commentary triggers for game events (cursed cards, high scores, customers)
 - Game over/win screens with stats
 - Play Again functionality
-- Custom image asset support (icons + card backgrounds) ✨ (April 5, 2026)
-- Customer portrait support with UIImage loading ✨ (April 5, 2026)
-- Commentary icon support with UIImage loading ✨ (April 5, 2026)
-- Debug menu with asset viewer and character forcing ✨ (April 5, 2026)
-- UI redesign: Side-by-side deck layout (4 decks horizontal) ✨ (April 5, 2026)
-- Removed all bounding boxes and headers for minimalist design ✨ (April 5, 2026)
-- Image-first design philosophy with invisible UI elements ✨ (April 5, 2026)
+- Custom image asset support (icons + card backgrounds)
+- Customer portrait support with UIImage loading
+- Commentary icon support with UIImage loading
+- Debug menu with asset viewer, character forcing, and End Game button
+- UI redesign: Side-by-side deck layout (4 decks horizontal)
+- Removed all bounding boxes and headers for minimalist design
+- Image-first design philosophy with invisible UI elements
+- Card flip animation (3D horizontal flip when drawing)
+- Character slide-in animation (spring bounce from right)
 - **Result:** Fully playable Miracle Merchant-style card game with minimalist, modern design
 
-### **Phase 5: Additional Games** 📋 PLANNED
+### **Phase 5: Game Selector System** ✅ COMPLETE (April 6, 2026)
+- Created MapScreenView.swift (real map with continue button)
+- Created GameSelectorView.swift (debug game picker)
+- Integrated with existing Splash/Title/Map flow
+- Added "Continue to Games" button to map screen
+- Game selector shows 3 working games
+- Easy testing on physical devices
+- No code editing required to switch games
+- **Result:** Seamless testing flow for all games
+
+### **Phase 6: Debug Menu End Game Buttons** ✅ COMPLETE (April 6, 2026)
+- Added debug menu to Physics Chain Game (wrench icon)
+- Added "End Game" button to Physics debug menu (returns to title)
+- Added "End Game" button to Shop of Oddities debug menu (returns to title)
+- Proper cleanup of timers and game state
+- Smooth transitions back to title screen
+- **Result:** Easy exit from any game during testing
+
+### **Phase 7: Splash/Title/Map Flow Fix** ✅ COMPLETE (April 6, 2026)
+- Moved perfected splash/title/map logic from Match3ContentView to main app
+- Preserved all animations (`.easeInOut(duration: 0.8)`)
+- Preserved `GameConfig.enableDeveloperSplash` toggle
+- Simplified Match3ContentView to just show game board
+- Fixed infinite loop bug (Match-3 was showing its own splash/title/map)
+- Added "End Game" button to Match-3 debug menu (returns to title)
+- **Added "End Game" button to Match-3 pause menu** (☰ → End Game → Confirm → returns to title)
+- All games now launch directly to game boards from game selector
+- **Result:** Perfect flow with no looping, all animations intact, multiple exit options
+
+### **Phase 8: Additional Games** 📋 PLANNED
 - Cooking game design and implementation
 - Potion Solitaire design and implementation
 
-### **Phase 6: Map/Navigation Integration** 📋 PLANNED
+### **Phase 9: Map/Navigation Integration** 📋 PLANNED
 - Map screen UI
 - Progress tracking system
 - Level unlock logic
@@ -297,19 +397,23 @@ Each game has its own image sets:
 
 ### **What's Working:**
 - ✅ Project reorganization complete
-- ✅ Dev switcher functional
+- ✅ Game selector flow functional (Splash → Title → Map → Selector → Games)
 - ✅ Match-3 game fully playable
-- ✅ Physics Chain Game code complete
-- ✅ Shop of Oddities fully playable
+- ✅ Physics Chain Game fully playable with debug menu
+- ✅ Shop of Oddities fully playable with debug menu
+- ✅ All games have "End Game" buttons to return to title
+- ✅ Match-3 has TWO ways to end game: Debug menu (🔨) AND Pause menu (☰)
+- ✅ Easy testing on physical devices (no code editing)
 
 ### **What's In Progress:**
-- ⚠️ Physics Chain Game - Debugging tile display issue
+- Nothing! All core systems working
 
 ### **What's Planned:**
 - 📋 Cooking game design & implementation
 - 📋 Potion Solitaire design & implementation
-- 📋 Map/navigation system
+- 📋 Real map/navigation system with game unlocks
 - 📋 Progress tracking system
+- 📋 Story integration
 
 ---
 
@@ -366,8 +470,10 @@ Each game has its own image sets:
 - Game Assets Config: `Shared/GameAssets.swift`
 
 **Common Tasks:**
-- Switch games: Edit `OverQuestMatch3App.swift` line 25
-- Add new game: Create folder + ContentView, add to GameType enum
+- Switch games: Use game selector (Map → "Continue to Games" → Tap game)
+- Test on device: Connect iPhone, select device, Command+R
+- End game: Tap wrench icon in any game → "End Game" button
+- Add new game: Create folder + ContentView, add to GameType enum and GameSelectorView
 - Modify Match-3: Edit files in `Match3Game/` folder
 - Modify Physics Game: Edit files in `PhysicsChainGame/` folder
 - Modify Shop Game: Edit files in `ShopOfOddities/` folder

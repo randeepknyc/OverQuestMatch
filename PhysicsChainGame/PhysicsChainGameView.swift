@@ -3,6 +3,7 @@
 //  OverQuestMatch3 - Physics Chain Game
 //
 //  Created on 3/28/26.
+//  Updated: Added debug menu with End Game button
 //
 
 import SwiftUI
@@ -10,6 +11,8 @@ import SwiftUI
 struct PhysicsChainGameView: View {
     @State private var viewModel: PhysicsGameViewModel?
     @State private var timer: Timer?
+    @State private var showingDebugMenu = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         GeometryReader { geometry in
@@ -26,7 +29,7 @@ struct PhysicsChainGameView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Score header
+                    // Score header with debug button
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("SCORE")
@@ -48,6 +51,19 @@ struct PhysicsChainGameView: View {
                                     .font(.system(size: 36, weight: .bold, design: .rounded))
                                     .foregroundStyle(.orange)
                             }
+                        }
+                        
+                        Spacer()
+                        
+                        // Debug button (wrench icon)
+                        Button(action: {
+                            showingDebugMenu = true
+                        }) {
+                            Image(systemName: "wrench.and.screwdriver.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.cyan)
+                                .padding(8)
+                                .background(Circle().fill(Color.white.opacity(0.2)))
                         }
                     }
                     .padding()
@@ -91,6 +107,14 @@ struct PhysicsChainGameView: View {
                 timer?.invalidate()
                 timer = nil
             }
+            .sheet(isPresented: $showingDebugMenu) {
+                PhysicsDebugMenuView(onEndGame: {
+                    // Clean up and return to title screen
+                    timer?.invalidate()
+                    timer = nil
+                    dismiss()
+                })
+            }
         }
     }
     
@@ -101,6 +125,77 @@ struct PhysicsChainGameView: View {
         // Start physics timer (60 FPS)
         timer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { _ in
             viewModel?.updatePhysics()
+        }
+    }
+}
+
+// MARK: - Physics Debug Menu
+
+struct PhysicsDebugMenuView: View {
+    @Environment(\.dismiss) private var dismiss
+    let onEndGame: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 30) {
+                Spacer()
+                
+                VStack(spacing: 16) {
+                    // Icon
+                    Image(systemName: "arrow.left.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.red)
+                    
+                    // Title
+                    Text("End Game?")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    // Description
+                    Text("Return to title screen")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // End Game Button
+                Button(action: {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onEndGame()
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.left.circle.fill")
+                            .font(.system(size: 20))
+                        Text("End Game")
+                            .font(.system(size: 20, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.red)
+                            .shadow(color: .red.opacity(0.3), radius: 8, x: 0, y: 4)
+                    )
+                }
+                .padding(.horizontal, 40)
+                
+                Spacer()
+                    .frame(height: 20)
+            }
+            .padding()
+            .navigationTitle("Debug Menu")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

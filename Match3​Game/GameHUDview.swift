@@ -55,7 +55,7 @@ struct PauseMenuView: View {
     @Binding var isPresented: Bool
     @Bindable var viewModel: GameViewModel
     @Binding var gameMode: GameMode
-    @Binding var showTitleScreen: Bool
+    let onEndGame: () -> Void
     
     @State private var showEndGameConfirmation = false
     
@@ -168,11 +168,11 @@ struct PauseMenuView: View {
                 EndGameConfirmationDialog(
                     isPresented: $showEndGameConfirmation,
                     onConfirm: {
-                        viewModel.resetGame()
-                        withAnimation {
-                            showEndGameConfirmation = false
-                            isPresented = false
-                            showTitleScreen = true
+                        showEndGameConfirmation = false
+                        isPresented = false
+                        // Small delay to allow menu animations to complete
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onEndGame()
                         }
                     }
                 )
