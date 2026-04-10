@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** April 6, 2026 (Fixed splash/title/map flow - moved to main app)  
+> **Last Updated:** April 9, 2026 (Shop of Oddities layout optimization)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow
 
 ---
@@ -16,7 +16,7 @@
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
-3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing + End Game button
+3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing + End Game button, optimized layout (April 9, 2026)
 4. **Cooking Game** - 📋 Planned
 5. **Potion Solitaire** - 📋 Planned
 6. **Map Navigation System** - 📋 Planned
@@ -304,7 +304,8 @@ Each game has its own image sets:
 - Image-first design philosophy with invisible UI elements
 - Card flip animation (3D horizontal flip when drawing)
 - Character slide-in animation (spring bounce from right)
-- **Result:** Fully playable Miracle Merchant-style card game with minimalist, modern design
+- **Layout optimization (April 9, 2026):** Edge-to-edge score bar, bigger decks (36% vs 30%), bigger repair area (20% vs 17.7%), removed "COMPONENT DECKS" label, doubled deck spacing (12pt vs 6pt), scene preserved at 38%
+- **Result:** Fully playable Miracle Merchant-style card game with minimalist, modern design and optimized layout
 
 ### **Phase 5: Game Selector System** ✅ COMPLETE (April 6, 2026)
 - Created MapScreenView.swift (real map with continue button)
@@ -335,11 +336,27 @@ Each game has its own image sets:
 - All games now launch directly to game boards from game selector
 - **Result:** Perfect flow with no looping, all animations intact, multiple exit options
 
-### **Phase 8: Additional Games** 📋 PLANNED
+### **Phase 8: Shop of Oddities Layout Optimization** ✅ COMPLETE (April 9, 2026)
+- Complete layout restructuring for better space utilization
+- Edge-to-edge score bar with preserved text positioning
+- Removed gap between score bar and scene view
+- Scene view preserved at 38% (no reduction)
+- Commentary shrunk to 4% (from 5%)
+- Gap 3 reduced to 3.5% (from 5.5%)
+- Repair area increased to 20% (from 17.7%) - cards visibly bigger
+- Gap 4 reduced to 3% (from 6%) - decks moved up
+- Decks area increased to 36% (from 30%) - significantly bigger
+- Deck spacing doubled to 12pt (from 6pt) - more breathing room
+- "COMPONENT DECKS" label removed - cleaner minimalist aesthetic
+- Changed padding strategy: individual section padding vs VStack padding
+- Score bar refactored to function accepting GeometryProxy for edge-to-edge calculation
+- **Result:** Optimized layout with bigger playable elements, preserved scene prominence, and improved visual hierarchy
+
+### **Phase 9: Additional Games** 📋 PLANNED
 - Cooking game design and implementation
 - Potion Solitaire design and implementation
 
-### **Phase 9: Map/Navigation Integration** 📋 PLANNED
+### **Phase 10: Map/Navigation Integration** 📋 PLANNED
 - Map screen UI
 - Progress tracking system
 - Level unlock logic

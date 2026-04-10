@@ -60,6 +60,8 @@
 		7F2ADE782F835C150078EF4E /* ShopSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE772F835C0D0078EF4E /* ShopSceneView.swift */; };
 		7F2ADE7A2F838AE80078EF4E /* ANIMATION_UPDATE_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE792F838AE80078EF4E /* ANIMATION_UPDATE_SUMMARY.md */; };
 		7F2ADE7E2F838EC30078EF4E /* GameSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2ADE7C2F838CFE0078EF4E /* GameSelectorView.swift */; };
+		7F2ADE802F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE7F2F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md */; };
+		7F2ADE822F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F2ADE812F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md */; };
 		7F2E278E2F6289A600FE7B0E /* ChainComboEfffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */; };
 		7F31244F2F7249A200316079 /* POISON_PILL_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F31244E2F7249A200316079 /* POISON_PILL_SYSTEM.md */; };
 		7F3124512F7249C000316079 /* POISON_PILL_COMPLETE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */; };
@@ -165,6 +167,8 @@
 		7F2ADE772F835C0D0078EF4E /* ShopSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopSceneView.swift; sourceTree = "<group>"; };
 		7F2ADE792F838AE80078EF4E /* ANIMATION_UPDATE_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_UPDATE_SUMMARY.md; sourceTree = "<group>"; };
 		7F2ADE7C2F838CFE0078EF4E /* GameSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSelectorView.swift; sourceTree = "<group>"; };
+		7F2ADE7F2F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SHOP_LAYOUT_TWEAKING_GUIDE.md; sourceTree = "<group>"; };
+		7F2ADE812F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md; sourceTree = "<group>"; };
 		7F2E278D2F6289A600FE7B0E /* ChainComboEfffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChainComboEfffects.swift; sourceTree = "<group>"; };
 		7F31244E2F7249A200316079 /* POISON_PILL_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_SYSTEM.md; sourceTree = "<group>"; };
 		7F3124502F7249C000316079 /* POISON_PILL_COMPLETE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = POISON_PILL_COMPLETE.md; sourceTree = "<group>"; };
@@ -275,6 +279,7 @@
 				7F2ADE6B2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md */,
 				7F2ADE712F832B040078EF4E /* SESSION_SUMMARY_CUSTOM_ASSETS.md */,
 				7F2ADE792F838AE80078EF4E /* ANIMATION_UPDATE_SUMMARY.md */,
+				7F2ADE7F2F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md */,
 			);
 			path = ShopOfOddities;
 			sourceTree = "<group>";
@@ -431,6 +436,7 @@
 				7F2ADE6D2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md */,
 				7F2ADE6F2F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md */,
 				7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */,
+				7F2ADE812F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -544,6 +550,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7F0095352F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md in Resources */,
+				7F2ADE822F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md in Resources */,
 				7F0094ED2F6E2B1D00E10AEB /* blocking_nonblocking 2.md in Resources */,
 				7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */,
 				7F5574A02F78722000081E01 /* MASTER_CONTEXT.md in Resources */,
@@ -590,6 +597,7 @@
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
 				7F55748D2F7867EE00081E01 /* QUICK_START_PHYSICS_CHAIN.md in Resources */,
+				7F2ADE802F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

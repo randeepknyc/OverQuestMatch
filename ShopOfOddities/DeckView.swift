@@ -3,7 +3,7 @@
 //  OverQuestMatch3 - Shop of Oddities
 //
 //  Created on 4/4/26.
-//  Deck display with top card preview (fanned arc with ghost cards + flip animation)
+//  Deck display with top card preview (ghost cards + flip animation - NO ROTATION)
 //
 
 import SwiftUI
@@ -14,7 +14,7 @@ struct DeckView: View {
     let topCard: ComponentCard?
     let cardsRemaining: Int
     let canDraw: Bool
-    let rotationDegrees: Double
+    let rotationDegrees: Double // ← Keep parameter for backward compatibility (not used)
     let onTap: () -> Void
     
     // MARK: - Animation State
@@ -33,11 +33,10 @@ struct DeckView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            // Deck stack (rotated)
+            // Deck stack (NO rotation applied - straight horizontal row)
             deckStack
-                .rotationEffect(.degrees(rotationDegrees), anchor: .bottom)
             
-            // Card count (NOT rotated, stays horizontal)
+            // Card count (stays horizontal)
             Text("\(cardsRemaining)")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white.opacity(0.6))
@@ -97,13 +96,14 @@ struct DeckView: View {
     
     /// Creates a card back visual showing a stack of cards behind the top card
     /// Uses the custom card-background.png image for all decks
+    /// Ghost cards keep their slight rotation for visual depth
     private func cardBackStack(rotation: Double, offsetX: CGFloat, offsetY: CGFloat) -> some View {
         Image("card-background")
             .resizable()
             .aspectRatio(0.65, contentMode: .fill)
             .frame(width: cardWidth, height: cardHeight)
             .cornerRadius(8)
-            .rotationEffect(.degrees(rotation), anchor: .bottom)
+            .rotationEffect(.degrees(rotation), anchor: .bottom) // ← Ghost cards still rotate
             .offset(x: offsetX, y: offsetY)
             .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
     }
@@ -151,7 +151,7 @@ struct DeckView: View {
                 ),
                 cardsRemaining: 5,
                 canDraw: true,
-                rotationDegrees: -12,
+                rotationDegrees: 0, // ← No longer used
                 onTap: { print("Tapped structural deck") }
             )
             
@@ -167,7 +167,7 @@ struct DeckView: View {
                 ),
                 cardsRemaining: 2,
                 canDraw: true,
-                rotationDegrees: 4,
+                rotationDegrees: 0, // ← No longer used
                 onTap: { print("Tapped enchantment deck") }
             )
             
@@ -183,7 +183,7 @@ struct DeckView: View {
                 ),
                 cardsRemaining: 1,
                 canDraw: true,
-                rotationDegrees: 12,
+                rotationDegrees: 0, // ← No longer used
                 onTap: { print("Tapped memory deck") }
             )
             
@@ -193,7 +193,7 @@ struct DeckView: View {
                 topCard: nil,
                 cardsRemaining: 0,
                 canDraw: false,
-                rotationDegrees: 0,
+                rotationDegrees: 0, // ← No longer used
                 onTap: { print("Empty deck tapped") }
             )
         }

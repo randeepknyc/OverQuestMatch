@@ -2,7 +2,7 @@
 **OverQuestMatch3 - Ednar's Shop of Oddities (Card Repair Game)**
 
 > **Created:** April 4, 2026  
-> **Last Updated:** April 6, 2026 (Added card flip + character slide-in animations)  
+> **Last Updated:** April 9, 2026 (Major layout optimization - balanced approach)  
 > **Game Status:** ✅ COMPLETE & FULLY PLAYABLE - Ready for custom artwork  
 > **Game Type:** Miracle Merchant-style Card Solitaire
 
@@ -725,30 +725,34 @@ All major actions print to console:
 
 ## 🎮 USER INTERFACE
 
-### **Screen Layout (Portrait):** ✨ UPDATED (April 6, 2026)
+### **Screen Layout (Portrait):** ✨ UPDATED (April 9, 2026 - Layout Optimization)
 
 ```
 ┌─────────────────────────────────────────┐
-│  ⭐ 123      👤 5/13            🔧      │ ← Score bar (5% height)
-├─────────────────────────────────────────┤
+│══⭐ 123     👤 5/13         🔧══════════│ ← Score bar (5% height) EDGE-TO-EDGE
 │                                         │
-│      [Shop Scene Illustration]          │ ← Scene View (38% height)
+│      [Shop Scene Illustration]          │ ← Scene View (38% height) PRESERVED
 │      (3-layer composite + overlay)      │   Background + Customer + Foreground
 │      Customer: Bakasura                 │   + Semi-transparent info box
-│      Cracked Shield                     │
+│      Cracked Shield                     │   NO GAP ABOVE (touches score bar)
 │      Required: 🔨  Preferred: ✨        │
 │                                         │
 ├─────────────────────────────────────────┤
-│   [Character Commentary Area]           │ ← Commentary (5% height)
+│   [Character Commentary Area]           │ ← Commentary (4% height) SHRUNK
+├─────────────────────────────────────────┤
+│   ~~~~ GAP (3.5%) ~~~~                  │ ← Gap reduced for compactness
 ├─────────────────────────────────────────┤
 │                                         │
-│   [Card] [Card] [    ] [    ]          │ ← Repair area (16% height)
+│   [CARD] [CARD] [CARD] [CARD]          │ ← Repair area (20% height) BIGGER!
 │                                         │   Invisible slots until filled
 ├─────────────────────────────────────────┤
+│   ~~~~ GAP (3%) ~~~~                    │ ← Gap reduced (decks moved up)
+├─────────────────────────────────────────┤
 │                                         │
-│  👻 [Deck] 👻  [Deck]  [Deck] 👻 [Deck] │ ← 4 fanned decks (30% height)
-│  -12°  -4°   +4°  +12°                 │   Ghost cards + count badges
-│   13    13    13    13                 │   Side-by-side arc
+│  👻 [DECK]  [DECK]  [DECK]  [DECK] 👻  │ ← 4 fanned decks (36% height) BIGGER!
+│     ↑       ↑       ↑       ↑          │   12pt spacing (doubled!)
+│   -12°     -4°     +4°     +12°        │   NO LABEL (removed)
+│    13      13      13      13          │   Ghost cards + count badges
 │                                         │
 └─────────────────────────────────────────┘
 ```
@@ -1353,9 +1357,56 @@ enum GameType {
 **Custom Assets:** 12 images complete (4 icons + 5 card backgrounds + 2 portraits + 1 commentary icon)  
 **Remaining Assets:** 7-8 images (6 more portraits + 1 more commentary icon + optional shop background)
 
-**Last Updated:** April 6, 2026 (Added card flip + character slide-in animations)  
-**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + scene composite system + overlay fix + animations  
-**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic, edge-to-edge layouts, and polished animations
+**Last Updated:** April 9, 2026 (Major layout optimization - balanced approach preserving scene size)  
+**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + scene composite system + overlay fix + animations + layout optimization  
+**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic, edge-to-edge layouts, polished animations, and optimized spacing
+
+**Layout Optimization (April 9, 2026):** ✨ NEW
+
+**Goals Achieved:**
+1. ✅ Score bar background extends edge-to-edge (text stays centered)
+2. ✅ Scene view touches score bar (removed 8pt gap)
+3. ✅ Decks moved up closer to repair area (better use of space)
+4. ✅ Decks and repair cards significantly bigger (more prominent)
+5. ✅ Scene view preserved at 38% (no reduction)
+6. ✅ "COMPONENT DECKS" label removed (cleaner minimalist look)
+
+**Detailed Layout Changes:**
+
+| Section | OLD % | NEW % | Change | Notes |
+|---------|-------|-------|--------|-------|
+| **Score Bar** | 5.0% | 5.0% | No change | ✨ Edge-to-edge background added |
+| **Gap 1 (Score→Scene)** | 8pt | **REMOVED** | Deleted | Scene now touches score bar |
+| **Scene View** | 38.0% | 38.0% | **PRESERVED** | Kept large as requested |
+| **Gap 2 (Scene→Commentary)** | 8pt | 8pt | No change | Fixed padding |
+| **Commentary** | 5.0% | **4.0%** | -1.0% | Slightly smaller but still readable |
+| **Gap 3 (Commentary→Repair)** | 5.5% | **3.5%** | -2.0% | More compact |
+| **Repair Area** | 17.7% | **20.0%** | +2.3% | ⬆️ Cards visibly bigger! |
+| **Gap 4 (Repair→Decks)** | 6.0% | **3.0%** | -3.0% | ⬆️ Decks moved up significantly! |
+| **Decks Area** | 30.0% | **36.0%** | +6.0% | ⬆️ Deck cards much bigger! |
+| **Deck Spacing** | 6pt | **12pt** | +6pt | Doubled gap between deck cards |
+| **Deck Label** | Shown | **REMOVED** | Deleted | "COMPONENT DECKS" text gone |
+| **Gap 5 (Bottom)** | 8pt | 8pt | No change | Breathing room |
+
+**Technical Implementation:**
+- **Edge-to-edge score bar:** Uses ZStack with geometry-aware background that extends full screen width
+- **Text positioning preserved:** Increased horizontal padding from 16pt → 28pt to compensate for removed VStack padding
+- **Padding strategy change:** Removed `.padding(.horizontal, 12)` from VStack, applied individually to each section
+- **Score bar function:** Changed from computed var to function accepting `GeometryProxy` for full-width calculation
+
+**Visual Impact:**
+- More immersive (score bar feels like true HUD overlay)
+- Better space utilization (no wasted gaps)
+- Bigger playable elements (decks and repair cards are the stars)
+- Cleaner minimalist aesthetic (removed label clutter)
+- Scene remains prominent focal point (38% preserved)
+- Decks more accessible and visible (36% vs 30%)
+
+**Net Percentage Change:** -1.0% - 2.0% + 2.3% - 3.0% + 6.0% = **+2.3%** (accommodated by removing fixed gaps)
+
+**File Modified:** ShopOfOdditiesView.swift (complete rewrite of layout structure)
+
+---
 
 **UI Changes (April 5, 2026):**
 - Removed all bounding boxes and borders from cards
