@@ -230,7 +230,8 @@ struct ShopSceneView: View {
             if let foregroundImage = UIImage(named: "shop-foreground") {
                 Image(uiImage: foregroundImage)
                     .resizable()
-                    .scaledToFill()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // No foreground image, show nothing
                 EmptyView()

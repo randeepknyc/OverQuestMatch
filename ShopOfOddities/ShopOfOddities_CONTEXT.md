@@ -2,8 +2,8 @@
 **OverQuestMatch3 - Ednar's Shop of Oddities (Card Repair Game)**
 
 > **Created:** April 4, 2026  
-> **Last Updated:** April 9, 2026 (Major layout optimization - balanced approach)  
-> **Game Status:** ✅ COMPLETE & FULLY PLAYABLE - Ready for custom artwork  
+> **Last Updated:** April 10, 2026 (Progressive card reveal system - Cards stay face-down until previous card placed)  
+> **Game Status:** ✅ COMPLETE & FULLY PLAYABLE - Polished with AAA-quality UI + Smart Positioning + Progressive Reveal  
 > **Game Type:** Miracle Merchant-style Card Solitaire
 
 ---
@@ -44,18 +44,22 @@ ShopOfOddities/
 │  ├─ ShopGameState.swift (Main game logic and state management + debug forcing)
 │  └─ CommentaryManager.swift (Character commentary system)
 │
+├─ Configuration (2 files) ✅ ✨ UPDATED (April 10, 2026)
+│  ├─ ShopLayoutConfig.swift (Centralized UI configuration - all layout values)
+│  └─ ShopDebugSettings.swift (Debug settings - ObservableObject for reactive toggles) ✨ NEW
+│
 └─ UI Components (11 files) ✅
-   ├─ ShopOfOdditiesView.swift (Main game screen with debug button)
-   ├─ ShopSceneView.swift (3-layer scene composite with slide-in animation) ✨ UPDATED (April 6, 2026)
-   ├─ ComponentCardView.swift (Visual card component)
-   ├─ DeckView.swift (Deck display with top card + flip animation) ✨ UPDATED (April 6, 2026)
-   ├─ RepairSlotView.swift (Visual repair slot with animations)
+   ├─ ShopOfOdditiesView.swift (Main game screen with debug button + animation phases)
+   ├─ ShopSceneView.swift (3-layer scene composite with slide-in animation)
+   ├─ ComponentCardView.swift (Visual card component + debug settings observer) ✨ UPDATED
+   ├─ DeckView.swift (Deck display with deal/flip animations + drag-and-drop) ✨ UPDATED
+   ├─ RepairSlotView.swift (Visual repair slot with drop target feedback)
    ├─ CustomerView.swift (Customer display panel with custom portraits)
    ├─ RepairResultOverlay.swift (Success popup after repair)
    ├─ ShopGameOverOverlay.swift (Win/lose screen with stats)
    ├─ NewRepairDiscoveredBanner.swift (New repair notification banner)
    ├─ CommentaryView.swift (Character commentary display with custom icons)
-   └─ AssetsDebugView.swift (Debug menu for testing custom assets + character forcing) ✨ NEW
+   └─ AssetsDebugView.swift (Debug menu for asset testing + character forcing + toggles) ✨ UPDATED
 ```
 
 ---
@@ -556,36 +560,66 @@ Create 3 separate layer groups or canvases:
 - Value types (structs) for all data models ✅
 - Class for game state management ✅
 
-### **Animation System:** ✨ UPDATED (April 6, 2026)
+### **Animation System:** ✨ UPDATED (April 11, 2026)
 
-**Card Flip Animation (DeckView.swift):**
-- **State:** `@State private var isFlipping: Bool = false`
-- **Effect:** `.rotation3DEffect(.degrees(isFlipping ? 90 : 0), axis: (x: 0.0, y: 1.0, z: 0.0))`
-- **Timing:** 0.15s ease-in animation
-- **Flow:**
-  1. User taps deck
-  2. `isFlipping` set to `true` → Card rotates to 90° + fades out
-  3. After 0.15s, `onTap()` callback fires (draws card)
-  4. `isFlipping` reset to `false` → New card appears
-- **Visual:** Smooth 3D horizontal flip with perspective depth
-- **Why:** Eliminates "weird visual effect" of instant card replacement
+**Opening Animations (Deal + Flip):**
+- **Deal animation:** Cards slide up from below (300pt offset, staggered 0.12s)
+- **Opening flip:** 3D face-down to face-up reveal (staggered 0.15s, 0.4s duration)
+- **Animation phase system:** `.dealing` → `.flipping` → `.ready`
+- All animations configurable via ShopLayoutConfig
 
-**Character Slide-In Animation (ShopSceneView.swift):**
-- **Transition:** `.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity)`
-- **Animation:** `.spring(response: 0.5, dampingFraction: 0.8)`
-- **Flow:**
-  1. Customer changes (repair completes)
-  2. Old customer fades out (`.opacity` removal)
-  3. New customer slides in from right (`.trailing`) + fades in
-  4. Spring physics creates subtle bounce effect
-- **Visual:** Natural entrance like customer walking into shop
-- **Why:** More engaging than simple fade, feels alive
+**Progressive Card Reveal System:** ✨ NEW (April 10-11, 2026)
+- After opening animation, subsequent cards in each deck start **face-down**
+- When user drags a card from a deck, next card underneath is face-down (creates suspense)
+- When user **places** the dragged card in repair area, face-down card **flips to face-up**
+- Each deck manages its own flip state independently
+- Triggered by UUID-based system (`flipTriggerID` from parent view)
 
-**Current Animation Parameters:**
-- Card flip speed: 0.15s (adjustable via `duration` parameter)
-- Character slide response: 0.5s (how long animation takes)
-- Character bounce: 0.8 dampingFraction (0.5 = bouncy, 1.0 = no bounce)
-- All animations use `.easeInOut` or `.spring` for smooth motion
+**Progressive Flip Animation Details:**
+- **Always-render approach:** Both card back and card face rendered simultaneously
+- **Opacity-based visibility:** Views fade in/out rather than being added/removed
+- **Smooth crossfade:** Controlled by `opacityOverlap` parameter (5° default)
+- **3D rotation:** Horizontal flip around Y-axis with perspective
+- **Animator controls:** Easily adjustable timing, easing, and crossfade parameters
+
+**Flip Animation Flow:**
+1. Card revealed face-down after previous card drawn (`showingCardBack = true`)
+2. User places card → Parent triggers `flipTriggerID = UUID()`
+3. Deck receives trigger → Calls `triggerFlipAnimation()`
+4. Animation runs: 0° → 90° (crossfade at swap angle) → 180°
+5. **Counter-rotation applied (progressive reveal only):** When flipAngle > swapAngle AND animationPhase == .ready, card face is horizontally flipped to prevent mirroring
+6. Completes: Resets to 0°, marks `hasFlippedThisCard = true`
+7. Card now face-up and ready for next draw
+8. **Note:** Counter-rotation only applies during progressive reveal, not during opening animation
+6. Card now face-up and ready for next draw
+
+**Animator-Friendly Controls (DeckView.swift):**
+- `flipDuration: Double = 0.4` - Total flip duration in seconds
+- `flipCurve: Animation = .linear` - Easing curve (.linear, .easeIn, .easeOut, .easeInOut)
+- `swapAngle: Double = 90` - Rotation angle to swap views (90° = edge-on)
+- `opacityOverlap: Double = 5` - Crossfade overlap in degrees (0° = instant, 10° = smooth)
+
+**Current Animation Status (April 11, 2026):**
+- ✅ Opening animations work perfectly (deal + flip together)
+- ✅ Progressive reveal triggers correctly (UUID-based)
+- ✅ Flip animation runs smoothly in most cases
+- ⚠️ Minor visual glitches still present (occasional disappearing during flip)
+- 🔧 Needs final tuning of opacity calculations
+
+**Other Animations (Existing):**
+- Card placement: 0.3s spring animation (scale 0.5→1.0, fade in) ✅
+- Repair resolution: 0.5s delay before evaluation ✅
+- Result overlay: 1.5s display duration ✅
+- New repair banner: 1s display duration ✅
+- Commentary display: 2s display duration with fade in/out ✅
+- Overlay transitions: Scale + opacity combined ✅
+
+**Drag-and-Drop Animation (Existing):**
+- Drag gesture with ghost card left behind (30% opacity) ✅
+- Card scales (1.1×) and becomes transparent (85%) while dragging ✅
+- Colored shadow follows card (deck color, 12pt radius) ✅
+- Snap-to-slot animation (0.25s) or spring-back-to-deck (0.3s) ✅
+- Master toggle in config (`dragEnabled`) ✅
 
 ### **Layout & Geometry:**
 - **Dual Geometry Reading for Edge-to-Edge Overlays:** ✨ NEW (April 6, 2026)
@@ -866,7 +900,7 @@ Required: 🔨  Preferred: ✨
 
 ---
 
-## 🔧 DEBUG MENU ✨ NEW (April 5, 2026)
+## 🔧 DEBUG MENU ✨ UPDATED (April 10, 2026)
 
 ### **Accessing the Debug Menu:**
 
@@ -884,14 +918,25 @@ Required: 🔨  Preferred: ✨
 - Dismisses debug menu first, then dismisses game
 - Proper cleanup of game state
 
-**2. Character Forcing:**
+**2. Debug Toggles:** ✨ UPDATED (April 10, 2026)
+- **"Show Only Custom Images"** (gray background) - Hides missing placeholders, shows only completed assets
+- **"Hide Card Text Overlay"** (purple background) ✨ NEW - Shows ONLY card background images
+  - Hides all text, values, names, and icons on cards
+  - Perfect for verifying face-down/face-up card images are working correctly
+  - Helps test the progressive card reveal system
+  - Toggle ON: See just the raw card images (structural, enchantment, memory, wildcraft, cursed)
+  - Toggle OFF: Normal cards with all text visible
+  - Setting is persistent (saved between app launches via UserDefaults)
+  - Powered by `ShopDebugSettings.shared` (ObservableObject singleton)
+
+**3. Character Forcing:**
 - Grid of all 15 customer characters
 - **Tap any character** to force them as the current customer
 - Instantly see their scene image in the game (or fallback)
 - Perfect for testing custom scene images
 - Auto-closes after selection
 
-**3. Customer Portraits Section:**
+**4. Customer Portraits Section:**
 - View all 15 customer portrait assets (DEPRECATED - use Scene Images)
 - Shows **✅ Custom** (green) if image found in Assets.xcassets
 - Shows **⚠️ SF Symbol** (orange) if using fallback
@@ -900,21 +945,21 @@ Required: 🔨  Preferred: ✨
   - ✅ Noamron (custom image)
   - ⚠️ All others (SF Symbol fallbacks)
 
-**4. Commentary Icons Section:**
+**5. Commentary Icons Section:**
 - View both commentary character icons (Sword, Ednar)
 - Current status:
   - ✅ Sword (custom image)
   - ⚠️ Ednar (SF Symbol fallback)
 
-**5. Component Icons Section:**
+**6. Component Icons Section:**
 - View all 4 component type icons
 - All show ✅ Custom (structural, enchantment, memory, wildcraft)
 
-**6. Card Backgrounds Section:**
+**7. Card Backgrounds Section:**
 - View all 5 card background images
 - All show ✅ Custom (4 types + cursed variant)
 
-**7. Scene Images Section:** ✨ NEW (April 6, 2026)
+**8. Scene Images Section:** ✨ NEW (April 6, 2026)
 - View all scene-related assets
 - **Shop Layers:** table-bg, shop-background, shop-foreground (not tappable)
 - **Customer Scenes:** scene-bakasura, scene-noamron, etc. (15 total) **→ TAPPABLE!**
@@ -924,10 +969,6 @@ Required: 🔨  Preferred: ✨
 - Preview thumbnails in 1.2:1 aspect ratio
 - Tappable scenes show hand tap icon in corner
 - Perfect for testing scene compositing!
-
-**8. Toggle:**
-- "Show Only Custom Images" - hides missing placeholders
-- Useful for seeing only completed assets
 
 ### **Debug Workflow:**
 
@@ -952,6 +993,58 @@ Required: 🔨  Preferred: ✨
 - Uses `UIImage(named:)` to check if asset exists
 - Automatic fallback to SF Symbol if not found
 - No crashes if images missing
+
+**Debug Toggle System:** ✨ NEW (April 10, 2026)
+- `ShopDebugSettings.swift` - ObservableObject class with singleton pattern
+- `@Published var hideCardTextOverlay` - Reactive property that triggers UI updates
+- Manual UserDefaults persistence (saves on `didSet`, loads in `init()`)
+- ComponentCardView observes settings via `@ObservedObject`
+- AssetsDebugView binds to `$debugSettings.hideCardTextOverlay`
+- Changes propagate instantly to all card views
+
+---
+
+## ⚠️ KNOWN ISSUES & WORKAROUNDS
+
+### **Xcode Crash Issue with ShopLayoutConfig.swift** ✨ DISCOVERED (April 10, 2026)
+
+**Problem:**
+- ShopLayoutConfig.swift causes Xcode to **crash when edited directly**
+- Typing or making changes in the file triggers an immediate crash
+- Issue persists across Xcode sessions
+
+**Root Cause:**
+- Unknown (possibly file corruption or Xcode index issue)
+- Initially caused by duplicate `ShopDebugSettings` class definition (now resolved)
+- File is currently stable but sensitive to modifications
+
+**Safe Workaround:**
+1. **Never type directly** in ShopLayoutConfig.swift
+2. **Always use copy/paste full file replacement:**
+   - Copy entire replacement code
+   - Open ShopLayoutConfig.swift
+   - Press Command+A (select all)
+   - Press Delete
+   - Paste new code
+   - Press Command+S (save)
+3. **Test save immediately** after pasting to ensure stability
+
+**Current Status (April 10, 2026):**
+- ✅ File is clean (no duplicate class definitions)
+- ✅ File compiles successfully
+- ✅ File saves successfully when using copy/paste method
+- ⚠️ Direct editing still causes crashes
+
+**Other Files:**
+- All other Shop of Oddities files work normally
+- Only ShopLayoutConfig.swift exhibits this behavior
+
+**If Crash Occurs:**
+- Restore from version control or backup
+- Use copy/paste method instead of direct editing
+- Never save partial edits
+
+---
 
 ---
 
@@ -1352,14 +1445,14 @@ enum GameType {
 **END OF SHOP OF ODDITIES CONTEXT**
 
 **Game Status:** Fully playable Miracle Merchant-style card game with character commentary and custom artwork  
-**Total Files:** 18 files (7 data models + 11 UI components)  
-**Total Lines of Code:** ~2,300 lines  
+**Total Files:** 19 files (7 data models + 2 config files + 11 UI components) ✨ UPDATED (April 10, 2026)  
+**Total Lines of Code:** ~2,400 lines  
 **Custom Assets:** 12 images complete (4 icons + 5 card backgrounds + 2 portraits + 1 commentary icon)  
 **Remaining Assets:** 7-8 images (6 more portraits + 1 more commentary icon + optional shop background)
 
-**Last Updated:** April 9, 2026 (Major layout optimization - balanced approach preserving scene size)  
-**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + scene composite system + overlay fix + animations + layout optimization  
-**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic, edge-to-edge layouts, polished animations, and optimized spacing
+**Last Updated:** April 10, 2026 (Debug toggle system + Xcode stability workaround)  
+**Implementation Time:** Single development session + commentary feature + custom image integration + UI redesign + scene composite system + overlay fix + animations + layout optimization + debug toggles  
+**Status:** ✅ COMPLETE - Clean, minimalist design with image-first aesthetic, edge-to-edge layouts, polished animations, optimized spacing, and in-game debug controls
 
 **Layout Optimization (April 9, 2026):** ✨ NEW
 
@@ -1442,4 +1535,321 @@ enum GameType {
 - All images have SF Symbol fallbacks (no crashes if missing) ✅
 - Code updated: ComponentCardView.swift, CustomerView.swift, CommentaryView.swift, ShopSceneView.swift ✅
 - Procreate workflow documented with canvas sizes ✅
+
+---
+
+## 🎨 UI OVERHAUL (APRIL 10, 2026)
+
+**Complete UI Redesign:** 5-step comprehensive overhaul focusing on layout centralization, animations, and drag-and-drop interaction.
+
+### **Step 1: Layout Centralization** ✅ COMPLETE
+**Goal:** Move all hardcoded layout values to a single config file for easy tweaking.
+
+**Created:** `ShopLayoutConfig.swift` - Central configuration hub
+- All section heights (score bar, scene, commentary, counter, decks)
+- All spacing values (gaps, padding, card spacing)
+- All animation parameters (deal, flip, drag-and-drop)
+- All visual styles (colors, opacities, shadows)
+- Ghost card configuration (count, rotation, offset, opacity)
+- Deck rotation configuration (per-deck fan effect)
+
+**Files Modified:**
+- Created `ShopLayoutConfig.swift` (184 lines)
+- Updated `ShopOfOdditiesView.swift` to reference config
+- Updated `DeckView.swift` to reference config
+- Updated `RepairSlotView.swift` to reference config
+- Updated `ComponentCardView.swift` to reference config
+
+**Benefits:**
+- ✅ Single source of truth for all layout values
+- ✅ Easy to experiment with different layouts
+- ✅ No hunting through multiple files to change spacing
+- ✅ Consistent naming conventions
+- ✅ Well-documented with comments explaining each value
+
+---
+
+### **Step 2: Opening Animations (Deal + Flip)** ✅ COMPLETE
+**Goal:** Add polished game-start animations where cards deal face-down and flip face-up.
+
+**Animation Sequence:**
+1. **Deal Animation** (0.5s total)
+   - All 4 deck cards start 300pt below screen
+   - Cards slide up into position one-by-one (staggered by 0.12s)
+   - Each card takes 0.25s to slide up
+   - Smooth `.easeOut` animation
+
+2. **Flip Animation** (1.0s total)
+   - After deal completes, wait 0.3s
+   - Cards flip from face-down to face-up one-by-one (staggered by 0.15s)
+   - Each flip takes 0.4s (0.2s per half)
+   - 3D rotation effect (horizontal flip around Y-axis)
+   - Card back shows purple gradient (or custom `card-background` image)
+
+3. **Ready State**
+   - All animations complete
+   - Decks are now interactive (tap or drag)
+
+**Configuration Options:**
+- `dealAnimationEnabled` - Enable/disable deal animation
+- `flipAnimationEnabled` - Enable/disable flip animation
+- `dealStaggerDelay` - Time between each card being dealt
+- `dealAnimationDuration` - How long each card's deal takes
+- `flipStaggerDelay` - Time between each card flipping
+- `flipAnimationDuration` - Total flip duration per card
+- `flipDelayAfterDeal` - Wait time before flipping starts
+- `flipOnEveryDraw` - If true, cards flip every time drawn (not just game start) ✨ DEPRECATED
+- `flipOnCardPlacement` - If true, next card flips when previous card is placed ✨ NEW (April 10, 2026)
+
+**Animation Phase System:**
+- `DeckAnimationPhase` enum: `.dealing`, `.flipping`, `.ready`
+- Parent view (`ShopOfOdditiesView`) controls phase
+- Each deck responds to phase changes
+- Smooth state management with `@Binding`
+
+**Progressive Reveal System:** ✨ NEW (April 10, 2026)
+- After opening flip animation, subsequent cards in each deck start face-down
+- When user drags a card from a deck, the next card underneath is face-down
+- When user places the dragged card in repair area, the next card flips face-up
+- Each deck manages its own flip state independently
+- Triggered by `onCardPlaced()` callback from parent view
+- Creates suspenseful reveal of each new card
+
+**Files Modified:**
+- `DeckView.swift` - Added deal/flip animation logic + progressive reveal system
+- `ShopOfOdditiesView.swift` - Added animation phase management + card placement callback
+- `ShopLayoutConfig.swift` - Added all animation parameters
+
+**Visual Impact:**
+- ✅ Polished, professional game start
+- ✅ Builds anticipation before gameplay
+- ✅ Smooth, staggered timing feels natural
+- ✅ 3D flip effect adds depth and polish
+- ✅ Progressive reveal adds suspense to each draw ✨ NEW
+- ✅ Can be disabled for fast testing (set both to `false` in config)
+
+---
+
+### **Step 3: Drag-and-Drop System** ✅ COMPLETE
+**Goal:** Replace tap-to-draw with modern drag-and-drop interaction.
+
+**Drag-and-Drop Behavior:**
+1. **Start Drag:**
+   - Long-press or drag a deck card
+   - Card lifts up with slight scale (1.1×) and transparency (0.85)
+   - Ghost card left behind at deck (30% opacity)
+   - Colored shadow follows card (deck color, 12pt radius)
+
+2. **During Drag:**
+   - Card follows finger position
+   - Global coordinate space (can drag anywhere)
+   - Repair area tracks card position
+   - Visual feedback when over valid drop zone
+
+3. **Drop on Repair Area:**
+   - Smooth snap animation to next empty slot (0.25s)
+   - Card placed in repair slot
+   - Deck updates to show new top card
+   - Check if all 4 slots filled → auto-resolve repair
+
+4. **Drop Outside Repair Area:**
+   - Card springs back to deck (0.3s spring animation)
+   - No card drawn
+   - Deck returns to normal state
+
+**Configuration Options:**
+- `dragEnabled` - Master toggle (true = drag-and-drop, false = tap-to-draw)
+- `dragScaleWhileDragging` - Card scales up during drag (1.1 = 110%)
+- `dragOpacityWhileDragging` - Transparency while dragging (0.85 = 85%)
+- `snapAnimationDuration` - Snap-to-slot animation speed
+- `returnAnimationDuration` - Return-to-deck animation speed
+- `slotDetectionPadding` - Hit detection padding around slots
+- `dragGhostOpacity` - Opacity of ghost card left at deck
+
+**Drag State Management:**
+- `DragState` struct tracks current drag operation
+- Stores card being dragged, source deck, start/current position
+- Shared across all decks via `@Binding`
+- Parent view manages global drag state
+
+**Repair Area Detection:**
+- Repair area captures its frame in global coordinates
+- Passed to each deck via `repairAreaFrame` binding
+- Drop detection uses `.contains(position)` check
+- Works seamlessly with dynamic layouts
+
+**Files Modified:**
+- `DeckView.swift` - Added drag gesture, ghost card, drag overlay
+- `ShopOfOdditiesView.swift` - Added drag state management, drag overlay rendering
+- `RepairSlotView.swift` - Added drop target visual feedback
+- `ShopLayoutConfig.swift` - Added all drag-and-drop parameters
+
+**Visual Impact:**
+- ✅ Modern, intuitive interaction (iOS standard drag-and-drop)
+- ✅ Smooth animations and physics
+- ✅ Clear visual feedback (ghost card, scale, shadow)
+- ✅ Satisfying snap-to-slot effect
+- ✅ Fallback to tap-to-draw if drag disabled
+- ✅ Works great on touch screens
+
+---
+
+### **Step 4: Ghost Card Cleanup + Deck Rotation** ✅ COMPLETE
+**Goal:** Fully wire ghost cards and per-deck rotation to config, eliminate all hardcoded values.
+
+**Ghost Card System:**
+- **Ghost cards** are semi-transparent cards behind each deck showing depth
+- Number of ghost cards based on cards remaining:
+  - 3+ cards → 2 ghost cards (if `ghostCardCount >= 2`)
+  - 2 cards → 1 ghost card (if `ghostCardCount >= 1`)
+  - 1 card → 0 ghost cards
+  - 0 cards → Empty deck placeholder
+
+**Ghost Card Configuration:**
+- `ghostCardCount` - Number of ghost cards (0, 1, or 2)
+- `ghostCard1Rotation` - Middle ghost rotation in degrees (-1.2°)
+- `ghostCard2Rotation` - Back ghost rotation in degrees (-2.5°)
+- `ghostCard1Opacity` - Middle ghost opacity (0.38)
+- `ghostCard2Opacity` - Back ghost opacity (0.18)
+- `ghostCard1OffsetX` - Horizontal offset in points (-1.5, negative = left)
+- `ghostCard2OffsetX` - Horizontal offset in points (-3.0)
+- `ghostCard1OffsetY` - Vertical offset in points (2.0, positive = down)
+- `ghostCard2OffsetY` - Vertical offset in points (4.0)
+
+**Per-Deck Rotation System:**
+- Each deck can have its own rotation angle (fan effect or whimsical tilt)
+- `deckRotations: [Double]` - Array of 4 rotation angles
+  - Index 0 = Structural deck
+  - Index 1 = Enchantment deck
+  - Index 2 = Memory deck
+  - Index 3 = Wildcraft deck
+- Current: `[0, 0, 0, 0]` (straight row)
+- Example whimsical: `[-3, 1, -1, 2]` (subtle tilts)
+- Example fan: `[-12, -4, 4, 12]` (dramatic arc)
+
+**Rotation Behavior:**
+- Rotation applied to entire deck stack (including ghost cards)
+- Rotation anchor is `.bottom` (cards pivot from bottom edge)
+- Card count badge stays horizontal (does NOT rotate)
+- Ghost cards rotate WITH their parent deck
+
+**Files Modified:**
+- `ShopLayoutConfig.swift` - Added ghost card X/Y offsets, clarified naming
+- `DeckView.swift` - Applied rotation, fixed ghost visibility logic, removed hardcoded offsets
+
+**Changes Made:**
+- ✅ Added `ghostCard1OffsetX` and `ghostCard2OffsetX` to config
+- ✅ Renamed `ghostCard1Offset` → `ghostCard1OffsetY`
+- ✅ Renamed `ghostCard2Offset` → `ghostCard2OffsetY`
+- ✅ Fixed ghost visibility to check `ShopLayoutConfig.ghostCardCount`
+- ✅ Applied `rotationDegrees` parameter to deck stack (was accepted but not used!)
+- ✅ Removed hardcoded `-3` and `-1.5` horizontal offsets
+- ✅ Card count text stays horizontal regardless of deck rotation
+- ✅ Updated comment: "Per-deck rotation from config" (was "For future fan effect")
+
+**Visual Impact:**
+- ✅ All ghost card appearance controlled by config
+- ✅ Can disable ghost cards entirely (`ghostCardCount = 0`)
+- ✅ Can create dramatic fan effects by changing rotation array
+- ✅ Can fine-tune ghost card positioning without touching view code
+- ✅ No hardcoded layout values anywhere in view files
+
+---
+
+### **Step 5: Progressive Card Reveal System** ✅ COMPLETE (April 10, 2026)
+**Goal:** Add suspense by keeping cards face-down until the previous card is placed.
+
+**Progressive Reveal Behavior:**
+1. **Opening Animation (Unchanged)**
+   - Game starts → All 4 decks deal face-down → All 4 flip face-up together
+   - This is the dramatic opening sequence that remains untouched
+
+2. **Subsequent Cards (New System)**
+   - After opening animation, when a card is drawn from a deck, the **next** card starts face-down
+   - While user is dragging, the face-down card is visible underneath (creates anticipation)
+   - When user **places** the card in repair area, the face-down card flips to face-up
+   - Each deck manages its own flip state independently
+
+**Technical Implementation:**
+- **State tracking:** `@State private var hasFlippedThisCard` tracks if current top card has been revealed
+- **Trigger method:** `triggerFlipAnimation()` performs the 3D flip animation on command
+- **Callback system:** Parent view calls `onCardPlaced(deckType)` when card successfully placed
+- **Card identity:** Using `.id(card?.id)` to reset flip state when new card appears
+- **Face visibility logic:** Card shows back if `showingCardBack == true OR hasFlippedThisCard == false`
+
+**Animation Flow:**
+1. User drags Structural card from deck
+2. Next Structural card underneath is face-down (ghost card visible during drag)
+3. User drops card in repair slot
+4. Card snaps to slot with placement animation
+5. `onCardPlaced(.structural)` fires immediately after snap
+6. Structural deck's `triggerFlipAnimation()` called
+7. Face-down card performs 3D flip to face-up (0.4s duration)
+8. Next card draw repeats the cycle
+
+**Configuration:**
+- Uses existing `flipAnimationDuration` from ShopLayoutConfig (0.4s)
+- No new config parameters needed
+- Progressive reveal always enabled after opening animation
+
+**Files Modified:**
+- `DeckView.swift` - Added flip state tracking and trigger method
+- `ShopOfOdditiesView.swift` - Added onCardPlaced callback system
+- Context file updated to document new system
+
+**User Experience:**
+- ✅ Suspenseful reveal creates excitement with each draw
+- ✅ Can't see all future cards (strategic tension)
+- ✅ Visual confirmation of deck progression
+- ✅ Smooth 3D flip animation (same as opening)
+- ✅ Opening spectacle unchanged (4 cards flip together)
+- ✅ Feels like dealing from a real deck
+
+---
+
+### **UI Overhaul Summary:**
+
+**Total Files Created:** 1 new file
+- `ShopLayoutConfig.swift` (184 lines)
+
+**Total Files Modified:** 4 files
+- `ShopOfOdditiesView.swift` - Layout centralization, animation phases, drag state
+- `DeckView.swift` - Deal animation, flip animation, drag-and-drop, ghost cards, rotation
+- `RepairSlotView.swift` - Drop target feedback
+- `ComponentCardView.swift` - Config references
+
+**Configuration Options Added:** 30+ parameters
+- Layout heights, spacing, padding (10 values)
+- Ghost card settings (8 values)
+- Deck rotation (1 array)
+- Deal animation (4 values)
+- Flip animation (5 values)
+- Drag-and-drop (7 values)
+- Visual styles (5+ colors/opacities)
+
+**Animation Systems Added:** 4 major systems
+1. Deal animation (slide-up from below, staggered)
+2. Flip animation (3D face-down to face-up reveal, staggered)
+3. Drag-and-drop (gesture, ghost card, snap-to-slot, return-to-deck)
+4. Progressive card reveal (face-down cards flip when previous card placed) ✨ NEW (April 10, 2026)
+
+**Benefits:**
+- ✅ **Centralized configuration** - All layout values in one place
+- ✅ **Polished animations** - Professional game-start sequence
+- ✅ **Modern interaction** - Drag-and-drop feels great on touch screens
+- ✅ **Flexible layout** - Easy to experiment with different designs
+- ✅ **No hardcoded values** - Everything configurable
+- ✅ **Well-documented** - Clear comments explaining each value
+- ✅ **Backward compatible** - Can disable all new features if needed
+
+**Testing:**
+- ✅ All animations can be toggled on/off in config
+- ✅ Drag-and-drop can be disabled (falls back to tap-to-draw)
+- ✅ Ghost cards can be hidden (set `ghostCardCount = 0`)
+- ✅ Deck rotations can be changed live
+- ✅ All timing values are adjustable
+- ✅ Everything still works from Steps 1-3 of original game
+
+**Status:** UI overhaul complete! Game is now highly configurable with polished animations and modern interaction patterns.
+
 

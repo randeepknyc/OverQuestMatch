@@ -103,12 +103,12 @@ class ShopGameState {
     
     // MARK: - Card Drawing
     
-    /// Draw a card from a deck and place it in the next empty slot
-    func drawCard(from type: ComponentType) {
+    /// Draw a card from a deck and place it at a specific index (or next empty slot if index is nil)
+    func drawCard(from type: ComponentType, insertAt insertIndex: Int? = nil) {
+        print("🎴 drawCard called - type: \(type.displayName), insertIndex: \(insertIndex ?? -1)")
         guard !gameOver else { return }
         guard !isAnimatingCardDraw else { return } // Prevent multiple simultaneous draws
         guard canDraw(from: type) else { return }
-        guard let emptySlot = repairSlots.firstEmptySlot else { return }
         
         isAnimatingCardDraw = true
         
@@ -120,10 +120,34 @@ class ShopGameState {
         let card = deck.removeFirst()
         decks[type] = deck
         
-        // Place card in the empty slot
-        if let index = repairSlots.firstIndex(where: { $0.id == emptySlot.id }) {
-            repairSlots[index].card = card
-            print("   🃏 Drew \(card.name) (\(card.displayValue)) → Slot \(index)")
+        // Determine where to place the card
+        if let insertIndex = insertIndex {
+            // Insert at specific position (smart rearrangement)
+            let currentCards = repairSlots.cards
+            var newCards = currentCards
+            newCards.insert(card, at: min(insertIndex, currentCards.count))
+            
+            // Update repair slots with new arrangement
+            for (index, slot) in repairSlots.enumerated() {
+                if index < newCards.count {
+                    repairSlots[index].card = newCards[index]
+                } else {
+                    repairSlots[index].card = nil
+                }
+            }
+            
+            print("   🃏 Drew \(card.name) (\(card.displayValue)) → Inserted at position \(insertIndex)")
+        } else {
+            // Place in next empty slot (default behavior)
+            guard let emptySlot = repairSlots.firstEmptySlot else {
+                isAnimatingCardDraw = false
+                return
+            }
+            
+            if let index = repairSlots.firstIndex(where: { $0.id == emptySlot.id }) {
+                repairSlots[index].card = card
+                print("   🃏 Drew \(card.name) (\(card.displayValue)) → Slot \(index)")
+            }
         }
         
         // Trigger card-specific commentary

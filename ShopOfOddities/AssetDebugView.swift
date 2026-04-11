@@ -16,6 +16,9 @@ struct AssetsDebugView: View {
     @Environment(\.dismiss) private var dismiss
     let onEndGame: () -> Void
     
+    // Observe debug settings for the toggle
+    @ObservedObject private var debugSettings = ShopDebugSettings.shared
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -27,6 +30,20 @@ struct AssetsDebugView: View {
                         .background(Color.gray.opacity(0.2))
                         .cornerRadius(8)
                         .padding(.horizontal)
+                    
+                    // 🎴 DEBUG: Toggle to hide card text overlay
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Hide Card Text Overlay", isOn: $debugSettings.hideCardTextOverlay)
+                            .padding()
+                            .background(Color.purple.opacity(0.2))
+                            .cornerRadius(8)
+                        
+                        Text("Shows only card background images (no text, values, or icons). Useful for verifying face-down/face-up card images.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 16)
+                    }
+                    .padding(.horizontal)
                     
                     // Character Forcing Section
                     characterForcingSection

@@ -3,7 +3,7 @@
 //  OverQuestMatch3 - Shop of Oddities
 //
 //  Created on 4/4/26.
-//  Main game screen for Ednar's Shop of Oddities card repair game
+//  Main game screen for Ednar's Shop of Oddities card repair game with drag-and-drop
 //
 
 import SwiftUI
@@ -16,6 +16,17 @@ struct ShopOfOdditiesView: View {
     @State private var showingAssetsDebug = false
     @Environment(\.dismiss) private var dismiss
     
+    // MARK: - Animation State
+    
+    @State private var animationPhase: DeckAnimationPhase = .ready
+    
+    // MARK: - Drag State
+    
+    @State private var dragState: DragState? = nil
+    @State private var repairAreaFrame: CGRect = .zero
+    @State private var flipTriggerID: UUID = UUID()
+    @State private var deckToFlip: ComponentType? = nil
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -23,50 +34,45 @@ struct ShopOfOdditiesView: View {
                 backgroundLayer
                 
                 VStack(spacing: 0) {
-                    // 1. SCORE BAR (5% height) - EDGE-TO-EDGE Semi-transparent HUD overlay ✨ NEW
+                    // 1. SCORE BAR (5% height) - Semi-transparent HUD overlay
                     scoreBar(geometry: geometry)
-                        .frame(height: geometry.size.height * 0.05)
+                        .frame(height: geometry.size.height * ShopLayoutConfig.scoreBarHeight)
                     
-                    // ✨ GAP 1 REMOVED (was 8pt fixed)
-                    
-                    // 2. SCENE VIEW (38% height) - EDGE TO EDGE with padded overlay (PRESERVED)
+                    // 2. SCENE VIEW (46.2% height) - Full width composite
                     if let customer = gameState.currentCustomer {
                         ShopSceneView(customer: customer)
-                            .frame(height: geometry.size.height * 0.38)
+                            .frame(height: geometry.size.height * ShopLayoutConfig.sceneHeight)
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12) // ✨ Padding moved here from VStack
+                            .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
                     }
                     
-                    Spacer()
-                        .frame(height: 8)
-                    
-                    // 3. COMMENTARY AREA (4% height) - ✨ SHRUNK from 5%
+                    // 3. COMMENTARY AREA (17pt fixed) - Character dialogue
                     commentaryArea
-                        .frame(height: geometry.size.height * 0.04)
-                        .padding(.horizontal, 12) // ✨ Padding moved here from VStack
+                        .frame(height: ShopLayoutConfig.commentaryIsFixedPoints
+                               ? ShopLayoutConfig.commentaryHeight
+                               : geometry.size.height * ShopLayoutConfig.commentaryHeight)
+                        .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
                     
-                    // GAP 3: Commentary → Repair (3.5% height) - ✨ SHRUNK from 5.5%
+                    // 4. COUNTER / REPAIR AREA (dynamic height based on card size)
+                    counterRepairArea(geometry: geometry)
+                    
+                    // 5. GAP BETWEEN COUNTER AND DECKS
                     Spacer()
-                        .frame(height: geometry.size.height * 0.035)
+                        .frame(height: ShopLayoutConfig.gapCounterToDecks)
                     
-                    // 4. REPAIR AREA (20% height) - ✨ GREW from 17.7%
-                    repairArea
-                        .frame(height: geometry.size.height * 0.20)
-                        .padding(.horizontal, 12) // ✨ Padding moved here from VStack
+                    // 6. DECKS AREA (fills remaining space)
+                    decksArea(geometry: geometry)
                     
-                    // GAP 4: Repair → Decks (3% height) - ✨ SHRUNK from 6%
+                    // 7. BOTTOM PADDING
                     Spacer()
-                        .frame(height: geometry.size.height * 0.03)
-                    
-                    // 5. DECKS AREA (36% height) - ✨ GREW from 30%
-                    decksArea
-                        .frame(height: geometry.size.height * 0.36)
-                        .padding(.horizontal, 12) // ✨ Padding moved here from VStack
-                    
-                    Spacer()
-                        .frame(height: 8) // Bottom breathing room
+                        .frame(height: ShopLayoutConfig.deckBottomPadding)
                 }
-                // ✨ REMOVED .padding(.horizontal, 12) from VStack
+                
+                // DRAG OVERLAY (card being dragged renders on top)
+                if let drag = dragState, let card = drag.card as ComponentCard? {
+                    dragOverlay(card: card, position: drag.currentPosition)
+                        .zIndex(5)
+                }
                 
                 // OVERLAYS
                 
@@ -95,6 +101,9 @@ struct ShopOfOdditiesView: View {
                         onPlayAgain: {
                             repairsDiscoveredBeforeGame = gameState.discoveredRepairNames
                             gameState.startNewGame()
+                            
+                            // Reset animations for new game
+                            resetAnimations()
                         }
                     )
                     .zIndex(12)
@@ -104,6 +113,31 @@ struct ShopOfOdditiesView: View {
         .onAppear {
             // Track repairs known before this game started
             repairsDiscoveredBeforeGame = gameState.discoveredRepairNames
+            
+            // Start opening animations
+            startOpeningAnimations()
+        }
+        .onChange(of: dragState?.currentPosition) { oldValue, newValue in
+            // Update hover insert index when drag position changes
+            guard let drag = dragState, let position = newValue else { return }
+            
+            let placedCards = gameState.repairSlots.cards
+            let availableWidth = UIScreen.main.bounds.width
+            let totalHorizontalPadding = ShopLayoutConfig.horizontalPadding * 2
+            let totalCardSpacing = ShopLayoutConfig.repairCardSpacing * 3
+            let cardWidth = (availableWidth - totalHorizontalPadding - totalCardSpacing) / 4
+            
+            let index = RepairSlotView.calculateInsertIndex(
+                dragPosition: position,
+                repairAreaFrame: repairAreaFrame,
+                placedCardsCount: placedCards.count,
+                cardWidth: cardWidth
+            )
+            
+            if index != drag.hoverInsertIndex {
+                dragState?.hoverInsertIndex = index
+                print("✅ Updated dragState.hoverInsertIndex to: \(index ?? -1)")
+            }
         }
     }
     
@@ -124,17 +158,17 @@ struct ShopOfOdditiesView: View {
         }
     }
     
-    // MARK: - Score Bar (EDGE-TO-EDGE Semi-Transparent HUD Overlay) ✨ UPDATED
+    // MARK: - Score Bar (Edge-to-Edge Semi-Transparent HUD)
     
     private func scoreBar(geometry: GeometryProxy) -> some View {
         ZStack {
-            // ✨ EDGE-TO-EDGE background
+            // Background extends full screen width
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.black.opacity(0.35))
-                .frame(width: geometry.size.width) // Full screen width
+                .fill(Color.black.opacity(ShopLayoutConfig.scoreBarOpacity))
+                .frame(width: geometry.size.width)
                 .edgesIgnoringSafeArea(.horizontal)
             
-            // Content with padding (stays in same position)
+            // Content with padding (text stays centered)
             HStack(spacing: 16) {
                 // Score display
                 HStack(spacing: 6) {
@@ -170,12 +204,11 @@ struct ShopOfOdditiesView: View {
                     })
                 }
             }
-            .padding(.horizontal, 28) // ✨ Increased from 16 to maintain position
-            .padding(.vertical, 6)
+            .padding(.horizontal, ShopLayoutConfig.scoreBarTextPadding)
         }
     }
     
-    // MARK: - Commentary Area (Blends with Dark Theme)
+    // MARK: - Commentary Area
     
     private var commentaryArea: some View {
         Group {
@@ -194,84 +227,170 @@ struct ShopOfOdditiesView: View {
         }
     }
     
-    // MARK: - Repair Area (Full Width)
+    // MARK: - Counter / Repair Area (Counter Surface Style)
     
-    private var repairArea: some View {
-        VStack(spacing: 6) {
-            // Label
-            Text("REPAIR AREA")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
-                .tracking(1)
-            
-            // 4 slots in a horizontal row (spans full width)
-            HStack(spacing: 8) {
-                ForEach(gameState.repairSlots) { slot in
-                    RepairSlotView(slot: slot)
-                }
+    private func counterRepairArea(geometry: GeometryProxy) -> some View {
+        // Calculate card dimensions
+        let availableWidth = geometry.size.width
+        let totalHorizontalPadding = ShopLayoutConfig.horizontalPadding * 2
+        let totalCardSpacing = ShopLayoutConfig.repairCardSpacing * 3 // 3 gaps between 4 cards
+        let cardWidth = (availableWidth - totalHorizontalPadding - totalCardSpacing) / 4
+        let cardHeight = cardWidth / ShopLayoutConfig.cardAspectRatio
+        
+        let counterHeight = ShopLayoutConfig.counterPaddingTop + cardHeight + ShopLayoutConfig.counterPaddingBottom
+        
+        // Get placed cards (convert from slots)
+        let placedCards = gameState.repairSlots.cards
+        
+        // Calculate hover insert index based on drag position (for preview only)
+        // The actual value is updated by the .onChange handler
+        let hoverInsertIndex = dragState?.hoverInsertIndex
+        
+        return ZStack {
+            // Counter surface background (warm brown with ledge lines)
+            VStack(spacing: 0) {
+                // Top ledge line
+                Rectangle()
+                    .fill(Color.brown.opacity(ShopLayoutConfig.counterLedgeOpacity))
+                    .frame(height: 1.5)
+                
+                // Counter surface
+                ShopLayoutConfig.counterSurfaceColor
+                    .opacity(ShopLayoutConfig.counterSurfaceOpacity)
+                
+                // Bottom ledge line
+                Rectangle()
+                    .fill(Color.brown.opacity(ShopLayoutConfig.counterBottomLedgeOpacity))
+                    .frame(height: 1.5)
             }
+            
+            // Repair slot view with centered cards
+            RepairSlotView(
+                placedCards: placedCards,
+                cardWidth: cardWidth,
+                cardHeight: cardHeight,
+                previewInsertIndex: hoverInsertIndex, // Pass the calculated insert index
+                draggedCard: nil // No preview card (just slide existing cards)
+            )
+            .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
+            .background(
+                GeometryReader { geo in
+                    Color.clear.onAppear {
+                        repairAreaFrame = geo.frame(in: .global)
+                    }
+                    .onChange(of: geo.frame(in: .global)) { _, newFrame in
+                        repairAreaFrame = newFrame
+                    }
+                }
+            )
         }
+        .frame(height: counterHeight)
     }
     
-    // MARK: - Decks Area (Fanned Arc with Ghost Cards) - ✨ UPDATED
+    // MARK: - Decks Area (Horizontal Row with Config-Based Rotation)
     
-    private var decksArea: some View {
-        // ✨ REMOVED "COMPONENT DECKS" label
+    private func decksArea(geometry: GeometryProxy) -> some View {
+        // Calculate card dimensions
+        let availableWidth = geometry.size.width
+        let totalHorizontalPadding = ShopLayoutConfig.horizontalPadding * 2
+        let totalCardSpacing = ShopLayoutConfig.deckCardSpacing * 3 // 3 gaps between 4 cards
+        let cardWidth = (availableWidth - totalHorizontalPadding - totalCardSpacing) / 4
+        let cardHeight = cardWidth / ShopLayoutConfig.cardAspectRatio
         
-        // All 4 decks in ONE horizontal row (fanned arc)
-        HStack(spacing: 12) { // ✨ INCREASED spacing from 6 to 12
-            // Structural (leftmost, rotated -12°)
+        return HStack(spacing: ShopLayoutConfig.deckCardSpacing) {
+            // Structural (index 0)
             DeckView(
                 type: .structural,
                 topCard: gameState.topCard(of: .structural),
                 cardsRemaining: gameState.cardsRemaining(in: .structural),
                 canDraw: gameState.canDraw(from: .structural),
-                rotationDegrees: -12,
-                onTap: {
-                    gameState.drawCard(from: .structural)
+                rotationDegrees: ShopLayoutConfig.deckRotations[0],
+                onTap: { insertIndex in
+                    gameState.drawCard(from: .structural, insertAt: insertIndex)
+                    flipTriggerID = UUID() // Trigger all decks to check if they need to flip
                     checkIfRepairReady()
-                }
+                },
+                animationPhase: $animationPhase,
+                deckIndex: 0,
+                flipTriggerID: flipTriggerID,
+                dragState: $dragState,
+                repairAreaFrame: repairAreaFrame
             )
+            .frame(width: cardWidth, height: cardHeight)
             
-            // Enchantment (rotated -4°)
+            // Enchantment (index 1)
             DeckView(
                 type: .enchantment,
                 topCard: gameState.topCard(of: .enchantment),
                 cardsRemaining: gameState.cardsRemaining(in: .enchantment),
                 canDraw: gameState.canDraw(from: .enchantment),
-                rotationDegrees: -4,
-                onTap: {
-                    gameState.drawCard(from: .enchantment)
+                rotationDegrees: ShopLayoutConfig.deckRotations[1],
+                onTap: { insertIndex in
+                    gameState.drawCard(from: .enchantment, insertAt: insertIndex)
+                    flipTriggerID = UUID() // Trigger all decks to check if they need to flip
                     checkIfRepairReady()
-                }
+                },
+                animationPhase: $animationPhase,
+                deckIndex: 1,
+                flipTriggerID: flipTriggerID,
+                dragState: $dragState,
+                repairAreaFrame: repairAreaFrame
             )
+            .frame(width: cardWidth, height: cardHeight)
             
-            // Memory (rotated +4°)
+            // Memory (index 2)
             DeckView(
                 type: .memory,
                 topCard: gameState.topCard(of: .memory),
                 cardsRemaining: gameState.cardsRemaining(in: .memory),
                 canDraw: gameState.canDraw(from: .memory),
-                rotationDegrees: 4,
-                onTap: {
-                    gameState.drawCard(from: .memory)
+                rotationDegrees: ShopLayoutConfig.deckRotations[2],
+                onTap: { insertIndex in
+                    gameState.drawCard(from: .memory, insertAt: insertIndex)
+                    flipTriggerID = UUID() // Trigger all decks to check if they need to flip
                     checkIfRepairReady()
-                }
+                },
+                animationPhase: $animationPhase,
+                deckIndex: 2,
+                flipTriggerID: flipTriggerID,
+                dragState: $dragState,
+                repairAreaFrame: repairAreaFrame
             )
+            .frame(width: cardWidth, height: cardHeight)
             
-            // Wildcraft (rightmost, rotated +12°)
+            // Wildcraft (index 3)
             DeckView(
                 type: .wildcraft,
                 topCard: gameState.topCard(of: .wildcraft),
                 cardsRemaining: gameState.cardsRemaining(in: .wildcraft),
                 canDraw: gameState.canDraw(from: .wildcraft),
-                rotationDegrees: 12,
-                onTap: {
-                    gameState.drawCard(from: .wildcraft)
+                rotationDegrees: ShopLayoutConfig.deckRotations[3],
+                onTap: { insertIndex in
+                    gameState.drawCard(from: .wildcraft, insertAt: insertIndex)
+                    flipTriggerID = UUID() // Trigger all decks to check if they need to flip
                     checkIfRepairReady()
-                }
+                },
+                animationPhase: $animationPhase,
+                deckIndex: 3,
+                flipTriggerID: flipTriggerID,
+                dragState: $dragState,
+                repairAreaFrame: repairAreaFrame
             )
-        }
+            .frame(width: cardWidth, height: cardHeight)
+                    }
+                    .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
+                }
+    
+    // MARK: - Drag Overlay
+    
+    private func dragOverlay(card: ComponentCard, position: CGPoint) -> some View {
+        ComponentCardView(card: card, compact: false)
+            .frame(width: 90, height: 90 / ShopLayoutConfig.cardAspectRatio)
+            .scaleEffect(ShopLayoutConfig.dragScaleWhileDragging)
+            .opacity(ShopLayoutConfig.dragOpacityWhileDragging)
+            .shadow(color: card.type.color.opacity(0.8), radius: 12, x: 0, y: 6)
+            .position(position)
+            .allowsHitTesting(false)
     }
     
     // MARK: - Helper Methods
@@ -291,6 +410,44 @@ struct ShopOfOdditiesView: View {
         let repairsNow = gameState.discoveredRepairNames
         let repairsBefore = repairsDiscoveredBeforeGame
         return repairsNow.subtracting(repairsBefore).count
+    }
+    
+    // MARK: - Animation Management
+    
+    /// Start opening animations (deal → flip → ready)
+    private func startOpeningAnimations() {
+        // If animations are disabled, stay in ready
+        if !ShopLayoutConfig.dealAnimationEnabled && !ShopLayoutConfig.flipAnimationEnabled {
+            animationPhase = .ready
+            return
+        }
+        
+        // Small delay, then start dealing phase
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.animationPhase = .dealing
+            
+            // Calculate total deal time (all 4 cards: 3 delays + 1 duration)
+            let totalDealTime = (ShopLayoutConfig.dealStaggerDelay * 3) + ShopLayoutConfig.dealAnimationDuration
+            
+            // After dealing completes, wait, then start flipping
+            DispatchQueue.main.asyncAfter(deadline: .now() + totalDealTime + ShopLayoutConfig.flipDelayAfterDeal) {
+                self.animationPhase = .flipping
+                
+                // Calculate total flip time (all 4 cards: 3 delays + 1 full flip)
+                let totalFlipTime = (ShopLayoutConfig.flipStaggerDelay * 3) + ShopLayoutConfig.flipAnimationDuration
+                
+                // After flipping completes, mark as ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + totalFlipTime) {
+                    self.animationPhase = .ready
+                }
+            }
+        }
+    }
+    
+    /// Reset animations (called on Play Again)
+    private func resetAnimations() {
+        animationPhase = .dealing
+        startOpeningAnimations()
     }
 }
 

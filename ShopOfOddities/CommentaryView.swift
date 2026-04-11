@@ -10,19 +10,20 @@ import SwiftUI
 import UIKit
 
 struct CommentaryView: View {
-    let commentary: Commentary
+    let commentary: Commentary?
     
     var body: some View {
-        HStack(spacing: 8) {
+        if let commentary = commentary {
+            HStack(spacing: 8) {
             // Character icon (custom image or SF Symbol fallback)
             ZStack {
                 Circle()
-                    .fill(iconColor.opacity(0.2))
+                    .fill(iconColor(for: commentary).opacity(0.2))
                     .frame(width: 30, height: 30)
                 
-                commentaryIcon
+                commentaryIcon(for: commentary)
                     .frame(width: 20, height: 20)
-                    .foregroundColor(iconColor)
+                    .foregroundColor(iconColor(for: commentary))
             }
             
             // Commentary text
@@ -38,25 +39,28 @@ struct CommentaryView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(backgroundColor)
+                .fill(backgroundColor(for: commentary))
                 .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
         )
         .padding(.horizontal, 16)
+        } else {
+            EmptyView()
+        }
     }
     
     // MARK: - Commentary Icon Loading
     
     /// Load custom commentary icon from Assets, fallback to SF Symbol if not found
     @ViewBuilder
-    private var commentaryIcon: some View {
-        if let uiImage = UIImage(named: customIconName) {
+    private func commentaryIcon(for commentary: Commentary) -> some View {
+        if let uiImage = UIImage(named: customIconName(for: commentary)) {
             // Custom image found in Assets.xcassets
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()
         } else {
             // Fallback to SF Symbol
-            Image(systemName: sfSymbolIconName)
+            Image(systemName: sfSymbolIconName(for: commentary))
                 .font(.system(size: 20))
         }
     }
@@ -64,7 +68,7 @@ struct CommentaryView: View {
     // MARK: - Visual Properties
     
     /// Custom icon asset name (e.g., "commentary-sword")
-    private var customIconName: String {
+    private func customIconName(for commentary: Commentary) -> String {
         switch commentary.speaker {
         case .sword:
             return "commentary-sword"
@@ -74,7 +78,7 @@ struct CommentaryView: View {
     }
     
     /// Fallback SF Symbol name if custom image not found
-    private var sfSymbolIconName: String {
+    private func sfSymbolIconName(for commentary: Commentary) -> String {
         switch commentary.speaker {
         case .sword:
             return "hammer.fill" // Placeholder for Sword
@@ -83,7 +87,7 @@ struct CommentaryView: View {
         }
     }
     
-    private var iconColor: Color {
+    private func iconColor(for commentary: Commentary) -> Color {
         switch commentary.speaker {
         case .sword:
             return Color(red: 0.7, green: 0.7, blue: 0.8) // Silvery blue
@@ -92,7 +96,7 @@ struct CommentaryView: View {
         }
     }
     
-    private var backgroundColor: Color {
+    private func backgroundColor(for commentary: Commentary) -> Color {
         switch commentary.speaker {
         case .sword:
             return Color(red: 0.2, green: 0.2, blue: 0.3).opacity(0.75) // More translucent - blends better

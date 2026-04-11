@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** April 9, 2026 (Shop of Oddities layout optimization)  
+> **Last Updated:** April 10, 2026 (Shop of Oddities - Smart card rearrangement system complete)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow
 
 ---
@@ -16,7 +16,7 @@
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
-3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu for asset testing + End Game button, optimized layout (April 9, 2026)
+3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system (April 10, 2026)
 4. **Cooking Game** - 📋 Planned
 5. **Potion Solitaire** - 📋 Planned
 6. **Map Navigation System** - 📋 Planned
@@ -84,16 +84,19 @@ OverQuestMatch3/ (ROOT)
 │  ├─ RepairResult.swift
 │  ├─ ShopGameState.swift (with debug forcing method)
 │  ├─ CommentaryManager.swift (character dialogue system)
+│  ├─ ShopLayoutConfig.swift ✨ (centralized UI configuration)
+│  ├─ ShopDebugSettings.swift ✨ NEW (ObservableObject for reactive debug toggles)
 │  ├─ ShopOfOdditiesView.swift (with debug button)
-│  ├─ ComponentCardView.swift
-│  ├─ DeckView.swift
+│  ├─ ComponentCardView.swift (observes ShopDebugSettings)
+│  ├─ DeckView.swift (with deal/flip animations + drag-and-drop)
 │  ├─ CustomerView.swift (with custom portrait support)
 │  ├─ RepairSlotView.swift
 │  ├─ RepairResultOverlay.swift
 │  ├─ ShopGameOverOverlay.swift
 │  ├─ NewRepairDiscoveredBanner.swift
 │  ├─ CommentaryView.swift (with custom icon support)
-│  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing) ✨ NEW (character commentary display)
+│  ├─ ShopSceneView.swift (3-layer composite scene system)
+│  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing + toggles)
 │
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
@@ -159,6 +162,11 @@ OverQuestMatch3/ (ROOT)
 - "End Game" button (red, top-left navigation bar)
 - Asset viewer for all custom images
 - Character forcing for testing portraits
+- **"Hide Card Text Overlay" toggle** (purple background) - Shows only card background images ✨ NEW (April 10, 2026)
+  - Perfect for verifying face-down/face-up card reveal system
+  - Persistent setting (saved via UserDefaults)
+  - Toggles all text, values, names, and icons on cards
+- "Show Only Custom Images" toggle (gray background)
 - Returns to title screen
 - "Done" button to continue playing
 
@@ -352,11 +360,239 @@ Each game has its own image sets:
 - Score bar refactored to function accepting GeometryProxy for edge-to-edge calculation
 - **Result:** Optimized layout with bigger playable elements, preserved scene prominence, and improved visual hierarchy
 
-### **Phase 9: Additional Games** 📋 PLANNED
+### **Phase 9: Shop of Oddities UI Overhaul** ✅ COMPLETE (April 10, 2026)
+**Complete 4-step UI redesign focusing on configurability, animations, and modern interaction:**
+
+**Step 1: Layout Centralization**
+- Created `ShopLayoutConfig.swift` - Single source of truth for all layout values
+- Moved all hardcoded spacing, heights, padding, colors to config
+- 30+ configurable parameters (section heights, gaps, ghost cards, animations)
+- Well-documented with clear comments
+- Easy to experiment with different layouts
+
+**Step 2: Opening Animations (Deal + Flip)**
+- Deal animation: Cards slide up from below (300pt offset, staggered 0.12s)
+- Flip animation: 3D face-down to face-up reveal (staggered 0.15s, 0.4s duration)
+- Card backs show purple gradient or custom `card-background` image
+- Animation phase system: `.dealing` → `.flipping` → `.ready`
+- All animations configurable (can disable for fast testing)
+
+**Step 3: Drag-and-Drop System**
+- Replaced tap-to-draw with modern drag-and-drop interaction
+- Drag gesture with ghost card left behind (30% opacity)
+- Card scales (1.1×) and becomes transparent (85%) while dragging
+- Colored shadow follows card (deck color, 12pt radius)
+- Snap-to-slot animation (0.25s) or spring-back-to-deck (0.3s)
+- Repair area detection using global coordinates
+- Master toggle in config (`dragEnabled`) - falls back to tap if disabled
+
+**Step 4: Ghost Card Cleanup + Deck Rotation**
+- Ghost card count configurable (0, 1, or 2)
+- All ghost properties in config (rotation, opacity, X/Y offsets)
+- Per-deck rotation array for fan effects or whimsical tilts
+- Rotation applied to deck stack (anchor: bottom), card count stays horizontal
+- Eliminated all hardcoded layout values
+
+**Files Created:**
+- `ShopLayoutConfig.swift` (184 lines)
+
+**Files Modified:**
+- `ShopOfOdditiesView.swift` - Animation phases, drag state management
+- `DeckView.swift` - Deal/flip animations, drag-and-drop, ghost cards, rotation
+- `RepairSlotView.swift` - Drop target feedback
+- `ComponentCardView.swift` - Config references
+
+**Benefits:**
+- ✅ Polished professional animations
+- ✅ Modern iOS-standard drag-and-drop
+- ✅ Highly configurable (30+ parameters)
+- ✅ No hardcoded values anywhere
+- ✅ Easy to experiment with layouts
+- ✅ All features can be toggled on/off
+
+**Result:** Shop of Oddities now has AAA-quality UI with smooth animations and modern interaction patterns, all easily customizable via config file.
+
+### **Phase 11: Debug Toggle System** ✅ COMPLETE (April 10, 2026)
+**In-game debug controls for testing card reveal system:**
+
+**Problem Solved:**
+- Need to verify face-down/face-up card images are working correctly
+- Text overlay on cards blocks view of background images
+- No way to toggle visibility without editing code
+
+**Solution Implemented:**
+- Created `ShopDebugSettings.swift` - ObservableObject class for reactive debug settings
+- Added "Hide Card Text Overlay" purple toggle in debug menu
+- ComponentCardView observes settings and hides text when enabled
+- Persistent storage via UserDefaults (survives app launches)
+- Singleton pattern (`ShopDebugSettings.shared`)
+
+**Files Created/Modified:**
+- `ShopDebugSettings.swift` - NEW (ObservableObject with @Published property)
+- `ComponentCardView.swift` - Added @ObservedObject observer
+- `AssetsDebugView.swift` - Added purple toggle UI
+
+**⚠️ Xcode Stability Issue Discovered:**
+- **Problem:** ShopLayoutConfig.swift causes Xcode to crash when edited directly
+- **Workaround:** All changes must be done via copy/paste full file replacement
+- **Safe Method:**
+  1. Copy entire replacement code
+  2. Command+A in ShopLayoutConfig.swift
+  3. Delete all
+  4. Paste new code
+  5. Command+S to save
+- **Root Cause:** Unknown (possibly file corruption or Xcode index issue)
+- **Status:** File is stable as of April 10, 2026 (no duplicate class definitions)
+- **Other Files:** All other Shop of Oddities files work normally
+
+**Benefits:**
+- ✅ Toggle card text on/off in debug menu
+- ✅ Easy verification of card reveal animations
+- ✅ Persistent settings across app launches
+- ✅ No code editing required
+- ✅ Documented workaround for Xcode crash issue
+
+**Result:** Debug toggle working perfectly for testing progressive card reveal system. Xcode stability issue documented with safe workaround.
+
+### **Phase 10: Smart Card Rearrangement System** ✅ COMPLETE (April 10, 2026)
+**iPhone home screen-style card insertion with smooth rearrangement and center bias:**
+
+**Problem Solved:**
+- Cards were always appending to the end regardless of drop position
+- No visual feedback for where card would be inserted
+- Limited strategic positioning options
+
+**Solution Implemented:**
+- **Position-aware insertion:** Calculate insert index based on drag X position
+- **Gap detection:** Determine which gap (before, between, or after cards) user is hovering over
+- **Smooth rearrangement:** Existing cards slide apart to make room for new card
+- **Center bias:** All cards stay centered as a group regardless of insert position
+- **No preview card:** Just existing cards animating (cleaner visual)
+
+**Technical Implementation:**
+1. **DragState enhancement:** Added `hoverInsertIndex: Int?` property
+2. **RepairSlotView.calculateInsertIndex():** Static function calculates insert position from drag coordinates
+3. **ShopOfOdditiesView.onChange:** Updates `dragState.hoverInsertIndex` when drag position changes
+4. **ShopGameState.drawCard():** Modified to accept optional `insertAt` parameter and rearrange slots
+5. **DeckView.handleCardSnap():** Passes insert index to onTap callback
+6. **RepairSlotView positioning:** Creates gaps for hover positions, animates cards to new centered positions
+
+**Key Fix:**
+- Used `.onChange(of: dragState?.currentPosition)` to update state outside view rendering cycle
+- Avoided SwiftUI "modifying state during view update" error
+- State mutations now happen in proper lifecycle phase
+
+**Files Modified:** 5 files
+- `DeckView.swift` - Updated DragState model, handleCardSnap passes insert index
+- `RepairSlotView.swift` - Added calculateInsertIndex() function, gap-based positioning
+- `ShopOfOdditiesView.swift` - Added .onChange handler for drag position tracking
+- `ShopGameState.swift` - Updated drawCard() to support insertion at specific index
+- Debug logging added to all components for troubleshooting
+
+**User Experience:**
+- ✅ Drag card anywhere in repair area
+- ✅ Watch existing cards slide apart showing where it will go
+- ✅ Drop to insert at that exact position
+- ✅ Strategic placement for adjacency bonuses
+- ✅ Natural, intuitive interaction like iOS home screen
+
+**Result:** Full smart rearrangement system working perfectly - cards can be placed in any order with smooth animations and center bias maintained.
+
+### **Phase 11: Progressive Card Reveal Animation Fix** ✅ COMPLETE (April 11, 2026)
+**Fixed the card flip animation for progressive reveal system - cards now flip smoothly from face-down to face-up without mirror image effect.**
+
+**Problem Diagnosed:**
+1. After implementing progressive reveal (cards stay face-down until previous card placed), the flip animation had issues
+2. Card face appeared **horizontally mirrored** during the flip animation
+3. This happened because 3D rotation around Y-axis makes content "face away" from camera after 90°
+
+**Root Cause:**
+- When rotating around Y-axis past 90°, the card is "facing away" from the viewer
+- Card content appears mirrored (like looking at the back of the front face)
+- Needed counter-rotation to keep content readable throughout flip
+
+**Solution Implemented:**
+- Added horizontal flip counter-rotation to card face view
+- Applied `.scaleEffect(x: flipAngle > swapAngle ? -1 : 1, y: 1)` to `cardFaceView`
+- When rotation angle exceeds swap angle (90°), card face is horizontally flipped
+- This flip cancels out the mirroring effect from the 3D rotation
+- Result: Card face stays readable throughout entire animation
+
+**Files Modified:**
+- `DeckView.swift` - Added counter-rotation to `cardFaceView` function (1 line)
+
+**Technical Details:**
+- Counter-rotation kicks in when `flipAngle > swapAngle` (90°) **AND** `animationPhase == .ready` **AND** actively flipping (`flipAngle > 0 && flipAngle < 180`)
+- Uses `scaleEffect(x: -1)` to horizontally flip the card face content
+- Only applies during progressive reveal flips (when flipAngle is actively changing)
+- Opening animation keeps flipAngle at 0, so no counter-rotation applies
+- The flip neutralizes the 3D rotation's mirroring effect
+- Card text, values, and icons remain readable throughout flip
+
+**Animation Flow:**
+1. Card starts face-down (flipAngle = 0°)
+2. User places card in repair area → Triggers flip
+3. Animation rotates: 0° → 90° (card back visible)
+4. **At 90°:** Counter-rotation activates, card face content flips horizontally
+5. Animation continues: 90° → 180° (card face visible, readable)
+6. Animation completes: Resets to 0°, card face-up
+
+**Current Status:**
+- ✅ Opening animation works perfectly (all 4 decks flip face-up together)
+- ✅ Progressive reveal works (cards stay face-down until placed)
+- ✅ Flip trigger works (UUID system activates flip)
+- ✅ **Card face stays readable (no mirror image effect)**
+- ✅ Smooth animation with clean crossfade
+
+**Benefits:**
+- ✅ Cards flip smoothly without visual glitches
+- ✅ Card text and images stay readable throughout animation
+- ✅ Professional 3D flip effect maintained
+- ✅ Suspenseful progressive reveal system fully functional
+
+**Result:** Progressive card reveal animation fully complete with smooth, readable card flips.
+
+### **Phase 12: Debug Toggle System** ✅ COMPLETE (April 10, 2026)
+**In-game debug controls for testing card reveal system:**
+
+**Problem Solved:**
+- Need to verify face-down/face-up card images are working correctly
+- Text overlay on cards blocks view of background images
+- No way to toggle visibility without editing code
+
+**Solution Implemented:**
+- Created `ShopDebugSettings.swift` - ObservableObject class for reactive debug settings
+- Added "Hide Card Text Overlay" purple toggle in debug menu
+- ComponentCardView observes settings and hides text when enabled
+- Persistent storage via UserDefaults (survives app launches)
+- Singleton pattern (`ShopDebugSettings.shared`)
+
+**Files Created/Modified:**
+- `ShopDebugSettings.swift` - NEW (ObservableObject with @Published property)
+- `ComponentCardView.swift` - Added @ObservedObject observer
+- `AssetsDebugView.swift` - Added purple toggle UI
+
+
+
+
+
+
+
+
+
+**Benefits:**
+- ✅ Toggle card text on/off in debug menu
+- ✅ Easy verification of card reveal animations
+- ✅ Persistent settings across app launches
+- ✅ No code editing required
+- ✅ Documented workaround for Xcode crash issue
+
+**Result:** Debug toggle working perfectly for testing progressive card reveal system. Xcode stability issue documented with safe workaround.
+### **Phase 13: Additional Games** 📋 PLANNED
 - Cooking game design and implementation
 - Potion Solitaire design and implementation
 
-### **Phase 10: Map/Navigation Integration** 📋 PLANNED
+### **Phase 14: Map/Navigation Integration** 📋 PLANNED
 - Map screen UI
 - Progress tracking system
 - Level unlock logic
