@@ -102,6 +102,9 @@
 		7F79085A2FA719FD00412002 /* EdnarsCauldron_Reference.jsx in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908552FA719FD00412002 /* EdnarsCauldron_Reference.jsx */; };
 		7F79085B2FA719FD00412002 /* REPLACEMENT_PLAN.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908562FA719FD00412002 /* REPLACEMENT_PLAN.md */; };
 		7F79085D2FA71CA200412002 /* CauldronGameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79085C2FA71CA200412002 /* CauldronGameData.swift */; };
+		7F7908642FA727F800412002 /* PotionShopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908632FA727F800412002 /* PotionShopModels.swift */; };
+		7F7908652FA727F800412002 /* PotionShopGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908622FA727F800412002 /* PotionShopGameView.swift */; };
+		7F7908662FA727F800412002 /* PotionShopData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908612FA727F800412002 /* PotionShopData.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -224,6 +227,9 @@
 		7F7908562FA719FD00412002 /* REPLACEMENT_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = REPLACEMENT_PLAN.md; sourceTree = "<group>"; };
 		7F7908572FA719FD00412002 /* SESSION_CHECKPOINT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_CHECKPOINT.md; sourceTree = "<group>"; };
 		7F79085C2FA71CA200412002 /* CauldronGameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameData.swift; sourceTree = "<group>"; };
+		7F7908612FA727F800412002 /* PotionShopData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopData.swift; sourceTree = "<group>"; };
+		7F7908622FA727F800412002 /* PotionShopGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopGameView.swift; sourceTree = "<group>"; };
+		7F7908632FA727F800412002 /* PotionShopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopModels.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -422,6 +428,9 @@
 		7F7908602FA725F900412002 /* PotionShop */ = {
 			isa = PBXGroup;
 			children = (
+				7F7908612FA727F800412002 /* PotionShopData.swift */,
+				7F7908622FA727F800412002 /* PotionShopGameView.swift */,
+				7F7908632FA727F800412002 /* PotionShopModels.swift */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -689,6 +698,9 @@
 				7F5574952F786B4500081E01 /* PhysicsTileView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
 				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,
+				7F7908642FA727F800412002 /* PotionShopModels.swift in Sources */,
+				7F7908652FA727F800412002 /* PotionShopGameView.swift in Sources */,
+				7F7908662FA727F800412002 /* PotionShopData.swift in Sources */,
 				7F2ADE742F8337350078EF4E /* AssetDebugView.swift in Sources */,
 				7F5574992F786B4C00081E01 /* PhysicsChainGameView.swift in Sources */,
 				7F2ADE552F81A0830078EF4E /* ComponentCardView.swift in Sources */,

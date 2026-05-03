@@ -80,6 +80,7 @@ enum GameType: CaseIterable {
     case potionSolitaire
     case mapNavigation
     case cauldron
+    case ednarsPotionShop  // ← ✨ NEW: Ednar's Potion Cauldron (added Phase 1)
 }
 
 // MARK: - Placeholder View (for unfinished games)

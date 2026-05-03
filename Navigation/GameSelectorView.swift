@@ -26,71 +26,77 @@ struct GameSelectorView: View {
             )
             .ignoresSafeArea()
             
-            VStack(spacing: 30) {
-                // Header
-                VStack(spacing: 8) {
-                    Text("🎮 DEBUG TEST 🎮")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.orange)
-                    
-                    Text("GAME SELECTOR")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text("Tap to launch a game")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .padding(.top, 60)
-                
-                Spacer()
-                
-                // Game selection buttons
-                VStack(spacing: 20) {
-                    gameButton(
-                        title: "Match-3 RPG Battle",
-                        icon: "⚔️",
-                        description: "8×8 gem matching with battle mechanics",
-                        game: .match3
-                    )
-                    
-                    gameButton(
-                        title: "Physics Chain Game",
-                        icon: "🫧",
-                        description: "Tsum-Tsum style bubble chaining",
-                        game: .physicsChain
-                    )
-                    
-                    gameButton(
-                        title: "Shop of Oddities",
-                        icon: "🔧",
-                        description: "Card-based repair solitaire",
-                        game: .shopOfOddities
-                    )
-                    
-                    gameButton(
-                        title: "Ednar's Cauldron",
-                        icon: "🧪",
-                        description: "Dice-based potion brewing roguelite",
-                        game: .cauldron
-                    )
-                }
-                .padding(.horizontal, 20)
-                
-                Spacer()
-                
-                // Back to map button
-                Button(action: {
-                    dismiss()
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.left.circle")
-                            .font(.system(size: 18))
-                        Text("Back to Map")
-                            .font(.system(size: 16, weight: .medium))
+            ScrollView {
+                VStack(spacing: 30) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("🎮 DEBUG TEST 🎮")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.orange)
+                        
+                        Text("GAME SELECTOR")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Text("Tap to launch a game")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white.opacity(0.7))
                     }
-                    .foregroundColor(.white.opacity(0.6))
-                    .padding(.bottom, 30)
+                    .padding(.top, 60)
+                    
+                    // Game selection buttons
+                    VStack(spacing: 20) {
+                        gameButton(
+                            title: "Match-3 RPG Battle",
+                            icon: "⚔️",
+                            description: "8×8 gem matching with battle mechanics",
+                            game: .match3
+                        )
+                        
+                        gameButton(
+                            title: "Physics Chain Game",
+                            icon: "🫧",
+                            description: "Tsum-Tsum style bubble chaining",
+                            game: .physicsChain
+                        )
+                        
+                        gameButton(
+                            title: "Shop of Oddities",
+                            icon: "🔧",
+                            description: "Card-based repair solitaire",
+                            game: .shopOfOddities
+                        )
+                        
+                        gameButton(
+                            title: "Ednar's Cauldron",
+                            icon: "🧪",
+                            description: "Dice-based potion brewing roguelite",
+                            game: .cauldron
+                        )
+                        
+                        // ✨ NEW (Phase 1): Ednar's Potion Cauldron — the new game
+                        gameButton(
+                            title: "Ednar's Potion Cauldron",
+                            icon: "",
+                            description: "Brew potions for the town",
+                            game: .ednarsPotionShop
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Back to map button
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.left.circle")
+                                .font(.system(size: 18))
+                            Text("Back to Map")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.bottom, 30)
+                    }
                 }
             }
         }
@@ -106,10 +112,15 @@ struct GameSelectorView: View {
             selectedGame = game
         }) {
             HStack(spacing: 16) {
-                // Icon
-                Text(icon)
-                    .font(.system(size: 40))
-                    .frame(width: 60, height: 60)
+                // Icon (only show if non-empty)
+                if !icon.isEmpty {
+                    Text(icon)
+                        .font(.system(size: 40))
+                        .frame(width: 60, height: 60)
+                } else {
+                    // No icon — keep alignment by reserving space
+                    Spacer().frame(width: 60, height: 60)
+                }
                 
                 // Text
                 VStack(alignment: .leading, spacing: 4) {
@@ -156,6 +167,8 @@ struct GameSelectorView: View {
             ShopOfOdditiesView()
         case .cauldron:
             CauldronGameView()
+        case .ednarsPotionShop:                  // ← ✨ NEW (Phase 1)
+            PotionShopGameView()
         case .cooking:
             PlaceholderView(gameName: "Cooking Game")
         case .potionSolitaire:
