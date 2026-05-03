@@ -106,6 +106,9 @@
 		7F7908652FA727F800412002 /* PotionShopGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908622FA727F800412002 /* PotionShopGameView.swift */; };
 		7F7908662FA727F800412002 /* PotionShopData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908612FA727F800412002 /* PotionShopData.swift */; };
 		7F7908682FA7305E00412002 /* PotionShopGameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908672FA7305E00412002 /* PotionShopGameState.swift */; };
+		7F79086C2FA7A05800412002 /* PotionShopCustomerSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79086A2FA7A05800412002 /* PotionShopCustomerSceneView.swift */; };
+		7F79086D2FA7A05800412002 /* PotionShopHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79086B2FA7A05800412002 /* PotionShopHeaderView.swift */; };
+		7F79086E2FA7A05800412002 /* PotionShopCauldronView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908692FA7A05800412002 /* PotionShopCauldronView.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -232,6 +235,9 @@
 		7F7908622FA727F800412002 /* PotionShopGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopGameView.swift; sourceTree = "<group>"; };
 		7F7908632FA727F800412002 /* PotionShopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopModels.swift; sourceTree = "<group>"; };
 		7F7908672FA7305E00412002 /* PotionShopGameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopGameState.swift; sourceTree = "<group>"; };
+		7F7908692FA7A05800412002 /* PotionShopCauldronView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopCauldronView.swift; sourceTree = "<group>"; };
+		7F79086A2FA7A05800412002 /* PotionShopCustomerSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopCustomerSceneView.swift; sourceTree = "<group>"; };
+		7F79086B2FA7A05800412002 /* PotionShopHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopHeaderView.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -430,6 +436,9 @@
 		7F7908602FA725F900412002 /* PotionShop */ = {
 			isa = PBXGroup;
 			children = (
+				7F7908692FA7A05800412002 /* PotionShopCauldronView.swift */,
+				7F79086A2FA7A05800412002 /* PotionShopCustomerSceneView.swift */,
+				7F79086B2FA7A05800412002 /* PotionShopHeaderView.swift */,
 				7F7908672FA7305E00412002 /* PotionShopGameState.swift */,
 				7F7908612FA727F800412002 /* PotionShopData.swift */,
 				7F7908622FA727F800412002 /* PotionShopGameView.swift */,
@@ -733,6 +742,9 @@
 				7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */,
 				7FB075432F5D300100BD0591 /* Character.swift in Sources */,
 				7F2ADE5B2F81A09E0078EF4E /* DeckView.swift in Sources */,
+				7F79086C2FA7A05800412002 /* PotionShopCustomerSceneView.swift in Sources */,
+				7F79086D2FA7A05800412002 /* PotionShopHeaderView.swift in Sources */,
+				7F79086E2FA7A05800412002 /* PotionShopCauldronView.swift in Sources */,
 				7F2ADE572F81A0970078EF4E /* CustomerView.swift in Sources */,
 				7F3124552F72513B00316079 /* PoisonPillScreenEffect.swift in Sources */,
 				7F2ADE532F81A0800078EF4E /* ShopOfOdditiesView.swift in Sources */,

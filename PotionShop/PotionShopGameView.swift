@@ -2,150 +2,139 @@
 //  PotionShopGameView.swift
 //  OverQuestMatch3
 //
-//  Ednar's Potion Cauldron — Main View
+//  Ednar's Potion Cauldron — Main game view (Phase 4 — playable!)
 //  Place in: PotionShop/ folder
 //
-//  PHASE 3: Adds a "Run Self-Test" button that exercises the
-//  PotionShopGameState engine and displays results. Phase 4 replaces
-//  this entire view with the real gameplay UI.
+//  Composes the header, customer scene, profile row, and cauldron
+//  into the actual gameplay screen. Each section is its own file:
+//
+//  - PotionShopHeaderView         (composure bar, shield, day/round)
+//  - PotionShopCustomerSceneView  (Ednar + customer line)
+//  - PotionShopProfileRowView     (profile button row, or inspect strip)
+//  - PotionShopCauldronView       (12 nodes + brew button + dice tray)
+//
+//  PHASE 4 DOES NOT INCLUDE:
+//  - Animations during brew (Phase 7)
+//  - Round-end / day-end / lose overlays (Phase 8)
+//  - Trait visual effects (Phase 9)
+//  - Debug menu (Phase 10)
+//
+//  When a round ends in Phase 4, the game shows a placeholder overlay.
+//  You can also back out to the game selector via the navigation
+//  chevron in the top-left.
 //
 
 import SwiftUI
 
 struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selfTestResults: [String] = []
-
-    // Quick stats from the data layer (same as Phase 2)
-    private var characterCount: Int { PotionShopData.characters.count }
-    private var traitCount: Int { PotionShopData.traits.count }
-    private var firstMorningName: String {
-        if let firstId = PotionShopData.day1.morning.customerIds.first,
-           let char = PotionShopData.character(firstId) {
-            return char.name
-        }
-        return "(none)"
-    }
+    @State private var gs = PotionShopGameState()
 
     var body: some View {
         ZStack {
+            // Parchment background
             PotionShopTheme.bg.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 14) {
-                    Spacer().frame(height: 30)
+            VStack(spacing: 0) {
+                // Header
+                PotionShopHeaderView(gs: gs)
 
-                    Text("🧪")
-                        .font(.system(size: 56))
+                // Customer scene
+                PotionShopCustomerSceneView(gs: gs)
 
-                    Text("Ednar's Potion Cauldron")
-                        .font(.system(size: 22, weight: .bold, design: .serif))
-                        .foregroundColor(PotionShopTheme.ink)
+                // Profile row (or inspect strip if a customer is being inspected)
+                PotionShopProfileRowView(gs: gs)
 
-                    Text("Phase 3 complete!")
-                        .font(.system(size: 13, design: .serif))
-                        .foregroundColor(PotionShopTheme.muted)
+                // Cauldron + brew preview + dice tray
+                PotionShopCauldronView(gs: gs)
 
-                    // Data summary panel
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("DATA LOADED:")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(PotionShopTheme.accent)
-                        statRow("Characters", "\(characterCount) (expected 14)")
-                        statRow("Traits", "\(traitCount) (expected 8)")
-                        statRow("First morning customer", firstMorningName)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: 340)
-                    .background(panelBackground)
-
-                    // Self-test button
-                    Button {
-                        let gs = PotionShopGameState()
-                        selfTestResults = gs.runSelfTest()
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "play.fill")
-                            Text("Run Self-Test")
-                        }
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 11)
-                        .background(PotionShopTheme.accent)
-                        .clipShape(Capsule())
-                    }
-
-                    // Self-test results panel (only shows after running)
-                    if !selfTestResults.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("SELF-TEST RESULTS:")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(PotionShopTheme.accent)
-                                .padding(.bottom, 4)
-                            ForEach(Array(selfTestResults.enumerated()), id: \.offset) { _, line in
-                                Text(line)
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundColor(lineColor(line))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                        .padding(14)
-                        .frame(maxWidth: 340)
-                        .background(panelBackground)
-                    }
-
-                    Text("Real gameplay UI arrives in Phase 4.")
-                        .font(.system(size: 11))
-                        .foregroundColor(PotionShopTheme.muted)
-                        .padding(.top, 4)
-
-                    Spacer().frame(height: 18)
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("← Back to Game Selector")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(PotionShopTheme.muted)
-                            .clipShape(Capsule())
-                    }
-
-                    Spacer().frame(height: 30)
-                }
-                .padding(.horizontal, 20)
+                Spacer(minLength: 0)
             }
+
+            // Phase-end placeholder overlays (Phase 8 will replace with real ones)
+            phaseOverlay
+        }
+        // Top-left back button (matches what other games do until Phase 10
+        // adds a proper debug menu with End Game)
+        .overlay(alignment: .topLeading) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(PotionShopTheme.ink.opacity(0.7))
+                    .padding(8)
+                    .background(Color.white.opacity(0.6))
+                    .clipShape(Circle())
+            }
+            .padding(.top, 4)
+            .padding(.leading, 8)
         }
     }
 
-    private var panelBackground: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.white.opacity(0.6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(PotionShopTheme.accent.opacity(0.4), lineWidth: 1)
+    // MARK: - Phase-end placeholder
+
+    @ViewBuilder
+    private var phaseOverlay: some View {
+        switch gs.phase {
+        case .playing:
+            EmptyView()
+        case .roundWon:
+            placeholderOverlay(
+                title: "Round Complete",
+                subtitle: "Potions brewed: \(gs.potionsBrewed)",
+                buttonLabel: "Continue",
+                action: { gs.advanceRound() }
             )
+        case .dayWon:
+            placeholderOverlay(
+                title: "Day Complete!",
+                subtitle: "Phase 8 will add a proper day-end screen.\nTap to start over.",
+                buttonLabel: "Restart",
+                action: { gs.resetGame() }
+            )
+        case .lost:
+            placeholderOverlay(
+                title: "You Collapsed",
+                subtitle: "Potions brewed before defeat: \(gs.potionsBrewed)",
+                buttonLabel: "Try Again",
+                action: { gs.resetGame() }
+            )
+        }
     }
 
-    private func lineColor(_ line: String) -> Color {
-        if line.contains("❌") { return PotionShopTheme.composureBad }
-        if line.contains("✅") { return PotionShopTheme.composureGood }
-        if line.contains("───") { return PotionShopTheme.accent }
-        return PotionShopTheme.ink
-    }
+    private func placeholderOverlay(
+        title: String,
+        subtitle: String,
+        buttonLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        ZStack {
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
 
-    private func statRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(PotionShopTheme.ink)
-            Spacer()
-            Text(value)
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundColor(PotionShopTheme.muted)
+            VStack(spacing: 18) {
+                Text(title)
+                    .font(.system(size: 28, weight: .heavy, design: .serif))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 14, design: .serif))
+                    .foregroundColor(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    action()
+                } label: {
+                    Text(buttonLabel)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(PotionShopTheme.accent)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(40)
         }
     }
 }
