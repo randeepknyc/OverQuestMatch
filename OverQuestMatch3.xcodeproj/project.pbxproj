@@ -94,6 +94,14 @@
 		7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908492F99DF6A00412002 /* CauldronModels.swift */; };
 		7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908482F99DF6A00412002 /* CauldronGameView.swift */; };
 		7F79084D2F99DF6A00412002 /* CauldronViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */; };
+		7F7908512FA7196D00412002 /* traits.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908502FA7196D00412002 /* traits.json */; };
+		7F7908522FA7196D00412002 /* rounds.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F79084F2FA7196D00412002 /* rounds.json */; };
+		7F7908532FA7196D00412002 /* characters.json in Resources */ = {isa = PBXBuildFile; fileRef = 7F79084E2FA7196D00412002 /* characters.json */; };
+		7F7908582FA719FD00412002 /* ART_SPEC.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908542FA719FD00412002 /* ART_SPEC.md */; };
+		7F7908592FA719FD00412002 /* SESSION_CHECKPOINT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908572FA719FD00412002 /* SESSION_CHECKPOINT.md */; };
+		7F79085A2FA719FD00412002 /* EdnarsCauldron_Reference.jsx in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908552FA719FD00412002 /* EdnarsCauldron_Reference.jsx */; };
+		7F79085B2FA719FD00412002 /* REPLACEMENT_PLAN.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908562FA719FD00412002 /* REPLACEMENT_PLAN.md */; };
+		7F79085D2FA71CA200412002 /* CauldronGameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79085C2FA71CA200412002 /* CauldronGameData.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -208,6 +216,14 @@
 		7F7908482F99DF6A00412002 /* CauldronGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameView.swift; sourceTree = "<group>"; };
 		7F7908492F99DF6A00412002 /* CauldronModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronModels.swift; sourceTree = "<group>"; };
 		7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronViewModel.swift; sourceTree = "<group>"; };
+		7F79084E2FA7196D00412002 /* characters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = characters.json; sourceTree = "<group>"; };
+		7F79084F2FA7196D00412002 /* rounds.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rounds.json; sourceTree = "<group>"; };
+		7F7908502FA7196D00412002 /* traits.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = traits.json; sourceTree = "<group>"; };
+		7F7908542FA719FD00412002 /* ART_SPEC.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_SPEC.md; sourceTree = "<group>"; };
+		7F7908552FA719FD00412002 /* EdnarsCauldron_Reference.jsx */ = {isa = PBXFileReference; lastKnownFileType = text; path = EdnarsCauldron_Reference.jsx; sourceTree = "<group>"; };
+		7F7908562FA719FD00412002 /* REPLACEMENT_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = REPLACEMENT_PLAN.md; sourceTree = "<group>"; };
+		7F7908572FA719FD00412002 /* SESSION_CHECKPOINT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_CHECKPOINT.md; sourceTree = "<group>"; };
+		7F79085C2FA71CA200412002 /* CauldronGameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameData.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -388,11 +404,26 @@
 		7F7908472F99DF5200412002 /* CauldronGame */ = {
 			isa = PBXGroup;
 			children = (
+				7F7908542FA719FD00412002 /* ART_SPEC.md */,
+				7F7908552FA719FD00412002 /* EdnarsCauldron_Reference.jsx */,
+				7F7908562FA719FD00412002 /* REPLACEMENT_PLAN.md */,
+				7F7908572FA719FD00412002 /* SESSION_CHECKPOINT.md */,
+				7F79084E2FA7196D00412002 /* characters.json */,
+				7F79084F2FA7196D00412002 /* rounds.json */,
+				7F7908502FA7196D00412002 /* traits.json */,
 				7F7908482F99DF6A00412002 /* CauldronGameView.swift */,
 				7F7908492F99DF6A00412002 /* CauldronModels.swift */,
 				7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */,
+				7F79085C2FA71CA200412002 /* CauldronGameData.swift */,
 			);
 			path = CauldronGame;
+			sourceTree = "<group>";
+		};
+		7F7908602FA725F900412002 /* PotionShop */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = PotionShop;
 			sourceTree = "<group>";
 		};
 		7F86C3B02F70EA9400DC5759 /* ReadFilesForContext */ = {
@@ -434,6 +465,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F7908602FA725F900412002 /* PotionShop */,
 				7F7908472F99DF5200412002 /* CauldronGame */,
 				7F2ADE432F819B5B0078EF4E /* ShopOfOddities */,
 				7F55749E2F78708C00081E01 /* ArchiveDocs_DONOTREAD */,
@@ -578,6 +610,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F7908582FA719FD00412002 /* ART_SPEC.md in Resources */,
+				7F7908592FA719FD00412002 /* SESSION_CHECKPOINT.md in Resources */,
+				7F79085A2FA719FD00412002 /* EdnarsCauldron_Reference.jsx in Resources */,
+				7F79085B2FA719FD00412002 /* REPLACEMENT_PLAN.md in Resources */,
 				7F0095352F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md in Resources */,
 				7F2ADE822F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md in Resources */,
 				7F0094ED2F6E2B1D00E10AEB /* blocking_nonblocking 2.md in Resources */,
@@ -627,6 +663,9 @@
 				7F2ADE862F88BFCE0078EF4E /* SHOP_UI_OVERHAUL_SESSION_SUMMARY.md in Resources */,
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
+				7F7908512FA7196D00412002 /* traits.json in Resources */,
+				7F7908522FA7196D00412002 /* rounds.json in Resources */,
+				7F7908532FA7196D00412002 /* characters.json in Resources */,
 				7F55748D2F7867EE00081E01 /* QUICK_START_PHYSICS_CHAIN.md in Resources */,
 				7F2ADE802F84AADD0078EF4E /* SHOP_LAYOUT_TWEAKING_GUIDE.md in Resources */,
 			);
@@ -693,6 +732,7 @@
 				7F2ADE7E2F838EC30078EF4E /* GameSelectorView.swift in Sources */,
 				7F2ADE4F2F819CE00078EF4E /* ShopGameState.swift in Sources */,
 				7F0094E12F6BA4E200E10AEB /* DeveloperSplashView.swift in Sources */,
+				7F79085D2FA71CA200412002 /* CauldronGameData.swift in Sources */,
 				7F0094A52F6926B200E10AEB /* GameMode.swift in Sources */,
 				7F2ADE662F81AA1E0078EF4E /* CommentaryManager.swift in Sources */,
 				7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */,

@@ -1,8 +1,9 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** April 10, 2026 (Shop of Oddities - Smart card rearrangement system complete)  
-> **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow
+> **Last Updated:** May 3, 2026 (Cauldron Game Rewrite - Phase 1 Data Layer Complete)  
+> **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
+> **Current Work:** Ednar's Cauldron complete rewrite in progress (Phase 1 of 9 complete)
 
 ---
 
@@ -16,10 +17,14 @@
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
-3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system (April 10, 2026)
-4. **Cooking Game** - 📋 Planned
-5. **Potion Solitaire** - 📋 Planned
-6. **Map Navigation System** - 📋 Planned
+3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system
+4. **Ednar's Cauldron** - 🟡 IN DEVELOPMENT - Dice-placement combat game (Die in the Dungeon-style)
+   - **Phase 1 (Data Layer):** ✅ COMPLETE (May 3, 2026)
+   - **Status:** JSON loading working, existing old game still functional
+   - **Next:** Phase 2 - Game State Model (see REPLACEMENT_PLAN.md)
+5. **Cooking Game** - 📋 Planned
+6. **Potion Solitaire** - 📋 Planned
+7. **Map Navigation System** - 📋 Planned
 
 ### **Testing Flow:**
 **Current (PERFECTED):** Splash → Title → Map → Game Selector → All Games Work  
@@ -98,10 +103,20 @@ OverQuestMatch3/ (ROOT)
 │  ├─ ShopSceneView.swift (3-layer composite scene system)
 │  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing + toggles)
 │
-├─ CauldronGame/ ✅ (COMPLETE - Die in the Dungeon-style potion brewing with custom sketch layout)
-│  ├─ CauldronModels.swift (data types, board topology with custom node positions)
-│  ├─ CauldronViewModel.swift (game logic + optional debug positioning tools)
-│  └─ CauldronGameView.swift (sketch-based layout, 70° rotated brew button, all views)
+├─ CauldronGame/ 🟡 IN REWRITE (Phase 1 of 9 Complete - May 3, 2026)
+│  ├─ CauldronGameData.swift ✨ NEW - JSON loader + Codable structs (traits, characters, rounds)
+│  ├─ traits.json ✨ NEW - 8 trait definitions (intimidating, volatile, pious, skittish, etc.)
+│  ├─ characters.json ✨ NEW - 14 customers with combat stats (Mildred, Grimdrek, etc.)
+│  ├─ rounds.json ✨ NEW - Day/round structure (Day 1 curated, Days 2-3 rule-based)
+│  ├─ CauldronModels.swift ⚠️ TO BE REPLACED - Old implementation (salvaging parts)
+│  ├─ CauldronViewModel.swift ⚠️ TO BE REPLACED - Old implementation (salvaging bag system)
+│  └─ CauldronGameView.swift ⚠️ TO BE REPLACED - Old implementation (salvaging debug tools)
+│  
+│  **Cauldron Rewrite Context:**
+│  - See REPLACEMENT_PLAN.md for 9-phase rewrite plan
+│  - See SESSION_CHECKPOINT.md for design decisions
+│  - See EdnarsCauldron_Reference.jsx for architecture
+│  - See PHASE_1_COMPLETE.md for verification steps
 │
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
@@ -593,11 +608,64 @@ Each game has its own image sets:
 - ✅ Documented workaround for Xcode crash issue
 
 **Result:** Debug toggle working perfectly for testing progressive card reveal system. Xcode stability issue documented with safe workaround.
-### **Phase 13: Additional Games** 📋 PLANNED
+### **Phase 13: Ednar's Cauldron Rewrite** 🟡 IN PROGRESS (May 3, 2026)
+**Complete replacement of existing Cauldron game with new turn-based combat design.**
+
+**Phase 1: Data Layer Setup** ✅ COMPLETE (May 3, 2026)
+- Created `CauldronGameData.swift` with Codable structs
+- Loaded traits.json (8 traits: intimidating, volatile, pious, skittish, draining, inspiring, loud, hexer)
+- Loaded characters.json (14 customers: Mildred, Tomik, Greta, Pemberton, Ardo, etc.)
+- Loaded rounds.json (Day 1 curated, Days 2-3 rule-based generation)
+- Salvaged `DieTier` enum and `BagDie` struct from existing code
+- Added `@StateObject` in OverQuestMatch3App.swift for app-launch loading
+- Debug print confirms: "✅ Cauldron Data Loaded: 14 characters, 8 traits, days: day_1, day_2, day_3"
+- **Result:** Data layer complete, existing game still functional
+
+**Upcoming Phases (see REPLACEMENT_PLAN.md):**
+- Phase 2: Game State Model (Customer struct, queue/swap, brew calculation)
+- Phase 3: Replace the views (delete old, build new)
+- Phase 4: Wire up queue/swap mechanic (critical - took 8 attempts in web prototype)
+- Phase 5: Cauldron + dice + brewing (no animation yet)
+- Phase 6: Animation sequence (7-phase brew with timing)
+- Phase 7: Round flow + win/lose states
+- Phase 8: Trait effects + polish
+- Phase 9: Art swap-in
+
+**Design Context:**
+- Turn-based combat (every customer attacks per turn, active uses `active_attack`, waiters use `waiting_attack`)
+- Queue/swap mechanic (tap profile = swap with queue[0], pure 2-element swap)
+- 3 dice max per brew, hand of 5 (forces strategic choice)
+- 5 dice types: potency, stability, boost, heal, shield (NOT the old 6-type system)
+- Patience is purely a timer (ticks down, no per-turn damage)
+- NO underbrew penalty (removed from old design)
+- Day = 4 rounds: morning → afternoon → evening → night
+- Night is always 1 boss customer
+
+**Files:**
+- REPLACEMENT_PLAN.md - Concrete 9-phase step-by-step plan
+- SESSION_CHECKPOINT.md - Locked design decisions
+- EdnarsCauldron_Reference.jsx - Architectural reference (combat math, animation timing)
+- PHASE_1_COMPLETE.md - Verification instructions for Phase 1
+
+**Salvaged from Existing Code:**
+- Bag/discard system logic
+- DieTier enum (kept dormant, all dice at `.basic` in v1)
+- Debug positioning overlay (authoring tool for layout)
+- Custom 12-node board topology
+
+**Thrown Out:**
+- Old patron generation system (replaced with characters.json)
+- Old combat model (underbrew penalty, expiry-only damage)
+- Old 6-dice-types system (mirror/restoration/terrain removed)
+- Old theme colors (dark/purple → warm/parchment)
+
+**Result:** Phase 1 complete - data loading working, ready for Phase 2.
+
+### **Phase 14: Additional Games** 📋 PLANNED
 - Cooking game design and implementation
 - Potion Solitaire design and implementation
 
-### **Phase 14: Map/Navigation Integration** 📋 PLANNED
+### **Phase 15: Map/Navigation Integration** 📋 PLANNED
 - Map screen UI
 - Progress tracking system
 - Level unlock logic
@@ -664,7 +732,11 @@ Each game has its own image sets:
 - ✅ Easy testing on physical devices (no code editing)
 
 ### **What's In Progress:**
-- Nothing! All core systems working
+- 🟡 **Ednar's Cauldron Rewrite** - Phase 1 (Data Layer) complete, Phase 2 next
+  - JSON loading working
+  - 14 characters, 8 traits, 3 days loaded
+  - Existing old game still functional
+  - See REPLACEMENT_PLAN.md for next steps
 
 ### **What's Planned:**
 - 📋 Cooking game design & implementation
@@ -682,6 +754,10 @@ Each game has its own image sets:
 - `PHYSICS_CONTEXT.md` - Physics Chain Game documentation
 - `ShopOfOddities_CONTEXT.md` - Shop of Oddities game documentation
 - `SHOP_IMAGE_ASSETS_REFERENCE.md` - Quick reference for Shop of Oddities custom images
+- `REPLACEMENT_PLAN.md` - Ednar's Cauldron rewrite plan (9 phases)
+- `SESSION_CHECKPOINT.md` - Ednar's Cauldron design decisions
+- `EdnarsCauldron_Reference.jsx` - Ednar's Cauldron architecture reference
+- `PHASE_1_COMPLETE.md` - Cauldron Phase 1 verification guide
 
 **Project Organization:**
 - `STRUCTURE_CONTEXT.md` - Reorganization tracker and guide
@@ -745,3 +821,4 @@ For game-specific details, see:
 - Match-3 Game: `MATCH3_CONTEXT.md`
 - Physics Chain Game: `PHYSICS_CONTEXT.md`
 - Shop of Oddities: `ShopOfOddities_CONTEXT.md`
+- Ednar's Cauldron: `REPLACEMENT_PLAN.md`, `SESSION_CHECKPOINT.md`, `EdnarsCauldron_Reference.jsx`

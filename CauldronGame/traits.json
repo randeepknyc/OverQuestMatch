@@ -1,0 +1,91 @@
+{
+  "_doc": "TRAITS LIBRARY for Ednar's Cauldron. See CHARACTER_AUTHORING_GUIDE.md for full instructions. Each trait id (the lowercase key like 'intimidating') is referenced by name in characters.json. To add a new trait: copy any block below, paste it in, and change the values. The 'effects' object tells the game what the trait does mechanically — see the authoring guide for the full list of available effect keys.",
+  "_format": "Plain JSON. Lines starting with an underscore (_doc, _note) are comments for humans — the game ignores them.",
+  "_combat_model_note": "Session 4 turn-based combat: every turn each customer attacks (active uses active_attack, waiters use waiting_attack). Patience is purely a timer that ticks down each turn (no per-turn damage from patience). When patience hits 0, customer storms out and deals expire_damage. There is NO underbrew penalty.",
+
+  "traits": {
+
+    "intimidating": {
+      "_note": "Classic angry-customer trait. Common for nobles, merchants, brutes. Stacks visibly — two intimidating customers in queue means brews need +4. This still matters even without underbrew penalty: hitting target faster = customer dies in fewer turns = you eat fewer attacks.",
+      "name": "Intimidating",
+      "description": "Brews targeting this customer need +2 damage to satisfy.",
+      "effects": {
+        "brew_target_modifier": 2
+      }
+    },
+
+    "volatile": {
+      "_note": "BOSS-TIER. Reserved for demons, mad witches, anything that can blow up in your face. Currently used by Grimdrek.",
+      "name": "Volatile",
+      "description": "Overbrewing this customer triggers death-throes — they retaliate BEFORE your shield/heal applies.",
+      "effects": {
+        "overbrew_triggers_predefense": true
+      }
+    },
+
+    "pious": {
+      "_note": "Pure flavor. Doesn't do anything mechanically — just colors dialogue. Useful for tutorial-tier customers where you want a name and a vibe but no extra pressure.",
+      "name": "Pious",
+      "description": "They judge you silently. No mechanical effect.",
+      "effects": {}
+    },
+
+    "skittish": {
+      "_note": "For nervous, jumpy customers. Their patience drains faster WHILE ACTIVE (front of line). Pairs well with low base patience values (4-5) to make them genuinely urgent. Doesn't affect their waiting_patience_tick.",
+      "name": "Skittish",
+      "description": "Their patience drains faster while they are at the front of the line.",
+      "effects": {
+        "active_patience_drain_modifier": 1
+      }
+    },
+
+    "loud": {
+      "_note": "Bram the Bard's trait. Squeezes the dice economy without breaking the always-5-in-hand rule. STUBBED in code — declared but doesn't fire yet. TODO: implement focus reduction on dice.",
+      "name": "Loud",
+      "description": "Their racket reduces your focus by 1 while they wait — you draw fewer energy points per turn.",
+      "effects": {
+        "focus_modifier": -1
+      }
+    },
+
+    "hexer": {
+      "_note": "Higher-difficulty trait. Disrupts your hand without breaking the structure. Best for evening/night customers. STUBBED in code — declared but doesn't fire yet. TODO: implement die rerolling.",
+      "name": "Hexer",
+      "description": "Each turn this customer waits, one random die in your hand rerolls to its lowest face.",
+      "effects": {
+        "hex_die_per_turn": true
+      }
+    },
+
+    "draining": {
+      "_note": "Passive composure leak — 1 composure per turn while this customer is in queue. Punishing in the late game when composure is already low. Applied separately from active_attack/waiting_attack.",
+      "name": "Draining",
+      "description": "You lose 1 composure per turn while this customer waits.",
+      "effects": {
+        "composure_drain_per_turn": 1
+      }
+    },
+
+    "inspiring": {
+      "_note": "POSITIVE trait. The customer helps you while they wait. Use sparingly — too many makes the game easy. Good for once-per-day surprise encounters.",
+      "name": "Inspiring",
+      "description": "All your dice gain +1 to their rolled value while this customer is in queue.",
+      "effects": {
+        "dice_value_modifier_global": 1
+      }
+    }
+
+  },
+
+  "_template_for_new_traits": {
+    "_note": "Copy this block, rename the key (e.g. 'my_new_trait'), fill in values, and move it up into the 'traits' object above. Available effect keys: brew_target_modifier (number), active_patience_drain_modifier (number), waiting_patience_drain_modifier (number), focus_modifier (number), composure_drain_per_turn (number), dice_value_modifier_global (number), overbrew_triggers_predefense (true/false), hex_die_per_turn (true/false). To request a new effect, ask Claude — adding new effect keys requires a small code change.",
+    "your_trait_id": {
+      "name": "Display Name",
+      "description": "What the player sees when they read about this trait.",
+      "effects": {
+        "brew_target_modifier": 0
+      }
+    }
+  }
+
+}

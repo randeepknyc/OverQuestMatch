@@ -2,7 +2,54 @@
 
 **Project:** OverQuestMatch3 Multi-Game Expansion  
 **Started:** March 28, 2026  
-**Status:** 🟡 IN PROGRESS
+**Last Updated:** May 3, 2026  
+**Status:** 🟢 ACTIVE DEVELOPMENT - Cauldron Game Rewrite Phase 1 Complete
+
+---
+
+## 🎮 GAMES IN PROJECT
+
+### ✅ COMPLETE & PLAYABLE:
+1. **Match-3 RPG Battle** - Puzzle combat with character abilities (Match3Game/)
+2. **Shop of Oddities** - Card repair solitaire game (ShopOfOddities/)
+3. **Physics Chain Game** - Bubble chain matching (PhysicsChainGame/)
+
+### 🟡 IN DEVELOPMENT:
+4. **Ednar's Cauldron** - Dice placement combat game (CauldronGame/)
+   - **Status:** Phase 1 (Data Layer) COMPLETE ✅
+   - **Files:** CauldronGameData.swift created, JSON loaded at app launch
+   - **Next:** Phase 2 - Game State Model (see REPLACEMENT_PLAN.md)
+   - **Reference:** SESSION_CHECKPOINT.md, REPLACEMENT_PLAN.md, EdnarsCauldron_Reference.jsx
+
+### ⏸️ PLANNED:
+5. **Cooking Game** (CookingGame/)
+6. **Potion Solitaire** (PotionSolitaireGame/)
+7. **Map Navigation** (Navigation/)
+
+---
+
+## 📊 CAULDRON GAME REWRITE PROGRESS
+
+**Current Phase:** Phase 1 of 9 ✅ COMPLETE
+
+### Phase 1: Data Layer Setup ✅
+- [x] Created CauldronGameData.swift with Codable structs
+- [x] JSON loading (traits.json, characters.json, rounds.json)
+- [x] Salvaged DieTier and BagDie from existing code
+- [x] Debug print confirming load at app launch
+- [x] Existing Cauldron game still functional
+
+### Upcoming Phases:
+- [ ] Phase 2: Game State Model (CauldronGameState.swift)
+- [ ] Phase 3: Replace the views
+- [ ] Phase 4: Wire up queue/swap mechanic
+- [ ] Phase 5: Cauldron + dice + brewing
+- [ ] Phase 6: Animation sequence
+- [ ] Phase 7: Round flow + win/lose states
+- [ ] Phase 8: Trait effects + polish
+- [ ] Phase 9: Art swap-in
+
+**See:** REPLACEMENT_PLAN.md for detailed phase-by-phase instructions
 
 ---
 

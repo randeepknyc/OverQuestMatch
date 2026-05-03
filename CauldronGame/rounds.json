@@ -1,0 +1,162 @@
+{
+  "_doc": "ROUNDS for Ednar's Cauldron. A 'day' is a run of 4 rounds: morning -> afternoon -> evening -> night. Night is always 1 boss. Each round defines either an explicit list of customer ids (hand-curated) or rules to randomly pick (rule-based). To add a day: copy any day block, rename the key, change values.",
+  "_format": "Plain JSON. Lines starting with an underscore (_doc, _note) are comments — the game ignores them. Customer ids in 'customers' arrays must match keys in characters.json exactly (case-sensitive).",
+
+  "_global_settings": {
+    "_note": "Settings that apply to every day in the game. The user is likely to flip COMPOSURE_REST_BETWEEN_ROUNDS to 0 later (so composure only refills between full days, not between rounds within a day). Just change the number and the game adapts.",
+    "starting_composure": 30,
+    "max_composure": 30,
+    "COMPOSURE_REST_BETWEEN_ROUNDS": 5,
+    "COMPOSURE_REST_BETWEEN_DAYS": 30,
+    "rounds_per_day": 4,
+    "round_order": ["morning", "afternoon", "evening", "night"],
+    "MAX_PLACEMENTS_PER_BREW": 3
+  },
+
+  "days": {
+
+    "day_1": {
+      "_note": "DAY 1 — fully hand-curated for tutorial reliability. Mildred opens (gentlest customer, no trait). Greta arrives in afternoon (inspiring trait teaches that traits aren't always bad). Evening introduces real pressure with Wendelina + Crispin together. Night is Grimdrek by default.",
+      "name": "Day 1",
+      "subtitle": "Opening for Business",
+
+      "morning": {
+        "mode": "curated",
+        "customers": ["mildred", "tomik"],
+        "_note": "2 customers, both difficulty 1, both no-trait. Pure tutorial."
+      },
+
+      "afternoon": {
+        "mode": "curated",
+        "customers": ["pemberton", "greta"],
+        "_note": "2 customers. Pemberton (grumpy merchant) introduces patience pressure. Greta (inspiring) teaches that some traits help you."
+      },
+
+      "evening": {
+        "mode": "curated",
+        "customers": ["wendelina", "crispin", "ardo"],
+        "_note": "3 customers — first time the player sees a full queue. Wendelina (high stats, no trait), Crispin (intimidating), Ardo (skittish). Player has to triage."
+      },
+
+      "night": {
+        "mode": "curated",
+        "customers": ["grimdrek"],
+        "_note": "Single boss. Grimdrek by default. To swap: change to ['carmilla'] or ['royal_envoy']."
+      }
+    },
+
+    "day_2": {
+      "_note": "DAY 2 — example rule-based day. Every round picks customers from pools by difficulty and time_of_day tag.",
+      "name": "Day 2",
+      "subtitle": "Word Gets Around",
+
+      "morning": {
+        "mode": "random",
+        "count": 2,
+        "rules": {
+          "max_difficulty": 2,
+          "must_include_tag": "morning"
+        }
+      },
+
+      "afternoon": {
+        "mode": "random",
+        "count": 3,
+        "rules": {
+          "max_difficulty": 3,
+          "must_include_tag": "afternoon"
+        }
+      },
+
+      "evening": {
+        "mode": "random",
+        "count": 3,
+        "rules": {
+          "max_difficulty": 4,
+          "must_include_tag": "evening"
+        }
+      },
+
+      "night": {
+        "mode": "random",
+        "count": 1,
+        "rules": {
+          "max_difficulty": 5,
+          "min_difficulty": 5,
+          "must_include_tag": "night"
+        },
+        "_note": "Random boss from any difficulty-5 customer with the 'night' tag."
+      }
+    },
+
+    "day_3": {
+      "_note": "DAY 3 — HYBRID example. Morning + afternoon are random. Evening is hand-curated. Night is a fixed boss.",
+      "name": "Day 3",
+      "subtitle": "The Reckoning",
+
+      "morning": {
+        "mode": "random",
+        "count": 2,
+        "rules": {
+          "max_difficulty": 2,
+          "must_include_tag": "morning"
+        }
+      },
+
+      "afternoon": {
+        "mode": "random",
+        "count": 3,
+        "rules": {
+          "max_difficulty": 3,
+          "must_include_tag": "afternoon"
+        }
+      },
+
+      "evening": {
+        "mode": "curated",
+        "customers": ["hexa_mott", "ironhilde"],
+        "_note": "Hand-curated: two difficulty-4 customers in one round. A 'pre-boss gauntlet.'"
+      },
+
+      "night": {
+        "mode": "curated",
+        "customers": ["royal_envoy"],
+        "_note": "Fixed boss for narrative reasons (the Crown summons you on Day 3)."
+      }
+    }
+
+  },
+
+  "_template_for_new_days": {
+    "_note": "Copy this block, rename the key (e.g. 'day_4'), fill in values, and move it into the 'days' object above. Each round needs a 'mode' of either 'curated' (with a 'customers' array of ids) or 'random' (with 'count' and 'rules'). Available rule keys: max_difficulty (1-5), min_difficulty (1-5), must_include_tag ('morning'/'afternoon'/'evening'/'night'), required_trait (a trait id, forces at least one customer with that trait), exclude_ids (an array of customer ids that cannot be picked).",
+    "day_X": {
+      "name": "Day X",
+      "subtitle": "What's Happening This Day",
+      "morning": {
+        "mode": "curated",
+        "customers": ["customer_id_1", "customer_id_2"]
+      },
+      "afternoon": {
+        "mode": "random",
+        "count": 2,
+        "rules": {
+          "max_difficulty": 3,
+          "must_include_tag": "afternoon"
+        }
+      },
+      "evening": {
+        "mode": "random",
+        "count": 3,
+        "rules": {
+          "max_difficulty": 4,
+          "must_include_tag": "evening"
+        }
+      },
+      "night": {
+        "mode": "curated",
+        "customers": ["grimdrek"]
+      }
+    }
+  }
+
+}

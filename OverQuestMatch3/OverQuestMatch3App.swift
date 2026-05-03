@@ -10,6 +10,9 @@ import SwiftUI
 @main
 struct OverQuestMatch3App: App {
     
+    // Cauldron game data loader (Phase 1 - loads JSON at app launch)
+    @StateObject private var cauldronGameData = CauldronGameData()
+    
     @State private var showSplash = GameConfig.enableDeveloperSplash
     @State private var showTitleScreen = false
     @State private var showMapScreen = false
