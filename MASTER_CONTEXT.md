@@ -98,6 +98,11 @@ OverQuestMatch3/ (ROOT)
 │  ├─ ShopSceneView.swift (3-layer composite scene system)
 │  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing + toggles)
 │
+├─ CauldronGame/ ✅ (COMPLETE - Die in the Dungeon-style potion brewing with custom sketch layout)
+│  ├─ CauldronModels.swift (data types, board topology with custom node positions)
+│  ├─ CauldronViewModel.swift (game logic + optional debug positioning tools)
+│  └─ CauldronGameView.swift (sketch-based layout, 70° rotated brew button, all views)
+│
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
 ├─ Navigation/ ✅ (Game selector + map placeholder for testing)

@@ -91,6 +91,9 @@
 		7F5574A42F78748000081E01 /* PHYSICS_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */; };
 		7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */; };
 		7F7907B32F8A2E5F00412002 /* cardrotation_anim.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */; };
+		7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908492F99DF6A00412002 /* CauldronModels.swift */; };
+		7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908482F99DF6A00412002 /* CauldronGameView.swift */; };
+		7F79084D2F99DF6A00412002 /* CauldronViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -202,6 +205,9 @@
 		7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PHYSICS_CONTEXT.md; sourceTree = "<group>"; };
 		7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTEXT_REORGANIZATION_SUMMARY.md; sourceTree = "<group>"; };
 		7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = cardrotation_anim.md; sourceTree = "<group>"; };
+		7F7908482F99DF6A00412002 /* CauldronGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameView.swift; sourceTree = "<group>"; };
+		7F7908492F99DF6A00412002 /* CauldronModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronModels.swift; sourceTree = "<group>"; };
+		7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronViewModel.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -379,6 +385,16 @@
 			path = ArchiveDocs_DONOTREAD;
 			sourceTree = "<group>";
 		};
+		7F7908472F99DF5200412002 /* CauldronGame */ = {
+			isa = PBXGroup;
+			children = (
+				7F7908482F99DF6A00412002 /* CauldronGameView.swift */,
+				7F7908492F99DF6A00412002 /* CauldronModels.swift */,
+				7F79084A2F99DF6A00412002 /* CauldronViewModel.swift */,
+			);
+			path = CauldronGame;
+			sourceTree = "<group>";
+		};
 		7F86C3B02F70EA9400DC5759 /* ReadFilesForContext */ = {
 			isa = PBXGroup;
 			children = (
@@ -418,6 +434,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F7908472F99DF5200412002 /* CauldronGame */,
 				7F2ADE432F819B5B0078EF4E /* ShopOfOddities */,
 				7F55749E2F78708C00081E01 /* ArchiveDocs_DONOTREAD */,
 				7F55747D2F785C8C00081E01 /* PotionSolitaireGame */,
@@ -647,6 +664,9 @@
 				7F5574932F786B4000081E01 /* PhysicsGameConfig.swift in Sources */,
 				7F0094EF2F6E375B00E10AEB /* BonusTileConfig.swift in Sources */,
 				7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */,
+				7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */,
+				7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */,
+				7F79084D2F99DF6A00412002 /* CauldronViewModel.swift in Sources */,
 				7F5574682F77865000081E01 /* CharacterAnimations.swift in Sources */,
 				7F2ADE592F81A09A0078EF4E /* RepairSlotView.swift in Sources */,
 				7F5574692F77865000081E01 /* Match3ContentView.swift in Sources */,

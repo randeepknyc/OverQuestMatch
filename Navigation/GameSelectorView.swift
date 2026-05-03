@@ -67,6 +67,13 @@ struct GameSelectorView: View {
                         description: "Card-based repair solitaire",
                         game: .shopOfOddities
                     )
+                    
+                    gameButton(
+                        title: "Ednar's Cauldron",
+                        icon: "🧪",
+                        description: "Dice-based potion brewing roguelite",
+                        game: .cauldron
+                    )
                 }
                 .padding(.horizontal, 20)
                 
@@ -147,6 +154,8 @@ struct GameSelectorView: View {
             PhysicsChainGameView()
         case .shopOfOddities:
             ShopOfOdditiesView()
+        case .cauldron:
+            CauldronGameView()
         case .cooking:
             PlaceholderView(gameName: "Cooking Game")
         case .potionSolitaire:

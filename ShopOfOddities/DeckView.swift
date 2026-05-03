@@ -68,7 +68,7 @@ struct DeckView: View {
     // MARK: - SIZE CONFIGURATION
     
     /// Main card width (adjust this to change deck size)
-    private let cardWidth: CGFloat = 90
+    private let cardWidth: CGFloat = 95
     
     /// Calculated card height (maintains 0.65 aspect ratio)
     private var cardHeight: CGFloat {
@@ -415,6 +415,11 @@ struct DeckView: View {
     
     /// Start deal animation (slide up from below)
     private func startDealAnimation() {
+        // RESET ALL ANIMATION STATE (fixes Play Again bug where cards start face-up)
+        showingCardBack = true
+        flipAngle = 0
+        hasFlippedThisCard = false
+        
         guard ShopLayoutConfig.dealAnimationEnabled else {
             // Skip animation, go straight to final position
             dealOffset = 0

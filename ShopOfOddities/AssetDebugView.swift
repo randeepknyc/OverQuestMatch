@@ -45,6 +45,30 @@ struct AssetsDebugView: View {
                     }
                     .padding(.horizontal)
                     
+                    // 💀 DEBUG: Force Game Loss Button
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(action: {
+                            forceGameLoss()
+                        }) {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                Text("Force Game Loss")
+                                    .fontWeight(.semibold)
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.2))
+                            .cornerRadius(8)
+                            .foregroundColor(.red)
+                        }
+                        
+                        Text("Triggers 'Insufficient Repair' game over. Creates a losing repair and completes it.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 16)
+                    }
+                    .padding(.horizontal)
+                    
                     // Character Forcing Section
                     characterForcingSection
                     
@@ -210,6 +234,44 @@ struct AssetsDebugView: View {
         
         // Dismiss the debug view
         dismiss()
+    }
+    
+    // MARK: - Force Game Loss
+    
+    private func forceGameLoss() {
+        // Fill all repair slots with cursed cards to create a negative score
+        // This simulates an "insufficient repair" loss condition
+        
+        // Create 4 heavily cursed cards
+        let cursedCards = [
+            ComponentCard(type: .structural, value: -3, isCursed: true, adjacencyBonus: nil, name: "Broken Plank"),
+            ComponentCard(type: .enchantment, value: -2, isCursed: true, adjacencyBonus: nil, name: "Cursed Dust"),
+            ComponentCard(type: .memory, value: -2, isCursed: true, adjacencyBonus: nil, name: "Dark Memory"),
+            ComponentCard(type: .wildcraft, value: -1, isCursed: true, adjacencyBonus: nil, name: "Toxic Sludge")
+        ]
+        
+        // Clear current slots
+        gameState.repairSlots = [
+            RepairSlot(index: 0),
+            RepairSlot(index: 1),
+            RepairSlot(index: 2),
+            RepairSlot(index: 3)
+        ]
+        
+        // Place all cursed cards
+        for (index, card) in cursedCards.enumerated() {
+            gameState.repairSlots[index].card = card
+        }
+        
+        // Dismiss debug view
+        dismiss()
+        
+        // Trigger repair completion after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task {
+                await self.gameState.completeRepair()
+            }
+        }
     }
     
     // MARK: - Customer Portraits Section

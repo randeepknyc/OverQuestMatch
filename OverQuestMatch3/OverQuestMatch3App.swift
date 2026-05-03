@@ -76,6 +76,7 @@ enum GameType: CaseIterable {
     case cooking
     case potionSolitaire
     case mapNavigation
+    case cauldron
 }
 
 // MARK: - Placeholder View (for unfinished games)

@@ -32,48 +32,31 @@ struct ShopSceneView: View {
                 // LAYER 3: Shop Foreground (Ednar + Sword)
                 shopForegroundLayer
                 
-                // LAYER 4: Customer Info Overlay (at bottom, full width)
+                // LAYER 4: Customer Info Overlay (at bottom, icons only)
                 VStack {
                     Spacer()
                     
-                    HStack(spacing: 8) {
-                        // Left: Customer name and item
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(customer.name)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                            
-                            Text(customer.itemName)
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.8))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                        }
+                    HStack(spacing: 12) {
+                        Spacer()
                         
-                        Spacer(minLength: 8)
+                        // Required icon (full color)
+                        Image(customer.requiredType.iconName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(customer.requiredType.color)
                         
-                        // Right: Need and Like icons
-                        HStack(spacing: 6) {
-                            // Need icon
-                            Image(customer.requiredType.iconName)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 18, height: 18)
-                                .foregroundColor(customer.requiredType.color)
-                            
-                            // Like icon
-                            Image(customer.preferredType.iconName)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 18, height: 18)
-                                .foregroundColor(customer.preferredType.color)
-                                .opacity(0.6)
-                        }
+                        // Preferred icon (slightly faded)
+                        Image(customer.preferredType.iconName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(customer.preferredType.color)
+                            .opacity(0.6)
+                        
+                        Spacer()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     .frame(width: geometry.size.width) // KEY: Match scene width
                     .background(
                         Color.black.opacity(0.7)

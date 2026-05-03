@@ -37,7 +37,7 @@ struct ShopLayoutConfig {
     // MARK: - Counter / Repair Area
     
     /// Padding above repair cards (counter surface top edge to cards)
-    static let counterPaddingTop: CGFloat = 9.0
+    static let counterPaddingTop: CGFloat = 19.0
     
     /// Padding below repair cards (cards to counter surface bottom edge)
     static let counterPaddingBottom: CGFloat = 6.0
@@ -47,7 +47,7 @@ struct ShopLayoutConfig {
     // MARK: - Gaps Between Sections
     
     /// Gap between counter bottom and deck area top (points)
-    static let gapCounterToDecks: CGFloat = 10.0
+    static let gapCounterToDecks: CGFloat = 15.0
     
     // MARK: - Deck Area
     
@@ -58,7 +58,7 @@ struct ShopLayoutConfig {
     static let deckCardSpacing: CGFloat = 4.0
     
     /// Horizontal spacing between repair slot cards (points)
-    static let repairCardSpacing: CGFloat = 4.0
+    static let repairCardSpacing: CGFloat = 8.0
     
     // MARK: - Ghost Cards
     
@@ -100,7 +100,7 @@ struct ShopLayoutConfig {
     // MARK: - Side Padding
     
     /// Left/right horizontal padding for content sections
-    static let horizontalPadding: CGFloat = 12.0
+    static let horizontalPadding: CGFloat = 18.0
     
     // MARK: - Score Bar
     

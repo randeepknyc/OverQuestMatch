@@ -68,6 +68,35 @@ struct ShopOfOdditiesView: View {
                         .frame(height: ShopLayoutConfig.deckBottomPadding)
                 }
                 
+                // FLOATING DEBUG BUTTON (top-right, above everything)
+                VStack {
+                    HStack {
+                        Spacer()
+                        
+                        Button(action: {
+                            showingAssetsDebug = true
+                        }) {
+                            Image(systemName: "wrench.and.screwdriver.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.cyan)
+                                .padding(12)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
+                        .padding(.top, 8)
+                        .padding(.trailing, 16)
+                        .sheet(isPresented: $showingAssetsDebug) {
+                            AssetsDebugView(gameState: $gameState, onEndGame: {
+                                dismiss()
+                            })
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .zIndex(100)
+                
                 // DRAG OVERLAY (card being dragged renders on top)
                 if let drag = dragState, let card = drag.card as ComponentCard? {
                     dragOverlay(card: card, position: drag.currentPosition)
@@ -177,31 +206,32 @@ struct ShopOfOdditiesView: View {
                         .font(.system(size: 16))
                     
                     Text("\(gameState.score)")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.gameScore(size: 30))
                         .foregroundColor(.white)
                 }
                 
                 Spacer()
                 
-                // Customers served count
-                Text("\(gameState.customersServed)/13")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
+                // Customer name + item (center)
+                if let customer = gameState.currentCustomer {
+                    Text("\(customer.name) - \(customer.itemName)")
+                        .font(.gameUI(size: 25))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
                 
                 Spacer()
                 
-                // Debug button (wrench icon)
-                Button(action: {
-                    showingAssetsDebug = true
-                }) {
-                    Image(systemName: "wrench.and.screwdriver.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.cyan)
-                }
-                .sheet(isPresented: $showingAssetsDebug) {
-                    AssetsDebugView(gameState: $gameState, onEndGame: {
-                        dismiss()
-                    })
+                // Customers served count (moved from center)
+                HStack(spacing: 4) {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 25))
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Text("\(gameState.customersServed)/13")
+                        .font(.gameUI(size: 16))
+                        .foregroundColor(.white)
                 }
             }
             .padding(.horizontal, ShopLayoutConfig.scoreBarTextPadding)
