@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 4, 2026  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned. Art assets pending.  
+> **Last Updated:** May 4, 2026 (Evening - Final Layout Values Locked)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, BREW zone hidden. Art assets ready to integrate.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -470,6 +470,181 @@ The dice tray background originally used `.clipShape(RoundedRectangle(cornerRadi
 
 This allows dice to remain visible during drag without being clipped by the tray's rounded corners.
 
+### 8.9 Art Scaling & Positioning System (May 4, 2026 - Evening - FIXED)
+
+**Status:** ✅ FULLY IMPLEMENTED AND FIXED
+
+**Critical Fix Applied (Evening):** Removed `.scaledToFill()` from both cauldron and Ednar images, and added missing `*ArtScale` multiplier. This allows **true independent width/height scaling with full distortion**. Images can now be stretched/squished in any direction without aspect ratio constraints.
+
+The layout editor includes comprehensive freeform art scaling and positioning controls for both the cauldron and Ednar images.
+
+#### **Access:**
+Debug Menu (⚙️) → Layout Editor → Scroll to **"🎨 ART SCALING & POSITIONING"**
+
+#### **Control Structure:**
+
+**Uniform Scale (Both):**
+- **🔗 Uniform Scale** slider (0.5× to 3.0×) - Test scale for both elements
+- **"Reset All to 1.0"** button - Resets all art controls
+- **"Apply Uniform"** button - Applies uniform scale to all dimensions
+
+**🍲 Cauldron Freeform (5 sliders):**
+- **Uniform Scale** (0.5× to 3.0×) - Proportional scaling
+- **↔️ Width Scale** (0.5× to 3.0×) - Independent width (stretch/squish horizontally) **✅ NOW WORKS**
+- **↕️ Height Scale** (0.5× to 3.0×) - Independent height (stretch/squish vertically) **✅ NOW WORKS**
+- **↔️ X Position** (-200 to +200 pts) - Horizontal offset from default position
+- **↕️ Y Position** (-200 to +200 pts) - Vertical offset from default position
+- **"Link W/H"** button - Copies width to height (make proportional)
+- **"Reset Position"** button - Returns X/Y offsets to 0
+
+**🧙 Ednar Freeform (5 sliders):**
+- Same 5 controls as cauldron (uniform scale, width, height, X pos, Y pos)
+- Same helper buttons ("Link W/H", "Reset Position")
+
+#### **How It Works:**
+
+**Real-Time Preview:**
+- All sliders update instantly as you drag them
+- No need to generate code or rebuild to see changes
+- Perfect for fine-tuning art dimensions and positions
+- **Images now distort freely** when width ≠ height scales
+
+**Implementation (FIXED):**
+```swift
+// Cauldron parameters (in PotionShopCauldronView)
+cauldronArtScale: Double = 1.0       // Uniform scale
+cauldronArtWidth: Double = 1.0       // Width multiplier
+cauldronArtHeight: Double = 1.0      // Height multiplier  
+cauldronArtXOffset: Double = 0       // X position offset (pts)
+cauldronArtYOffset: Double = 0       // Y position offset (pts)
+
+// Ednar parameters (in PotionShopEdnarView)
+ednarArtScale: Double = 1.0          // Uniform scale
+ednarArtWidth: Double = 1.0          // Width multiplier
+ednarArtHeight: Double = 1.0         // Height multiplier
+ednarArtXOffset: Double = 0          // X position offset (pts)
+ednarArtYOffset: Double = 0          // Y position offset (pts)
+```
+
+**Frame Calculation (FIXED - Now includes all multipliers and NO aspect ratio locking):**
+```swift
+// Cauldron image (PotionShopCauldronView.swift)
+Image(uiImage: cauldronImage)
+    .resizable()
+    // ✅ NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
+    .frame(
+        width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,   // ✅ All 3 multipliers
+        height: baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight  // ✅ All 3 multipliers
+    )
+    .position(
+        x: g.bowlCenterX + cauldronArtXOffset,
+        y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
+    )
+
+// Ednar image (PotionShopCustomerSceneView.swift)
+Image(uiImage: ednarImage)
+    .resizable()
+    // ✅ NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
+    .frame(
+        width: 100 * ednarArtScale * ednarArtWidth,    // ✅ All 3 multipliers
+        height: 120 * ednarArtScale * ednarArtHeight   // ✅ All 3 multipliers
+    )
+    .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+```
+
+#### **What Was Fixed:**
+
+**Problem 1:** Missing `*ArtScale` multiplier
+- **Before:** `width: baseGeometry.bowlW * cauldronArtWidth`
+- **After:** `width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth`
+
+**Problem 2:** `.scaledToFill()` forced aspect ratio
+- **Before:** `.resizable().scaledToFill()` ← Ignores independent width/height!
+- **After:** `.resizable()` only ← Allows true distortion
+
+**Result:** Width and height sliders now work independently and can fully distort images to any aspect ratio.
+
+#### **Files Modified:**
+1. **PotionShopLayoutEditorView.swift** - Added art scaling UI section (8 state vars, ~50 lines UI)
+2. **PotionShopCauldronView.swift** - ✅ FIXED: Added missing scale multiplier, removed `.scaledToFill()`
+3. **PotionShopCustomerSceneView.swift** - ✅ FIXED: Added missing scale multiplier, removed `.scaledToFill()`
+
+#### **Common Use Cases:**
+
+**Make cauldron wider (without getting taller):**
+```
+Width Scale: 1.5
+Height Scale: 1.0
+Result: 50% wider, same height ✅ NOW WORKS
+```
+
+**Make cauldron flat and wide:**
+```
+Width Scale: 2.0
+Height Scale: 0.5
+Result: Double width, half height (squished) ✅ NOW WORKS
+```
+
+**Move Ednar left and up:**
+```
+X Position: -50
+Y Position: -20
+Result: 50pts left, 20pts up
+```
+
+**Make both 2× bigger proportionally:**
+```
+Uniform Scale: 2.0
+→ Tap "Apply Uniform"
+Result: Both double in size (both width and height)
+```
+
+#### **Code Generation:**
+
+The layout editor's "📋 Generate Code" button will output values like:
+
+```swift
+// In PotionShopGameView.swift
+PotionShopCauldronView(
+    gs: gs,
+    diceFlight: diceFlight,
+    // ... other parameters ...
+    cauldronArtScale: 1.0,
+    cauldronArtWidth: 1.5,      // ← From width slider
+    cauldronArtHeight: 0.8,     // ← From height slider
+    cauldronArtXOffset: 20,     // ← From X position slider
+    cauldronArtYOffset: -10     // ← From Y position slider
+)
+
+PotionShopCustomerSceneView(
+    gs: gs,
+    ednarArtScale: 1.0,
+    ednarArtWidth: 1.2,         // ← From width slider
+    ednarArtHeight: 1.4,        // ← From height slider
+    ednarArtXOffset: -30,       // ← From X position slider
+    ednarArtYOffset: 15         // ← From Y position slider
+)
+```
+
+#### **Current Production Values (LOCKED - May 4, 2026 Evening):**
+
+**Art Scaling:**
+- `cauldronArtWidth: 1.45` (stretched 45% wider)
+- `cauldronArtHeight: 2.00` (doubled in height)
+- `cauldronArtXOffset: 7` (shifted right 7pt)
+- `cauldronArtYOffset: -40` (shifted up 40pt)
+- `ednarArtWidth: 1.59` (stretched 59% wider)
+- `ednarArtHeight: 2.00` (doubled in height)
+- `ednarArtXOffset: 14` (shifted right 14pt)
+- `ednarArtYOffset: -17` (shifted up 17pt)
+
+**BREW Tap Zone:**
+- `brewZoneX: 0.83` (83% from left edge)
+- `brewZoneWidth: 112pt` (tap area width)
+- `showBrewZone: false` (yellow debug box hidden in production)
+
+These values are locked into both PotionShopGameView.swift and PotionShopLayoutEditorView.swift defaults.
+
 ---
 
 ## 9. ANIMATION SYSTEM (Phase 7) — `PotionShopBrewAnimator.swift`
@@ -598,6 +773,8 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 | 7     | Animated 7-phase brew sequence       | ✅     | Full floating numbers, shake, flash, expiration slide-out, input lockout, animator constants file |
 | **7b** | **Interactive layout editor (May 4)** | ✅ | **Real-time visual editor with 20+ sliders, code generation, colored overlays. Node independent positioning. Integrated into debug menu. See `LAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md`.** |
 | **7c** | **Drag-and-drop dice (May 4)**       | ✅ | **Full gesture-based drag system with visual feedback (scale, glow, node pulse). Both tap and drag methods work. Clipping fix for tray. Global coordinate hit detection.** |
+| **7d** | **Freeform art scaling (May 4 evening)** | ✅ | **Independent width/height scaling + X/Y positioning for cauldron & Ednar. Real-time sliders in layout editor. 8 new parameters total. See §8.9 for full documentation.** |
+| **7e** | **Art scaling FIX (May 4 evening)** | ✅ | **CRITICAL FIX: Removed `.scaledToFill()` from both images and added missing `*ArtScale` multiplier. Width/height sliders now work independently with true distortion. Images can be stretched/squished freely without aspect ratio constraints.** |
 
 ---
 

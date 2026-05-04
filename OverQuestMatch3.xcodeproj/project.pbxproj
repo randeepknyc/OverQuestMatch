@@ -116,6 +116,8 @@
 		7F79087E2FA8746800412002 /* PotionShopLayoutEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */; };
 		7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */; };
 		7F7908822FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */; };
+		7F7908842FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */; };
+		7F7908862FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -252,6 +254,8 @@
 		7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutEditorView.swift; sourceTree = "<group>"; };
 		7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md; sourceTree = "<group>"; };
 		7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_INTEGRATION_HANDOFF_MAY4_2026.md; sourceTree = "<group>"; };
+		7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_SCALING_SESSION_MAY4_2026_EVENING.md; sourceTree = "<group>"; };
+		7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -462,6 +466,7 @@
 				7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */,
 				7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */,
 				7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */,
+				7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -540,6 +545,7 @@
 				7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */,
 				7F2ADE812F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md */,
 				7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */,
+				7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -656,6 +662,7 @@
 				7F7908592FA719FD00412002 /* SESSION_CHECKPOINT.md in Resources */,
 				7F79085A2FA719FD00412002 /* EdnarsCauldron_Reference.jsx in Resources */,
 				7F79085B2FA719FD00412002 /* REPLACEMENT_PLAN.md in Resources */,
+				7F7908862FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md in Resources */,
 				7F0095352F6F50C100E10AEB /* PORTRAIT_FIX_FINAL_TEST.md in Resources */,
 				7F2ADE822F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md in Resources */,
 				7F0094ED2F6E2B1D00E10AEB /* blocking_nonblocking 2.md in Resources */,
@@ -709,6 +716,7 @@
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
 				7F79087A2FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md in Resources */,
+				7F7908842FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md in Resources */,
 				7F7908512FA7196D00412002 /* traits.json in Resources */,
 				7F7908522FA7196D00412002 /* rounds.json in Resources */,
 				7F7908532FA7196D00412002 /* characters.json in Resources */,

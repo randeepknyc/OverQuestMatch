@@ -13,15 +13,15 @@ struct PotionShopLayoutEditorView: View {
     @Binding var isPresented: Bool
     @Namespace private var diceFlight
     
-    // Section height percentages
-    @State private var headerPercent: Double = 0.010
-    @State private var scenePercent: Double = 0.263
-    @State private var profilePercent: Double = 0.095
-    @State private var cauldronPercent: Double = 0.372
-    @State private var previewPercent: Double = 0.032
-    @State private var trayPercent: Double = 0.193
+    // Section height percentages (MATCH PotionShopGameView.swift)
+    @State private var headerPercent: Double = 0.010      // 1%   - Minimal header
+    @State private var scenePercent: Double = 0.263       // 26.3% - Scene (big!)
+    @State private var profilePercent: Double = 0.095     // 9.5%  - Profile row
+    @State private var cauldronPercent: Double = 0.372    // 37.2% - HUGE CAULDRON!
+    @State private var previewPercent: Double = 0.032     // 3.2%  - Preview bar (tiny)
+    @State private var trayPercent: Double = 0.193        // 19.3% - BIG TRAY!
     
-    // Cauldron controls
+    // Cauldron controls (MATCH PotionShopGameView.swift)
     @State private var cauldronScale: Double = 1.29
     @State private var cauldronXOffset: Double = 44
     @State private var cauldronYOffset: Double = 58
@@ -29,25 +29,39 @@ struct PotionShopLayoutEditorView: View {
     @State private var nodeXOffset: Double = 0
     @State private var nodeYOffset: Double = 0
     
-    // BREW button controls
+    // BREW button controls (MATCH PotionShopGameView.swift)
     @State private var showBrewButton: Bool = false
     @State private var brewXOffset: Double = -50
     @State private var brewYPercent: Double = 0.30
-    @State private var brewZoneX: Double = 0.80
+    @State private var brewZoneX: Double = 0.83          // ✅ LOCKED VALUE
     @State private var brewZoneY: Double = 0.19
-    @State private var brewZoneWidth: Double = 90
+    @State private var brewZoneWidth: Double = 112       // ✅ LOCKED VALUE
     @State private var brewZoneHeight: Double = 123
-    @State private var showBrewZone: Bool = true
+    @State private var showBrewZone: Bool = false        // ✅ LOCKED (hidden in game)
     
-    // Dice tray controls
+    // Dice tray controls (MATCH PotionShopGameView.swift)
     @State private var dieScale: Double = 1.31
     @State private var trayYOffset: Double = -25
     @State private var enableDragDrop: Bool = true
     
-    // Bag/Discard toggles
+    // Bag/Discard toggles (MATCH PotionShopGameView.swift)
     @State private var showBag: Bool = true
     @State private var showDiscard: Bool = true
     @State private var bagDiscardScale: Double = 1.0
+    
+    // Art scaling controls (MATCH PotionShopGameView.swift)
+    @State private var uniformArtScale: Double = 1.0
+    @State private var cauldronArtScale: Double = 1.0
+    @State private var cauldronArtWidth: Double = 1.45      // ✅ LOCKED VALUE
+    @State private var cauldronArtHeight: Double = 2.00     // ✅ LOCKED VALUE
+    @State private var cauldronArtXOffset: Double = 7       // ✅ LOCKED VALUE
+    @State private var cauldronArtYOffset: Double = -40     // ✅ LOCKED VALUE
+    
+    @State private var ednarArtScale: Double = 1.0
+    @State private var ednarArtWidth: Double = 1.59         // ✅ LOCKED VALUE
+    @State private var ednarArtHeight: Double = 2.00        // ✅ LOCKED VALUE
+    @State private var ednarArtXOffset: Double = 14
+    @State private var ednarArtYOffset: Double = -17
     
     // UI controls
     @State private var showOverlays: Bool = true
@@ -81,7 +95,7 @@ struct PotionShopLayoutEditorView: View {
                             }
                         }
                     
-                    PotionShopCustomerSceneView(gs: gs)
+                    PotionShopCustomerSceneView(gs: gs, ednarArtScale: ednarArtScale, ednarArtWidth: ednarArtWidth, ednarArtHeight: ednarArtHeight, ednarArtXOffset: ednarArtXOffset, ednarArtYOffset: ednarArtYOffset)
                         .frame(height: sceneH)
                         .frame(maxWidth: .infinity)
                         .background(showOverlays ? Color.blue.opacity(0.2) : Color.clear)
@@ -122,7 +136,12 @@ struct PotionShopLayoutEditorView: View {
                         brewZoneY: brewZoneY,
                         brewZoneWidth: brewZoneWidth,
                         brewZoneHeight: brewZoneHeight,
-                        showBrewZone: showBrewZone
+                        showBrewZone: showBrewZone,
+                        cauldronArtScale: cauldronArtScale,
+                        cauldronArtWidth: cauldronArtWidth,
+                        cauldronArtHeight: cauldronArtHeight,
+                        cauldronArtXOffset: cauldronArtXOffset,
+                        cauldronArtYOffset: cauldronArtYOffset
                     )
                         .frame(height: cauldronH)
                         .background(showOverlays ? Color.purple.opacity(0.2) : Color.clear)
@@ -335,6 +354,113 @@ struct PotionShopLayoutEditorView: View {
                             
                             Divider().background(Color.white)
                             
+                            // ART SCALING CONTROLS - ENHANCED!
+                            sectionLabel("🎨 ART SCALING & POSITIONING")
+                            
+                            Text("Uniform Scale (Both)")
+                                .font(.caption2)
+                                .foregroundColor(.cyan)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
+                            
+                            sliderControl("🔗 Uniform Scale", value: $uniformArtScale, range: 0.5...3.0)
+                            
+                            HStack(spacing: 12) {
+                                Button("Reset All to 1.0") {
+                                    uniformArtScale = 1.0
+                                    cauldronArtScale = 1.0
+                                    ednarArtScale = 1.0
+                                    cauldronArtWidth = 1.0
+                                    cauldronArtHeight = 1.0
+                                    cauldronArtXOffset = 0
+                                    cauldronArtYOffset = 0
+                                    ednarArtWidth = 1.0
+                                    ednarArtHeight = 1.0
+                                    ednarArtXOffset = 0
+                                    ednarArtYOffset = 0
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .gray))
+                                .font(.caption)
+                                
+                                Button("Apply Uniform") {
+                                    cauldronArtScale = uniformArtScale
+                                    ednarArtScale = uniformArtScale
+                                    cauldronArtWidth = uniformArtScale
+                                    cauldronArtHeight = uniformArtScale
+                                    ednarArtWidth = uniformArtScale
+                                    ednarArtHeight = uniformArtScale
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .cyan))
+                                .font(.caption)
+                            }
+                            .padding(.horizontal)
+                            
+                            Divider().background(Color.white.opacity(0.3))
+                            
+                            // CAULDRON FREEFORM CONTROLS
+                            Text("🍲 Cauldron Freeform")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
+                                .padding(.top, 8)
+                            
+                            sliderControl("Uniform Scale", value: $cauldronArtScale, range: 0.5...3.0)
+                            sliderControl("↔️ Width Scale", value: $cauldronArtWidth, range: 0.5...3.0)
+                            sliderControl("↕️ Height Scale", value: $cauldronArtHeight, range: 0.5...3.0)
+                            sliderControl("↔️ X Position", value: $cauldronArtXOffset, range: -200...200, step: 1)
+                            sliderControl("↕️ Y Position", value: $cauldronArtYOffset, range: -200...200, step: 1)
+                            
+                            HStack(spacing: 12) {
+                                Button("Link W/H") {
+                                    cauldronArtHeight = cauldronArtWidth
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .purple))
+                                .font(.caption)
+                                
+                                Button("Reset Position") {
+                                    cauldronArtXOffset = 0
+                                    cauldronArtYOffset = 0
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .orange))
+                                .font(.caption)
+                            }
+                            .padding(.horizontal)
+                            
+                            Divider().background(Color.white.opacity(0.3))
+                            
+                            // EDNAR FREEFORM CONTROLS
+                            Text("🧙 Ednar Freeform")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
+                                .padding(.top, 8)
+                            
+                            sliderControl("Uniform Scale", value: $ednarArtScale, range: 0.5...3.0)
+                            sliderControl("↔️ Width Scale", value: $ednarArtWidth, range: 0.5...3.0)
+                            sliderControl("↕️ Height Scale", value: $ednarArtHeight, range: 0.5...3.0)
+                            sliderControl("↔️ X Position", value: $ednarArtXOffset, range: -200...200, step: 1)
+                            sliderControl("↕️ Y Position", value: $ednarArtYOffset, range: -200...200, step: 1)
+                            
+                            HStack(spacing: 12) {
+                                Button("Link W/H") {
+                                    ednarArtHeight = ednarArtWidth
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .purple))
+                                .font(.caption)
+                                
+                                Button("Reset Position") {
+                                    ednarArtXOffset = 0
+                                    ednarArtYOffset = 0
+                                }
+                                .buttonStyle(PotionShopLayoutEditorButtonStyle(color: .orange))
+                                .font(.caption)
+                            }
+                            .padding(.horizontal)
+                            
+                            Divider().background(Color.white)
+                            
                             // Action Buttons
                             VStack(spacing: 8) {
                                 Button("📋 Generate Code") {
@@ -421,17 +547,29 @@ struct PotionShopLayoutEditorView: View {
         showBrewButton = false
         brewXOffset = -50
         brewYPercent = 0.30
-        brewZoneX = 0.80
+        brewZoneX = 0.83           // ✅ LOCKED VALUE
         brewZoneY = 0.19
-        brewZoneWidth = 90
+        brewZoneWidth = 112        // ✅ LOCKED VALUE
         brewZoneHeight = 123
-        showBrewZone = true
+        showBrewZone = false       // ✅ LOCKED (hidden in game)
         dieScale = 1.31
         trayYOffset = -25
         enableDragDrop = true
         showBag = true
         showDiscard = true
         bagDiscardScale = 1.0
+        // Art scaling defaults
+        uniformArtScale = 1.0
+        cauldronArtScale = 1.0
+        cauldronArtWidth = 1.45    // ✅ LOCKED VALUE
+        cauldronArtHeight = 2.00   // ✅ LOCKED VALUE
+        cauldronArtXOffset = 7     // ✅ LOCKED VALUE
+        cauldronArtYOffset = -40   // ✅ LOCKED VALUE
+        ednarArtScale = 1.0
+        ednarArtWidth = 1.59       // ✅ LOCKED VALUE
+        ednarArtHeight = 2.00      // ✅ LOCKED VALUE
+        ednarArtXOffset = 14
+        ednarArtYOffset = -17
     }
     
     private func generateCode() -> String {

@@ -28,13 +28,16 @@ struct PotionShopGameView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let totalH = geo.size.height
-            let headerH      = max(70,  totalH * 0.010)   // 1%  - Minimal header
-            let sceneH       = max(160, totalH * 0.263)   // 26.3% - Scene
-            let profileRowH  = max(74,  totalH * 0.095)   // 9.5% - Profile row
-            let cauldronH    = max(240, totalH * 0.372)   // 37.2% - HUGE CAULDRON!
-            let previewBarH  = max(26,  totalH * 0.032)   // 3.2% - Preview bar
-            let trayH        = max(82,  totalH * 0.193)   // 19.3% - BIG TRAY!
+            // ✅ VERIFIED CORRECT VALUES - May 4, 2026 Evening
+            let totalHeight = geo.size.height
+            
+            // Section height calculations (percentages from layout editor)
+            let headerH      = max(70,  totalHeight * 0.010)   // 1%   - Minimal header
+            let sceneH       = max(160, totalHeight * 0.263)   // 26.3% - Scene (big!)
+            let profileRowH  = max(74,  totalHeight * 0.095)   // 9.5%  - Profile row
+            let cauldronH    = max(240, totalHeight * 0.372)   // 37.2% - HUGE CAULDRON!
+            let previewBarH  = max(26,  totalHeight * 0.032)   // 3.2%  - Preview bar (tiny)
+            let trayH        = max(82,  totalHeight * 0.193)   // 19.3% - BIG TRAY!
 
             ZStack {
                 // Background image (or placeholder parchment color)
@@ -52,7 +55,14 @@ struct PotionShopGameView: View {
                     PotionShopHeaderView(gs: gs, showDebugMenu: $showDebugMenu)
                         .frame(height: headerH)
 
-                    PotionShopCustomerSceneView(gs: gs)
+                    PotionShopCustomerSceneView(
+                        gs: gs,
+                        ednarArtScale: 1.0,
+                        ednarArtWidth: 1.59,    // ✅ FROM SCREENSHOT (proportional)
+                        ednarArtHeight: 2.00,   // ✅ FROM SCREENSHOT (proportional)
+                        ednarArtXOffset: 14,    // ✅ FROM SCREENSHOT
+                        ednarArtYOffset: -17    // ✅ FROM SCREENSHOT
+                    )
                         .frame(height: sceneH)
                         .frame(maxWidth: .infinity)
 
@@ -65,18 +75,27 @@ struct PotionShopGameView: View {
                         cauldronScale: 1.29,
                         cauldronXOffset: 44,
                         cauldronYOffset: 58,
-                        nodeScale: 1.30,
-                        nodeXOffset: 3,
-                        nodeYOffset: -8,
+                        nodeScale: 1.00,
+                        nodeXOffset: 0,
+                        nodeYOffset: 0,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
-                        brewZoneX: 0.81,
+                        brewZoneX: 0.83,          // ✅ FROM LAYOUT EDITOR
                         brewZoneY: 0.19,
-                        brewZoneWidth: 90,
+                        brewZoneWidth: 112,       // ✅ FROM LAYOUT EDITOR
                         brewZoneHeight: 123,
-                        showBrewZone: false
+                        showBrewZone: false,       // ✅ Visible (for tap zone debugging)
+                        cauldronArtScale: 1.0,
+                        cauldronArtWidth: 1.45,   // ✅ FROM SCREENSHOT (proportional)
+                        cauldronArtHeight: 2.00,  // ✅ FROM SCREENSHOT (proportional)
+                        cauldronArtXOffset: 7,    // ✅ FROM SCREENSHOT
+                        cauldronArtYOffset: -40   // ✅ FROM SCREENSHOT
                     )
+                    // BACKUP (to revert, copy these values back):
+                    // brewZoneX: 0.80, brewZoneWidth: 90, showBrewZone: true
+                    // cauldronArtWidth: 2.61, cauldronArtHeight: 1.28
+                    // cauldronArtXOffset: 6, cauldronArtYOffset: -40
                         .frame(height: cauldronH)
 
                     PotionShopBrewPreviewBar(gs: gs)

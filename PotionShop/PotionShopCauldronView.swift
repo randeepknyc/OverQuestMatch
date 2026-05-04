@@ -167,6 +167,11 @@ struct PotionShopCauldronView: View {
     var brewZoneWidth: Double = 100       // Brew tap zone width (pts)
     var brewZoneHeight: Double = 100      // Brew tap zone height (pts)
     var showBrewZone: Bool = false        // Show visual indicator of brew zone
+    var cauldronArtScale: Double = 1.0    // ART SCALE - Additional scale for cauldron image only
+    var cauldronArtWidth: Double = 1.0    // FREEFORM - Independent width scale
+    var cauldronArtHeight: Double = 1.0   // FREEFORM - Independent height scale
+    var cauldronArtXOffset: Double = 0    // FREEFORM - X position offset (pts)
+    var cauldronArtYOffset: Double = 0    // FREEFORM - Y position offset (pts)
 
     var body: some View {
         GeometryReader { geo in
@@ -179,15 +184,35 @@ struct PotionShopCauldronView: View {
                 nodeXOffset: nodeXOffset,
                 nodeYOffset: nodeYOffset
             )
+            
+            // Calculate BASE bowl size (without cauldronScale applied)
+            // Re-compute with scale = 1.0 to get true base dimensions
+            let baseGeometry = CauldronGeometry.compute(
+                in: geo.size,
+                scale: 1.0,  // No scale!
+                xOffset: 0,
+                yOffset: 0,
+                nodeScaleMultiplier: 1.0,
+                nodeXOffset: 0,
+                nodeYOffset: 0
+            )
 
             ZStack {
                 // SINGLE CAULDRON IMAGE (behind nodes)
                 if let cauldronImage = PotionShopImageLoader.loadImage(named: "cauldron") {
                     Image(uiImage: cauldronImage)
                         .resizable()
-                        .scaledToFit()
-                        .frame(width: g.bowlW, height: g.bowlH)
-                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
+                        // NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
+                        .frame(
+                            width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,    // base × uniform × width
+                            height: baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight   // base × uniform × height
+                        )
+                        // NO .clipped() - allows image to escape frame bounds
+                        .position(
+                            x: g.bowlCenterX + cauldronArtXOffset,
+                            y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
+                        )
+                        .allowsHitTesting(false)  // Don't intercept touches meant for nodes
                 } else {
                     // Placeholder: Simple bowl shape when no art
                     PotionShopBowlShape()

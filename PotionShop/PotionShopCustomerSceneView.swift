@@ -50,6 +50,11 @@ struct PotionShopSceneLayout {
 
 struct PotionShopCustomerSceneView: View {
     @Bindable var gs: PotionShopGameState
+    var ednarArtScale: Double = 1.0  // ART SCALE - Pass through to Ednar view
+    var ednarArtWidth: Double = 1.0  // FREEFORM - Width scale
+    var ednarArtHeight: Double = 1.0 // FREEFORM - Height scale
+    var ednarArtXOffset: Double = 0  // FREEFORM - X position
+    var ednarArtYOffset: Double = 0  // FREEFORM - Y position
 
     @Namespace private var queueAnimation
     @State private var activeArrivalCounter: Int = 0
@@ -81,7 +86,14 @@ struct PotionShopCustomerSceneView: View {
                         )
                 }
 
-                PotionShopEdnarView(gs: gs)
+                PotionShopEdnarView(
+                    gs: gs,
+                    ednarArtScale: ednarArtScale,
+                    ednarArtWidth: ednarArtWidth,
+                    ednarArtHeight: ednarArtHeight,
+                    ednarArtXOffset: ednarArtXOffset,
+                    ednarArtYOffset: ednarArtYOffset
+                )
                     .position(
                         x: geo.size.width * PotionShopSceneLayout.ednarX,
                         y: geo.size.height * PotionShopSceneLayout.ednarYFraction
@@ -133,6 +145,11 @@ struct PotionShopCustomerSceneView: View {
 
 struct PotionShopEdnarView: View {
     @Bindable var gs: PotionShopGameState
+    var ednarArtScale: Double = 1.0    // ART SCALE - Scale multiplier for Ednar image
+    var ednarArtWidth: Double = 1.0    // FREEFORM - Independent width scale
+    var ednarArtHeight: Double = 1.0   // FREEFORM - Independent height scale
+    var ednarArtXOffset: Double = 0    // FREEFORM - X position offset (pts)
+    var ednarArtYOffset: Double = 0    // FREEFORM - Y position offset (pts)
 
     private var expressionAssetName: String {
         let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
@@ -153,14 +170,28 @@ struct PotionShopEdnarView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Try to load Ednar expression image, fallback to emoji
-            if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
-                Image(uiImage: ednarImage)
-                    .resizable()
-                    .scaledToFit()
+            ZStack {
+                // Invisible spacer to maintain layout position
+                Color.clear
                     .frame(width: 100, height: 120)
-            } else {
-                Text(expressionEmojiFallback)
-                    .font(.system(size: 64))
+                
+                // Image with independent positioning (can move outside bounds)
+                if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
+                    Image(uiImage: ednarImage)
+                        .resizable()
+                        // NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
+                        .frame(
+                            width: 100 * ednarArtScale * ednarArtWidth,    // base × uniform × width
+                            height: 120 * ednarArtScale * ednarArtHeight   // base × uniform × height
+                        )
+                        // NO .clipped() - allows image to escape frame bounds
+                        .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                        .allowsHitTesting(false)  // Don't intercept touches
+                } else {
+                    Text(expressionEmojiFallback)
+                        .font(.system(size: 64 * ednarArtScale))
+                        .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                }
             }
             
             Capsule()
