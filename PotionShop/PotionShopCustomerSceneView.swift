@@ -5,21 +5,14 @@
 //  Ednar's Potion Cauldron — Customer scene + profile row
 //  Place in: PotionShop/ folder
 //
-//  PHASE 5C: Queue spacing is COUNT-AWARE. Customers right-align with
-//  Ednar gap based on customer count.
+//  PHASE 5C: Queue spacing is COUNT-AWARE.
+//  PHASE 5: Customer queue swap uses matchedGeometryEffect.
+//  PHASE 6C: Inspect card matches the web artifact.
+//  PHASE 6D: Inspect card SPLIT-SLIDES open.
+//  PHASE 7: Customers SHAKE on damage (driven by gs.customerShakeCounters)
+//           and SLIDE OFF-SCREEN on expiration (driven by gs.expiringCustomerIds).
 //
-//  PHASE 5: Customer queue swap uses matchedGeometryEffect for smooth
-//  slide+scale animations. Settle bounce on active arrival.
-//
-//  PHASE 6B: Inspect strip opens IN PLACE (scale + fade from center)
-//  instead of falling from the top of the screen.
-//
-//  PHASE 6C: Inspect strip styled to match the web artifact —
-//  larger, green ring around portrait, "Order • Atk N" subtitle,
-//  brew target pill (🧪 N) on the right, plus a "Tap a node" hint
-//  banner below when a die is selected.
-//
-//  NAMING NOTE: PotionShop prefix on every public type. Don't rename.
+//  NAMING NOTE: PotionShop prefix on every public type.
 //
 
 import SwiftUI
@@ -161,6 +154,11 @@ struct PotionShopEdnarView: View {
 }
 
 // MARK: - One customer in the scene
+//
+// PHASE 7 additions:
+//   - Shake when gs.customerShakeCounters[id] increments
+//   - Slide off-screen + fade when gs.expiringCustomerIds contains id
+//   - Optional 💢 emoji burst on expiration (PotionShopBrewAnimator.expirationShowEmoji)
 
 struct PotionShopCustomerInSceneView: View {
     @Bindable var gs: PotionShopGameState
@@ -170,6 +168,13 @@ struct PotionShopCustomerInSceneView: View {
     let sceneSize: CGSize
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
+
+    @State private var shakeOffset: CGFloat = 0
+    @State private var settleBoost: CGFloat = 1.0
+    @State private var expireSlideX: CGFloat = 0
+    @State private var expireOpacity: Double = 1.0
+    @State private var emojiOpacity: Double = 0.0
+    @State private var emojiOffset: CGFloat = 0
 
     private var char: PotionShopCharacter? {
         PotionShopData.character(customer.charKey)
@@ -212,8 +217,6 @@ struct PotionShopCustomerInSceneView: View {
         }
         return sceneSize.height * frac
     }
-
-    @State private var settleBoost: CGFloat = 1.0
 
     var body: some View {
         if let char = char {
@@ -259,10 +262,19 @@ struct PotionShopCustomerInSceneView: View {
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
                         .offset(x: 28 * scale, y: 28 * scale)
                 }
+
+                // PHASE 7: 💢 emoji burst on expiration
+                if PotionShopBrewAnimator.expirationShowEmoji {
+                    Text(PotionShopBrewAnimator.expirationEmoji)
+                        .font(.system(size: 30 * scale))
+                        .opacity(emojiOpacity)
+                        .offset(x: 20, y: -30 + emojiOffset)
+                }
             }
             .opacity(dim ? 0.55 : 1.0)
+            .opacity(expireOpacity)
             .scaleEffect(scale * settleBoost)
-            .position(x: xPos, y: yPos)
+            .position(x: xPos + shakeOffset + expireSlideX, y: yPos)
             .matchedGeometryEffect(
                 id: customer.id,
                 in: animationNamespace,
@@ -272,6 +284,16 @@ struct PotionShopCustomerInSceneView: View {
                 .spring(response: 0.55, dampingFraction: 0.78),
                 value: queueIndex
             )
+            // PHASE 7: shake when shake counter increments
+            .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
+                runShake()
+            }
+            // PHASE 7: slide off-screen when added to expiringCustomerIds
+            .onChange(of: gs.expiringCustomerIds.contains(customer.id)) { _, isExpiring in
+                if isExpiring {
+                    runExpiration()
+                }
+            }
             .onChange(of: arrivalCounter) {
                 guard isActive else { return }
                 withAnimation(.easeOut(duration: 0.12)) {
@@ -285,6 +307,52 @@ struct PotionShopCustomerInSceneView: View {
             }
         }
     }
+
+    private func runShake() {
+        let amp = PotionShopBrewAnimator.shakeAmplitude
+        let oscillations = PotionShopBrewAnimator.shakeOscillations
+        let totalDur = PotionShopBrewAnimator.shakeDuration
+        let stepDur = totalDur / Double(oscillations * 2)
+
+        // Build the shake pattern: +amp, -amp, +amp*0.7, -amp*0.7, ... → 0
+        var deadline: DispatchTime = .now()
+        for i in 0..<(oscillations * 2) {
+            let dampening = 1.0 - (Double(i) / Double(oscillations * 2)) * 0.5
+            let target: CGFloat = (i % 2 == 0 ? amp : -amp) * CGFloat(dampening)
+            DispatchQueue.main.asyncAfter(deadline: deadline) {
+                withAnimation(.easeInOut(duration: stepDur)) {
+                    shakeOffset = target
+                }
+            }
+            deadline = deadline + .milliseconds(Int(stepDur * 1000))
+        }
+        // Settle back to 0
+        DispatchQueue.main.asyncAfter(deadline: deadline) {
+            withAnimation(.easeOut(duration: stepDur)) {
+                shakeOffset = 0
+            }
+        }
+    }
+
+    private func runExpiration() {
+        // 💢 emoji burst (if enabled)
+        if PotionShopBrewAnimator.expirationShowEmoji {
+            withAnimation(.easeOut(duration: 0.25)) {
+                emojiOpacity = 1.0
+                emojiOffset = -10
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                withAnimation(.easeIn(duration: 0.20)) {
+                    emojiOpacity = 0.0
+                }
+            }
+        }
+        // Slide off-screen + fade
+        withAnimation(.easeIn(duration: PotionShopBrewAnimator.expirationDuration * 0.85)) {
+            expireSlideX = PotionShopBrewAnimator.expirationSlideDistance
+            expireOpacity = 0.0
+        }
+    }
 }
 
 // MARK: - Profile row (with optional inspect strip + hint banner)
@@ -294,25 +362,19 @@ struct PotionShopProfileRowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
+            ZStack {
+                PotionShopProfileButtonsRow(gs: gs)
+                    .opacity(gs.inspectedId == nil ? 1.0 : 0.0)
+                    .animation(.easeInOut(duration: 0.2), value: gs.inspectedId)
+
                 if let inspectedId = gs.inspectedId,
                    let inspected = gs.customers.first(where: { $0.id == inspectedId }),
                    inspected.status == .waiting {
                     PotionShopInspectStripView(gs: gs, customer: inspected)
-                        .transition(
-                            .scale(scale: 0.9, anchor: .center)
-                            .combined(with: .opacity)
-                        )
-                } else {
-                    PotionShopProfileButtonsRow(gs: gs)
-                        .transition(.opacity)
                 }
             }
             .frame(maxWidth: .infinity)
-            .animation(.easeInOut(duration: 0.25), value: gs.inspectedId)
 
-            // Hint banner below the inspect card / profile row when a
-            // die is selected and ready to be placed.
             if gs.selectedHandIndex != nil {
                 HStack(spacing: 6) {
                     Text("🎯")
@@ -323,9 +385,7 @@ struct PotionShopProfileRowView: View {
                 }
                 .padding(.vertical, 6)
                 .frame(maxWidth: .infinity)
-                .background(
-                    Color.white.opacity(0.55)
-                )
+                .background(Color.white.opacity(0.55))
                 .overlay(
                     Rectangle()
                         .fill(PotionShopTheme.accent.opacity(0.3))
@@ -441,14 +501,13 @@ struct PotionShopProfileButtonView: View {
     }
 }
 
-// MARK: - Inspect strip (matches web artifact)
-//
-// Bigger card, green ring around portrait, "Order • Atk N" subtitle,
-// brew target pill (🧪 N) on the right.
+// MARK: - Inspect strip (split-slide animation, Phase 6d)
 
 struct PotionShopInspectStripView: View {
     @Bindable var gs: PotionShopGameState
     let customer: PotionShopCustomer
+
+    @State private var isExpanded: Bool = false
 
     private var char: PotionShopCharacter? {
         PotionShopData.character(customer.charKey)
@@ -456,8 +515,6 @@ struct PotionShopInspectStripView: View {
 
     private var isActive: Bool { gs.queue.first == customer.id }
 
-    /// Brew target shown in the pill: HP + intimidating modifier
-    /// (only for the active customer; waiters show their HP).
     private var brewTargetForPill: Int {
         if isActive {
             return gs.currentBrewTarget
@@ -466,15 +523,11 @@ struct PotionShopInspectStripView: View {
         }
     }
 
-    /// Attack shown in the subtitle: active-attack if active,
-    /// waiting-attack otherwise.
     private var attackForSubtitle: Int {
         guard let c = char else { return 0 }
         return isActive ? c.activeAttack : c.waitingAttack
     }
 
-    /// Patience ring color — matches the logic on the profile button.
-    /// Green when patience > 40% remaining, amber/warn below.
     private var patienceRingColor: Color {
         if customer.maxPatience == 0 { return PotionShopTheme.muted }
         let pct = Double(customer.patience) / Double(customer.maxPatience)
@@ -484,42 +537,20 @@ struct PotionShopInspectStripView: View {
 
     var body: some View {
         if let char = char {
-            Button {
-                gs.dismissInspect()
-            } label: {
-                HStack(spacing: 14) {
-                    // Portrait with patience ring — matches the profile
-                    // button's patience ring (trim shows remaining
-                    // patience, color shifts to warn under 40%).
-                    ZStack {
-                        // Track (faint, full circle, so the ring
-                        // visually reads as "patience meter" rather
-                        // than just an arc floating in space)
-                        Circle()
-                            .stroke(PotionShopTheme.muted.opacity(0.25), lineWidth: 3)
-                            .frame(width: 70, height: 70)
-                        // Active patience trim
-                        Circle()
-                            .trim(
-                                from: 0,
-                                to: customer.maxPatience > 0
-                                    ? Double(customer.patience) / Double(customer.maxPatience)
-                                    : 0
-                            )
-                            .stroke(patienceRingColor, lineWidth: 3)
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 70, height: 70)
-                            .animation(.easeInOut(duration: 0.4), value: customer.patience)
-                        Circle()
-                            .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
-                            .frame(width: 62, height: 62)
-                            .overlay(
-                                Text(char.iconFallback)
-                                    .font(.system(size: 36))
-                            )
-                    }
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.85))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(PotionShopTheme.accent, lineWidth: 2)
+                    )
+                    .opacity(isExpanded ? 1.0 : 0.0)
 
-                    // Name + subtitle (order • atk)
+                HStack(spacing: 14) {
+                    portraitView(char: char)
+                        .offset(x: isExpanded ? 0 : 40)
+                        .opacity(isExpanded ? 1.0 : 0.0)
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(char.name)
                             .font(.system(size: 18, weight: .bold, design: .serif))
@@ -538,10 +569,11 @@ struct PotionShopInspectStripView: View {
                                 .foregroundColor(PotionShopTheme.muted)
                         }
                     }
+                    .offset(x: isExpanded ? 0 : -40)
+                    .opacity(isExpanded ? 1.0 : 0.0)
 
                     Spacer()
 
-                    // Brew target pill on the right (red, 🧪 + N)
                     HStack(spacing: 4) {
                         Text("🧪")
                             .font(.system(size: 13))
@@ -559,20 +591,51 @@ struct PotionShopInspectStripView: View {
                                     .stroke(PotionShopTheme.composureBad.opacity(0.5), lineWidth: 1.5)
                             )
                     )
+                    .offset(x: isExpanded ? 0 : -60)
+                    .opacity(isExpanded ? 1.0 : 0.0)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white.opacity(0.85))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(PotionShopTheme.accent, lineWidth: 2)
-                        )
-                )
             }
             .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    gs.dismissInspect()
+                }
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
+                    isExpanded = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func portraitView(char: PotionShopCharacter) -> some View {
+        ZStack {
+            Circle()
+                .stroke(PotionShopTheme.muted.opacity(0.25), lineWidth: 3)
+                .frame(width: 70, height: 70)
+            Circle()
+                .trim(
+                    from: 0,
+                    to: customer.maxPatience > 0
+                        ? Double(customer.patience) / Double(customer.maxPatience)
+                        : 0
+                )
+                .stroke(patienceRingColor, lineWidth: 3)
+                .rotationEffect(.degrees(-90))
+                .frame(width: 70, height: 70)
+                .animation(.easeInOut(duration: 0.4), value: customer.patience)
+            Circle()
+                .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
+                .frame(width: 62, height: 62)
+                .overlay(
+                    Text(char.iconFallback)
+                        .font(.system(size: 36))
+                )
         }
     }
 }

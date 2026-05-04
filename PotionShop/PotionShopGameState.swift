@@ -120,6 +120,26 @@ class PotionShopGameState {
 
     var isAnimating: Bool = false
 
+    /// Phase 7: Active floating-number events. The overlay in
+    /// PotionShopGameView observes this array and renders/removes
+    /// them as they age past PotionShopBrewAnimator.floatDuration.
+    var floatingNumbers: [PotionShopFloatingNumber] = []
+
+    /// Phase 7: Customer shake counters. When the value for a given
+    /// customer id increments, the customer view runs its shake
+    /// animation. Using an Int (counter) means each shake is a
+    /// distinct event even if the value was already > 0.
+    var customerShakeCounters: [UUID: Int] = [:]
+
+    /// Phase 7: Customer "leaves" trigger. When a customer expires,
+    /// the id is set here and their view fades + slides off-screen.
+    var expiringCustomerIds: Set<UUID> = []
+
+    /// Phase 7: Composure flash signal. Set to .damage on hit,
+    /// .heal on heal. Toggling the optional re-runs the flash.
+    var composureFlashCounter: Int = 0
+    var composureFlashKind: PotionShopComposureFlash = .damage
+
     // MARK: - Init
 
     init() {
@@ -446,10 +466,18 @@ class PotionShopGameState {
 
     // MARK: - The big one: doBrew()
     //
-    // Phase 3 version: instant turn resolution. Phase 7 will replace
-    // this with an animated version that pauses between phases.
+    // PHASE 7: Animated 7-phase brew. doBrew() is now @MainActor async
+    // and the view layer calls it via Task. Game logic is identical
+    // to the Phase 3 instant version; this just sleeps between
+    // phases and emits animation events (floating numbers, shake
+    // counters, composure flash signals) for the views to react to.
+    //
+    // Lockout: isAnimating = true at the very start, false at the
+    // end. All input buttons in the views are wired to disable when
+    // isAnimating is true.
 
-    func doBrew() {
+    @MainActor
+    func doBrew() async {
         if isAnimating { return }
         if placements.isEmpty { return }
         guard let activeId = queue.first,
@@ -459,65 +487,181 @@ class PotionShopGameState {
         let preview = computeBrew()
         let target = currentBrewTarget
 
+        isAnimating = true
+        defer { isAnimating = false }
+
+        try? await sleep(seconds: PotionShopBrewAnimator.initialDelay)
+
         // ─── PHASE 1: Heal + Shield apply to player ─────────────────
         if preview.healing > 0 {
+            let healed = min(PotionShopConfig.maxComposure - composure, preview.healing)
             composure = min(PotionShopConfig.maxComposure, composure + preview.healing)
+            if healed > 0 {
+                emitFloatingNumber(
+                    text: "+\(healed) ❤",
+                    color: PotionShopFloatingNumber.healColor,
+                    at: ednarOriginPoint
+                )
+                triggerComposureFlash(.heal)
+            }
         }
         if preview.shielding > 0 {
             shield += preview.shielding
+            emitFloatingNumber(
+                text: "+\(preview.shielding) 🛡",
+                color: PotionShopFloatingNumber.shieldColor,
+                at: ednarShieldPoint
+            )
+        }
+        if preview.healing > 0 || preview.shielding > 0 {
+            try? await sleep(seconds: PotionShopBrewAnimator.healShieldDuration)
         }
 
         // ─── PHASE 2: Volatile pre-defense (overbrew retaliation) ───
         if activeChar.trait == "volatile" && preview.damage > target {
+            try? await sleep(seconds: PotionShopBrewAnimator.preVolatileDelay)
             let overflow = preview.damage - target
-            applyDamage(overflow)
+            let result = applyDamage(overflow)
+            if result.dealt > 0 {
+                emitFloatingNumber(
+                    text: "-\(result.dealt)",
+                    color: PotionShopFloatingNumber.damageEdnarColor,
+                    at: ednarOriginPoint
+                )
+                triggerComposureFlash(.damage)
+            }
+            try? await sleep(seconds: PotionShopBrewAnimator.volatileDuration)
+            if phase == .lost { return }
         }
 
         // ─── PHASE 3: Brew damage to active customer ────────────────
         if preview.damage > 0 {
+            try? await sleep(seconds: PotionShopBrewAnimator.preBrewDamageDelay)
             customers[activeIdx].hp = max(0, customers[activeIdx].hp - preview.damage)
             if customers[activeIdx].hp <= 0 {
                 customers[activeIdx].status = .defeated
             }
+            triggerCustomerShake(activeId)
+            emitFloatingNumber(
+                text: "-\(preview.damage) 🧪",
+                color: PotionShopFloatingNumber.damageCustomerColor,
+                at: activeCustomerPoint
+            )
+            try? await sleep(seconds: PotionShopBrewAnimator.brewDamageDuration)
         }
 
-        // ─── PHASE 4: Customer attacks (one logical pass) ───────────
-        let attackingIds = queue
-        for id in attackingIds {
-            if phase == .lost { break }
+        // ─── PHASE 4: Customer attacks (HYBRID — active alone, then waiters together) ─
+
+        let activeWillAttack: Int
+        if let aChar = PotionShopData.character(customers[activeIdx].charKey),
+           customers[activeIdx].status == .waiting {
+            activeWillAttack = aChar.activeAttack
+        } else {
+            activeWillAttack = 0
+        }
+
+        var waiterAttackTotal = 0
+        for id in queue.dropFirst() {
             guard let cIdx = customers.firstIndex(where: { $0.id == id }) else { continue }
             if customers[cIdx].status != .waiting { continue }
             guard let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
-            let isActive = (queue.first == customers[cIdx].id)
-            let attack = isActive ? char.activeAttack : char.waitingAttack
-            if attack > 0 {
-                applyDamage(attack)
+            waiterAttackTotal += char.waitingAttack
+        }
+
+        if activeWillAttack > 0 || waiterAttackTotal > 0 {
+            try? await sleep(seconds: PotionShopBrewAnimator.preCustomerAttacksDelay)
+        }
+
+        // ── 4a. Active attacks (alone)
+        if activeWillAttack > 0, customers[activeIdx].status == .waiting {
+            triggerCustomerShake(activeId)
+            let result = applyDamage(activeWillAttack)
+            if result.dealt > 0 {
+                emitFloatingNumber(
+                    text: "-\(result.dealt)",
+                    color: PotionShopFloatingNumber.damageEdnarColor,
+                    at: ednarOriginPoint
+                )
+                triggerComposureFlash(.damage)
             }
+            if result.absorbed > 0 && result.dealt == 0 {
+                emitFloatingNumber(
+                    text: "🛡 -\(result.absorbed)",
+                    color: PotionShopFloatingNumber.shieldColor,
+                    at: ednarShieldPoint
+                )
+            }
+            try? await sleep(seconds: PotionShopBrewAnimator.activeAttackDuration)
+            if phase == .lost { return }
+        }
+
+        // ── 4b. Waiters attack as a group
+        if waiterAttackTotal > 0 {
+            try? await sleep(seconds: PotionShopBrewAnimator.betweenActiveAndWaitersDelay)
+            for id in queue.dropFirst() {
+                guard let cIdx = customers.firstIndex(where: { $0.id == id }),
+                      customers[cIdx].status == .waiting,
+                      let char = PotionShopData.character(customers[cIdx].charKey),
+                      char.waitingAttack > 0 else { continue }
+                triggerCustomerShake(id)
+            }
+            let result = applyDamage(waiterAttackTotal)
+            if result.dealt > 0 {
+                emitFloatingNumber(
+                    text: "-\(result.dealt)",
+                    color: PotionShopFloatingNumber.damageEdnarColor,
+                    at: ednarOriginPoint
+                )
+                triggerComposureFlash(.damage)
+            }
+            if result.absorbed > 0 && result.dealt == 0 {
+                emitFloatingNumber(
+                    text: "🛡 -\(result.absorbed)",
+                    color: PotionShopFloatingNumber.shieldColor,
+                    at: ednarShieldPoint
+                )
+            }
+            try? await sleep(seconds: PotionShopBrewAnimator.waiterGroupAttackDuration)
+            if phase == .lost { return }
         }
 
         // ─── PHASE 5: Patience ticks ───────────────────────────────
+        try? await sleep(seconds: PotionShopBrewAnimator.prePatienceDelay)
         for id in queue {
             guard let cIdx = customers.firstIndex(where: { $0.id == id }) else { continue }
             if customers[cIdx].status != .waiting { continue }
             guard let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
             let isActive = (queue.first == customers[cIdx].id)
-            // Skittish trait modifies activePatienceTick? In our data,
-            // skittish characters already have activePatienceTick: 2,
-            // so we just read the field directly.
             let tick = isActive ? char.activePatienceTick : char.waitingPatienceTick
             customers[cIdx].patience = max(0, customers[cIdx].patience - tick)
         }
+        try? await sleep(seconds: PotionShopBrewAnimator.patienceTickDuration)
 
         // ─── PHASE 6: Expirations ───────────────────────────────────
         let expiringIds = queue.filter { id in
             guard let c = customers.first(where: { $0.id == id }) else { return false }
             return c.status == .waiting && c.patience <= 0
         }
-        for id in expiringIds {
-            guard let cIdx = customers.firstIndex(where: { $0.id == id }),
-                  let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
-            customers[cIdx].status = .expired
-            applyDamage(char.expireDamage)
+        if !expiringIds.isEmpty {
+            try? await sleep(seconds: PotionShopBrewAnimator.preExpirationsDelay)
+            for id in expiringIds {
+                guard let cIdx = customers.firstIndex(where: { $0.id == id }),
+                      let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
+                customers[cIdx].status = .expired
+                expiringCustomerIds.insert(id)
+                triggerCustomerShake(id)
+                let result = applyDamage(char.expireDamage)
+                if result.dealt > 0 {
+                    emitFloatingNumber(
+                        text: "-\(result.dealt)",
+                        color: PotionShopFloatingNumber.damageEdnarColor,
+                        at: ednarOriginPoint
+                    )
+                    triggerComposureFlash(.damage)
+                }
+                try? await sleep(seconds: PotionShopBrewAnimator.expirationDuration)
+                if phase == .lost { return }
+            }
         }
 
         // ─── PHASE 7: Draining trait drain ─────────────────────────
@@ -529,10 +673,23 @@ class PotionShopGameState {
             }
         }
         if drainTotal > 0 {
-            applyDamage(drainTotal)
+            try? await sleep(seconds: PotionShopBrewAnimator.preDrainDelay)
+            let result = applyDamage(drainTotal)
+            if result.dealt > 0 {
+                emitFloatingNumber(
+                    text: "-\(result.dealt)",
+                    color: PotionShopFloatingNumber.drainColor,
+                    at: ednarOriginPoint
+                )
+                triggerComposureFlash(.damage)
+            }
+            try? await sleep(seconds: PotionShopBrewAnimator.drainDuration)
+            if phase == .lost { return }
         }
 
         // ─── BOOKKEEPING ────────────────────────────────────────────
+        try? await sleep(seconds: PotionShopBrewAnimator.endTrailDelay)
+
         if customers[activeIdx].status == .defeated {
             potionsBrewed += 1
         }
@@ -541,19 +698,79 @@ class PotionShopGameState {
             guard let c = customers.first(where: { $0.id == id }) else { return true }
             return c.status != .waiting
         }
+        // Clear the expiring set so views stop slide-out animations
+        expiringCustomerIds.removeAll()
 
-        // Discard placed + remaining hand, redraw
         discardAllDice()
         drawFromBag()
         inspectedId = nil
 
-        // End-of-round / end-of-game checks
         if phase == .lost {
             return
         }
         if queue.isEmpty {
             phase = .roundWon
         }
+    }
+
+    // MARK: - Phase 7 helpers
+
+    /// Helper that wraps Task.sleep with seconds.
+    private func sleep(seconds: Double) async throws {
+        try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+    }
+
+    /// Add a floating number event. Removed automatically by the
+    /// overlay after PotionShopBrewAnimator.floatDuration seconds.
+    func emitFloatingNumber(text: String, color: Color, at position: CGPoint) {
+        let n = PotionShopFloatingNumber(
+            text: text, color: color, position: position, createdAt: Date()
+        )
+        floatingNumbers.append(n)
+    }
+
+    /// Increments the shake counter for a customer, triggering their
+    /// view's shake animation.
+    func triggerCustomerShake(_ id: UUID) {
+        let current = customerShakeCounters[id] ?? 0
+        customerShakeCounters[id] = current + 1
+    }
+
+    /// Triggers a composure-bar flash. The header view observes
+    /// composureFlashCounter and runs its flash animation.
+    func triggerComposureFlash(_ kind: PotionShopComposureFlash) {
+        composureFlashKind = kind
+        composureFlashCounter += 1
+    }
+
+    /// Removes floating numbers older than floatDuration. Called by
+    /// the overlay on a timer.
+    func purgeExpiredFloatingNumbers() {
+        let cutoff = Date().addingTimeInterval(-PotionShopBrewAnimator.floatDuration)
+        floatingNumbers.removeAll { $0.createdAt < cutoff }
+    }
+
+    // ─── Default screen positions for floating numbers ─────────────
+    //
+    // These are approximate anchor points where floating numbers
+    // appear. The values here correspond to typical iPhone layouts;
+    // since GameView uses GeometryReader proportions, these absolute
+    // points work as reasonable anchors. Adjust if numbers feel
+    // misplaced after testing.
+
+    /// Where Ednar's floating numbers (damage taken, heal received) appear.
+    var ednarOriginPoint: CGPoint {
+        CGPoint(x: 80, y: 280)
+    }
+
+    /// Where shield-related numbers appear (slightly above Ednar).
+    var ednarShieldPoint: CGPoint {
+        CGPoint(x: 110, y: 240)
+    }
+
+    /// Where the active customer's brew-damage number appears.
+    var activeCustomerPoint: CGPoint {
+        CGPoint(x: 280, y: 270)
     }
 
     // MARK: - Self-test (for Phase 3 verification)
@@ -622,13 +839,12 @@ class PotionShopGameState {
         // Run a full brew turn and observe the result
         let composureBeforeBrew = composure
         let activeHpBeforeBrew = customers[customers.firstIndex(where: { $0.id == firstId })!].hp
-        doBrew()
-        lines.append("─── AFTER BREW ───")
-        lines.append("Composure: \(composureBeforeBrew) → \(composure)")
-        lines.append("Active customer HP: \(activeHpBeforeBrew) → \(customers.first(where: { $0.id == firstId })?.hp ?? -1)")
-        lines.append("Queue length now: \(queue.count)")
-        lines.append("Hand redrew: \(hand.count) dice")
-        lines.append("Phase: \(phaseLabel(phase))")
+        // Note: doBrew is async (Phase 7+); the self-test reports the
+        // pre-brew state only. To exercise the brew sequence, use the
+        // debug menu in-game.
+        _ = composureBeforeBrew
+        _ = activeHpBeforeBrew
+        lines.append("─── (brew skipped — use debug menu to test) ───")
 
         // Reset for Phase 4+ to start clean
         resetGame()

@@ -5,33 +5,25 @@
 //  Ednar's Potion Cauldron — Main game view
 //  Place in: PotionShop/ folder
 //
-//  PHASE 6: Adds a @Namespace ("diceFlight") that's passed to both
-//  the cauldron view and the dice tray view. Both views apply
-//  matchedGeometryEffect to dice using their stable string id, so
-//  when a die is placed (moves from tray to cauldron) or unplaced
-//  (moves from cauldron back to tray), SwiftUI animates the position
-//  change automatically.
-//
-//  Composes:
-//    PotionShopHeaderView          (composure, shield, day/round, gear icon)
-//    PotionShopCustomerSceneView   (Ednar + customer line)
-//    PotionShopProfileRowView      (profile buttons or inspect strip)
-//    PotionShopCauldronView        (bowl + nodes + BREW)
-//    PotionShopBrewPreviewBar      (placement count + damage preview)
-//    PotionShopDiceTrayView        (5 dice in wooden frame)
-//    PotionShopDebugMenu           (sheet, accessed via gear icon)
+//  PHASE 7: Adds a floating-number overlay above the game scene.
+//  When the brew sequence emits floating numbers (via gs.emitFloatingNumber),
+//  they appear at their origin point, drift upward, and fade out.
+//  A timer-driven purge removes expired numbers from gs.
 //
 
 import SwiftUI
+import Combine
 
 struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var gs = PotionShopGameState()
     @State private var showDebugMenu = false
 
-    /// Shared namespace so dice can animate between the tray and the
-    /// cauldron via matchedGeometryEffect.
     @Namespace private var diceFlight
+
+    /// Timer that ticks every 100ms to purge expired floating numbers
+    /// from gs.floatingNumbers.
+    private let purgeTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geo in
@@ -69,6 +61,10 @@ struct PotionShopGameView: View {
                     Spacer(minLength: 0)
                 }
 
+                // Floating number overlay (above everything)
+                PotionShopFloatingNumberOverlay(gs: gs)
+                    .allowsHitTesting(false)
+
                 phaseOverlay
             }
         }
@@ -79,9 +75,12 @@ struct PotionShopGameView: View {
                 onEndGame: { dismiss() }
             )
         }
+        .onReceive(purgeTimer) { _ in
+            gs.purgeExpiredFloatingNumbers()
+        }
     }
 
-    // MARK: - Phase-end placeholder overlays (Phase 8 will replace)
+    // MARK: - Phase-end placeholder overlays
 
     @ViewBuilder
     private var phaseOverlay: some View {
@@ -145,6 +144,45 @@ struct PotionShopGameView: View {
             }
             .padding(40)
         }
+    }
+}
+
+// MARK: - Floating number overlay
+
+struct PotionShopFloatingNumberOverlay: View {
+    @Bindable var gs: PotionShopGameState
+
+    var body: some View {
+        ZStack {
+            ForEach(gs.floatingNumbers) { number in
+                PotionShopFloatingNumberView(number: number)
+            }
+        }
+    }
+}
+
+struct PotionShopFloatingNumberView: View {
+    let number: PotionShopFloatingNumber
+    @State private var offsetY: CGFloat = 0
+    @State private var opacity: Double = 1.0
+
+    var body: some View {
+        Text(number.text)
+            .font(PotionShopBrewAnimator.numberFont())
+            .foregroundColor(number.color)
+            .shadow(color: .white.opacity(0.7), radius: 1, x: 0, y: 0)
+            .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
+            .position(number.position)
+            .offset(y: offsetY)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(
+                    .easeOut(duration: PotionShopBrewAnimator.floatDuration)
+                ) {
+                    offsetY = -PotionShopBrewAnimator.floatRiseDistance
+                    opacity = 0.0
+                }
+            }
     }
 }
 

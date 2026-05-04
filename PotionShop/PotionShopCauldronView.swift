@@ -7,10 +7,8 @@
 //
 //  PHASE 6: Dice slide between tray and cauldron via matchedGeometryEffect.
 //  PHASE 6B: Dice drop in from above when first appearing.
-//  PHASE 6C: Drop landing rotation FIXED at a small random angle
-//            (-25° to +25°), so dice come to rest tilted naturally
-//            instead of either spinning forever or landing perfectly
-//            straight. Rotation is randomized once per die appearance.
+//  PHASE 6D: Drop is now STRAIGHT — no rotation. Dice fall in cleanly
+//            without tumbling, landing perfectly aligned in the tray.
 //
 //  NAMING NOTE: PotionShop prefix on every public type. Don't rename.
 //
@@ -38,9 +36,6 @@ struct PotionShopCauldronLayout {
 
     /// How far above the slot dice start when dropping in.
     static let dropInOffset: CGFloat = 80
-
-    /// Dice land tilted at angles in this range (degrees).
-    static let dropInLandingAngleRange: ClosedRange<Double> = -25.0...25.0
 }
 
 // MARK: - The bowl shape (ellipse clipped to bottom half)
@@ -346,7 +341,9 @@ struct PotionShopBrewSignView: View {
 
     var body: some View {
         Button {
-            gs.doBrew()
+            Task { @MainActor in
+                await gs.doBrew()
+            }
         } label: {
             ZStack {
                 VStack(spacing: 0) {
@@ -502,43 +499,24 @@ struct PotionShopDiceTrayView: View {
 
 // MARK: - Dice drop-in animation modifier
 //
-// Each die starts above its slot with a "tumbling" rotation, then
-// drops and lands at a small fixed angle (between -25° and +25°).
-//
-// Key insight: pick the FINAL angle once, animate the drop INTO that
-// angle. This way dice come to rest with a natural slight tilt — like
-// physical dice that came to a stop after rolling.
-//
-// .onAppear runs once when the die appears in the tray (initial deal,
-// or any redraw after a brew), so dice land tilted at random angles
-// every fresh deal.
+// PHASE 6D: Straight drop, no rotation. Each die starts ~80pt above
+// its slot and springs cleanly into place. Triggered via .onAppear
+// every time a new die appears in the tray (initial deal, redraw
+// after a brew).
 
 struct PotionShopDiceDropInModifier: ViewModifier {
     @State private var dropOffset: CGFloat = -PotionShopCauldronLayout.dropInOffset
-    @State private var rotation: Double = 0
     @State private var hasAppeared: Bool = false
 
     func body(content: Content) -> some View {
         content
             .offset(y: dropOffset)
-            .rotationEffect(.degrees(rotation))
             .onAppear {
                 guard !hasAppeared else { return }
                 hasAppeared = true
 
-                // 1. Pick the final landing angle (small, ~natural tilt).
-                let landingAngle = Double.random(in: PotionShopCauldronLayout.dropInLandingAngleRange)
-
-                // 2. Start with a tumbling rotation BEFORE the landing
-                //    angle. We add ~270° on the same side so the die
-                //    visibly tumbles 270° during its descent.
-                let startTumble = landingAngle + (Bool.random() ? 270.0 : -270.0)
-                rotation = startTumble
-
-                // 3. Animate to the resting state with a single spring.
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.65)) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.68)) {
                     dropOffset = 0
-                    rotation = landingAngle
                 }
             }
     }

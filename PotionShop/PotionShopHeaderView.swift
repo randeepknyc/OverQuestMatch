@@ -5,17 +5,9 @@
 //  Ednar's Potion Cauldron — Header bar
 //  Place in: PotionShop/ folder
 //
-//  PHASE 5D: Added a debug-menu gear icon on the LEFT side of the
-//  header (replacing the floating back chevron that overlapped the
-//  composure bar). Tapping the gear opens the PotionShopDebugMenu
-//  sheet, which has an "End Game" action to dismiss back to the
-//  game selector.
-//
-//  Header sections (left to right):
-//    [⚙ gear]  [🧪 ×N]  [composure bar]  [Day / Round]
-//
-//  NAMING NOTE: Every public struct in this file uses the PotionShop
-//  prefix. Don't rename.
+//  PHASE 5D: Gear icon on the left to open the debug menu sheet.
+//  PHASE 7: Composure bar flashes red on damage / green on heal,
+//           driven by gs.composureFlashCounter increments.
 //
 
 import SwiftUI
@@ -26,7 +18,6 @@ struct PotionShopHeaderView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Debug gear icon (taps open the debug menu sheet)
             Button {
                 showDebugMenu = true
             } label: {
@@ -38,7 +29,6 @@ struct PotionShopHeaderView: View {
                     .clipShape(Circle())
             }
 
-            // Potions brewed counter
             HStack(spacing: 4) {
                 Text("🧪").font(.system(size: 18))
                 Text("×\(gs.potionsBrewed)")
@@ -46,15 +36,15 @@ struct PotionShopHeaderView: View {
                     .foregroundColor(PotionShopTheme.accent)
             }
 
-            // Composure bar with shield overlay
             PotionShopComposureBarView(
                 composure: gs.composure,
                 maxComposure: PotionShopConfig.maxComposure,
-                shield: gs.shield
+                shield: gs.shield,
+                flashCounter: gs.composureFlashCounter,
+                flashKind: gs.composureFlashKind
             )
             .frame(maxWidth: .infinity)
 
-            // Day + round indicator
             VStack(alignment: .trailing, spacing: 2) {
                 Text("Day 1")
                     .font(.system(size: 9, weight: .semibold, design: .serif))
@@ -80,12 +70,16 @@ struct PotionShopHeaderView: View {
     }
 }
 
-// MARK: - Composure bar
+// MARK: - Composure bar (with PHASE 7 flash)
 
 struct PotionShopComposureBarView: View {
     let composure: Int
     let maxComposure: Int
     let shield: Int
+    let flashCounter: Int
+    let flashKind: PotionShopComposureFlash
+
+    @State private var flashOpacity: Double = 0.0
 
     private var compoPct: Double {
         guard maxComposure > 0 else { return 0 }
@@ -101,6 +95,13 @@ struct PotionShopComposureBarView: View {
         if compoPct > 0.6 { return PotionShopTheme.composureGood }
         if compoPct > 0.3 { return PotionShopTheme.composureWarn }
         return PotionShopTheme.composureBad
+    }
+
+    private var flashColor: Color {
+        switch flashKind {
+        case .damage: return PotionShopTheme.composureBad
+        case .heal:   return PotionShopTheme.composureGood
+        }
     }
 
     var body: some View {
@@ -123,6 +124,12 @@ struct PotionShopComposureBarView: View {
                             .offset(x: max(0, geo.size.width * compoPct - shieldWidth))
                             .animation(.easeInOut(duration: 0.35), value: shield)
                     }
+
+                    // PHASE 7: Flash overlay across the entire bar.
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(flashColor)
+                        .opacity(flashOpacity)
+                        .allowsHitTesting(false)
                 }
             }
             .frame(height: 14)
@@ -137,6 +144,19 @@ struct PotionShopComposureBarView: View {
                         .foregroundColor(PotionShopTheme.shield)
                 }
                 Spacer()
+            }
+        }
+        .onChange(of: flashCounter) {
+            // Flash on/off when state machine increments the counter.
+            withAnimation(.easeOut(duration: 0.05)) {
+                flashOpacity = PotionShopBrewAnimator.composureFlashIntensity
+            }
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + PotionShopBrewAnimator.composureFlashDuration
+            ) {
+                withAnimation(.easeOut(duration: 0.20)) {
+                    flashOpacity = 0.0
+                }
             }
         }
     }
