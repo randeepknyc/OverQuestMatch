@@ -9,6 +9,7 @@
 //  PHASE 6B: Dice drop in from above when first appearing.
 //  PHASE 6D: Drop is now STRAIGHT — no rotation. Dice fall in cleanly
 //            without tumbling, landing perfectly aligned in the tray.
+//  PHASE 12: ART HOOKUP — Dice faces load from Assets, cauldron layers, background
 //
 //  NAMING NOTE: PotionShop prefix on every public type. Don't rename.
 //
@@ -146,25 +147,36 @@ struct PotionShopCauldronView: View {
             let g = CauldronGeometry.compute(in: geo.size)
 
             ZStack {
-                PotionShopBowlShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.20, green: 0.16, blue: 0.13),
-                                Color(red: 0.10, green: 0.08, blue: 0.07)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+                // CAULDRON BACK LAYER (or placeholder)
+                if let backImage = PotionShopImageLoader.loadImage(named: "cauldron_back") {
+                    Image(uiImage: backImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: g.bowlW, height: g.bowlH)
+                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
+                } else {
+                    // Placeholder parametric bowl back
+                    PotionShopBowlShape()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.20, green: 0.16, blue: 0.13),
+                                    Color(red: 0.10, green: 0.08, blue: 0.07)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .overlay(
-                        PotionShopBowlShape()
-                            .stroke(PotionShopTheme.ink, lineWidth: 2.5)
-                    )
-                    .frame(width: g.bowlW, height: g.bowlH)
-                    .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
-                    .shadow(color: .black.opacity(0.20), radius: 6, x: 0, y: 4)
-
+                        .overlay(
+                            PotionShopBowlShape()
+                                .stroke(PotionShopTheme.ink, lineWidth: 2.5)
+                        )
+                        .frame(width: g.bowlW, height: g.bowlH)
+                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
+                        .shadow(color: .black.opacity(0.20), radius: 6, x: 0, y: 4)
+                }
+                
+                // CAULDRON RIM (placeholder - kept for depth)
                 Capsule()
                     .fill(
                         LinearGradient(
@@ -179,26 +191,37 @@ struct PotionShopCauldronView: View {
                     .frame(width: g.bowlW, height: g.bowlH * PotionShopCauldronLayout.rimHeight)
                     .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight / 2)
 
-                Ellipse()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(red: 0.32, green: 0.55, blue: 0.32),
-                                Color(red: 0.18, green: 0.42, blue: 0.22),
-                                Color(red: 0.08, green: 0.28, blue: 0.16)
-                            ],
-                            center: .center,
-                            startRadius: 8,
-                            endRadius: 140
+                // CAULDRON LIQUID LAYER (or placeholder)
+                if let liquidImage = PotionShopImageLoader.loadImage(named: "cauldron_liquid") {
+                    Image(uiImage: liquidImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: g.liquidW, height: g.liquidH)
+                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight + g.liquidH / 2)
+                } else {
+                    // Placeholder liquid ellipse
+                    Ellipse()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color(red: 0.32, green: 0.55, blue: 0.32),
+                                    Color(red: 0.18, green: 0.42, blue: 0.22),
+                                    Color(red: 0.08, green: 0.28, blue: 0.16)
+                                ],
+                                center: .center,
+                                startRadius: 8,
+                                endRadius: 140
+                            )
                         )
-                    )
-                    .overlay(
-                        Ellipse()
-                            .stroke(Color(red: 0.04, green: 0.18, blue: 0.10), lineWidth: 1.2)
-                    )
-                    .frame(width: g.liquidW, height: g.liquidH)
-                    .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight + g.liquidH / 2)
+                        .overlay(
+                            Ellipse()
+                                .stroke(Color(red: 0.04, green: 0.18, blue: 0.10), lineWidth: 1.2)
+                        )
+                        .frame(width: g.liquidW, height: g.liquidH)
+                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight + g.liquidH / 2)
+                }
 
+                // Edge lines connecting nodes
                 Path { path in
                     for (a, b) in PotionShopBoard.edges {
                         let na = PotionShopBoard.nodes[a]
@@ -226,6 +249,16 @@ struct PotionShopCauldronView: View {
                             x: g.nodeOriginX + CGFloat(node.x) * g.nodeScale,
                             y: g.nodeOriginY + CGFloat(node.y) * g.nodeScale
                         )
+                }
+
+                // CAULDRON FRONT LAYER (optional overlay for rim depth)
+                if let frontImage = PotionShopImageLoader.loadImage(named: "cauldron_front") {
+                    Image(uiImage: frontImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: g.bowlW, height: g.bowlH)
+                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
+                        .allowsHitTesting(false)
                 }
 
                 PotionShopBrewSignView(gs: gs)
@@ -312,21 +345,42 @@ struct PotionShopPlacedDieView: View {
     let die: PotionShopDie
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(die.type.color)
-            .frame(
-                width: PotionShopCauldronLayout.nodeVisible,
-                height: PotionShopCauldronLayout.nodeVisible
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(PotionShopTheme.ink, lineWidth: 1.5)
-            )
-            .overlay(
+        // Try to load die face image, fallback to colored square
+        if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
+            ZStack {
+                Image(uiImage: dieImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(
+                        width: PotionShopCauldronLayout.nodeVisible,
+                        height: PotionShopCauldronLayout.nodeVisible
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                
+                // Die value overlaid on center (center 30% kept blank on art)
                 Text("\(die.value)")
                     .font(.system(size: 13, weight: .heavy, design: .serif))
                     .foregroundColor(.white)
-            )
+                    .shadow(color: .black.opacity(0.5), radius: 1, x: 0, y: 1)
+            }
+        } else {
+            // Placeholder colored square with value
+            RoundedRectangle(cornerRadius: 4)
+                .fill(die.type.color)
+                .frame(
+                    width: PotionShopCauldronLayout.nodeVisible,
+                    height: PotionShopCauldronLayout.nodeVisible
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(PotionShopTheme.ink, lineWidth: 1.5)
+                )
+                .overlay(
+                    Text("\(die.value)")
+                        .font(.system(size: 13, weight: .heavy, design: .serif))
+                        .foregroundColor(.white)
+                )
+        }
     }
 }
 
@@ -537,28 +591,58 @@ struct PotionShopDieButtonView: View {
         Button {
             gs.selectHand(index)
         } label: {
-            VStack(spacing: 1) {
-                Text(die.type.abbr)
-                    .font(.system(size: 9, weight: .semibold))
-                Text("\(die.value)")
-                    .font(.system(size: 14, weight: .heavy, design: .serif))
+            // Try to load die face image, fallback to colored square
+            if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
+                ZStack {
+                    Image(uiImage: dieImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: PotionShopCauldronLayout.dieSize,
+                            height: PotionShopCauldronLayout.dieSize
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
+                        )
+                    
+                    // Die value overlaid on center
+                    Text("\(die.value)")
+                        .font(.system(size: 18, weight: .heavy, design: .serif))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+                }
+                .matchedGeometryEffect(
+                    id: die.id,
+                    in: diceFlight,
+                    properties: [.position, .size]
+                )
+            } else {
+                // Placeholder colored square with text
+                VStack(spacing: 1) {
+                    Text(die.type.abbr)
+                        .font(.system(size: 9, weight: .semibold))
+                    Text("\(die.value)")
+                        .font(.system(size: 14, weight: .heavy, design: .serif))
+                }
+                .foregroundColor(.white)
+                .frame(
+                    width: PotionShopCauldronLayout.dieSize,
+                    height: PotionShopCauldronLayout.dieSize
+                )
+                .background(die.type.color)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
+                )
+                .matchedGeometryEffect(
+                    id: die.id,
+                    in: diceFlight,
+                    properties: [.position, .size]
+                )
             }
-            .foregroundColor(.white)
-            .frame(
-                width: PotionShopCauldronLayout.dieSize,
-                height: PotionShopCauldronLayout.dieSize
-            )
-            .background(die.type.color)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
-            )
-            .matchedGeometryEffect(
-                id: die.id,
-                in: diceFlight,
-                properties: [.position, .size]
-            )
         }
         .disabled(gs.isAnimating)
         .opacity(atCap && !isSelected ? 0.5 : 1.0)

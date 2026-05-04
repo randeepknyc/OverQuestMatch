@@ -1,9 +1,9 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** May 3, 2026 (Cauldron Game Rewrite - Phase 1 Data Layer Complete)  
+> **Last Updated:** May 4, 2026 (Ednar's Potion Cauldron Added - Day 1 Playable)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
-> **Current Work:** Ednar's Cauldron complete rewrite in progress (Phase 1 of 9 complete)
+> **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only)
 
 ---
 
@@ -18,10 +18,7 @@
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
 3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system
-4. **Ednar's Cauldron** - 🟡 IN DEVELOPMENT - Dice-placement combat game (Die in the Dungeon-style)
-   - **Phase 1 (Data Layer):** ✅ COMPLETE (May 3, 2026)
-   - **Status:** JSON loading working, existing old game still functional
-   - **Next:** Phase 2 - Game State Model (see REPLACEMENT_PLAN.md)
+4. **Ednar's Potion Cauldron** - ✅ PLAYABLE (Day 1 only) - Turn-based dice-placement potion brewing game, in `PotionShop/`
 5. **Cooking Game** - 📋 Planned
 6. **Potion Solitaire** - 📋 Planned
 7. **Map Navigation System** - 📋 Planned
@@ -35,6 +32,35 @@
 - Match-3, Physics, and Shop all launch directly to game boards (no looping!)
 - All 3 games have "End Game" buttons in debug menus that return to title screen
 - **Match-3 also has "End Game" in Pause Menu** (☰ hamburger menu → End Game → Confirm)
+
+---
+
+## 🧪 EDNAR'S POTION CAULDRON — QUICK REFERENCE
+
+**Status:** Phase 7 complete. Day 1 fully playable. Art is placeholder.
+
+**Source of Truth:** `CAULDRON_CONTEXT.md` (read this first for any work on this game)
+
+**Critical Naming Rule:**  
+Every struct/view/enum/modifier in this game MUST be prefixed `PotionShop` to avoid collisions with other games. Two real bugs were caused by:
+- `Customer` colliding with `ShopOfOddities`
+- `CauldronBoardView` colliding with the legacy `CauldronGame/` folder
+
+**Combat Model:**
+- Turn-based: every customer attacks every turn
+- No underbrew penalty
+- Shield absorbs damage first
+- Composure carries between rounds with `COMPOSURE_REST_BETWEEN_ROUNDS` tunable
+
+**Pending Phases:**
+- Phase 8: Round-end overlays
+- Phase 9: Hexer/Loud trait stubs
+- Phase 10: Day 2 + Day 3
+- Phase 11: Streak win mode
+- Phase 12: Real art swap
+- Phase 13: Audio/haptics
+
+**Important:** Legacy `CauldronGame/` folder is unrelated — leave it alone, the user will delete later.
 
 ---
 
@@ -120,6 +146,17 @@ OverQuestMatch3/ (ROOT)
 │
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
+├─ PotionShop/ ✅ (Ednar's Potion Cauldron — turn-based dice brewing, Day 1 playable)
+│  ├─ PotionShopModels.swift
+│  ├─ PotionShopData.swift
+│  ├─ PotionShopGameState.swift
+│  ├─ PotionShopGameView.swift
+│  ├─ PotionShopHeaderView.swift
+│  ├─ PotionShopCustomerSceneView.swift
+│  ├─ PotionShopCauldronView.swift
+│  ├─ PotionShopDebugMenu.swift
+│  └─ PotionShopBrewAnimator.swift
+│
 ├─ Navigation/ ✅ (Game selector + map placeholder for testing)
 │  ├─ MapScreenView.swift (real map with "Continue to Games" button)
 │  ├─ GameSelectorView.swift (debug game picker for device testing)
@@ -210,6 +247,7 @@ private let currentGame: GameType = .match3
 - `.match3` - Match-3 RPG Battle Game (✅ WORKING)
 - `.physicsChain` - Physics Chain Game (✅ WORKING)
 - `.shopOfOddities` - Shop of Oddities Card Game (✅ COMPLETE & PLAYABLE)
+- `.ednarsPotionShop` - Ednar's Potion Cauldron (✅ PLAYABLE — Day 1)
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)

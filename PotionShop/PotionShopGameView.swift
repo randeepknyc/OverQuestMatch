@@ -9,6 +9,7 @@
 //  When the brew sequence emits floating numbers (via gs.emitFloatingNumber),
 //  they appear at their origin point, drift upward, and fade out.
 //  A timer-driven purge removes expired numbers from gs.
+//  PHASE 12: ART HOOKUP — Background image with parchment fallback
 //
 
 import SwiftUI
@@ -36,7 +37,16 @@ struct PotionShopGameView: View {
             let trayH        = max(78,  totalH * 0.10)
 
             ZStack {
-                PotionShopTheme.bg.ignoresSafeArea()
+                // Background image (or placeholder parchment color)
+                if let bgImage = PotionShopImageLoader.loadImage(named: "shop_background") {
+                    Image(uiImage: bgImage)
+                        .resizable()
+                        .scaledToFill()
+                        .ignoresSafeArea()
+                } else {
+                    // Placeholder parchment background
+                    PotionShopTheme.bg.ignoresSafeArea()
+                }
 
                 VStack(spacing: 0) {
                     PotionShopHeaderView(gs: gs, showDebugMenu: $showDebugMenu)

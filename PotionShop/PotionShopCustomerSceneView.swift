@@ -11,6 +11,7 @@
 //  PHASE 6D: Inspect card SPLIT-SLIDES open.
 //  PHASE 7: Customers SHAKE on damage (driven by gs.customerShakeCounters)
 //           and SLIDE OFF-SCREEN on expiration (driven by gs.expiringCustomerIds).
+//  PHASE 12: ART HOOKUP — Customer portraits load from Assets with emoji fallback
 //
 //  NAMING NOTE: PotionShop prefix on every public type.
 //
@@ -133,7 +134,15 @@ struct PotionShopCustomerSceneView: View {
 struct PotionShopEdnarView: View {
     @Bindable var gs: PotionShopGameState
 
-    private var expressionEmoji: String {
+    private var expressionAssetName: String {
+        let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
+        if pct < 0.3 { return "ednar_alarmed" }
+        if pct < 0.7 { return "ednar_concerned" }
+        if !gs.placements.isEmpty { return "ednar_focused" }
+        return "ednar_calm"
+    }
+    
+    private var expressionEmojiFallback: String {
         let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
         if pct < 0.3 { return "😨" }
         if pct < 0.7 { return "😟" }
@@ -143,8 +152,17 @@ struct PotionShopEdnarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text(expressionEmoji)
-                .font(.system(size: 64))
+            // Try to load Ednar expression image, fallback to emoji
+            if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
+                Image(uiImage: ednarImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 120)
+            } else {
+                Text(expressionEmojiFallback)
+                    .font(.system(size: 64))
+            }
+            
             Capsule()
                 .fill(PotionShopTheme.ink.opacity(0.15))
                 .frame(width: 64, height: 4)
@@ -224,8 +242,11 @@ struct PotionShopCustomerInSceneView: View {
                 Circle()
                     .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
                     .overlay(
-                        Text(char.iconFallback)
-                            .font(.system(size: 36 * scale))
+                        PotionShopImageLoader.imageOrEmoji(
+                            assetName: char.portrait,
+                            fallbackEmoji: char.iconFallback,
+                            size: PotionShopSceneLayout.portraitDiameter * scale
+                        )
                     )
                     .frame(
                         width: PotionShopSceneLayout.portraitDiameter * scale,
@@ -467,8 +488,11 @@ struct PotionShopProfileButtonView: View {
                     )
 
                 if let char = char {
-                    Text(char.iconFallback)
-                        .font(.system(size: 26))
+                    PotionShopImageLoader.imageOrEmoji(
+                        assetName: char.portrait,
+                        fallbackEmoji: char.iconFallback,
+                        size: PotionShopSceneLayout.profileDiameter
+                    )
                 }
 
                 if customer.status == .defeated {
@@ -633,8 +657,11 @@ struct PotionShopInspectStripView: View {
                 .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
                 .frame(width: 62, height: 62)
                 .overlay(
-                    Text(char.iconFallback)
-                        .font(.system(size: 36))
+                    PotionShopImageLoader.imageOrEmoji(
+                        assetName: char.portrait,
+                        fallbackEmoji: char.iconFallback,
+                        size: 62
+                    )
                 )
         }
     }

@@ -7,6 +7,34 @@
 //
 
 import SwiftUI
+import UIKit
+
+// MARK: - Image Loading Helper
+
+/// Helper to load images from Asset Catalog with emoji fallback
+struct PotionShopImageLoader {
+    
+    /// Attempts to load an image from the asset catalog.
+    /// Returns the image if found, nil otherwise.
+    static func loadImage(named name: String) -> UIImage? {
+        return UIImage(named: name)
+    }
+    
+    /// Creates a view showing either the asset image or emoji fallback
+    @ViewBuilder
+    static func imageOrEmoji(assetName: String, fallbackEmoji: String, size: CGFloat) -> some View {
+        if let uiImage = loadImage(named: assetName) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        } else {
+            Text(fallbackEmoji)
+                .font(.system(size: size * 0.55))
+        }
+    }
+}
 
 // MARK: - Game state phases
 //
@@ -186,8 +214,19 @@ enum PotionShopDieType: String, CaseIterable, Identifiable {
 
     /// Full label used in tooltips/inspect.
     var label: String { rawValue.capitalized }
+    
+    /// Asset name for die face art (flat-faced 512×512 PNG with center 30% blank)
+    var assetName: String {
+        switch self {
+        case .potency:   return "die_potency"
+        case .stability: return "die_stability"
+        case .boost:     return "die_boost"
+        case .heal:      return "die_heal"
+        case .shield:    return "die_shield"
+        }
+    }
 
-    /// Placeholder color until art arrives.
+    /// Placeholder color (used if die art asset not found)
     var color: Color {
         switch self {
         case .potency:   return Color(red: 0.91, green: 0.30, blue: 0.24) // red

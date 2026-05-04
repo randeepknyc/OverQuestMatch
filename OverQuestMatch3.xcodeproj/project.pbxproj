@@ -112,6 +112,7 @@
 		7F7908702FA81CF800412002 /* PotionShopDebugMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79086F2FA81CF800412002 /* PotionShopDebugMenu.swift */; };
 		7F7908722FA8395E00412002 /* PotionShopBrewAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */; };
 		7F7908762FA8456200412002 /* CAULDRON_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */; };
+		7F7908782FA8607D00412002 /* PotionShopLayoutEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908772FA8607D00412002 /* PotionShopLayoutEditor.swift */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -244,6 +245,7 @@
 		7F79086F2FA81CF800412002 /* PotionShopDebugMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopDebugMenu.swift; sourceTree = "<group>"; };
 		7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopBrewAnimator.swift; sourceTree = "<group>"; };
 		7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CAULDRON_CONTEXT.md; sourceTree = "<group>"; };
+		7F7908772FA8607D00412002 /* PotionShopLayoutEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutEditor.swift; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -451,6 +453,7 @@
 				7F7908612FA727F800412002 /* PotionShopData.swift */,
 				7F7908622FA727F800412002 /* PotionShopGameView.swift */,
 				7F7908632FA727F800412002 /* PotionShopModels.swift */,
+				7F7908772FA8607D00412002 /* PotionShopLayoutEditor.swift */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -713,6 +716,7 @@
 				7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */,
 				7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */,
 				7F7908722FA8395E00412002 /* PotionShopBrewAnimator.swift in Sources */,
+				7F7908782FA8607D00412002 /* PotionShopLayoutEditor.swift in Sources */,
 				7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */,
 				7F2ADE5F2F81A6930078EF4E /* RepairResultOverlay.swift in Sources */,
 				7F2ADE632F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift in Sources */,
