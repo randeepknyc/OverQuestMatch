@@ -26,6 +26,8 @@ struct PotionShopLayoutEditorView: View {
     @State private var cauldronXOffset: Double = 44
     @State private var cauldronYOffset: Double = 58
     @State private var nodeScale: Double = 1.0
+    @State private var nodeXOffset: Double = 0
+    @State private var nodeYOffset: Double = 0
     
     // BREW button controls
     @State private var showBrewButton: Bool = false
@@ -111,6 +113,8 @@ struct PotionShopLayoutEditorView: View {
                         cauldronXOffset: cauldronXOffset,
                         cauldronYOffset: cauldronYOffset,
                         nodeScale: nodeScale,
+                        nodeXOffset: nodeXOffset,
+                        nodeYOffset: nodeYOffset,
                         brewXOffset: brewXOffset,
                         brewYPercent: brewYPercent,
                         showBrewButton: showBrewButton,
@@ -264,6 +268,8 @@ struct PotionShopLayoutEditorView: View {
                             sliderControl("↔️ X Offset", value: $cauldronXOffset, range: -150...150, step: 1)
                             sliderControl("↕️ Y Offset", value: $cauldronYOffset, range: -150...150, step: 1)
                             sliderControl("🎯 Node Scale", value: $nodeScale, range: 0.5...2.0)
+                            sliderControl("🎯 Node X Offset", value: $nodeXOffset, range: -100...100, step: 1)
+                            sliderControl("🎯 Node Y Offset", value: $nodeYOffset, range: -100...100, step: 1)
                             
                             Divider().background(Color.white)
                             
@@ -410,6 +416,8 @@ struct PotionShopLayoutEditorView: View {
         cauldronXOffset = 44
         cauldronYOffset = 58
         nodeScale = 1.0
+        nodeXOffset = 0
+        nodeYOffset = 0
         showBrewButton = false
         brewXOffset = -50
         brewYPercent = 0.30
@@ -444,6 +452,8 @@ PotionShopCauldronView(
     cauldronXOffset: \(String(format: "%.0f", cauldronXOffset)),
     cauldronYOffset: \(String(format: "%.0f", cauldronYOffset)),
     nodeScale: \(String(format: "%.2f", nodeScale)),
+    nodeXOffset: \(String(format: "%.0f", nodeXOffset)),
+    nodeYOffset: \(String(format: "%.0f", nodeYOffset)),
     brewXOffset: \(String(format: "%.0f", brewXOffset)),
     brewYPercent: \(String(format: "%.2f", brewYPercent)),
     showBrewButton: \(showBrewButton),

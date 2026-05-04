@@ -89,7 +89,9 @@ private struct CauldronGeometry {
         scale: Double = 1.0,
         xOffset: Double = 0,
         yOffset: Double = 0,
-        nodeScaleMultiplier: Double = 1.0
+        nodeScaleMultiplier: Double = 1.0,
+        nodeXOffset: Double = 0,
+        nodeYOffset: Double = 0
     ) -> CauldronGeometry {
         let totalW = size.width
         let totalH = size.height
@@ -121,11 +123,11 @@ private struct CauldronGeometry {
         let nodeScale = min(
             nodeAreaW / PotionShopCauldronLayout.boardWidth,
             nodeAreaH / PotionShopCauldronLayout.boardHeight
-        ) * scale * nodeScaleMultiplier  // Apply independent node scale
+        ) * scale * nodeScaleMultiplier
         let scaledBoardW = PotionShopCauldronLayout.boardWidth * nodeScale
         let scaledBoardH = PotionShopCauldronLayout.boardHeight * nodeScale
-        let nodeOriginX = bowlCenterX - scaledBoardW / 2
-        let nodeOriginY = nodeAreaY + (nodeAreaH - scaledBoardH) / 2
+        let nodeOriginX = bowlCenterX - scaledBoardW / 2 + nodeXOffset
+        let nodeOriginY = nodeAreaY + (nodeAreaH - scaledBoardH) / 2 + nodeYOffset
 
         return CauldronGeometry(
             bowlW: bowlW,
@@ -152,7 +154,9 @@ struct PotionShopCauldronView: View {
     var cauldronScale: Double = 1.0       // Scale multiplier for bowl/nodes
     var cauldronXOffset: Double = 0       // X offset for cauldron position (pts)
     var cauldronYOffset: Double = 0       // Y offset for cauldron position (pts)
-    var nodeScale: Double = 1.0           // NEW: Independent node scale multiplier
+    var nodeScale: Double = 1.0           // Independent node scale multiplier
+    var nodeXOffset: Double = 0           // Independent node X offset (pts)
+    var nodeYOffset: Double = 0           // Independent node Y offset (pts)
     var brewXOffset: Double = -50         // BREW button X from right edge
     var brewYPercent: Double = 0.30       // BREW button Y as % of cauldron height
     var showBrewButton: Bool = true       // Toggle to hide BREW button
@@ -169,7 +173,9 @@ struct PotionShopCauldronView: View {
                 scale: cauldronScale,
                 xOffset: cauldronXOffset,
                 yOffset: cauldronYOffset,
-                nodeScaleMultiplier: nodeScale
+                nodeScaleMultiplier: nodeScale,
+                nodeXOffset: nodeXOffset,
+                nodeYOffset: nodeYOffset
             )
 
             ZStack {

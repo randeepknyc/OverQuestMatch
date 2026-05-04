@@ -65,6 +65,9 @@ struct PotionShopGameView: View {
                         cauldronScale: 1.29,
                         cauldronXOffset: 44,
                         cauldronYOffset: 58,
+                        nodeScale: 1.0,
+                        nodeXOffset: 0,
+                        nodeYOffset: 0,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
@@ -82,10 +85,10 @@ struct PotionShopGameView: View {
                     PotionShopDiceTrayView(
                         gs: gs,
                         diceFlight: diceFlight,
-                        dieScale: 1.31
+                        dieScale: 1.0                // Normal size (was 1.07)
                     )
                         .frame(height: trayH)
-                        .offset(y: -25)
+                        .offset(y: 0)                // No offset (was 2)
 
                     Spacer(minLength: 0)
                 }
