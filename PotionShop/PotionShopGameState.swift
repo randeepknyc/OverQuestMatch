@@ -115,6 +115,17 @@ class PotionShopGameState {
     /// Map from cauldron node id → die placed there.
     var placements: [Int: PotionShopDie] = [:]
     var selectedHandIndex: Int? = nil
+    
+    // MARK: - Drag and drop state
+    
+    /// Currently dragging die (hand index). Nil if not dragging.
+    var draggedDieIndex: Int? = nil
+    /// Die that was being dragged (for animation purposes).
+    var draggedDie: PotionShopDie? = nil
+    /// Node positions in global coordinates (set by nodes during layout)
+    var nodePositions: [Int: CGRect] = [:]
+    /// Currently hovered node index (for visual feedback)
+    var hoveredNodeIndex: Int? = nil
 
     // MARK: - Animation/UX state (used by Phase 7+)
 
@@ -302,6 +313,100 @@ class PotionShopGameState {
         guard let die = placements[nodeId] else { return }
         hand.append(die)
         placements[nodeId] = nil
+    }
+    
+    // MARK: - Drag and drop methods
+    
+    /// Start dragging a die from the tray.
+    func startDrag(handIdx: Int) {
+        if isAnimating { return }
+        guard handIdx < hand.count else { return }
+        draggedDieIndex = handIdx
+        draggedDie = hand[handIdx]
+        // Remove from hand immediately (will return if dropped outside)
+        hand.remove(at: handIdx)
+        // Clear selection if any
+        selectedHandIndex = nil
+    }
+    
+    /// Drop die onto a node.
+    func dropDieOnNode(_ nodeId: Int) {
+        guard let die = draggedDie else { return }
+        if placements[nodeId] != nil { 
+            // Node occupied - return die to hand
+            returnDraggedDie()
+            return
+        }
+        if placements.count >= PotionShopConfig.maxPlacementsPerBrew {
+            // At cap - return die to hand
+            returnDraggedDie()
+            return
+        }
+        // Place the die
+        placements[nodeId] = die
+        clearDragState()
+    }
+    
+    /// Cancel drag and return die to hand.
+    func returnDraggedDie() {
+        guard let die = draggedDie else { return }
+        hand.append(die)
+        clearDragState()
+    }
+    
+    /// Clear drag state.
+    func clearDragState() {
+        draggedDieIndex = nil
+        draggedDie = nil
+        hoveredNodeIndex = nil
+    }
+    
+    /// Drag a placed die from a node back to tray (remove it).
+    func dragPlacedDieToTray(nodeId: Int) {
+        guard let die = placements[nodeId] else { return }
+        placements[nodeId] = nil
+        hand.append(die)
+    }
+    
+    /// Update which node we're hovering over during drag
+    func updateDragHoverPosition(_ position: CGPoint) {
+        // Find which node (if any) contains this position
+        var foundNode: Int? = nil
+        for (nodeId, rect) in nodePositions {
+            if rect.contains(position) && placements[nodeId] == nil {
+                foundNode = nodeId
+                break
+            }
+        }
+        hoveredNodeIndex = foundNode
+    }
+    
+    /// Try to drop the dragged die at the given position
+    /// Returns true if successful, false if should return to tray
+    func tryDropDieAtPosition(_ position: CGPoint, dieIndex: Int) -> Bool {
+        guard dieIndex < hand.count else { return false }
+        
+        // Check if at cap
+        if placements.count >= PotionShopConfig.maxPlacementsPerBrew {
+            return false
+        }
+        
+        // Find which node contains this position
+        for (nodeId, rect) in nodePositions {
+            if rect.contains(position) {
+                // Check if node is empty
+                if placements[nodeId] == nil {
+                    // Place the die
+                    let die = hand[dieIndex]
+                    placements[nodeId] = die
+                    hand.remove(at: dieIndex)
+                    selectedHandIndex = nil
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
 
     // MARK: - Trait aggregation

@@ -29,12 +29,12 @@ struct PotionShopGameView: View {
     var body: some View {
         GeometryReader { geo in
             let totalH = geo.size.height
-            let headerH      = max(70,  totalH * 0.070)   // 7%  - Header
-            let sceneH       = max(160, totalH * 0.320)   // 32% - Scene (keep it prominent)
-            let profileRowH  = max(74,  totalH * 0.110)   // 11% - Profile row
-            let cauldronH    = max(220, totalH * 0.280)   // 28% - Cauldron (was 37% - TOO BIG)
-            let previewBarH  = max(28,  totalH * 0.035)   // 3.5% - Preview bar
-            let trayH        = max(78,  totalH * 0.100)   // 10% - Tray (was 24% - WAY TOO BIG)
+            let headerH      = max(70,  totalH * 0.010)   // 1%  - Minimal header
+            let sceneH       = max(160, totalH * 0.263)   // 26.3% - Scene
+            let profileRowH  = max(74,  totalH * 0.095)   // 9.5% - Profile row
+            let cauldronH    = max(240, totalH * 0.372)   // 37.2% - HUGE CAULDRON!
+            let previewBarH  = max(26,  totalH * 0.032)   // 3.2% - Preview bar
+            let trayH        = max(82,  totalH * 0.193)   // 19.3% - BIG TRAY!
 
             ZStack {
                 // Background image (or placeholder parchment color)
@@ -65,17 +65,17 @@ struct PotionShopGameView: View {
                         cauldronScale: 1.29,
                         cauldronXOffset: 44,
                         cauldronYOffset: 58,
-                        nodeScale: 1.0,
-                        nodeXOffset: 0,
-                        nodeYOffset: 0,
+                        nodeScale: 1.30,
+                        nodeXOffset: 3,
+                        nodeYOffset: -8,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
-                        brewZoneX: 0.80,
+                        brewZoneX: 0.81,
                         brewZoneY: 0.19,
                         brewZoneWidth: 90,
                         brewZoneHeight: 123,
-                        showBrewZone: true
+                        showBrewZone: false
                     )
                         .frame(height: cauldronH)
 
@@ -85,16 +85,20 @@ struct PotionShopGameView: View {
                     PotionShopDiceTrayView(
                         gs: gs,
                         diceFlight: diceFlight,
-                        dieScale: 1.0                // Normal size (was 1.07)
+                        dieScale: 1.31
                     )
                         .frame(height: trayH)
-                        .offset(y: 0)                // No offset (was 2)
+                        .offset(y: -25)
 
                     Spacer(minLength: 0)
                 }
 
                 // Floating number overlay (above everything)
                 PotionShopFloatingNumberOverlay(gs: gs)
+                    .allowsHitTesting(false)
+                
+                // Dragged die overlay (above everything else so it doesn't go behind cauldron)
+                PotionShopDraggedDieOverlay(gs: gs, diceFlight: diceFlight)
                     .allowsHitTesting(false)
 
                 phaseOverlay
@@ -215,6 +219,30 @@ struct PotionShopFloatingNumberView: View {
                     opacity = 0.0
                 }
             }
+    }
+}
+
+// MARK: - Dragged die overlay
+//
+// Renders the currently dragged die above ALL other content so it doesn't
+// go behind the cauldron/nodes when being dragged upward from the tray.
+
+struct PotionShopDraggedDieOverlay: View {
+    @Bindable var gs: PotionShopGameState
+    let diceFlight: Namespace.ID
+    
+    var body: some View {
+        if let draggedDie = gs.draggedDie {
+            // Invisible placeholder that uses matchedGeometryEffect
+            // This acts as the destination for the dragged die
+            Color.clear
+                .frame(width: PotionShopCauldronLayout.dieSize, height: PotionShopCauldronLayout.dieSize)
+                .matchedGeometryEffect(
+                    id: draggedDie.id,
+                    in: diceFlight,
+                    properties: [.position, .size]
+                )
+        }
     }
 }
 

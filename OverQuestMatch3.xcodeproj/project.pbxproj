@@ -114,6 +114,7 @@
 		7F7908762FA8456200412002 /* CAULDRON_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */; };
 		7F79087A2FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */; };
 		7F79087E2FA8746800412002 /* PotionShopLayoutEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */; };
+		7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -248,6 +249,7 @@
 		7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CAULDRON_CONTEXT.md; sourceTree = "<group>"; };
 		7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_EDITOR_SESSION_MAY4_2026.md; sourceTree = "<group>"; };
 		7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutEditorView.swift; sourceTree = "<group>"; };
+		7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -457,6 +459,7 @@
 				7F7908632FA727F800412002 /* PotionShopModels.swift */,
 				7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */,
 				7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */,
+				7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -698,6 +701,7 @@
 				7F2ADE6E2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md in Resources */,
 				7F55742F2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md in Resources */,
 				7F2ADE862F88BFCE0078EF4E /* SHOP_UI_OVERHAUL_SESSION_SUMMARY.md in Resources */,
+				7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */,
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,
 				7F79087A2FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md in Resources */,

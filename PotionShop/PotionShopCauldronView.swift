@@ -10,11 +10,13 @@
 //  PHASE 6D: Drop is now STRAIGHT — no rotation. Dice fall in cleanly
 //            without tumbling, landing perfectly aligned in the tray.
 //  PHASE 12: ART HOOKUP — Dice faces load from Assets, cauldron layers, background
+//  DRAG-AND-DROP: Dice can be dragged from tray to nodes, or tapped (both work).
 //
 //  NAMING NOTE: PotionShop prefix on every public type. Don't rename.
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Layout constants for the cauldron
 
@@ -301,63 +303,112 @@ struct PotionShopNodeButtonView: View {
     @Bindable var gs: PotionShopGameState
     let nodeIndex: Int
     let diceFlight: Namespace.ID
+    
+    @State private var globalFrame: CGRect = .zero
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
     private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil }
+    private var isDraggingDie: Bool { gs.draggedDie != nil }
+    private var canReceiveDrop: Bool { isDraggingDie && !atCap && placedDie == nil }
+    private var isHovered: Bool { gs.hoveredNodeIndex == nodeIndex }
 
     var body: some View {
-        Button {
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                gs.tapNode(nodeIndex)
-            }
-        } label: {
-            ZStack {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(
-                        width: PotionShopCauldronLayout.nodeHitArea,
-                        height: PotionShopCauldronLayout.nodeHitArea
-                    )
-                    .contentShape(Rectangle())
+        ZStack {
+            Rectangle()
+                .fill(Color.clear)
+                .frame(
+                    width: PotionShopCauldronLayout.nodeHitArea,
+                    height: PotionShopCauldronLayout.nodeHitArea
+                )
+                .contentShape(Rectangle())
 
-                if let die = placedDie {
-                    PotionShopPlacedDieView(die: die)
-                        .matchedGeometryEffect(
-                            id: die.id,
-                            in: diceFlight,
-                            properties: [.position, .size]
-                        )
-                } else {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(visibleFill)
-                        .frame(
-                            width: PotionShopCauldronLayout.nodeVisible,
-                            height: PotionShopCauldronLayout.nodeVisible
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(visibleStroke, lineWidth: visibleStrokeWidth)
-                        )
-                }
+            if let die = placedDie {
+                PotionShopPlacedDieView(die: die)
+                    .matchedGeometryEffect(
+                        id: die.id,
+                        in: diceFlight,
+                        properties: [.position, .size]
+                    )
+                    // Allow dragging placed die back to tray
+                    .gesture(
+                        DragGesture(minimumDistance: 5)
+                            .onEnded { _ in
+                                if !gs.isAnimating {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                        gs.dragPlacedDieToTray(nodeId: nodeIndex)
+                                    }
+                                }
+                            }
+                    )
+                    // Also allow tap to remove (original behavior)
+                    .onTapGesture {
+                        if !gs.isAnimating {
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                                gs.unplaceDie(nodeIndex)
+                            }
+                        }
+                    }
+            } else {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(visibleFill)
+                    .frame(
+                        width: PotionShopCauldronLayout.nodeVisible,
+                        height: PotionShopCauldronLayout.nodeVisible
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(visibleStroke, lineWidth: visibleStrokeWidth)
+                    )
+                    .scaleEffect(isHovered ? 1.15 : 1.0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
+                    // Tap gesture (original behavior - place selected die)
+                    .onTapGesture {
+                        if !gs.isAnimating {
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                                gs.tapNode(nodeIndex)
+                            }
+                        }
+                    }
             }
         }
-        .disabled(gs.isAnimating)
+        .background(
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        // Register this node's position in global coordinates
+                        globalFrame = geometry.frame(in: .global)
+                        gs.nodePositions[nodeIndex] = globalFrame
+                    }
+                    .onChange(of: geometry.frame(in: .global)) { oldValue, newValue in
+                        globalFrame = newValue
+                        gs.nodePositions[nodeIndex] = newValue
+                    }
+            }
+        )
+        .disabled(gs.isAnimating && placedDie == nil)
     }
 
     private var visibleFill: Color {
+        if isHovered && canReceiveDrop { 
+            return Color(red: 1.0, green: 0.95, blue: 0.4).opacity(0.9)
+        }
         if canBePlacedOn { return Color(red: 1.0, green: 0.92, blue: 0.62) }
         if atCap { return Color(red: 0.85, green: 0.78, blue: 0.58).opacity(0.5) }
         return Color(red: 0.95, green: 0.87, blue: 0.65).opacity(0.85)
     }
 
     private var visibleStroke: Color {
+        if isHovered && canReceiveDrop {
+            return PotionShopTheme.accent.opacity(1.0)
+        }
         if canBePlacedOn { return PotionShopTheme.accent }
         return Color(red: 0.55, green: 0.40, blue: 0.20).opacity(0.7)
     }
 
     private var visibleStrokeWidth: CGFloat {
+        if isHovered && canReceiveDrop { return 3 }
         if canBePlacedOn { return 2 }
         return 1
     }
@@ -558,19 +609,21 @@ struct PotionShopDiceTrayView: View {
         }
         .padding(8)
         .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.55, green: 0.35, blue: 0.17),
-                    Color(red: 0.42, green: 0.27, blue: 0.14)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(PotionShopTheme.ink, lineWidth: 2)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.55, green: 0.35, blue: 0.17),
+                            Color(red: 0.42, green: 0.27, blue: 0.14)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(PotionShopTheme.ink, lineWidth: 2)
+                )
         )
         .padding(.horizontal, 14)
         .opacity(gs.isAnimating ? 0.7 : 1.0)
@@ -609,19 +662,20 @@ struct PotionShopDieButtonView: View {
     let die: PotionShopDie
     let index: Int
     let diceFlight: Namespace.ID
-    var dieScale: Double = 1.0  // NEW: Scale multiplier
+    var dieScale: Double = 1.0  // Scale multiplier
+    
+    @State private var dragOffset: CGSize = .zero
+    @State private var isDragging: Bool = false
 
     private var isSelected: Bool { gs.selectedHandIndex == index }
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
 
     var body: some View {
-        Button {
-            gs.selectHand(index)
-        } label: {
-            let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
-            let scaledFontSize = 18 * dieScale
-            
-            // Try to load die face image, fallback to colored square
+        let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
+        let scaledFontSize = 18 * dieScale
+        
+        // Try to load die face image, fallback to colored square
+        Group {
             if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
                 ZStack {
                     Image(uiImage: dieImage)
@@ -640,11 +694,6 @@ struct PotionShopDieButtonView: View {
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
                 }
-                .matchedGeometryEffect(
-                    id: die.id,
-                    in: diceFlight,
-                    properties: [.position, .size]
-                )
             } else {
                 // Placeholder colored square with text
                 VStack(spacing: 1) {
@@ -661,15 +710,59 @@ struct PotionShopDieButtonView: View {
                     RoundedRectangle(cornerRadius: 5)
                         .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
                 )
-                .matchedGeometryEffect(
-                    id: die.id,
-                    in: diceFlight,
-                    properties: [.position, .size]
-                )
+            }
+        }
+        .matchedGeometryEffect(
+            id: die.id,
+            in: diceFlight,
+            properties: [.position, .size]
+        )
+        .scaleEffect(isDragging ? 1.15 : 1.0)
+        .opacity(atCap && !isSelected ? 0.5 : 1.0)
+        .offset(dragOffset)
+        .zIndex(isDragging ? 1000 : 0)
+        .shadow(
+            color: isDragging ? die.type.color.opacity(0.5) : .clear,
+            radius: isDragging ? 12 : 0
+        )
+        .modifier(PotionShopDiceDropInModifier())
+        .gesture(
+            DragGesture(coordinateSpace: .global)
+                .onChanged { value in
+                    if !gs.isAnimating {
+                        isDragging = true
+                        dragOffset = value.translation
+                        
+                        // Update hover state
+                        gs.updateDragHoverPosition(value.location)
+                    }
+                }
+                .onEnded { value in
+                    if !gs.isAnimating {
+                        // Try to place the die
+                        let placed = gs.tryDropDieAtPosition(value.location, dieIndex: index)
+                        
+                        if placed {
+                            // Reset offset (matchedGeometryEffect will animate)
+                            dragOffset = .zero
+                        } else {
+                            // Return to original position
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                dragOffset = .zero
+                            }
+                        }
+                    }
+                    
+                    isDragging = false
+                    gs.hoveredNodeIndex = nil
+                }
+        )
+        .onTapGesture {
+            // Tap gesture (original behavior - select/deselect)
+            if !gs.isAnimating && !isDragging {
+                gs.selectHand(index)
             }
         }
         .disabled(gs.isAnimating)
-        .opacity(atCap && !isSelected ? 0.5 : 1.0)
-        .modifier(PotionShopDiceDropInModifier())
     }
 }
