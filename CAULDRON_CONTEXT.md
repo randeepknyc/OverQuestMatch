@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 3, 2026
-> **Status:** Phase 7 complete. Game is playable end-to-end for Day 1. Art assets pending.
+> **Last Updated:** May 4, 2026  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned. Art assets pending.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -255,6 +255,77 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 - **On placement:** die slides via `matchedGeometryEffect` from tray slot to cauldron node (Phase 6). About 0.4s with a small spring bounce.
 - **On unplacement:** die slides back to tray (same mechanic, reversed).
 
+### 6.8 Drag-and-drop dice placement (May 4, 2026)
+
+**Status:** ✅ FULLY IMPLEMENTED AND WORKING
+
+The game supports **two methods** for placing dice on nodes:
+
+#### **Method 1: Tap-select-then-tap-node (original)**
+1. Tap a die in the tray → yellow border appears (selected)
+2. Tap an empty node → die slides to that node
+3. Tap the placed die → slides back to tray
+
+#### **Method 2: Drag-and-drop (new)**
+1. Touch and drag a die from the tray
+2. Die follows your finger with:
+   - **15% scale increase** (looks bigger while dragging)
+   - **Colored glow shadow** (matches die type color)
+   - **Stays visible** over all UI elements (no clipping)
+3. As you drag over nodes:
+   - **Empty nodes pulse** (scale 1.15×)
+   - **Empty nodes glow** (bright yellow fill + thick border)
+4. Release over an empty node:
+   - Die **smoothly slides** to node center via `matchedGeometryEffect`
+   - **Spring animation** (0.35s response, 0.72 damping)
+5. Release outside nodes:
+   - Die **springs back** to tray (0.4s response, 0.75 damping)
+
+#### **Removing placed dice (both methods work):**
+- **Tap:** Tap a placed die → slides back to tray
+- **Drag:** Drag a placed die off the node → slides back to tray
+
+#### **Technical implementation:**
+- **Gesture:** `DragGesture(coordinateSpace: .global)` on dice in tray
+- **Position tracking:** Nodes register their global `CGRect` positions using `GeometryReader`
+- **Hit detection:** `tryDropDieAtPosition(_:dieIndex:)` checks if drop position intersects any node rect
+- **Hover state:** `updateDragHoverPosition(_:)` updates `hoveredNodeIndex` during drag
+- **Visual offset:** Die uses `.offset(dragOffset)` for manual positioning during drag
+- **Animation:** `matchedGeometryEffect(id: die.id, in: diceFlight)` handles slide-to-node animation
+- **Z-index:** Dragging die has `zIndex: 1000` to appear above all content
+- **Clipping fix:** Removed `.clipShape()` from dice tray background to prevent dice from disappearing behind tray border
+
+#### **Edge cases handled:**
+- ✅ Can't place 4th die (max 3 placements enforced)
+- ✅ Can't drop on occupied node
+- ✅ Can't drag during brew animation (`isAnimating` check)
+- ✅ Multiple dice can be dragged in quick succession
+- ✅ Tap still works without interfering with drag
+- ✅ Die stays visible during entire drag (no clipping behind cauldron/tray)
+
+#### **Animation parameters (tunable in code):**
+```swift
+.scaleEffect(isDragging ? 1.15 : 1.0)  // Drag scale
+.shadow(radius: isDragging ? 12 : 0)    // Drag glow
+.zIndex(isDragging ? 1000 : 0)          // Z-layer
+
+// Node pulse
+.scaleEffect(isHovered ? 1.15 : 1.0)
+.animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
+
+// Drop animation (handled by matchedGeometryEffect)
+withAnimation(.spring(response: 0.35, dampingFraction: 0.72))
+
+// Return to tray animation
+withAnimation(.spring(response: 0.4, dampingFraction: 0.75))
+```
+
+#### **State management:**
+- `nodePositions: [Int: CGRect]` - Global positions of all nodes (updated by nodes)
+- `hoveredNodeIndex: Int?` - Which node is currently hovered during drag
+- `updateDragHoverPosition(_:)` - Updates hover state based on drag position
+- `tryDropDieAtPosition(_:dieIndex:)` - Attempts to place die, returns success/fail
+
 ---
 
 ## 7. STATE MACHINE — `PotionShopGameState`
@@ -272,10 +343,18 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 - `customerShakeCounters: [String: Int]` — drives the shake modifier on each customer view
 - `composureFlashColor: Color?` — header listens to this for red/green flashes
 - `isAnimating: Bool` — when true, every interactive control is disabled
+- `nodePositions: [Int: CGRect]` — global screen positions of cauldron nodes (for drag-and-drop)
+- `hoveredNodeIndex: Int?` — which node is currently hovered during drag
 
 ### 7.2 Key methods
 - `tapProfile(customerId:)` — the queue swap. **DO NOT redesign this.** It took 8 attempts in the chat to get right. See §10 for the rule.
-- `selectDie(handIndex:)` / `placeDie(nodeId:)` / `unplaceDie(nodeId:)`
+- `selectHand(_ idx: Int)` - Tap-select a die from tray (toggles selection)
+- `tapNode(_ nodeId: Int)` - Tap an empty node to place selected die, or tap placed die to remove
+- `placeDie(handIdx:nodeId:)` - Internal method to place die on node
+- `unplaceDie(_ nodeId: Int)` - Remove die from node back to tray
+- `updateDragHoverPosition(_ position: CGPoint)` - Update hover state during drag
+- `tryDropDieAtPosition(_ position: CGPoint, dieIndex: Int)` - Attempt to drop die at position
+- `dragPlacedDieToTray(nodeId: Int)` - Remove placed die via drag gesture
 - `computeBrew()` — returns predicted damage/heal/shield from current placements (used for the preview bar above the tray)
 - `applyDamage(_ amount:)` — shield-first, then composure. Returns `(absorbed, dealt)` so animation events can show "🛡 -N" vs "-N" floaters.
 - `doBrew()` — `@MainActor async` — runs the 7-phase animated sequence with `Task.sleep` between phases. Emits floating numbers, shake events, flash colors.
@@ -289,19 +368,26 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 
 ---
 
-## 8. LAYOUT (LOCKED PROPORTIONS)
+## 8. LAYOUT (LOCKED PROPORTIONS) — Updated May 4, 2026
 
-The layout is driven by `GeometryReader` in `PotionShopGameView.swift`, with vertical sections allocated as fractions of the available play area. This was iterated repeatedly to match the web artifact mockup we built in earlier sessions.
+The layout is driven by `GeometryReader` in `PotionShopGameView.swift`, with vertical sections allocated as fractions of the available play area. **Layout was extensively tuned using an interactive layout editor** (see `LAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md`).
 
-### 8.1 Vertical section heights
+### 8.1 Vertical section heights (CURRENT PRODUCTION VALUES)
 | Section                    | Fraction of play area | Why                                        |
 |----------------------------|-----------------------|--------------------------------------------|
-| Header                     | ~6%                   | slim chrome, composure bar + day/round + gear |
-| Customer scene (hero)      | ~38%                  | the visual focus; Ednar + customer line    |
-| Profile row + inspect strip| ~12%                  | inspect strip overlays in place when shown |
-| Cauldron + BREW            | ~30%                  | the tool; not the focal point              |
-| Brew preview bar           | ~4%                   | small status strip above tray              |
-| Dice tray                  | ~10%                  | bottom edge                                |
+| Header                     | **1.0%**   (was 9%)   | Minimal - just composure bar               |
+| Customer scene (hero)      | **26.3%** (was 21%)   | The visual focus; Ednar + customer line    |
+| Profile row + inspect strip| **9.5%**  (same)      | Inspect strip overlays in place when shown |
+| **Cauldron + BREW**        | **37.2%** (was 32%)   | **HERO ELEMENT - biggest section!**        |
+| Brew preview bar           | **3.2%**  (same)      | Small status strip above tray              |
+| **Dice tray**              | **19.3%** (was 10.5%) | **BIG - easier to tap dice**               |
+| **Total:**                 | **96.5%**             | Spacer fills remaining 3.5%                |
+
+**Key changes:**
+- **Cauldron is now the largest section** (37.2%) - dominates the screen
+- **Dice tray is massive** (19.3%) - same height as scene! Easy to see and tap
+- **Header shrunk to 1%** - more room for gameplay
+- **Preview bar minimal** (3.2%) - just shows essential info
 
 ### 8.2 Customer queue X-positions (count-aware, scene-relative fractions)
 The customer line is right-aligned with explicit space between Ednar (left) and the first customer:
@@ -324,10 +410,65 @@ The bowl is **NOT** a `Path.addArc` — that approach failed three times with mi
 - **Aspect ratio:** 1.65:1 (wide:tall). Looks like a shallow stew pot, not a half-pipe.
 - **Construction:** 60 line segments around the bottom half of an ellipse, computed via `cos(θ)`/`sin(θ)` outside the `Path { }` closure (precomputing avoids `Type '()' cannot conform to 'View'` errors).
 - **Node area inset:** 70% on each axis. Math check: `0.70² + 0.70² = 0.98 ≤ 1`, so corners of the inset rectangle are provably inside the ellipse. Nodes never escape the bowl.
-- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → 12 nodes → optional foreground rim → BREW sign on a tilted wooden post.
+- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → 12 nodes → optional foreground rim → BREW sign/tap-zone.
 
-### 8.5 BREW button (placeholder)
-Wooden brown sign with carved-style "BREW" text, tilted ~12°, on a vertical post going down toward the cauldron. **It is a placeholder.** The user will replace it with their own art (likely a real ladle dipping into the green liquid). Don't waste effort tuning placeholder pixels — the final position will be dictated by the art.
+### 8.5 Cauldron parameters (applied from layout editor)
+```swift
+PotionShopCauldronView(
+    gs: gs,
+    diceFlight: diceFlight,
+    cauldronScale: 1.29,          // 29% bigger than default
+    cauldronXOffset: 44,           // Shifted right 44pt
+    cauldronYOffset: 58,           // Shifted down 58pt
+    nodeScale: 1.30,               // Nodes 30% bigger (independent!)
+    nodeXOffset: 3,                // Nodes shifted right 3pt (independent!)
+    nodeYOffset: -8,               // Nodes shifted up 8pt (independent!)
+    brewXOffset: -50,              // (not used - button hidden)
+    brewYPercent: 0.30,            // (not used - button hidden)
+    showBrewButton: false,         // Button hidden - using tap zone
+    brewZoneX: 0.81,               // Tap zone at 81% from left
+    brewZoneY: 0.19,               // Tap zone at 19% from top
+    brewZoneWidth: 90,             // 90pt wide
+    brewZoneHeight: 123,           // 123pt tall
+    showBrewZone: false            // Hidden in production (set true to debug)
+)
+```
+
+**Node independent positioning:** Nodes scale and position separately from the bowl. This was added May 4, 2026 to allow fine-tuning the dice grid position without moving the bowl art.
+
+### 8.6 Dice tray parameters (applied from layout editor)
+```swift
+PotionShopDiceTrayView(
+    gs: gs,
+    diceFlight: diceFlight,
+    dieScale: 1.31                 // Dice 31% bigger than default
+)
+.offset(y: -25)                    // Tray moved up 25pt (closer to cauldron)
+```
+
+### 8.7 BREW button / tap zone (configurable)
+**Current setup:** BREW button is **hidden**. An invisible tap zone at (81%, 19%) handles brew action.
+
+**Purpose:** User plans to add a ladle art asset dipping into the cauldron. Tapping the ladle will brew. The tap zone is positioned where the ladle will be.
+
+**Debug visualization:** Set `showBrewZone: true` to see a yellow dashed rectangle showing the tap zone boundaries.
+
+### 8.8 Dice tray clipping fix (CRITICAL)
+The dice tray background originally used `.clipShape(RoundedRectangle(cornerRadius: 8))` which caused dragged dice to disappear behind the tray border. This was changed to:
+
+```swift
+.background(
+    RoundedRectangle(cornerRadius: 8)
+        .fill(...)  // Gradient
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(...)  // Border
+        )
+)
+// NO .clipShape() - allows dice to escape upward when dragged
+```
+
+This allows dice to remain visible during drag without being clipped by the tray's rounded corners.
 
 ---
 
@@ -455,23 +596,51 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 | 6d    | Patience ring on inspect portrait    | ✅     | Reflects `patience/maxPatience` like profile buttons   |
 | 6e    | Inspect card slide-outward animation | ✅     | Portrait→left, body→right from center-collapsed start |
 | 7     | Animated 7-phase brew sequence       | ✅     | Full floating numbers, shake, flash, expiration slide-out, input lockout, animator constants file |
+| **7b** | **Interactive layout editor (May 4)** | ✅ | **Real-time visual editor with 20+ sliders, code generation, colored overlays. Node independent positioning. Integrated into debug menu. See `LAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md`.** |
+| **7c** | **Drag-and-drop dice (May 4)**       | ✅ | **Full gesture-based drag system with visual feedback (scale, glow, node pulse). Both tap and drag methods work. Clipping fix for tray. Global coordinate hit detection.** |
 
 ---
 
 ## 14. WHAT'S PENDING (NEXT STEPS)
 
-### 14.1 Phase 8 — Round-end / Day-end / Lose overlays (PRIORITY NEXT)
+### 14.1 Phase 8 — Art asset integration (PRIORITY NEXT)
+**Status:** User is ready to begin adding art assets to the game.
+
+**Art System Overview:**
+- Asset loader in `PotionShopImageLoader` (or similar)
+- All placeholder art references use `UIImage` loading with emoji fallbacks
+- See §16 (ART ASSETS) for complete specifications
+
+**Assets Needed:**
+- 14 customer portraits (1024×1024 px)
+- 5 Ednar expressions (1024×1536 px)
+- 1 cauldron image (2048×1536 px) - single layer, replaces 3-layer system
+- 5 dice face images (512×512 px) - flat-faced, center 30% blank for number overlay
+- 1 shop background (1242×2688 px)
+- 6 UI icons (256×256 px)
+
+**Current Art Status:**
+- All art is emoji/placeholder colored shapes
+- Customer portraits: emoji fallbacks
+- Ednar: no art (implied presence)
+- Cauldron: parametric bowl shape (brown gradient)
+- Dice: colored squares with text labels
+- Background: parchment color fill
+
+**See NEW DOCUMENT:** `ART_INTEGRATION_HANDOFF_MAY4_2026.md` for complete guide to art integration work.
+
+### 14.2 Phase 9 — Round-end / Day-end / Lose overlays
 Currently when a round ends the game shows a black overlay with "Round Complete" and a "Continue" button — placeholder from Phase 4. Need:
 - **Round complete overlay:** which customers were defeated, composure remaining, "Continue to [next round]" button
 - **Day complete overlay:** "Day 1 Complete" with full summary, "Return to Selector" button (or "Play Again")
 - **Lose overlay:** "You Collapsed" message, "Try Again" (restart current round) and "End Game" buttons
 - **Boss-defeat flourish** on Night round when Grimdrek goes down (light effect, not over-engineered)
 
-### 14.2 Phase 9 — Trait stub implementation
+### 14.3 Phase 10 — Trait stub implementation
 - **Loud (Bram):** while Bram is in the queue (and not active), reduce the player's "focus" by 1. **NOTE:** "focus" is not yet a defined mechanic in this codebase — needs design clarification before coding. Possible interpretations: -1 to all dice in hand while loud is waiting, or a separate visible "focus" stat. ASK the user before implementing.
 - **Hexer (Hexa Mott, Carmilla):** each turn the customer waits, one random die in the player's current hand rerolls to its lowest face. Mechanic is well-defined; needs to fire during a turn-end phase, probably between phase 5 (patience ticks) and phase 6 (expirations).
 
-### 14.3 Phase 10 — Day 2 + Day 3 (procedural rounds)
+### 14.4 Phase 11 — Day 2 + Day 3 (procedural rounds)
 The data file has Day 2 and Day 3 templates designed (random pulls + hybrid). Wiring them in requires:
 - A round-builder function that takes `min/max difficulty + must_include_tag + required_trait + exclude_ids` and returns a customer list
 - Day-transition flow (Day 1 complete → Day 2 starts)

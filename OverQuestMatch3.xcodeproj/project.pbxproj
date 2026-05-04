@@ -115,6 +115,7 @@
 		7F79087A2FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */; };
 		7F79087E2FA8746800412002 /* PotionShopLayoutEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */; };
 		7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */; };
+		7F7908822FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -250,6 +251,7 @@
 		7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_EDITOR_SESSION_MAY4_2026.md; sourceTree = "<group>"; };
 		7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutEditorView.swift; sourceTree = "<group>"; };
 		7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md; sourceTree = "<group>"; };
+		7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_INTEGRATION_HANDOFF_MAY4_2026.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -537,6 +539,7 @@
 				7F2ADE6F2F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md */,
 				7F2ADE752F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md */,
 				7F2ADE812F8892EA0078EF4E /* LAYOUT_OPTIMIZATION_SESSION_SUMMARY.md */,
+				7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -670,6 +673,7 @@
 				7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */,
 				7F2ADE6C2F83110F0078EF4E /* SHOP_IMAGE_ASSETS_REFERENCE.md in Resources */,
 				7F2ADE762F833AD50078EF4E /* DEBUG_MENU_SUMMARY.md in Resources */,
+				7F7908822FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md in Resources */,
 				7F0094DD2F6B719400E10AEB /* recreate_gatcha.md in Resources */,
 				7F00952B2F6F42A100E10AEB /* SESSION_14_ANIMATION_PRIORITY_TRANSCRIPT.md in Resources */,
 				7F2ADE702F8314B40078EF4E /* SHOP_UI_REDESIGN_SUMMARY.md in Resources */,
