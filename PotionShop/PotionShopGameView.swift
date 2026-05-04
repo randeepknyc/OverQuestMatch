@@ -29,12 +29,12 @@ struct PotionShopGameView: View {
     var body: some View {
         GeometryReader { geo in
             let totalH = geo.size.height
-            let headerH      = max(54,  totalH * 0.07)
-            let sceneH       = max(180, totalH * 0.32)
-            let profileRowH  = max(86,  totalH * 0.11)
-            let cauldronH    = max(220, totalH * 0.28)
-            let previewBarH  = max(28,  totalH * 0.035)
-            let trayH        = max(78,  totalH * 0.10)
+            let headerH      = max(70,  totalH * 0.070)   // 7%  - Header
+            let sceneH       = max(160, totalH * 0.320)   // 32% - Scene (keep it prominent)
+            let profileRowH  = max(74,  totalH * 0.110)   // 11% - Profile row
+            let cauldronH    = max(220, totalH * 0.280)   // 28% - Cauldron (was 37% - TOO BIG)
+            let previewBarH  = max(28,  totalH * 0.035)   // 3.5% - Preview bar
+            let trayH        = max(78,  totalH * 0.100)   // 10% - Tray (was 24% - WAY TOO BIG)
 
             ZStack {
                 // Background image (or placeholder parchment color)
@@ -59,14 +59,33 @@ struct PotionShopGameView: View {
                     PotionShopProfileRowView(gs: gs)
                         .frame(height: profileRowH)
 
-                    PotionShopCauldronView(gs: gs, diceFlight: diceFlight)
+                    PotionShopCauldronView(
+                        gs: gs,
+                        diceFlight: diceFlight,
+                        cauldronScale: 1.29,
+                        cauldronXOffset: 44,
+                        cauldronYOffset: 58,
+                        brewXOffset: -50,
+                        brewYPercent: 0.30,
+                        showBrewButton: false,
+                        brewZoneX: 0.80,
+                        brewZoneY: 0.19,
+                        brewZoneWidth: 90,
+                        brewZoneHeight: 123,
+                        showBrewZone: true
+                    )
                         .frame(height: cauldronH)
 
                     PotionShopBrewPreviewBar(gs: gs)
                         .frame(height: previewBarH)
 
-                    PotionShopDiceTrayView(gs: gs, diceFlight: diceFlight)
+                    PotionShopDiceTrayView(
+                        gs: gs,
+                        diceFlight: diceFlight,
+                        dieScale: 1.31
+                    )
                         .frame(height: trayH)
+                        .offset(y: -25)
 
                     Spacer(minLength: 0)
                 }

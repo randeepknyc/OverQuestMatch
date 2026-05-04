@@ -84,14 +84,20 @@ private struct CauldronGeometry {
     let nodeScale: CGFloat
     let totalW: CGFloat
 
-    static func compute(in size: CGSize) -> CauldronGeometry {
+    static func compute(
+        in size: CGSize,
+        scale: Double = 1.0,
+        xOffset: Double = 0,
+        yOffset: Double = 0,
+        nodeScaleMultiplier: Double = 1.0
+    ) -> CauldronGeometry {
         let totalW = size.width
         let totalH = size.height
 
         let cauldronColW = totalW - 90
 
-        let maxBowlH = totalH * 0.92
-        let maxBowlW = cauldronColW * 0.92
+        let maxBowlH = totalH * 0.92 * scale
+        let maxBowlW = cauldronColW * 0.92 * scale
         let bowlW: CGFloat
         let bowlH: CGFloat
         if maxBowlW / maxBowlH > PotionShopCauldronLayout.bowlAspect {
@@ -102,8 +108,8 @@ private struct CauldronGeometry {
             bowlH = bowlW / PotionShopCauldronLayout.bowlAspect
         }
 
-        let bowlCenterX = cauldronColW / 2
-        let bowlOriginY = (totalH - bowlH) / 2
+        let bowlCenterX = cauldronColW / 2 + xOffset
+        let bowlOriginY = (totalH - bowlH) / 2 + yOffset
 
         let liquidH = bowlH * PotionShopCauldronLayout.liquidHeight
         let liquidW = bowlW * 0.94
@@ -115,7 +121,7 @@ private struct CauldronGeometry {
         let nodeScale = min(
             nodeAreaW / PotionShopCauldronLayout.boardWidth,
             nodeAreaH / PotionShopCauldronLayout.boardHeight
-        )
+        ) * scale * nodeScaleMultiplier  // Apply independent node scale
         let scaledBoardW = PotionShopCauldronLayout.boardWidth * nodeScale
         let scaledBoardH = PotionShopCauldronLayout.boardHeight * nodeScale
         let nodeOriginX = bowlCenterX - scaledBoardW / 2
@@ -141,21 +147,41 @@ private struct CauldronGeometry {
 struct PotionShopCauldronView: View {
     @Bindable var gs: PotionShopGameState
     let diceFlight: Namespace.ID
+    
+    // LAYOUT EDITOR PARAMETERS (with defaults so existing code doesn't break)
+    var cauldronScale: Double = 1.0       // Scale multiplier for bowl/nodes
+    var cauldronXOffset: Double = 0       // X offset for cauldron position (pts)
+    var cauldronYOffset: Double = 0       // Y offset for cauldron position (pts)
+    var nodeScale: Double = 1.0           // NEW: Independent node scale multiplier
+    var brewXOffset: Double = -50         // BREW button X from right edge
+    var brewYPercent: Double = 0.30       // BREW button Y as % of cauldron height
+    var showBrewButton: Bool = true       // Toggle to hide BREW button
+    var brewZoneX: Double = 0.85          // Brew tap zone X (% of width, from left)
+    var brewZoneY: Double = 0.30          // Brew tap zone Y (% of height, from top)
+    var brewZoneWidth: Double = 100       // Brew tap zone width (pts)
+    var brewZoneHeight: Double = 100      // Brew tap zone height (pts)
+    var showBrewZone: Bool = false        // Show visual indicator of brew zone
 
     var body: some View {
         GeometryReader { geo in
-            let g = CauldronGeometry.compute(in: geo.size)
+            let g = CauldronGeometry.compute(
+                in: geo.size,
+                scale: cauldronScale,
+                xOffset: cauldronXOffset,
+                yOffset: cauldronYOffset,
+                nodeScaleMultiplier: nodeScale
+            )
 
             ZStack {
-                // CAULDRON BACK LAYER (or placeholder)
-                if let backImage = PotionShopImageLoader.loadImage(named: "cauldron_back") {
-                    Image(uiImage: backImage)
+                // SINGLE CAULDRON IMAGE (behind nodes)
+                if let cauldronImage = PotionShopImageLoader.loadImage(named: "cauldron") {
+                    Image(uiImage: cauldronImage)
                         .resizable()
                         .scaledToFit()
                         .frame(width: g.bowlW, height: g.bowlH)
                         .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
                 } else {
-                    // Placeholder parametric bowl back
+                    // Placeholder: Simple bowl shape when no art
                     PotionShopBowlShape()
                         .fill(
                             LinearGradient(
@@ -174,51 +200,6 @@ struct PotionShopCauldronView: View {
                         .frame(width: g.bowlW, height: g.bowlH)
                         .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
                         .shadow(color: .black.opacity(0.20), radius: 6, x: 0, y: 4)
-                }
-                
-                // CAULDRON RIM (placeholder - kept for depth)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.62, green: 0.42, blue: 0.20),
-                                Color(red: 0.45, green: 0.28, blue: 0.13)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: g.bowlW, height: g.bowlH * PotionShopCauldronLayout.rimHeight)
-                    .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight / 2)
-
-                // CAULDRON LIQUID LAYER (or placeholder)
-                if let liquidImage = PotionShopImageLoader.loadImage(named: "cauldron_liquid") {
-                    Image(uiImage: liquidImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: g.liquidW, height: g.liquidH)
-                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight + g.liquidH / 2)
-                } else {
-                    // Placeholder liquid ellipse
-                    Ellipse()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color(red: 0.32, green: 0.55, blue: 0.32),
-                                    Color(red: 0.18, green: 0.42, blue: 0.22),
-                                    Color(red: 0.08, green: 0.28, blue: 0.16)
-                                ],
-                                center: .center,
-                                startRadius: 8,
-                                endRadius: 140
-                            )
-                        )
-                        .overlay(
-                            Ellipse()
-                                .stroke(Color(red: 0.04, green: 0.18, blue: 0.10), lineWidth: 1.2)
-                        )
-                        .frame(width: g.liquidW, height: g.liquidH)
-                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH * PotionShopCauldronLayout.rimHeight + g.liquidH / 2)
                 }
 
                 // Edge lines connecting nodes
@@ -251,21 +232,58 @@ struct PotionShopCauldronView: View {
                         )
                 }
 
-                // CAULDRON FRONT LAYER (optional overlay for rim depth)
-                if let frontImage = PotionShopImageLoader.loadImage(named: "cauldron_front") {
-                    Image(uiImage: frontImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: g.bowlW, height: g.bowlH)
-                        .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
-                        .allowsHitTesting(false)
+                // BREW BUTTON (conditionally shown)
+                if showBrewButton {
+                    PotionShopBrewSignView(gs: gs)
+                        .position(
+                            x: g.totalW + brewXOffset,
+                            y: g.bowlOriginY + g.bowlH * brewYPercent
+                        )
                 }
-
-                PotionShopBrewSignView(gs: gs)
-                    .position(
-                        x: g.totalW - 50,
-                        y: g.bowlOriginY + g.bowlH * 0.30
-                    )
+                
+                // BREW TAP ZONE (custom tappable area - shown only in editor)
+                if !showBrewButton {
+                    let zoneX = geo.size.width * brewZoneX
+                    let zoneY = geo.size.height * brewZoneY
+                    
+                    Button {
+                        Task { @MainActor in
+                            await gs.doBrew()
+                        }
+                    } label: {
+                        ZStack {
+                            if showBrewZone {
+                                // Visual indicator (editor only) - FIXED RENDERING
+                                ZStack {
+                                    // Background fill
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.yellow.opacity(0.3))
+                                    
+                                    // Dashed border
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.yellow, style: StrokeStyle(lineWidth: 4, dash: [10, 5]))
+                                    
+                                    // Label
+                                    VStack(spacing: 2) {
+                                        Text("🥄 BREW")
+                                            .font(.system(size: 14, weight: .heavy))
+                                            .foregroundColor(.yellow)
+                                        Text("TAP ZONE")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.yellow)
+                                    }
+                                }
+                            } else {
+                                // Invisible tap zone (production)
+                                Color.clear
+                                    .contentShape(Rectangle())
+                            }
+                        }
+                        .frame(width: brewZoneWidth, height: brewZoneHeight)
+                    }
+                    .position(x: zoneX, y: zoneY)
+                    .disabled(gs.placements.isEmpty || gs.isAnimating || gs.phase != .playing)
+                }
             }
         }
     }
@@ -507,6 +525,7 @@ struct PotionShopBrewPreviewBar: View {
 struct PotionShopDiceTrayView: View {
     @Bindable var gs: PotionShopGameState
     let diceFlight: Namespace.ID
+    var dieScale: Double = 1.0  // NEW: Scale multiplier for dice in tray
 
     var body: some View {
         HStack(spacing: 6) {
@@ -515,7 +534,8 @@ struct PotionShopDiceTrayView: View {
                     gs: gs,
                     die: die,
                     index: idx,
-                    diceFlight: diceFlight
+                    diceFlight: diceFlight,
+                    dieScale: dieScale  // Pass scale to die button
                 )
             }
             ForEach(gs.hand.count..<5, id: \.self) { _ in
@@ -525,8 +545,8 @@ struct PotionShopDiceTrayView: View {
                         style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
                     )
                     .frame(
-                        width: PotionShopCauldronLayout.dieSize,
-                        height: PotionShopCauldronLayout.dieSize
+                        width: PotionShopCauldronLayout.dieSize * dieScale,
+                        height: PotionShopCauldronLayout.dieSize * dieScale
                     )
             }
         }
@@ -583,6 +603,7 @@ struct PotionShopDieButtonView: View {
     let die: PotionShopDie
     let index: Int
     let diceFlight: Namespace.ID
+    var dieScale: Double = 1.0  // NEW: Scale multiplier
 
     private var isSelected: Bool { gs.selectedHandIndex == index }
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
@@ -591,16 +612,16 @@ struct PotionShopDieButtonView: View {
         Button {
             gs.selectHand(index)
         } label: {
+            let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
+            let scaledFontSize = 18 * dieScale
+            
             // Try to load die face image, fallback to colored square
             if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
                 ZStack {
                     Image(uiImage: dieImage)
                         .resizable()
                         .scaledToFit()
-                        .frame(
-                            width: PotionShopCauldronLayout.dieSize,
-                            height: PotionShopCauldronLayout.dieSize
-                        )
+                        .frame(width: scaledSize, height: scaledSize)
                         .clipShape(RoundedRectangle(cornerRadius: 5))
                         .overlay(
                             RoundedRectangle(cornerRadius: 5)
@@ -609,7 +630,7 @@ struct PotionShopDieButtonView: View {
                     
                     // Die value overlaid on center
                     Text("\(die.value)")
-                        .font(.system(size: 18, weight: .heavy, design: .serif))
+                        .font(.system(size: scaledFontSize, weight: .heavy, design: .serif))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
                 }
@@ -622,15 +643,12 @@ struct PotionShopDieButtonView: View {
                 // Placeholder colored square with text
                 VStack(spacing: 1) {
                     Text(die.type.abbr)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 9 * dieScale, weight: .semibold))
                     Text("\(die.value)")
-                        .font(.system(size: 14, weight: .heavy, design: .serif))
+                        .font(.system(size: 14 * dieScale, weight: .heavy, design: .serif))
                 }
                 .foregroundColor(.white)
-                .frame(
-                    width: PotionShopCauldronLayout.dieSize,
-                    height: PotionShopCauldronLayout.dieSize
-                )
+                .frame(width: scaledSize, height: scaledSize)
                 .background(die.type.color)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
                 .overlay(

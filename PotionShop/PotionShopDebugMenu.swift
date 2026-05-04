@@ -26,6 +26,8 @@ struct PotionShopDebugMenu: View {
     /// Closure that exits the game (back to GameSelector). Provided
     /// by the parent view since dismiss happens at the parent level.
     let onEndGame: () -> Void
+    
+    @State private var showLayoutEditor = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +41,24 @@ struct PotionShopDebugMenu: View {
                     debugRow("Shield", "\(gs.shield)")
                     debugRow("Potions Brewed", "\(gs.potionsBrewed)")
                     debugRow("Customers", "\(gs.queue.count) in queue / \(gs.customers.count) total")
+                }
+                
+                // ─── Layout Editor ────────────────────────────────
+                Section("Layout Tools") {
+                    Button {
+                        showLayoutEditor = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundColor(.cyan)
+                            Text("Layout Editor")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
 
                 // ─── Round shortcuts ──────────────────────────────
@@ -156,6 +176,9 @@ struct PotionShopDebugMenu: View {
                         isPresented = false
                     }
                 }
+            }
+            .sheet(isPresented: $showLayoutEditor) {
+                PotionShopLayoutEditorView(gs: gs, isPresented: $showLayoutEditor)
             }
         }
     }
