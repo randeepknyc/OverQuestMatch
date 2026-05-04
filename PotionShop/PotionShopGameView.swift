@@ -2,26 +2,24 @@
 //  PotionShopGameView.swift
 //  OverQuestMatch3
 //
-//  Ednar's Potion Cauldron — Main game view (Phase 4 — playable!)
+//  Ednar's Potion Cauldron — Main game view
 //  Place in: PotionShop/ folder
 //
-//  Composes the header, customer scene, profile row, and cauldron
-//  into the actual gameplay screen. Each section is its own file:
+//  PHASE 6: Adds a @Namespace ("diceFlight") that's passed to both
+//  the cauldron view and the dice tray view. Both views apply
+//  matchedGeometryEffect to dice using their stable string id, so
+//  when a die is placed (moves from tray to cauldron) or unplaced
+//  (moves from cauldron back to tray), SwiftUI animates the position
+//  change automatically.
 //
-//  - PotionShopHeaderView         (composure bar, shield, day/round)
-//  - PotionShopCustomerSceneView  (Ednar + customer line)
-//  - PotionShopProfileRowView     (profile button row, or inspect strip)
-//  - PotionShopCauldronView       (12 nodes + brew button + dice tray)
-//
-//  PHASE 4 DOES NOT INCLUDE:
-//  - Animations during brew (Phase 7)
-//  - Round-end / day-end / lose overlays (Phase 8)
-//  - Trait visual effects (Phase 9)
-//  - Debug menu (Phase 10)
-//
-//  When a round ends in Phase 4, the game shows a placeholder overlay.
-//  You can also back out to the game selector via the navigation
-//  chevron in the top-left.
+//  Composes:
+//    PotionShopHeaderView          (composure, shield, day/round, gear icon)
+//    PotionShopCustomerSceneView   (Ednar + customer line)
+//    PotionShopProfileRowView      (profile buttons or inspect strip)
+//    PotionShopCauldronView        (bowl + nodes + BREW)
+//    PotionShopBrewPreviewBar      (placement count + damage preview)
+//    PotionShopDiceTrayView        (5 dice in wooden frame)
+//    PotionShopDebugMenu           (sheet, accessed via gear icon)
 //
 
 import SwiftUI
@@ -29,50 +27,61 @@ import SwiftUI
 struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var gs = PotionShopGameState()
+    @State private var showDebugMenu = false
+
+    /// Shared namespace so dice can animate between the tray and the
+    /// cauldron via matchedGeometryEffect.
+    @Namespace private var diceFlight
 
     var body: some View {
-        ZStack {
-            // Parchment background
-            PotionShopTheme.bg.ignoresSafeArea()
+        GeometryReader { geo in
+            let totalH = geo.size.height
+            let headerH      = max(54,  totalH * 0.07)
+            let sceneH       = max(180, totalH * 0.32)
+            let profileRowH  = max(86,  totalH * 0.11)
+            let cauldronH    = max(220, totalH * 0.28)
+            let previewBarH  = max(28,  totalH * 0.035)
+            let trayH        = max(78,  totalH * 0.10)
 
-            VStack(spacing: 0) {
-                // Header
-                PotionShopHeaderView(gs: gs)
+            ZStack {
+                PotionShopTheme.bg.ignoresSafeArea()
 
-                // Customer scene
-                PotionShopCustomerSceneView(gs: gs)
+                VStack(spacing: 0) {
+                    PotionShopHeaderView(gs: gs, showDebugMenu: $showDebugMenu)
+                        .frame(height: headerH)
 
-                // Profile row (or inspect strip if a customer is being inspected)
-                PotionShopProfileRowView(gs: gs)
+                    PotionShopCustomerSceneView(gs: gs)
+                        .frame(height: sceneH)
+                        .frame(maxWidth: .infinity)
 
-                // Cauldron + brew preview + dice tray
-                PotionShopCauldronView(gs: gs)
+                    PotionShopProfileRowView(gs: gs)
+                        .frame(height: profileRowH)
 
-                Spacer(minLength: 0)
+                    PotionShopCauldronView(gs: gs, diceFlight: diceFlight)
+                        .frame(height: cauldronH)
+
+                    PotionShopBrewPreviewBar(gs: gs)
+                        .frame(height: previewBarH)
+
+                    PotionShopDiceTrayView(gs: gs, diceFlight: diceFlight)
+                        .frame(height: trayH)
+
+                    Spacer(minLength: 0)
+                }
+
+                phaseOverlay
             }
-
-            // Phase-end placeholder overlays (Phase 8 will replace with real ones)
-            phaseOverlay
         }
-        // Top-left back button (matches what other games do until Phase 10
-        // adds a proper debug menu with End Game)
-        .overlay(alignment: .topLeading) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(PotionShopTheme.ink.opacity(0.7))
-                    .padding(8)
-                    .background(Color.white.opacity(0.6))
-                    .clipShape(Circle())
-            }
-            .padding(.top, 4)
-            .padding(.leading, 8)
+        .sheet(isPresented: $showDebugMenu) {
+            PotionShopDebugMenu(
+                gs: gs,
+                isPresented: $showDebugMenu,
+                onEndGame: { dismiss() }
+            )
         }
     }
 
-    // MARK: - Phase-end placeholder
+    // MARK: - Phase-end placeholder overlays (Phase 8 will replace)
 
     @ViewBuilder
     private var phaseOverlay: some View {

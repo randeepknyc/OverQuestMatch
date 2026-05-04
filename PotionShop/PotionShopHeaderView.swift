@@ -5,21 +5,39 @@
 //  Ednar's Potion Cauldron — Header bar
 //  Place in: PotionShop/ folder
 //
-//  Top of the screen: shows player composure (with shield overlay),
-//  potions brewed counter, and current day / round-of-day.
+//  PHASE 5D: Added a debug-menu gear icon on the LEFT side of the
+//  header (replacing the floating back chevron that overlapped the
+//  composure bar). Tapping the gear opens the PotionShopDebugMenu
+//  sheet, which has an "End Game" action to dismiss back to the
+//  game selector.
+//
+//  Header sections (left to right):
+//    [⚙ gear]  [🧪 ×N]  [composure bar]  [Day / Round]
 //
 //  NAMING NOTE: Every public struct in this file uses the PotionShop
-//  prefix to avoid collisions with the existing CauldronGame and
-//  ShopOfOddities folders. Don't rename them.
+//  prefix. Don't rename.
 //
 
 import SwiftUI
 
 struct PotionShopHeaderView: View {
     @Bindable var gs: PotionShopGameState
+    @Binding var showDebugMenu: Bool
 
     var body: some View {
         HStack(spacing: 10) {
+            // Debug gear icon (taps open the debug menu sheet)
+            Button {
+                showDebugMenu = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(PotionShopTheme.muted)
+                    .padding(8)
+                    .background(Color.white.opacity(0.5))
+                    .clipShape(Circle())
+            }
+
             // Potions brewed counter
             HStack(spacing: 4) {
                 Text("🧪").font(.system(size: 18))
@@ -46,7 +64,7 @@ struct PotionShopHeaderView: View {
                     .foregroundColor(PotionShopTheme.ink)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(
             Rectangle()
@@ -54,7 +72,6 @@ struct PotionShopHeaderView: View {
                 .ignoresSafeArea(edges: .top)
         )
         .overlay(
-            // Bottom border line
             Rectangle()
                 .fill(PotionShopTheme.accent.opacity(0.25))
                 .frame(height: 1),
@@ -90,17 +107,14 @@ struct PotionShopComposureBarView: View {
         VStack(alignment: .leading, spacing: 3) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    // Track
                     RoundedRectangle(cornerRadius: 7)
                         .fill(Color(red: 0.85, green: 0.81, blue: 0.72))
 
-                    // Composure fill
                     RoundedRectangle(cornerRadius: 7)
                         .fill(barColor)
                         .frame(width: geo.size.width * compoPct)
                         .animation(.easeInOut(duration: 0.35), value: composure)
 
-                    // Shield overlay (sits on the right portion of composure)
                     if shield > 0 {
                         let shieldWidth = min(geo.size.width * shieldPct, geo.size.width * compoPct)
                         RoundedRectangle(cornerRadius: 7)

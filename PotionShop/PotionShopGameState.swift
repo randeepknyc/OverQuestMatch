@@ -644,4 +644,29 @@ class PotionShopGameState {
         case .lost:      return "lost"
         }
     }
+
+    // MARK: - Debug helpers (called from PotionShopDebugMenu)
+
+    /// Defeat every customer in the queue and trigger round-end. Used
+    /// by the debug menu to test round-win flow.
+    func debugWinRound() {
+        for id in queue {
+            guard let idx = customers.firstIndex(where: { $0.id == id }) else { continue }
+            customers[idx].hp = 0
+            customers[idx].status = .defeated
+            potionsBrewed += 1
+        }
+        queue.removeAll()
+        discardAllDice()
+        drawFromBag()
+        inspectedId = nil
+        phase = .roundWon
+    }
+
+    /// Drop composure to 0 and trigger lose phase. Used by debug menu.
+    func debugLoseGame() {
+        composure = 0
+        shield = 0
+        phase = .lost
+    }
 }
