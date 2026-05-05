@@ -5,6 +5,8 @@
 //  Layout configuration shared between game view and layout editor overlay.
 //  This allows live preview of layout changes.
 //
+//  ✅ UPDATED: May 5, 2026 - Updated layout values (all 12 nodes repositioned)
+//
 
 import SwiftUI
 
@@ -22,29 +24,42 @@ class PotionShopLayoutConfig {
     
     // Ednar Art
     var ednarWidth: Double = 1.59
-    var ednarHeight: Double = 2.00
-    var ednarX: Double = 14
-    var ednarY: Double = -17
+    var ednarHeight: Double = 2.0
+    var ednarX: Double = 14.0
+    var ednarY: Double = -17.0
     
     // Cauldron Art
-    var cauldronWidth: Double = 1.45
-    var cauldronHeight: Double = 2.00
-    var cauldronX: Double = 7
-    var cauldronY: Double = -40
+    var cauldronWidth: Double = 1.3613475412130356
+    var cauldronHeight: Double = 1.9335107803344727
+    var cauldronX: Double = -2.219867706298828
+    var cauldronY: Double = -34.326231479644775
     
     // Cauldron Bowl
-    var cauldronBowlScale: Double = 1.29
-    var cauldronBowlX: Double = 44
-    var cauldronBowlY: Double = 58
+    var cauldronBowlScale: Double = 1.3121631294488907
+    var cauldronBowlX: Double = 44.709229469299316
+    var cauldronBowlY: Double = 58.0
     
     // Nodes
-    var nodeScale: Double = 1.00
-    var nodeXOffset: Double = 0
-    var nodeYOffset: Double = 0
-    var nodeSpacingMultiplier: Double = 1.00  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
+    var nodeScale: Double = 1.8311170041561127
+    var nodeXOffset: Double = 70.21276950836182
+    var nodeYOffset: Double = 74.82268810272217
+    var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
-    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)  // Individual node tweaks
+    var perNodeOffsets: [CGPoint] = [
+        CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
+        CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
+        CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
+        CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+        CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
+        CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
+        CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
+        CGPoint(x: -53.014183044433594, y: 35.638296604156494),  // Node 7
+        CGPoint(x: -91.13475382328033, y: 28.19148302078247),    // Node 8
+        CGPoint(x: -38.1205677986145, y: 60.10638475418091),     // Node 9
+        CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
+        CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
+    ]
     
     // Helper method to reset all per-node offsets
     func resetAllNodeOffsets() {
@@ -52,15 +67,15 @@ class PotionShopLayoutConfig {
     }
     
     // Dice & Tray
-    var dieScale: Double = 1.31
-    var trayOffsetX: Double = 0
-    var trayOffsetY: Double = -25
+    var dieScale: Double = 1.405301421880722
+    var trayOffsetX: Double = 4.609942436218262
+    var trayOffsetY: Double = 6.2056779861450195
     
     // Brew Zone
-    var brewZoneX: Double = 0.83
-    var brewZoneY: Double = 0.19
-    var brewZoneWidth: Double = 112
-    var brewZoneHeight: Double = 123
+    var brewZoneX: Double = 0.8424113392829895
+    var brewZoneY: Double = 0.15010638535022736
+    var brewZoneWidth: Double = 113.10815364122391
+    var brewZoneHeight: Double = 95.51772773265839
     var showBrewZone: Bool = false
     
     private init() {}

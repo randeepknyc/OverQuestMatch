@@ -61,6 +61,22 @@ struct PotionShopDebugMenu: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    
+                    Button {
+                        copyLayoutValuesToClipboard()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard")
+                                .foregroundColor(.cyan)
+                            Text("📋 Copy Layout Values")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "checkmark.circle")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .opacity(0.7)
+                        }
+                    }
                 }
 
                 // ─── Round shortcuts ──────────────────────────────
@@ -215,6 +231,112 @@ struct PotionShopDebugMenu: View {
         case .dayWon:   return "dayWon"
         case .lost:     return "lost"
         }
+    }
+    
+    /// Copies all current layout values from PotionShopLayoutConfig.shared to clipboard
+    /// in a format that's easy to paste back to Claude for permanent code updates.
+    private func copyLayoutValuesToClipboard() {
+        let cfg = PotionShopLayoutConfig.shared
+        
+        var text = """
+        ═══════════════════════════════════════════════════════════════
+        EDNAR'S POTION CAULDRON - LAYOUT VALUES
+        ═══════════════════════════════════════════════════════════════
+        Generated: \(Date().formatted(.dateTime))
+        
+        Copy the values below and paste them back to Claude to update the code permanently.
+        
+        ───────────────────────────────────────────────────────────────
+        📏 SECTION HEIGHTS (percentages of total screen height)
+        ───────────────────────────────────────────────────────────────
+        headerPercent: \(cfg.headerPercent)
+        scenePercent: \(cfg.scenePercent)
+        profilePercent: \(cfg.profilePercent)
+        cauldronPercent: \(cfg.cauldronPercent)
+        previewPercent: \(cfg.previewPercent)
+        trayPercent: \(cfg.trayPercent)
+        
+        Total: \(cfg.headerPercent + cfg.scenePercent + cfg.profilePercent + cfg.cauldronPercent + cfg.previewPercent + cfg.trayPercent)%
+        
+        ───────────────────────────────────────────────────────────────
+        🧙 EDNAR ART (freeform scaling + positioning)
+        ───────────────────────────────────────────────────────────────
+        ednarWidth: \(cfg.ednarWidth)
+        ednarHeight: \(cfg.ednarHeight)
+        ednarX: \(cfg.ednarX)
+        ednarY: \(cfg.ednarY)
+        
+        ───────────────────────────────────────────────────────────────
+        🍲 CAULDRON ART (freeform scaling + positioning)
+        ───────────────────────────────────────────────────────────────
+        cauldronWidth: \(cfg.cauldronWidth)
+        cauldronHeight: \(cfg.cauldronHeight)
+        cauldronX: \(cfg.cauldronX)
+        cauldronY: \(cfg.cauldronY)
+        
+        ───────────────────────────────────────────────────────────────
+        🥘 CAULDRON BOWL (parametric shape positioning)
+        ───────────────────────────────────────────────────────────────
+        cauldronBowlScale: \(cfg.cauldronBowlScale)
+        cauldronBowlX: \(cfg.cauldronBowlX)
+        cauldronBowlY: \(cfg.cauldronBowlY)
+        
+        ───────────────────────────────────────────────────────────────
+        🔵 NODES (grid positioning)
+        ───────────────────────────────────────────────────────────────
+        nodeScale: \(cfg.nodeScale)
+        nodeXOffset: \(cfg.nodeXOffset)
+        nodeYOffset: \(cfg.nodeYOffset)
+        nodeSpacingMultiplier: \(cfg.nodeSpacingMultiplier)
+        
+        ───────────────────────────────────────────────────────────────
+        🔧 PER-NODE FINE-TUNING (individual offsets for all 12 nodes)
+        ───────────────────────────────────────────────────────────────
+        """
+        
+        // Add per-node offsets
+        for (idx, offset) in cfg.perNodeOffsets.enumerated() {
+            text += "\nNode \(idx): x=\(offset.x), y=\(offset.y)"
+        }
+        
+        text += """
+        
+        
+        ───────────────────────────────────────────────────────────────
+        🎲 DICE & TRAY
+        ───────────────────────────────────────────────────────────────
+        dieScale: \(cfg.dieScale)
+        trayOffsetX: \(cfg.trayOffsetX)
+        trayOffsetY: \(cfg.trayOffsetY)
+        
+        ───────────────────────────────────────────────────────────────
+        🥄 BREW TAP ZONE (invisible tap area)
+        ───────────────────────────────────────────────────────────────
+        brewZoneX: \(cfg.brewZoneX)
+        brewZoneY: \(cfg.brewZoneY)
+        brewZoneWidth: \(cfg.brewZoneWidth)
+        brewZoneHeight: \(cfg.brewZoneHeight)
+        showBrewZone: \(cfg.showBrewZone)
+        
+        ═══════════════════════════════════════════════════════════════
+        END OF LAYOUT VALUES
+        ═══════════════════════════════════════════════════════════════
+        
+        ✅ COPIED TO CLIPBOARD
+        
+        Next Steps:
+        1. Paste these values back to Claude in chat
+        2. Claude will update PotionShopLayoutConfig.swift with these as the new defaults
+        3. Close the app and reopen to see permanent changes
+        
+        """
+        
+        // Copy to clipboard
+        #if os(iOS)
+        UIPasteboard.general.string = text
+        #endif
+        
+        print("📋 Layout values copied to clipboard!")
     }
 }
 
