@@ -84,6 +84,7 @@ private struct CauldronGeometry {
     let nodeOriginX: CGFloat
     let nodeOriginY: CGFloat
     let nodeScale: CGFloat
+    let nodeSpacingMultiplier: CGFloat  // ⚠️ EXPERIMENTAL: Multiplies node coordinates (visual only)
     let totalW: CGFloat
 
     static func compute(
@@ -93,7 +94,8 @@ private struct CauldronGeometry {
         yOffset: Double = 0,
         nodeScaleMultiplier: Double = 1.0,
         nodeXOffset: Double = 0,
-        nodeYOffset: Double = 0
+        nodeYOffset: Double = 0,
+        nodeSpacingMultiplier: Double = 1.0
     ) -> CauldronGeometry {
         let totalW = size.width
         let totalH = size.height
@@ -141,6 +143,7 @@ private struct CauldronGeometry {
             nodeOriginX: nodeOriginX,
             nodeOriginY: nodeOriginY,
             nodeScale: nodeScale,
+            nodeSpacingMultiplier: nodeSpacingMultiplier,
             totalW: totalW
         )
     }
@@ -159,6 +162,7 @@ struct PotionShopCauldronView: View {
     var nodeScale: Double = 1.0           // Independent node scale multiplier
     var nodeXOffset: Double = 0           // Independent node X offset (pts)
     var nodeYOffset: Double = 0           // Independent node Y offset (pts)
+    var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Visual spacing multiplier (affects appearance only, NOT boost reach)
     var brewXOffset: Double = -50         // BREW button X from right edge
     var brewYPercent: Double = 0.30       // BREW button Y as % of cauldron height
     var showBrewButton: Bool = true       // Toggle to hide BREW button
@@ -182,7 +186,8 @@ struct PotionShopCauldronView: View {
                 yOffset: cauldronYOffset,
                 nodeScaleMultiplier: nodeScale,
                 nodeXOffset: nodeXOffset,
-                nodeYOffset: nodeYOffset
+                nodeYOffset: nodeYOffset,
+                nodeSpacingMultiplier: nodeSpacingMultiplier
             )
             
             // Calculate BASE bowl size (without cauldronScale applied)
@@ -194,7 +199,8 @@ struct PotionShopCauldronView: View {
                 yOffset: 0,
                 nodeScaleMultiplier: 1.0,
                 nodeXOffset: 0,
-                nodeYOffset: 0
+                nodeYOffset: 0,
+                nodeSpacingMultiplier: 1.0  // Base geometry doesn't need spacing
             )
 
             ZStack {
@@ -242,14 +248,14 @@ struct PotionShopCauldronView: View {
                         let nb = PotionShopBoard.nodes[b]
                         path.move(
                             to: CGPoint(
-                                x: g.nodeOriginX + CGFloat(na.x) * g.nodeScale,
-                                y: g.nodeOriginY + CGFloat(na.y) * g.nodeScale
+                                x: g.nodeOriginX + CGFloat(na.x) * g.nodeSpacingMultiplier,
+                                y: g.nodeOriginY + CGFloat(na.y) * g.nodeSpacingMultiplier
                             )
                         )
                         path.addLine(
                             to: CGPoint(
-                                x: g.nodeOriginX + CGFloat(nb.x) * g.nodeScale,
-                                y: g.nodeOriginY + CGFloat(nb.y) * g.nodeScale
+                                x: g.nodeOriginX + CGFloat(nb.x) * g.nodeSpacingMultiplier,
+                                y: g.nodeOriginY + CGFloat(nb.y) * g.nodeSpacingMultiplier
                             )
                         )
                     }
@@ -258,10 +264,15 @@ struct PotionShopCauldronView: View {
 
                 ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
                     let node = PotionShopBoard.nodes[idx]
-                    PotionShopNodeButtonView(gs: gs, nodeIndex: idx, diceFlight: diceFlight)
+                    PotionShopNodeButtonView(
+                        gs: gs,
+                        nodeIndex: idx,
+                        diceFlight: diceFlight,
+                        visualScale: nodeScale  // Pass visual scale separately
+                    )
                         .position(
-                            x: g.nodeOriginX + CGFloat(node.x) * g.nodeScale,
-                            y: g.nodeOriginY + CGFloat(node.y) * g.nodeScale
+                            x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier,
+                            y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier
                         )
                 }
 
@@ -328,6 +339,7 @@ struct PotionShopNodeButtonView: View {
     @Bindable var gs: PotionShopGameState
     let nodeIndex: Int
     let diceFlight: Namespace.ID
+    var visualScale: Double = 1.0  // Visual-only scale (doesn't affect position)
     
     @State private var globalFrame: CGRect = .zero
 
@@ -344,13 +356,13 @@ struct PotionShopNodeButtonView: View {
             Rectangle()
                 .fill(Color.clear)
                 .frame(
-                    width: PotionShopCauldronLayout.nodeHitArea,
-                    height: PotionShopCauldronLayout.nodeHitArea
+                    width: PotionShopCauldronLayout.nodeHitArea * visualScale,
+                    height: PotionShopCauldronLayout.nodeHitArea * visualScale
                 )
                 .contentShape(Rectangle())
 
             if let die = placedDie {
-                PotionShopPlacedDieView(die: die)
+                PotionShopPlacedDieView(die: die, visualScale: visualScale)
                     .matchedGeometryEffect(
                         id: die.id,
                         in: diceFlight,
@@ -379,8 +391,8 @@ struct PotionShopNodeButtonView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(visibleFill)
                     .frame(
-                        width: PotionShopCauldronLayout.nodeVisible,
-                        height: PotionShopCauldronLayout.nodeVisible
+                        width: PotionShopCauldronLayout.nodeVisible * visualScale,
+                        height: PotionShopCauldronLayout.nodeVisible * visualScale
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
@@ -443,6 +455,7 @@ struct PotionShopNodeButtonView: View {
 
 struct PotionShopPlacedDieView: View {
     let die: PotionShopDie
+    var visualScale: Double = 1.0  // Visual-only scale
 
     var body: some View {
         // Try to load die face image, fallback to colored square
@@ -452,14 +465,14 @@ struct PotionShopPlacedDieView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(
-                        width: PotionShopCauldronLayout.nodeVisible,
-                        height: PotionShopCauldronLayout.nodeVisible
+                        width: PotionShopCauldronLayout.nodeVisible * visualScale,
+                        height: PotionShopCauldronLayout.nodeVisible * visualScale
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                 
                 // Die value overlaid on center (center 30% kept blank on art)
                 Text("\(die.value)")
-                    .font(.system(size: 13, weight: .heavy, design: .serif))
+                    .font(.system(size: 13 * visualScale, weight: .heavy, design: .serif))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 1, x: 0, y: 1)
             }
@@ -468,8 +481,8 @@ struct PotionShopPlacedDieView: View {
             RoundedRectangle(cornerRadius: 4)
                 .fill(die.type.color)
                 .frame(
-                    width: PotionShopCauldronLayout.nodeVisible,
-                    height: PotionShopCauldronLayout.nodeVisible
+                    width: PotionShopCauldronLayout.nodeVisible * visualScale,
+                    height: PotionShopCauldronLayout.nodeVisible * visualScale
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
@@ -477,7 +490,7 @@ struct PotionShopPlacedDieView: View {
                 )
                 .overlay(
                     Text("\(die.value)")
-                        .font(.system(size: 13, weight: .heavy, design: .serif))
+                        .font(.system(size: 13 * visualScale, weight: .heavy, design: .serif))
                         .foregroundColor(.white)
                 )
         }

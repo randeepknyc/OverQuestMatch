@@ -82,6 +82,7 @@ struct PotionShopGameView: View {
                         nodeScale: layoutConfig.nodeScale,
                         nodeXOffset: layoutConfig.nodeXOffset,
                         nodeYOffset: layoutConfig.nodeYOffset,
+                        nodeSpacingMultiplier: layoutConfig.nodeSpacingMultiplier,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
@@ -411,6 +412,32 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Node Scale", value: $layoutConfig.nodeScale, range: 0.5...3.0, format: "%.2f×")
                 sliderRow("Grid X", value: $layoutConfig.nodeXOffset, range: -200...200, format: "%.0f")
                 sliderRow("Grid Y", value: $layoutConfig.nodeYOffset, range: -200...200, format: "%.0f")
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+                
+                // Spacing multiplier with warning
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("⚠️ Spacing")
+                            .font(.caption2.bold())
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Text(String(format: "%.2f×", layoutConfig.nodeSpacingMultiplier))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(layoutConfig.nodeSpacingMultiplier == 1.0 ? .cyan : .orange)
+                    }
+                    Slider(value: $layoutConfig.nodeSpacingMultiplier, in: 0.5...2.0)
+                        .tint(.orange)
+                    
+                    if layoutConfig.nodeSpacingMultiplier != 1.0 {
+                        Text("Experimental: Visual only, boost reach unchanged")
+                            .font(.system(size: 9))
+                            .foregroundColor(.orange.opacity(0.9))
+                            .italic()
+                    }
+                }
             }
         case .dice:
             VStack(alignment: .leading, spacing: 10) {

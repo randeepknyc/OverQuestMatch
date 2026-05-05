@@ -41,6 +41,7 @@ class PotionShopLayoutConfig {
     var nodeScale: Double = 1.00
     var nodeXOffset: Double = 0
     var nodeYOffset: Double = 0
+    var nodeSpacingMultiplier: Double = 1.00  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Dice & Tray
     var dieScale: Double = 1.31

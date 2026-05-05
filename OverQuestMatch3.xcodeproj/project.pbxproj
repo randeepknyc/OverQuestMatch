@@ -113,7 +113,6 @@
 		7F7908722FA8395E00412002 /* PotionShopBrewAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */; };
 		7F7908762FA8456200412002 /* CAULDRON_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */; };
 		7F79087A2FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */; };
-		7F79087E2FA8746800412002 /* PotionShopLayoutEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */; };
 		7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */; };
 		7F7908822FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */; };
 		7F7908842FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */; };
@@ -254,7 +253,6 @@
 		7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopBrewAnimator.swift; sourceTree = "<group>"; };
 		7F7908752FA8456200412002 /* CAULDRON_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CAULDRON_CONTEXT.md; sourceTree = "<group>"; };
 		7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_EDITOR_SESSION_MAY4_2026.md; sourceTree = "<group>"; };
-		7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutEditorView.swift; sourceTree = "<group>"; };
 		7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md; sourceTree = "<group>"; };
 		7F7908812FA916C400412002 /* ART_INTEGRATION_HANDOFF_MAY4_2026.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_INTEGRATION_HANDOFF_MAY4_2026.md; sourceTree = "<group>"; };
 		7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_SCALING_SESSION_MAY4_2026_EVENING.md; sourceTree = "<group>"; };
@@ -470,7 +468,6 @@
 				7F7908622FA727F800412002 /* PotionShopGameView.swift */,
 				7F7908632FA727F800412002 /* PotionShopModels.swift */,
 				7F7908792FA8705800412002 /* LAYOUT_EDITOR_SESSION_MAY4_2026.md */,
-				7F79087D2FA8746800412002 /* PotionShopLayoutEditorView.swift */,
 				7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */,
 				7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */,
 				7F7908872FA95F1600412002 /* PotionShopLayoutConfig.swift */,
@@ -786,7 +783,6 @@
 				7F86C3AD2F70A47900DC5759 /* BattleMechanicsConfig.swift in Sources */,
 				7F2ADE4D2F819CDD0078EF4E /* RepairResult.swift in Sources */,
 				7F0094A72F6926BE00E10AEB /* ChainInputHandler2.swift in Sources */,
-				7F79087E2FA8746800412002 /* PotionShopLayoutEditorView.swift in Sources */,
 				7FB075432F5D300100BD0591 /* Character.swift in Sources */,
 				7F2ADE5B2F81A09E0078EF4E /* DeckView.swift in Sources */,
 				7F79086C2FA7A05800412002 /* PotionShopCustomerSceneView.swift in Sources */,
