@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 4, 2026 (Evening - Final Layout Values Locked)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, BREW zone hidden. Art assets ready to integrate.  
+> **Last Updated:** May 5, 2026 (New Integrated Layout Editor)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Integrated layout editor with live preview overlay (May 5, 2026)** - section-focused UI, real-time updates, code generation built into debug menu. Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, BREW zone hidden. Art assets ready to integrate.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -748,8 +748,67 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 | Heal to Full    | composure → 30, shield → 0                                   |
 | Win Round       | Defeat all current customers instantly (test round-end overlay) |
 | Lose Game       | composure → 0 (test lose overlay)                            |
+| **Layout Editor** | **NEW (May 5, 2026)** - Live overlay editor for visual tuning |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
+
+### 12.1 Layout Editor (NEW - May 5, 2026)
+
+**Access:** Debug Menu → "Layout Editor"
+
+**Mode:** Floating semi-transparent overlay at bottom of screen (Option A implementation)
+
+**Features:**
+- **Live preview** - See changes instantly as you drag sliders
+- **Section-focused UI** - Only the active section's controls are visible at a time
+- **Collapsible/expandable** - Tap section headers to switch between sections
+- **Code generation** - Copies formatted Swift code to clipboard + shows in sheet
+- **Reset buttons** - Per-section reset to defaults
+
+**What You Can Control:**
+
+| Section | Controls | Range |
+|---------|----------|-------|
+| **📏 Section Heights** | Header, Scene, Profile, Cauldron, Preview, Tray percentages | 0-60% each |
+| **🧙 Ednar Art** | Uniform scale, width/height (independent), X/Y position | 0.5-3.0× scale, ±200pt position |
+| **🍲 Cauldron Art** | Same as Ednar (uniform scale, width, height, X, Y) | Same ranges |
+| **🥘 Cauldron Bowl** | Scale, X offset, Y offset (parametric bowl positioning) | 0.5-3.0× scale, ±200pt offset |
+| **🎲 Dice & Tray** | Die scale, Tray X/Y offsets | 0.5-3.0× scale, ±200pt offset |
+| **🥄 Brew Tap Zone** | X/Y position (fraction), width/height (pts), show debug toggle | 0-1 position, 50-300pt size |
+
+**How It Works:**
+1. Tap "Layout Editor" in debug menu
+2. Sheet opens with **collapsed sections**
+3. Tap a section header (e.g., "🧙 Ednar Art") to expand it
+4. **Only that section's sliders show** - keeps UI clean
+5. Drag sliders - **game updates live** behind the editor
+6. Tap another section header to switch
+7. Tap "Generate Code" to get copy-paste ready values
+8. Tap "Close" to exit back to debug menu
+
+**Code Generation Output:**
+```swift
+// ═══════════════════════════════════════════════════════════
+// GENERATED LAYOUT CODE - Paste into PotionShopGameView.swift
+// ═══════════════════════════════════════════════════════════
+
+// ─── Section Heights (in GeometryReader) ───────────────────
+let headerH      = max(70,  totalHeight * 0.010)
+let sceneH       = max(160, totalHeight * 0.263)
+// ... etc ...
+
+// ─── Ednar Art (in PotionShopCustomerSceneView call) ──────
+ednarArtScale: 1.0,
+ednarArtWidth: 1.59,
+// ... etc ...
+```
+
+**Files Modified:**
+- `PotionShopDebugMenu.swift` - Contains entire layout editor (self-contained, no separate file)
+- `PotionShopGameView.swift` - Updated to accept layout editor parameters
+
+**Deprecation:**
+- `PotionShopLayoutEditorView.swift` - Can be deleted (replaced by new integrated editor)
 
 ---
 

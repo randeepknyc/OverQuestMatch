@@ -19,6 +19,10 @@ struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var gs = PotionShopGameState()
     @State private var showDebugMenu = false
+    @State private var showLayoutOverlay = false
+    
+    // Use shared layout config for live preview
+    @Bindable var layoutConfig = PotionShopLayoutConfig.shared
 
     @Namespace private var diceFlight
 
@@ -32,12 +36,12 @@ struct PotionShopGameView: View {
             let totalHeight = geo.size.height
             
             // Section height calculations (percentages from layout editor)
-            let headerH      = max(70,  totalHeight * 0.010)   // 1%   - Minimal header
-            let sceneH       = max(160, totalHeight * 0.263)   // 26.3% - Scene (big!)
-            let profileRowH  = max(74,  totalHeight * 0.095)   // 9.5%  - Profile row
-            let cauldronH    = max(240, totalHeight * 0.372)   // 37.2% - HUGE CAULDRON!
-            let previewBarH  = max(26,  totalHeight * 0.032)   // 3.2%  - Preview bar (tiny)
-            let trayH        = max(82,  totalHeight * 0.193)   // 19.3% - BIG TRAY!
+            let headerH      = max(70,  totalHeight * (layoutConfig.headerPercent / 100))
+            let sceneH       = max(160, totalHeight * (layoutConfig.scenePercent / 100))
+            let profileRowH  = max(74,  totalHeight * (layoutConfig.profilePercent / 100))
+            let cauldronH    = max(240, totalHeight * (layoutConfig.cauldronPercent / 100))
+            let previewBarH  = max(26,  totalHeight * (layoutConfig.previewPercent / 100))
+            let trayH        = max(82,  totalHeight * (layoutConfig.trayPercent / 100))
 
             ZStack {
                 // Background image (or placeholder parchment color)
@@ -58,10 +62,10 @@ struct PotionShopGameView: View {
                     PotionShopCustomerSceneView(
                         gs: gs,
                         ednarArtScale: 1.0,
-                        ednarArtWidth: 1.59,    // ✅ FROM SCREENSHOT (proportional)
-                        ednarArtHeight: 2.00,   // ✅ FROM SCREENSHOT (proportional)
-                        ednarArtXOffset: 14,    // ✅ FROM SCREENSHOT
-                        ednarArtYOffset: -17    // ✅ FROM SCREENSHOT
+                        ednarArtWidth: layoutConfig.ednarWidth,
+                        ednarArtHeight: layoutConfig.ednarHeight,
+                        ednarArtXOffset: layoutConfig.ednarX,
+                        ednarArtYOffset: layoutConfig.ednarY
                     )
                         .frame(height: sceneH)
                         .frame(maxWidth: .infinity)
@@ -72,25 +76,25 @@ struct PotionShopGameView: View {
                     PotionShopCauldronView(
                         gs: gs,
                         diceFlight: diceFlight,
-                        cauldronScale: 1.29,
-                        cauldronXOffset: 44,
-                        cauldronYOffset: 58,
+                        cauldronScale: layoutConfig.cauldronBowlScale,
+                        cauldronXOffset: layoutConfig.cauldronBowlX,
+                        cauldronYOffset: layoutConfig.cauldronBowlY,
                         nodeScale: 1.00,
                         nodeXOffset: 0,
                         nodeYOffset: 0,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
-                        brewZoneX: 0.83,          // ✅ FROM LAYOUT EDITOR
-                        brewZoneY: 0.19,
-                        brewZoneWidth: 112,       // ✅ FROM LAYOUT EDITOR
-                        brewZoneHeight: 123,
-                        showBrewZone: false,       // ✅ Visible (for tap zone debugging)
+                        brewZoneX: layoutConfig.brewZoneX,
+                        brewZoneY: layoutConfig.brewZoneY,
+                        brewZoneWidth: layoutConfig.brewZoneWidth,
+                        brewZoneHeight: layoutConfig.brewZoneHeight,
+                        showBrewZone: layoutConfig.showBrewZone,
                         cauldronArtScale: 1.0,
-                        cauldronArtWidth: 1.45,   // ✅ FROM SCREENSHOT (proportional)
-                        cauldronArtHeight: 2.00,  // ✅ FROM SCREENSHOT (proportional)
-                        cauldronArtXOffset: 7,    // ✅ FROM SCREENSHOT
-                        cauldronArtYOffset: -40   // ✅ FROM SCREENSHOT
+                        cauldronArtWidth: layoutConfig.cauldronWidth,
+                        cauldronArtHeight: layoutConfig.cauldronHeight,
+                        cauldronArtXOffset: layoutConfig.cauldronX,
+                        cauldronArtYOffset: layoutConfig.cauldronY
                     )
                     // BACKUP (to revert, copy these values back):
                     // brewZoneX: 0.80, brewZoneWidth: 90, showBrewZone: true
@@ -104,10 +108,10 @@ struct PotionShopGameView: View {
                     PotionShopDiceTrayView(
                         gs: gs,
                         diceFlight: diceFlight,
-                        dieScale: 1.31
+                        dieScale: layoutConfig.dieScale
                     )
                         .frame(height: trayH)
-                        .offset(y: -25)
+                        .offset(x: layoutConfig.trayOffsetX, y: layoutConfig.trayOffsetY)
 
                     Spacer(minLength: 0)
                 }
@@ -121,12 +125,22 @@ struct PotionShopGameView: View {
                     .allowsHitTesting(false)
 
                 phaseOverlay
+                
+                // Layout editor overlay (semi-transparent, floats over game)
+                if showLayoutOverlay {
+                    PotionShopLayoutOverlay(
+                        isPresented: $showLayoutOverlay,
+                        gs: gs,
+                        diceFlight: diceFlight
+                    )
+                }
             }
         }
         .sheet(isPresented: $showDebugMenu) {
             PotionShopDebugMenu(
                 gs: gs,
                 isPresented: $showDebugMenu,
+                showLayoutOverlay: $showLayoutOverlay,
                 onEndGame: { dismiss() }
             )
         }
@@ -261,6 +275,168 @@ struct PotionShopDraggedDieOverlay: View {
                     in: diceFlight,
                     properties: [.position, .size]
                 )
+        }
+    }
+}
+
+// MARK: - Layout Editor Overlay
+//
+// Semi-transparent overlay that floats over the game view for live layout editing.
+// Only the active section's controls are visible at a time.
+
+struct PotionShopLayoutOverlay: View {
+    @Binding var isPresented: Bool
+    @Bindable var gs: PotionShopGameState
+    let diceFlight: Namespace.ID
+    
+    // Use the shared config instead of local state
+    @Bindable var layoutConfig = PotionShopLayoutConfig.shared
+    
+    // UI State
+    @State private var activeSection: LayoutSection? = nil
+    
+    enum LayoutSection: String, CaseIterable {
+        case sections = "📏 Sections"
+        case ednar = "🧙 Ednar"
+        case cauldronArt = "🍲 Cauldron"
+        case cauldronBowl = "🥘 Bowl"
+        case dice = "🎲 Dice"
+        case brewZone = "🥄 Brew"
+    }
+    
+    var body: some View {
+        ZStack {
+            // Semi-transparent background (20% opacity)
+            Color.black.opacity(0.2)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    // Tap background to close
+                    isPresented = false
+                }
+            
+            // Floating control panel at bottom
+            VStack {
+                Spacer()
+                
+                VStack(spacing: 0) {
+                    // Close button at top
+                    HStack {
+                        Spacer()
+                        Button {
+                            isPresented = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                        }
+                        .padding()
+                    }
+                    .background(Color.black.opacity(0.7))
+                    
+                    // Section picker
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(LayoutSection.allCases, id: \.self) { section in
+                                Button {
+                                    withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                                        activeSection = activeSection == section ? nil : section
+                                    }
+                                } label: {
+                                    Text(section.rawValue)
+                                        .font(.caption2.bold())
+                                        .foregroundColor(activeSection == section ? .black : .white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(activeSection == section ? Color.cyan : Color.white.opacity(0.3))
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                    }
+                    .background(Color.black.opacity(0.7))
+                    
+                    // Active section controls
+                    if let section = activeSection {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionContent(for: section)
+                            }
+                            .padding()
+                        }
+                        .frame(maxHeight: 200)
+                        .background(Color.black.opacity(0.8))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding()
+            }
+        }
+    }
+    
+    // MARK: - Section Content
+    
+    @ViewBuilder
+    private func sectionContent(for section: LayoutSection) -> some View {
+        switch section {
+        case .sections:
+            Text("Section heights coming soon...")
+                .foregroundColor(.white.opacity(0.7))
+        case .ednar:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Width", value: $layoutConfig.ednarWidth, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Height", value: $layoutConfig.ednarHeight, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("X", value: $layoutConfig.ednarX, range: -200...200, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.ednarY, range: -200...200, format: "%.0f")
+            }
+        case .cauldronArt:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Width", value: $layoutConfig.cauldronWidth, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Height", value: $layoutConfig.cauldronHeight, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("X", value: $layoutConfig.cauldronX, range: -200...200, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.cauldronY, range: -200...200, format: "%.0f")
+            }
+        case .cauldronBowl:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Scale", value: $layoutConfig.cauldronBowlScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("X", value: $layoutConfig.cauldronBowlX, range: -200...200, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.cauldronBowlY, range: -200...200, format: "%.0f")
+            }
+        case .dice:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
+                sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+            }
+        case .brewZone:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("X", value: $layoutConfig.brewZoneX, range: 0...1, format: "%.2f")
+                sliderRow("Y", value: $layoutConfig.brewZoneY, range: 0...1, format: "%.2f")
+                sliderRow("Width", value: $layoutConfig.brewZoneWidth, range: 50...300, format: "%.0f")
+                sliderRow("Height", value: $layoutConfig.brewZoneHeight, range: 50...300, format: "%.0f")
+                Toggle("Show Zone", isOn: $layoutConfig.showBrewZone)
+                    .toggleStyle(SwitchToggleStyle(tint: .cyan))
+                    .foregroundColor(.white)
+            }
+        }
+    }
+    
+    private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label)
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.7))
+                Spacer()
+                Text(String(format: format, value.wrappedValue))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.cyan)
+            }
+            Slider(value: value, in: range)
+                .tint(.cyan)
         }
     }
 }
