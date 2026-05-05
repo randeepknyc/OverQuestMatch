@@ -37,6 +37,11 @@ class PotionShopLayoutConfig {
     var cauldronBowlX: Double = 44
     var cauldronBowlY: Double = 58
     
+    // Nodes
+    var nodeScale: Double = 1.00
+    var nodeXOffset: Double = 0
+    var nodeYOffset: Double = 0
+    
     // Dice & Tray
     var dieScale: Double = 1.31
     var trayOffsetX: Double = 0

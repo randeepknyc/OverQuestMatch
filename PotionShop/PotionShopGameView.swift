@@ -79,9 +79,9 @@ struct PotionShopGameView: View {
                         cauldronScale: layoutConfig.cauldronBowlScale,
                         cauldronXOffset: layoutConfig.cauldronBowlX,
                         cauldronYOffset: layoutConfig.cauldronBowlY,
-                        nodeScale: 1.00,
-                        nodeXOffset: 0,
-                        nodeYOffset: 0,
+                        nodeScale: layoutConfig.nodeScale,
+                        nodeXOffset: layoutConfig.nodeXOffset,
+                        nodeYOffset: layoutConfig.nodeYOffset,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
@@ -300,6 +300,7 @@ struct PotionShopLayoutOverlay: View {
         case ednar = "🧙 Ednar"
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
+        case nodes = "🔵 Nodes"
         case dice = "🎲 Dice"
         case brewZone = "🥄 Brew"
     }
@@ -404,6 +405,12 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Scale", value: $layoutConfig.cauldronBowlScale, range: 0.5...3.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.cauldronBowlX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.cauldronBowlY, range: -200...200, format: "%.0f")
+            }
+        case .nodes:
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Node Scale", value: $layoutConfig.nodeScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Grid X", value: $layoutConfig.nodeXOffset, range: -200...200, format: "%.0f")
+                sliderRow("Grid Y", value: $layoutConfig.nodeYOffset, range: -200...200, format: "%.0f")
             }
         case .dice:
             VStack(alignment: .leading, spacing: 10) {
