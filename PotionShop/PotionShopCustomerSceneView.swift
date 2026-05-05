@@ -17,6 +17,37 @@
 //
 
 import SwiftUI
+import UIKit
+
+// MARK: - Debug Helper
+
+/// Prints ALL asset names that Xcode can find (helps debug missing images)
+fileprivate func debugPrintAllAssetNames() {
+    print("🔍 DEBUG: Attempting to find customer_scene_background in common variations...")
+    
+    // List of possible names to try
+    let possibleNames = [
+        "customer_scene_background",
+        "customer_scene_background.png",
+        "customer-scene-background",
+        "scene_background",
+        "CustomerSceneBackground",
+        "customer scene background"
+    ]
+    
+    for name in possibleNames {
+        if let img = UIImage(named: name) {
+            print("   ✅ FOUND: '\(name)' - Size: \(img.size)")
+        } else {
+            print("   ❌ NOT FOUND: '\(name)'")
+        }
+    }
+    
+    print("🔍 If none found, check:")
+    print("   1. Is the image in Assets.xcassets?")
+    print("   2. Is it in the correct Target Membership?")
+    print("   3. Try the Asset Catalog name exactly as shown in Xcode")
+}
 
 // MARK: - Layout proportions
 
@@ -63,29 +94,13 @@ struct PotionShopCustomerSceneView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.94, green: 0.90, blue: 0.80),
-                        Color(red: 0.90, green: 0.84, blue: 0.69)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                // LAYER 1: BACKGROUND (always first = bottom layer)
+                backgroundLayer(geo: geo)
+                
+                // LAYER 2: Floor line
+                floorLine
 
-                VStack {
-                    Spacer()
-                    Rectangle()
-                        .fill(Color(red: 0.55, green: 0.36, blue: 0.18))
-                        .frame(height: 12)
-                        .overlay(
-                            Rectangle()
-                                .fill(Color(red: 0.40, green: 0.25, blue: 0.10))
-                                .frame(height: 2)
-                                .offset(y: -1),
-                            alignment: .top
-                        )
-                }
-
+                // LAYER 3: Ednar
                 PotionShopEdnarView(
                     gs: gs,
                     ednarArtScale: ednarArtScale,
@@ -137,6 +152,50 @@ struct PotionShopCustomerSceneView: View {
                     activeArrivalCounter += 1
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Views
+    
+    @ViewBuilder
+    private func backgroundLayer(geo: GeometryProxy) -> some View {
+        ZStack {
+            // LAYER 1: Gradient (bottom layer - always present as fallback)
+            LinearGradient(
+                colors: [
+                    Color(red: 0.94, green: 0.90, blue: 0.80),
+                    Color(red: 0.90, green: 0.84, blue: 0.69)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            
+            // LAYER 2: Background image (above gradient)
+            if let backgroundImage = UIImage(named: "customerbg") {
+                let _ = print("✅ LOADED: customerbg")
+                Image(uiImage: backgroundImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: geo.size.width, height: geo.size.height)
+            } else {
+                let _ = print("❌ customerbg NOT FOUND - Using gradient only")
+            }
+        }
+    }
+    
+    private var floorLine: some View {
+        VStack {
+            Spacer()
+            Rectangle()
+                .fill(Color(red: 0.55, green: 0.36, blue: 0.18))
+                .frame(height: 12)
+                .overlay(
+                    Rectangle()
+                        .fill(Color(red: 0.40, green: 0.25, blue: 0.10))
+                        .frame(height: 2)
+                        .offset(y: -1),
+                    alignment: .top
+                )
         }
     }
 }

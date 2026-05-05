@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 5, 2026 (Live Overlay Layout Editor Complete + Per-Node Fine-Tuning)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Live preview overlay layout editor (May 5, 2026)** - semi-transparent floating panel that appears OVER the game with section-focused UI (📏🧙🍲🥘🔵🔧🎲🥄), real-time slider updates via shared Observable config, true instant preview (no rebuild). Includes 🔵 Nodes section for grid positioning + 🔧 Fine-Tune for individual node offsets (±100pt per node). Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, nodes 1.00 scale, all per-node offsets at zero (default grid), BREW zone hidden. Art assets ready to integrate.  
+> **Last Updated:** May 5, 2026 (Customer Background Integrated)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning. Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, nodes 1.00 scale, all per-node offsets at zero (default grid), BREW zone hidden. **First art asset successfully integrated (May 5, 2026).**  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -969,7 +969,7 @@ ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
 - ✅ Edge lines still connect to moved nodes
 - ✅ No crashes during brew animation
 
-**Current Production Values (Locked - May 5, 2026):**
+**Current Production Values (Locked - May 5, 2026 - 1:36 AM):**
 ```swift
 // Section Heights
 headerPercent: 1.0
@@ -981,38 +981,53 @@ trayPercent: 19.3
 
 // Ednar Art
 ednarWidth: 1.59
-ednarHeight: 2.00
-ednarX: 14
-ednarY: -17
+ednarHeight: 2.0
+ednarX: 14.0
+ednarY: -17.0
 
 // Cauldron Art
-cauldronWidth: 1.45
-cauldronHeight: 2.00
-cauldronX: 7
-cauldronY: -40
+cauldronWidth: 1.3613475412130356
+cauldronHeight: 1.9335107803344727
+cauldronX: -2.219867706298828
+cauldronY: -34.326231479644775
 
 // Bowl
-cauldronBowlScale: 1.29
-cauldronBowlX: 44
-cauldronBowlY: 58
+cauldronBowlScale: 1.3121631294488907
+cauldronBowlX: 44.709229469299316
+cauldronBowlY: 58.0
 
 // Nodes
-nodeScale: 1.00
-nodeXOffset: 0
-nodeYOffset: 0
+nodeScale: 1.8311170041561127
+nodeXOffset: 70.21276950836182
+nodeYOffset: 74.82268810272217
 nodeSpacingMultiplier: 1.0  // ⚠️ EXPERIMENTAL: Kept at 1.0 for production
-perNodeOffsets: [.zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero]  // All 12 nodes at default (NEW)
+
+// Per-Node Offsets (all 12 nodes individually positioned)
+perNodeOffsets: [
+    CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
+    CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
+    CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
+    CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+    CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
+    CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
+    CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
+    CGPoint(x: -53.014183044433594, y: 35.638296604156494),  // Node 7
+    CGPoint(x: -91.13475382328033, y: 28.19148302078247),    // Node 8
+    CGPoint(x: -38.1205677986145, y: 60.10638475418091),     // Node 9
+    CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
+    CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
+]
 
 // Dice
-dieScale: 1.31
-trayOffsetX: 0
-trayOffsetY: -25
+dieScale: 1.405301421880722
+trayOffsetX: 4.609942436218262
+trayOffsetY: 6.2056779861450195
 
 // Brew Zone
-brewZoneX: 0.83
-brewZoneY: 0.19
-brewZoneWidth: 112
-brewZoneHeight: 123
+brewZoneX: 0.8424113392829895
+brewZoneY: 0.15010638535022736
+brewZoneWidth: 113.10815364122391
+brewZoneHeight: 95.51772773265839
 showBrewZone: false
 ```
 
@@ -1180,10 +1195,40 @@ cauldron_back.png, cauldron_liquid.png, cauldron_front.png,
 
 die_potency.png, die_stability.png, die_boost.png, die_heal.png, die_shield.png,
 
-background.png,
+customerbg.png,    ← Customer scene background (✅ INTEGRATED May 5, 2026)
 
 icon_heart.png, icon_shield.png, icon_potion.png, icon_brew_sign.png,
 icon_hamburger.png, icon_gear.png
+```
+
+### 16.3.1 Customer Background Integration (✅ COMPLETE - May 5, 2026)
+
+**Asset:** `customerbg.png`  
+**Location in code:** `PotionShopCustomerSceneView.swift` → `backgroundLayer(geo:)`  
+**Implementation:** Uses `UIImage(named: "customerbg")` with `.scaledToFit()` scaling  
+**Layer order:**
+1. **Gradient** (bottom) - Tan/cream fallback, always present
+2. **customerbg** (above gradient) - User's sketch background
+3. **Floor line** (brown rectangle at bottom)
+4. **Ednar** (wizard character on left)
+5. **Customers** (characters on right)
+6. **Shield badge** (if player has shield)
+
+**Scaling behavior:**
+- `.scaledToFit()` maintains aspect ratio
+- Shows entire image without cropping
+- May show gradient at edges if aspect ratio doesn't match scene area
+- Gradient acts as underlay/fallback
+
+**Code location:**
+```swift
+// PotionShopCustomerSceneView.swift, line ~170
+if let backgroundImage = UIImage(named: "customerbg") {
+    Image(uiImage: backgroundImage)
+        .resizable()
+        .scaledToFit()
+        .frame(width: geo.size.width, height: geo.size.height)
+}
 ```
 
 ### 16.4 Background composition zones (1242×2688 canvas)

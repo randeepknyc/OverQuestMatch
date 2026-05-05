@@ -388,8 +388,28 @@ struct PotionShopLayoutOverlay: View {
     private func sectionContent(for section: LayoutSection) -> some View {
         switch section {
         case .sections:
-            Text("Section heights coming soon...")
-                .foregroundColor(.white.opacity(0.7))
+            VStack(alignment: .leading, spacing: 10) {
+                sliderRow("Header", value: $layoutConfig.headerPercent, range: 0...20, format: "%.1f%%")
+                sliderRow("Scene", value: $layoutConfig.scenePercent, range: 0...50, format: "%.1f%%")
+                sliderRow("Profile", value: $layoutConfig.profilePercent, range: 0...20, format: "%.1f%%")
+                sliderRow("Cauldron", value: $layoutConfig.cauldronPercent, range: 0...60, format: "%.1f%%")
+                sliderRow("Preview", value: $layoutConfig.previewPercent, range: 0...10, format: "%.1f%%")
+                sliderRow("Tray", value: $layoutConfig.trayPercent, range: 0...30, format: "%.1f%%")
+                
+                // Total percentage indicator
+                let total = layoutConfig.headerPercent + layoutConfig.scenePercent + layoutConfig.profilePercent + 
+                           layoutConfig.cauldronPercent + layoutConfig.previewPercent + layoutConfig.trayPercent
+                HStack {
+                    Text("Total:")
+                        .font(.caption.bold())
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text(String(format: "%.1f%%", total))
+                        .font(.system(.caption, design: .monospaced).bold())
+                        .foregroundColor(total > 100 ? .red : .green)
+                }
+                .padding(.top, 4)
+            }
         case .ednar:
             VStack(alignment: .leading, spacing: 10) {
                 sliderRow("Width", value: $layoutConfig.ednarWidth, range: 0.5...3.0, format: "%.2f×")

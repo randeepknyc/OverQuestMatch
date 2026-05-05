@@ -5,7 +5,7 @@
 //  Layout configuration shared between game view and layout editor overlay.
 //  This allows live preview of layout changes.
 //
-//  ✅ UPDATED: May 5, 2026 - Updated layout values (all 12 nodes repositioned)
+//  ✅ UPDATED: May 5, 2026 - 1:44 AM - Section heights refined, preview bar removed
 //
 
 import SwiftUI
@@ -15,11 +15,11 @@ class PotionShopLayoutConfig {
     static let shared = PotionShopLayoutConfig()
     
     // Section Heights (percentages)
-    var headerPercent: Double = 1.0
-    var scenePercent: Double = 26.3
+    var headerPercent: Double = 1.7198581993579865
+    var scenePercent: Double = 27.27518081665039
     var profilePercent: Double = 9.5
     var cauldronPercent: Double = 37.2
-    var previewPercent: Double = 3.2
+    var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
     var trayPercent: Double = 19.3
     
     // Ednar Art
@@ -41,8 +41,8 @@ class PotionShopLayoutConfig {
     
     // Nodes
     var nodeScale: Double = 1.8311170041561127
-    var nodeXOffset: Double = 70.21276950836182
-    var nodeYOffset: Double = 74.82268810272217
+    var nodeXOffset: Double = 79.43263053894043
+    var nodeYOffset: Double = 71.27659320831299
     var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
