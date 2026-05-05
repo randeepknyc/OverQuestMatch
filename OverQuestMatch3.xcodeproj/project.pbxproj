@@ -119,6 +119,8 @@
 		7F7908842FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */; };
 		7F7908862FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */; };
 		7F7908882FA95F1600412002 /* PotionShopLayoutConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908872FA95F1600412002 /* PotionShopLayoutConfig.swift */; };
+		7F79088A2FA98A8800412002 /* NEW_LAYOUT_EDITOR_INSTRUCTIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7908892FA98A8800412002 /* NEW_LAYOUT_EDITOR_INSTRUCTIONS.md */; };
+		7F79088C2FA98BE100412002 /* SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F79088B2FA98BE100412002 /* SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md */; };
 		7F834F0E2F688ED9006885AF /* anim-helper-guidebook.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */; };
 		7F86C3822F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */; };
 		7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */; };
@@ -258,6 +260,8 @@
 		7F7908832FA9230900412002 /* ART_SCALING_SESSION_MAY4_2026_EVENING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ART_SCALING_SESSION_MAY4_2026_EVENING.md; sourceTree = "<group>"; };
 		7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md; sourceTree = "<group>"; };
 		7F7908872FA95F1600412002 /* PotionShopLayoutConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopLayoutConfig.swift; sourceTree = "<group>"; };
+		7F7908892FA98A8800412002 /* NEW_LAYOUT_EDITOR_INSTRUCTIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NEW_LAYOUT_EDITOR_INSTRUCTIONS.md; sourceTree = "<group>"; };
+		7F79088B2FA98BE100412002 /* SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md; sourceTree = "<group>"; };
 		7F834F0D2F688ED9006885AF /* anim-helper-guidebook.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "anim-helper-guidebook.md"; sourceTree = "<group>"; };
 		7F86C3772F707B2D00DC5759 /* DEBUG_MODE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEBUG_MODE_GUIDE.md; sourceTree = "<group>"; };
 		7F86C3782F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HAPTIC_CUSTOMIZATION_GUIDE.md; sourceTree = "<group>"; };
@@ -470,6 +474,8 @@
 				7F79087F2FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md */,
 				7F7908852FA938B200412002 /* LAYOUT_SESSION_MAY4_EVENING_SUMMARY.md */,
 				7F7908872FA95F1600412002 /* PotionShopLayoutConfig.swift */,
+				7F7908892FA98A8800412002 /* NEW_LAYOUT_EDITOR_INSTRUCTIONS.md */,
+				7F79088B2FA98BE100412002 /* SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -699,6 +705,7 @@
 				7F86C3832F707B2D00DC5759 /* HAPTIC_CUSTOMIZATION_GUIDE.md in Resources */,
 				7F0095312F6F48BC00E10AEB /* SESSION_14_PORTRAIT_FIX_COMPLETE.md in Resources */,
 				7F5574A42F78748000081E01 /* PHYSICS_CONTEXT.md in Resources */,
+				7F79088C2FA98BE100412002 /* SECTION_FOCUSED_LAYOUT_EDITOR_GUIDE.md in Resources */,
 				7F55745B2F74E63C00081E01 /* GAME_PLANNING_TAVERN_TSUM_MATCH.md in Resources */,
 				7F0094E92F6CF7FA00E10AEB /* chat_transcript.txt in Resources */,
 				7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */,
@@ -715,6 +722,7 @@
 				7F2ADE6E2F8311200078EF4E /* CUSTOM_IMAGE_INTEGRATION_SUMMARY.md in Resources */,
 				7F55742F2F742F3700081E01 /* SESSION_15_SWIPE_TAP_GESTURE_FIX.md in Resources */,
 				7F2ADE862F88BFCE0078EF4E /* SHOP_UI_OVERHAUL_SESSION_SUMMARY.md in Resources */,
+				7F79088A2FA98A8800412002 /* NEW_LAYOUT_EDITOR_INSTRUCTIONS.md in Resources */,
 				7F7908802FA8F24000412002 /* ReadFilesForContextLAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md in Resources */,
 				7F55749D2F78704300081E01 /* CONTEXT_ALIGNMENT_FIXES_SESSION_24.md in Resources */,
 				7F0095392F6F66C500E10AEB /* final_charactersystem_WORKING-ramp.md in Resources */,

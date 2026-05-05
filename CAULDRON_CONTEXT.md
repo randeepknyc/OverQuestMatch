@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 5, 2026 (New Integrated Layout Editor)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Integrated layout editor with live preview overlay (May 5, 2026)** - section-focused UI, real-time updates, code generation built into debug menu. Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, BREW zone hidden. Art assets ready to integrate.  
+> **Last Updated:** May 5, 2026 (Live Overlay Layout Editor Complete)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Live preview overlay layout editor (May 5, 2026)** - semi-transparent floating panel that appears OVER the game with section-focused UI (📏🧙🍲🥘🔵🎲🥄), real-time slider updates via shared Observable config, true instant preview (no rebuild). Includes 🔵 Nodes section for grid positioning. Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, nodes 1.00 scale, BREW zone hidden. Art assets ready to integrate.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -752,63 +752,125 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
 
-### 12.1 Layout Editor (NEW - May 5, 2026)
+### 12.1 Layout Editor (NEW - May 5, 2026 - LIVE PREVIEW OVERLAY)
 
-**Access:** Debug Menu → "Layout Editor"
+**Access:** Debug Menu → "Layout Editor (Live Overlay)"
 
-**Mode:** Floating semi-transparent overlay at bottom of screen (Option A implementation)
+**Mode:** Semi-transparent floating overlay that appears OVER the game view (20% opacity background)
 
-**Features:**
-- **Live preview** - See changes instantly as you drag sliders
-- **Section-focused UI** - Only the active section's controls are visible at a time
-- **Collapsible/expandable** - Tap section headers to switch between sections
-- **Code generation** - Copies formatted Swift code to clipboard + shows in sheet
-- **Reset buttons** - Per-section reset to defaults
+**Key Innovation:** Overlay appears ON TOP of the actual game layout, so you see changes instantly in real-time while adjusting sliders. Game view is visible behind the controls at 80% brightness.
+
+**Architecture:**
+- **Shared Observable Config:** `PotionShopLayoutConfig.shared` singleton holds all layout values
+- **Game View Binding:** `PotionShopGameView` reads from `layoutConfig` instead of hardcoded values
+- **Overlay Binding:** `PotionShopLayoutOverlay` writes to same `layoutConfig` via sliders
+- **Result:** Slider changes → config updates → game re-renders instantly (true live preview!)
+
+**UI Design:**
+- **Section-focused:** Only ONE section's controls visible at a time (reduced clutter)
+- **Horizontal pill picker:** Swipe through section pills at top (📏 🧙 🍲 🥘 🔵 🎲 🥄)
+- **Active pill:** Solid cyan fill with white text
+- **Inactive pills:** Transparent with cyan border
+- **Floating panel:** Rounded rectangle at bottom with dark semi-transparent background
+- **Close button:** X icon at top-right of panel
+- **No code generation button:** (Old sheet-based editor had this; new overlay skips it for cleaner UX)
 
 **What You Can Control:**
 
-| Section | Controls | Range |
-|---------|----------|-------|
-| **📏 Section Heights** | Header, Scene, Profile, Cauldron, Preview, Tray percentages | 0-60% each |
-| **🧙 Ednar Art** | Uniform scale, width/height (independent), X/Y position | 0.5-3.0× scale, ±200pt position |
-| **🍲 Cauldron Art** | Same as Ednar (uniform scale, width, height, X, Y) | Same ranges |
-| **🥘 Cauldron Bowl** | Scale, X offset, Y offset (parametric bowl positioning) | 0.5-3.0× scale, ±200pt offset |
-| **🎲 Dice & Tray** | Die scale, Tray X/Y offsets | 0.5-3.0× scale, ±200pt offset |
-| **🥄 Brew Tap Zone** | X/Y position (fraction), width/height (pts), show debug toggle | 0-1 position, 50-300pt size |
+| Section | Controls | Range | Notes |
+|---------|----------|-------|-------|
+| **📏 Sections** | Header, Scene, Profile, Cauldron, Preview, Tray percentages | 0-60% each | Shows total % (red if >100%) |
+| **🧙 Ednar** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Character art scaling |
+| **🍲 Cauldron** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Cauldron art scaling |
+| **🥘 Bowl** | Scale, X offset, Y offset | 0.5-3.0× scale, ±200pt offset | Parametric bowl shape |
+| **🔵 Nodes** | Node scale, Grid X, Grid Y | 0.5-3.0× scale, ±200pt offset | Entire node grid positioning |
+| **🎲 Dice** | Die scale, Tray X, Tray Y | 0.5-3.0× scale, ±200pt offset | Dice size + tray offset |
+| **🥄 Brew** | X, Y position (fraction), Width, Height (pts), Show Zone toggle | 0-1 position, 50-300pt size | Invisible tap zone |
 
 **How It Works:**
-1. Tap "Layout Editor" in debug menu
-2. Sheet opens with **collapsed sections**
-3. Tap a section header (e.g., "🧙 Ednar Art") to expand it
-4. **Only that section's sliders show** - keeps UI clean
-5. Drag sliders - **game updates live** behind the editor
-6. Tap another section header to switch
-7. Tap "Generate Code" to get copy-paste ready values
-8. Tap "Close" to exit back to debug menu
+1. Tap "Layout Editor (Live Overlay)" in debug menu
+2. Debug menu **closes automatically**
+3. Overlay appears over game with section pill picker at top
+4. Game is **visible behind overlay** (darkened to 80%)
+5. Tap a section pill (e.g., **🧙 Ednar**)
+6. Pill turns **solid cyan**, sliders appear below
+7. **Drag sliders** → **game updates INSTANTLY** (live preview!)
+8. Tap **different pill** to switch sections (previous section collapses)
+9. Tap **X button** or **tap background** to close overlay
+10. Debug menu does NOT reopen (back to full game view)
 
-**Code Generation Output:**
-```swift
-// ═══════════════════════════════════════════════════════════
-// GENERATED LAYOUT CODE - Paste into PotionShopGameView.swift
-// ═══════════════════════════════════════════════════════════
-
-// ─── Section Heights (in GeometryReader) ───────────────────
-let headerH      = max(70,  totalHeight * 0.010)
-let sceneH       = max(160, totalHeight * 0.263)
-// ... etc ...
-
-// ─── Ednar Art (in PotionShopCustomerSceneView call) ──────
-ednarArtScale: 1.0,
-ednarArtWidth: 1.59,
-// ... etc ...
+**Example Live Preview Flow:**
+```
+User drags Ednar Width slider to 3.0×
+    ↓
+PotionShopLayoutConfig.shared.ednarWidth = 3.0
+    ↓
+PotionShopGameView reads layoutConfig.ednarWidth
+    ↓
+Ednar re-renders at 3× width IMMEDIATELY (no rebuild needed!)
 ```
 
-**Files Modified:**
-- `PotionShopDebugMenu.swift` - Contains entire layout editor (self-contained, no separate file)
-- `PotionShopGameView.swift` - Updated to accept layout editor parameters
+**Files Involved:**
+1. **PotionShopLayoutConfig.swift** (NEW) - Shared `@Observable` singleton with all layout values
+2. **PotionShopGameView.swift** - Modified to read from `layoutConfig` instead of hardcoded values
+3. **PotionShopDebugMenu.swift** - Modified to pass `$showLayoutOverlay` binding + close menu when opening overlay
+4. **PotionShopLayoutOverlay** (struct inside `PotionShopGameView.swift`) - The overlay UI itself
+
+**Current Production Values (Locked - May 5, 2026):**
+```swift
+// Section Heights
+headerPercent: 1.0
+scenePercent: 26.3
+profilePercent: 9.5
+cauldronPercent: 37.2
+previewPercent: 3.2
+trayPercent: 19.3
+
+// Ednar Art
+ednarWidth: 1.59
+ednarHeight: 2.00
+ednarX: 14
+ednarY: -17
+
+// Cauldron Art
+cauldronWidth: 1.45
+cauldronHeight: 2.00
+cauldronX: 7
+cauldronY: -40
+
+// Bowl
+cauldronBowlScale: 1.29
+cauldronBowlX: 44
+cauldronBowlY: 58
+
+// Nodes
+nodeScale: 1.00
+nodeXOffset: 0
+nodeYOffset: 0
+
+// Dice
+dieScale: 1.31
+trayOffsetX: 0
+trayOffsetY: -25
+
+// Brew Zone
+brewZoneX: 0.83
+brewZoneY: 0.19
+brewZoneWidth: 112
+brewZoneHeight: 123
+showBrewZone: false
+```
 
 **Deprecation:**
-- `PotionShopLayoutEditorView.swift` - Can be deleted (replaced by new integrated editor)
+- The old sheet-based editor (`PotionShopNewLayoutEditor` struct in `PotionShopDebugMenu.swift`) is still present but **not used**
+- Can be deleted in a future cleanup
+- Old editor had collapsible sections + code generation button; new overlay is cleaner without those
+
+**Safety Notes:**
+- Node spacing/positioning is SAFE (only grid translation + uniform scale)
+- Node rearrangement/removal is **NOT implemented** (would break graph topology)
+- All changes are real-time but NOT persisted (closing app resets to defaults)
+- To make changes permanent: copy values from layout editor → paste into `PotionShopLayoutConfig.swift` defaults
 
 ---
 
@@ -834,6 +896,7 @@ ednarArtWidth: 1.59,
 | **7c** | **Drag-and-drop dice (May 4)**       | ✅ | **Full gesture-based drag system with visual feedback (scale, glow, node pulse). Both tap and drag methods work. Clipping fix for tray. Global coordinate hit detection.** |
 | **7d** | **Freeform art scaling (May 4 evening)** | ✅ | **Independent width/height scaling + X/Y positioning for cauldron & Ednar. Real-time sliders in layout editor. 8 new parameters total. See §8.9 for full documentation.** |
 | **7e** | **Art scaling FIX (May 4 evening)** | ✅ | **CRITICAL FIX: Removed `.scaledToFill()` from both images and added missing `*ArtScale` multiplier. Width/height sliders now work independently with true distortion. Images can be stretched/squished freely without aspect ratio constraints.** |
+| **7f** | **Live preview overlay editor (May 5)** | ✅ | **MAJOR REFACTOR: Replaced sheet-based editor with semi-transparent floating overlay that appears OVER the game. Shared `@Observable` config (`PotionShopLayoutConfig.shared`) enables true live preview. Section-focused UI with horizontal pill picker (📏🧙🍲🥘🔵🎲🥄). Added 🔵 Nodes section for grid positioning. Slider changes update game instantly without rebuild. See §12.1 for full documentation.** |
 
 ---
 
