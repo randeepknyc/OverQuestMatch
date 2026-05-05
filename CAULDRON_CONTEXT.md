@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 5, 2026 (Live Overlay Layout Editor Complete)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Live preview overlay layout editor (May 5, 2026)** - semi-transparent floating panel that appears OVER the game with section-focused UI (📏🧙🍲🥘🔵🎲🥄), real-time slider updates via shared Observable config, true instant preview (no rebuild). Includes 🔵 Nodes section for grid positioning. Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, nodes 1.00 scale, BREW zone hidden. Art assets ready to integrate.  
+> **Last Updated:** May 5, 2026 (Live Overlay Layout Editor Complete + Per-Node Fine-Tuning)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **NEW: Live preview overlay layout editor (May 5, 2026)** - semi-transparent floating panel that appears OVER the game with section-focused UI (📏🧙🍲🥘🔵🔧🎲🥄), real-time slider updates via shared Observable config, true instant preview (no rebuild). Includes 🔵 Nodes section for grid positioning + 🔧 Fine-Tune for individual node offsets (±100pt per node). Final production values: cauldron 1.45×2.00, Ednar 1.59×2.00, nodes 1.00 scale, all per-node offsets at zero (default grid), BREW zone hidden. Art assets ready to integrate.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -783,7 +783,8 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 | **🧙 Ednar** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Character art scaling |
 | **🍲 Cauldron** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Cauldron art scaling |
 | **🥘 Bowl** | Scale, X offset, Y offset | 0.5-3.0× scale, ±200pt offset | Parametric bowl shape |
-| **🔵 Nodes** | Node scale, Grid X, Grid Y | 0.5-3.0× scale, ±200pt offset | Entire node grid positioning |
+| **🔵 Nodes** | Node scale, Grid X, Grid Y, **⚠️ Spacing Multiplier** | 0.5-3.0× scale, ±200pt offset, **0.5-2.0× spacing (EXPERIMENTAL)** | Entire node grid positioning + **experimental spacing** |
+| **🔧 Fine-Tune** | **Per-node X/Y offsets (0-11)** | **±100pt per node** | **Individual node positioning (NEW May 5, 2026)** |
 | **🎲 Dice** | Die scale, Tray X, Tray Y | 0.5-3.0× scale, ±200pt offset | Dice size + tray offset |
 | **🥄 Brew** | X, Y position (fraction), Width, Height (pts), Show Zone toggle | 0-1 position, 50-300pt size | Invisible tap zone |
 
@@ -815,6 +816,158 @@ Ednar re-renders at 3× width IMMEDIATELY (no rebuild needed!)
 2. **PotionShopGameView.swift** - Modified to read from `layoutConfig` instead of hardcoded values
 3. **PotionShopDebugMenu.swift** - Modified to pass `$showLayoutOverlay` binding + close menu when opening overlay
 4. **PotionShopLayoutOverlay** (struct inside `PotionShopGameView.swift`) - The overlay UI itself
+5. **PotionShopCauldronView.swift** - Modified to apply per-node offsets to node positioning
+
+#### **12.1.1 Per-Node Fine-Tuning (NEW - May 5, 2026)**
+
+**Status:** ✅ COMPLETE - Ready for Testing  
+**Feature:** Individual node positioning with live preview
+
+The layout editor includes a **🔧 Fine-Tune** section that allows you to adjust the position of each individual node independently.
+
+**Key Features:**
+- ✅ **Dropdown picker** to select which node (0-11)
+- ✅ **X Offset slider** (-100 to +100 pts)
+- ✅ **Y Offset slider** (-100 to +100 pts)  
+- ✅ **Reset This Node** button (reset selected node to default)
+- ✅ **Reset All Nodes** button (reset all 12 nodes at once)
+- ✅ **Live preview** - changes apply instantly as you drag sliders
+- ✅ **Relative positioning** - offsets apply AFTER spacing multiplier (global controls still work)
+
+**How to Use:**
+
+1. **Open Layout Editor:**
+   - Debug Menu (⚙️) → "Layout Editor (Live Overlay)"
+
+2. **Access Fine-Tune Section:**
+   - Scroll pill picker to **🔧 Fine-Tune**
+   - Tap pill → controls appear
+
+3. **Adjust Individual Node:**
+   - Tap **"Select Node"** dropdown
+   - Choose a node (Node 0 through Node 11)
+   - **X Offset slider** - Move node left (-) or right (+)
+   - **Y Offset slider** - Move node up (-) or down (+)
+   - Watch the node move in real-time!
+
+4. **Reset When Done:**
+   - **"Reset This Node"** - Undo changes to current node only
+   - **"Reset All Nodes"** - Undo all per-node tweaks (back to defaults)
+
+**Layered Positioning System:**
+```
+Final Node Position = 
+  Grid Origin 
+  + (Base Coordinate × Spacing Multiplier)  // Global controls
+  + Per-Node Offset                          // Fine-tune controls
+```
+
+**Example:**
+- Node 5 base position: (5.4, 82.3)
+- Spacing multiplier: 1.2× = (6.5, 98.8)
+- Grid X offset: +10 = (16.5, 98.8)
+- Grid Y offset: -5 = (16.5, 93.8)
+- **Per-node X offset: +25** = (41.5, 93.8)
+- **Per-node Y offset: -10** = (41.5, 83.8) ← Final position!
+
+**This means:**
+- Global sliders (Grid X/Y) still move ALL nodes
+- Spacing slider still spreads them apart
+- Fine-tune offsets are applied ON TOP of those changes
+
+**Data Structure:**
+```swift
+// In PotionShopLayoutConfig
+var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)
+
+// CGPoint(x: Double, y: Double)
+// x: horizontal offset in points (-100 to +100)
+// y: vertical offset in points (-100 to +100)
+```
+
+**Position Calculation:**
+```swift
+// In PotionShopCauldronView
+ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
+    let node = PotionShopBoard.nodes[idx]
+    let perNodeOffset = perNodeOffsets[idx]  // Get this node's offset
+    
+    PotionShopNodeButtonView(...)
+        .position(
+            x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier + perNodeOffset.x,
+            y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier + perNodeOffset.y
+        )
+}
+```
+
+**UI Design:**
+- **Picker:** Dropdown menu shows "Node 0" through "Node 11"
+- **Sliders:** Cyan theme (consistent with other controls)
+- **"Reset This Node" button:** Orange (caution color)
+- **"Reset All Nodes" button:** Red (danger color - more destructive)
+- Currently selected node is highlighted in picker
+
+**Common Use Cases:**
+
+**Scenario 1: Fix Overlapping Nodes**
+- Problem: Node 3 and Node 4 are too close after adjusting spacing
+- Solution: Select Node 4 → X Offset +15 → nodes no longer overlap
+
+**Scenario 2: Create Custom Layout**
+- Problem: Want nodes in a circle instead of grid
+- Solution: Fine-tune each node individually to form circle shape
+
+**Scenario 3: Align with Art**
+- Problem: New cauldron art has custom markings for node positions
+- Solution: Fine-tune each node to align with art asset markings
+
+**Scenario 4: Experimental Layouts**
+- Problem: Want to test if different node positions affect gameplay
+- Solution: Move nodes around, playtest, reset if it doesn't work
+
+**⚠️ Warnings & Limitations:**
+
+**Graph Topology Unchanged:**
+- Moving nodes does NOT change which nodes are connected by edges
+- Boost reach is based on GRAPH structure, not visual distance
+- Example: Node 0 and Node 3 are connected via an edge. If you move Node 3 far away, the edge line will stretch but they're still "neighbors" for boost purposes.
+
+**No Boundary Validation:**
+- You CAN move nodes outside the cauldron bowl
+- You CAN overlap nodes completely
+- **Recommendation:** Use moderate offsets (-50 to +50) for best results
+
+**Not Saved Between Sessions:**
+- Closing the app resets all per-node offsets to zero
+- To save a layout: Copy values from layout editor and paste into `PotionShopLayoutConfig.swift` defaults
+
+**Testing Checklist:**
+
+**Basic Functionality:**
+- ✅ Fine-Tune pill appears in pill picker
+- ✅ Tapping pill shows controls
+- ✅ Dropdown shows all 12 nodes
+- ✅ Selecting different nodes updates sliders
+- ✅ X slider moves node left/right immediately
+- ✅ Y slider moves node up/down immediately
+
+**Reset Functions:**
+- ✅ "Reset This Node" zeros out current node's offset
+- ✅ "Reset All Nodes" zeros out all 12 nodes
+- ✅ Sliders update to show 0 after reset
+
+**Edge Cases:**
+- ✅ Switch between nodes - sliders show correct values for each
+- ✅ Move node to extreme (+100, +100) - still playable?
+- ✅ Move node to opposite extreme (-100, -100) - doesn't escape bowl?
+- ✅ Adjust global spacing THEN fine-tune - offsets stack correctly?
+- ✅ Adjust fine-tune THEN global spacing - node keeps relative position?
+
+**Gameplay:**
+- ✅ Dice can still be placed on fine-tuned nodes
+- ✅ Drag-and-drop still works
+- ✅ Edge lines still connect to moved nodes
+- ✅ No crashes during brew animation
 
 **Current Production Values (Locked - May 5, 2026):**
 ```swift
@@ -847,6 +1000,8 @@ cauldronBowlY: 58
 nodeScale: 1.00
 nodeXOffset: 0
 nodeYOffset: 0
+nodeSpacingMultiplier: 1.0  // ⚠️ EXPERIMENTAL: Kept at 1.0 for production
+perNodeOffsets: [.zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero]  // All 12 nodes at default (NEW)
 
 // Dice
 dieScale: 1.31
@@ -897,6 +1052,7 @@ showBrewZone: false
 | **7d** | **Freeform art scaling (May 4 evening)** | ✅ | **Independent width/height scaling + X/Y positioning for cauldron & Ednar. Real-time sliders in layout editor. 8 new parameters total. See §8.9 for full documentation.** |
 | **7e** | **Art scaling FIX (May 4 evening)** | ✅ | **CRITICAL FIX: Removed `.scaledToFill()` from both images and added missing `*ArtScale` multiplier. Width/height sliders now work independently with true distortion. Images can be stretched/squished freely without aspect ratio constraints.** |
 | **7f** | **Live preview overlay editor (May 5)** | ✅ | **MAJOR REFACTOR: Replaced sheet-based editor with semi-transparent floating overlay that appears OVER the game. Shared `@Observable` config (`PotionShopLayoutConfig.shared`) enables true live preview. Section-focused UI with horizontal pill picker (📏🧙🍲🥘🔵🎲🥄). Added 🔵 Nodes section for grid positioning. Slider changes update game instantly without rebuild. See §12.1 for full documentation.** |
+| **7g** | **Per-node fine-tuning (May 5)** | ✅ | **Added 🔧 Fine-Tune section to layout editor. Individual X/Y offset controls for all 12 nodes (±100pt range). Dropdown picker to select node. "Reset This Node" and "Reset All Nodes" buttons. Offsets apply AFTER spacing multiplier (layered positioning). See §12.1.1 for full documentation.** |
 
 ---
 

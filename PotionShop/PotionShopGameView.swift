@@ -83,6 +83,7 @@ struct PotionShopGameView: View {
                         nodeXOffset: layoutConfig.nodeXOffset,
                         nodeYOffset: layoutConfig.nodeYOffset,
                         nodeSpacingMultiplier: layoutConfig.nodeSpacingMultiplier,
+                        perNodeOffsets: layoutConfig.perNodeOffsets,
                         brewXOffset: -50,
                         brewYPercent: 0.30,
                         showBrewButton: false,
@@ -295,6 +296,7 @@ struct PotionShopLayoutOverlay: View {
     
     // UI State
     @State private var activeSection: LayoutSection? = nil
+    @State private var selectedNodeIndex: Int = 0  // For fine-tune section
     
     enum LayoutSection: String, CaseIterable {
         case sections = "📏 Sections"
@@ -302,6 +304,7 @@ struct PotionShopLayoutOverlay: View {
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
+        case fineTune = "🔧 Fine-Tune"
         case dice = "🎲 Dice"
         case brewZone = "🥄 Brew"
     }
@@ -437,6 +440,62 @@ struct PotionShopLayoutOverlay: View {
                             .foregroundColor(.orange.opacity(0.9))
                             .italic()
                     }
+                }
+            }
+        case .fineTune:
+            VStack(alignment: .leading, spacing: 12) {
+                // Node picker
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Select Node")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                    Picker("Node", selection: $selectedNodeIndex) {
+                        ForEach(0..<12) { idx in
+                            Text("Node \(idx)").tag(idx)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.cyan)
+                }
+                
+                // X/Y offset sliders for selected node
+                VStack(alignment: .leading, spacing: 10) {
+                    let binding = Binding<Double>(
+                        get: { layoutConfig.perNodeOffsets[selectedNodeIndex].x },
+                        set: { layoutConfig.perNodeOffsets[selectedNodeIndex].x = $0 }
+                    )
+                    sliderRow("X Offset", value: binding, range: -100...100, format: "%.0f pt")
+                }
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    let binding = Binding<Double>(
+                        get: { layoutConfig.perNodeOffsets[selectedNodeIndex].y },
+                        set: { layoutConfig.perNodeOffsets[selectedNodeIndex].y = $0 }
+                    )
+                    sliderRow("Y Offset", value: binding, range: -100...100, format: "%.0f pt")
+                }
+                
+                // Reset buttons
+                HStack(spacing: 8) {
+                    Button("Reset This Node") {
+                        layoutConfig.perNodeOffsets[selectedNodeIndex] = .zero
+                    }
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange)
+                    .cornerRadius(6)
+                    
+                    Button("Reset All Nodes") {
+                        layoutConfig.resetAllNodeOffsets()
+                    }
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.red)
+                    .cornerRadius(6)
                 }
             }
         case .dice:

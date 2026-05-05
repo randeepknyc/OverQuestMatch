@@ -43,6 +43,14 @@ class PotionShopLayoutConfig {
     var nodeYOffset: Double = 0
     var nodeSpacingMultiplier: Double = 1.00  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
+    // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
+    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)  // Individual node tweaks
+    
+    // Helper method to reset all per-node offsets
+    func resetAllNodeOffsets() {
+        perNodeOffsets = Array(repeating: .zero, count: 12)
+    }
+    
     // Dice & Tray
     var dieScale: Double = 1.31
     var trayOffsetX: Double = 0

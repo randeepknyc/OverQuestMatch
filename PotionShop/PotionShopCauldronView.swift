@@ -163,6 +163,7 @@ struct PotionShopCauldronView: View {
     var nodeXOffset: Double = 0           // Independent node X offset (pts)
     var nodeYOffset: Double = 0           // Independent node Y offset (pts)
     var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Visual spacing multiplier (affects appearance only, NOT boost reach)
+    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)  // Per-node fine-tuning offsets
     var brewXOffset: Double = -50         // BREW button X from right edge
     var brewYPercent: Double = 0.30       // BREW button Y as % of cauldron height
     var showBrewButton: Bool = true       // Toggle to hide BREW button
@@ -264,6 +265,7 @@ struct PotionShopCauldronView: View {
 
                 ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
                     let node = PotionShopBoard.nodes[idx]
+                    let perNodeOffset = idx < perNodeOffsets.count ? perNodeOffsets[idx] : .zero
                     PotionShopNodeButtonView(
                         gs: gs,
                         nodeIndex: idx,
@@ -271,8 +273,8 @@ struct PotionShopCauldronView: View {
                         visualScale: nodeScale  // Pass visual scale separately
                     )
                         .position(
-                            x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier,
-                            y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier
+                            x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier + perNodeOffset.x,
+                            y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier + perNodeOffset.y
                         )
                 }
 
