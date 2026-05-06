@@ -28,6 +28,35 @@ class PotionShopLayoutConfig {
     var ednarX: Double = 14.0
     var ednarY: Double = -17.0
     
+    // Customer Scene Portraits (full-body standing characters)
+    var customerSceneWidth: Double = 1.0
+    var customerSceneHeight: Double = 1.0
+    var customerSceneX: Double = 0.0
+    var customerSceneY: Double = 0.0
+    
+    // Per-Character Scaling (14 characters, indexed by customer ID)
+    // Stores individual width/height/x/y for each character
+    var perCharacterScales: [String: CharacterScale] = [
+        "mildred": CharacterScale(width: 2.34, height: 2.13, x: 5.0, y: 51.0)
+    ]
+    
+    struct CharacterScale: Codable {
+        var width: Double = 1.0
+        var height: Double = 1.0
+        var x: Double = 0.0
+        var y: Double = 0.0
+    }
+    
+    // Helper to get or create a character scale
+    func characterScale(for id: String) -> CharacterScale {
+        return perCharacterScales[id] ?? CharacterScale()
+    }
+    
+    // Helper to update a character scale
+    func updateCharacterScale(for id: String, scale: CharacterScale) {
+        perCharacterScales[id] = scale
+    }
+    
     // Cauldron Art
     var cauldronWidth: Double = 1.3613475412130356
     var cauldronHeight: Double = 1.9335107803344727

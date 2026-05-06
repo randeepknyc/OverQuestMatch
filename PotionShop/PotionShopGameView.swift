@@ -65,7 +65,8 @@ struct PotionShopGameView: View {
                         ednarArtWidth: layoutConfig.ednarWidth,
                         ednarArtHeight: layoutConfig.ednarHeight,
                         ednarArtXOffset: layoutConfig.ednarX,
-                        ednarArtYOffset: layoutConfig.ednarY
+                        ednarArtYOffset: layoutConfig.ednarY,
+                        layoutConfig: layoutConfig  // ← NEW: Pass layout config for customer scaling
                     )
                         .frame(height: sceneH)
                         .frame(maxWidth: .infinity)
@@ -297,10 +298,12 @@ struct PotionShopLayoutOverlay: View {
     // UI State
     @State private var activeSection: LayoutSection? = nil
     @State private var selectedNodeIndex: Int = 0  // For fine-tune section
+    // selectedCharacterId removed - now hardcoded to "mildred" only
     
     enum LayoutSection: String, CaseIterable {
         case sections = "📏 Sections"
         case ednar = "🧙 Ednar"
+        case customers = "🧍 Customers"  // NEW: Customer scene portraits
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
@@ -416,6 +419,75 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Height", value: $layoutConfig.ednarHeight, range: 0.5...3.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.ednarX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.ednarY, range: -200...200, format: "%.0f")
+            }
+        case .customers:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("🧍 Mildred Scene Portrait")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                
+                Text("Adjusting: Mildred only")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.5))
+                    .italic()
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+                
+                // Per-character sliders (hardcoded to "mildred")
+                VStack(alignment: .leading, spacing: 10) {
+                    let widthBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: "mildred").width },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: "mildred")
+                            scale.width = newValue
+                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                        }
+                    )
+                    sliderRow("Width", value: widthBinding, range: 0.5...3.0, format: "%.2f×")
+                    
+                    let heightBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: "mildred").height },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: "mildred")
+                            scale.height = newValue
+                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                        }
+                    )
+                    sliderRow("Height", value: heightBinding, range: 0.5...3.0, format: "%.2f×")
+                    
+                    let xBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: "mildred").x },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: "mildred")
+                            scale.x = newValue
+                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                        }
+                    )
+                    sliderRow("X", value: xBinding, range: -200...200, format: "%.0f pt")
+                    
+                    let yBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: "mildred").y },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: "mildred")
+                            scale.y = newValue
+                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                        }
+                    )
+                    sliderRow("Y", value: yBinding, range: -200...200, format: "%.0f pt")
+                }
+                
+                // Reset button
+                Button("Reset Mildred") {
+                    layoutConfig.updateCharacterScale(for: "mildred", scale: PotionShopLayoutConfig.CharacterScale())
+                }
+                .font(.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange)
+                .cornerRadius(6)
             }
         case .cauldronArt:
             VStack(alignment: .leading, spacing: 10) {

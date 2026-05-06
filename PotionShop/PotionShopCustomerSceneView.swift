@@ -86,6 +86,7 @@ struct PotionShopCustomerSceneView: View {
     var ednarArtHeight: Double = 1.0 // FREEFORM - Height scale
     var ednarArtXOffset: Double = 0  // FREEFORM - X position
     var ednarArtYOffset: Double = 0  // FREEFORM - Y position
+    var layoutConfig: PotionShopLayoutConfig? = nil  // ← NEW: Optional layout config for customer scaling
 
     @Namespace private var queueAnimation
     @State private var activeArrivalCounter: Int = 0
@@ -116,6 +117,10 @@ struct PotionShopCustomerSceneView: View {
 
                 ForEach(Array(gs.queue.enumerated()), id: \.element) { idx, custId in
                     if let cust = gs.customers.first(where: { $0.id == custId }) {
+                        // Get per-character scaling values from layout config (for Mildred only)
+                        let charKey = cust.charKey
+                        let scale = layoutConfig?.characterScale(for: charKey) ?? PotionShopLayoutConfig.CharacterScale()
+                        
                         PotionShopCustomerInSceneView(
                             gs: gs,
                             customer: cust,
@@ -123,7 +128,11 @@ struct PotionShopCustomerSceneView: View {
                             queueCount: gs.queue.count,
                             sceneSize: geo.size,
                             animationNamespace: queueAnimation,
-                            arrivalCounter: activeArrivalCounter
+                            arrivalCounter: activeArrivalCounter,
+                            customerSceneWidth: scale.width,   // ← NOW CONNECTED!
+                            customerSceneHeight: scale.height, // ← NOW CONNECTED!
+                            customerSceneX: scale.x,           // ← NOW CONNECTED!
+                            customerSceneY: scale.y            // ← NOW CONNECTED!
                         )
                     }
                 }
@@ -282,6 +291,12 @@ struct PotionShopCustomerInSceneView: View {
     let sceneSize: CGSize
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
+    
+    // Customer scaling parameters (May 5, 2026)
+    var customerSceneWidth: Double = 1.0
+    var customerSceneHeight: Double = 1.0
+    var customerSceneX: Double = 0.0
+    var customerSceneY: Double = 0.0
 
     @State private var shakeOffset: CGFloat = 0
     @State private var settleBoost: CGFloat = 1.0
@@ -336,12 +351,23 @@ struct PotionShopCustomerInSceneView: View {
         if let char = char {
             ZStack {
                 // Character image (full body, NO circle!)
-                PotionShopImageLoader.sceneImageOrFallback(
-                    sceneAsset: char.scenePortrait,
-                    profileAsset: char.portrait,
-                    fallbackEmoji: char.iconFallback,
-                    size: PotionShopSceneLayout.portraitDiameter * scale
-                )
+                // Apply custom scaling and positioning
+                ZStack {
+                    Color.clear
+                        .frame(
+                            width: PotionShopSceneLayout.portraitDiameter * scale,
+                            height: PotionShopSceneLayout.portraitDiameter * scale * 1.5  // 2:3 aspect ratio
+                        )
+                    
+                    PotionShopImageLoader.sceneImageOrFallback(
+                        sceneAsset: char.scenePortrait,
+                        profileAsset: char.portrait,
+                        fallbackEmoji: char.iconFallback,
+                        size: PotionShopSceneLayout.portraitDiameter * scale
+                    )
+                    .scaleEffect(x: customerSceneWidth, y: customerSceneHeight, anchor: .center)
+                    .offset(x: customerSceneX, y: customerSceneY)
+                }
 
                 // HP Badge (ABOVE character's head, centered)
                 if isActive {

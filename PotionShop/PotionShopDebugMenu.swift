@@ -267,6 +267,14 @@ struct PotionShopDebugMenu: View {
         ednarY: \(cfg.ednarY)
         
         ───────────────────────────────────────────────────────────────
+        🧍 MILDRED SCENE PORTRAIT (per-character scaling)
+        ───────────────────────────────────────────────────────────────
+        mildred_width: \(cfg.characterScale(for: "mildred").width)
+        mildred_height: \(cfg.characterScale(for: "mildred").height)
+        mildred_x: \(cfg.characterScale(for: "mildred").x)
+        mildred_y: \(cfg.characterScale(for: "mildred").y)
+        
+        ───────────────────────────────────────────────────────────────
         🍲 CAULDRON ART (freeform scaling + positioning)
         ───────────────────────────────────────────────────────────────
         cauldronWidth: \(cfg.cauldronWidth)

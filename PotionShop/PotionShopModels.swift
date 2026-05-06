@@ -42,14 +42,14 @@ struct PotionShopImageLoader {
     @ViewBuilder
     static func sceneImageOrFallback(sceneAsset: String, profileAsset: String, fallbackEmoji: String, size: CGFloat) -> some View {
         if let uiImage = loadImage(named: sceneAsset) {
-            // Preferred: scene portrait (full body)
+            // Preferred: scene portrait (full body) - NO CLIPPING!
             Image(uiImage: uiImage)
                 .resizable()
-                .scaledToFill()
-                .frame(width: size, height: size)
-                .clipShape(Circle())
+                .scaledToFit()  // Changed from .scaledToFill() to preserve aspect ratio
+                .frame(width: size, height: size * 1.5)  // 2:3 aspect ratio frame
+                // NO .clipShape(Circle()) - removed so you can see the full image!
         } else if let uiImage = loadImage(named: profileAsset) {
-            // Fallback: profile portrait (head closeup)
+            // Fallback: profile portrait (head closeup) - keep circle for profiles
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
