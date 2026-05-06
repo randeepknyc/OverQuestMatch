@@ -139,7 +139,7 @@ enum PotionShopData {
             name: "Tomik Cooper",
             title: "Sleepy Apprentice",
             portrait: "tomik",
-            scenePortrait: "tomik",  // Temporary - will become "tomik_scene" later
+            scenePortrait: "tomik_scene",  // ✅ Now uses tomik_scene.png
             iconFallback: "😴",
             difficulty: 1,
             timeOfDay: [.morning],

@@ -298,7 +298,7 @@ struct PotionShopLayoutOverlay: View {
     // UI State
     @State private var activeSection: LayoutSection? = nil
     @State private var selectedNodeIndex: Int = 0  // For fine-tune section
-    // selectedCharacterId removed - now hardcoded to "mildred" only
+    @State private var selectedCharacterId: String = "mildred"  // For customers section
     
     enum LayoutSection: String, CaseIterable {
         case sections = "📏 Sections"
@@ -422,65 +422,73 @@ struct PotionShopLayoutOverlay: View {
             }
         case .customers:
             VStack(alignment: .leading, spacing: 10) {
-                Text("🧍 Mildred Scene Portrait")
+                Text("🧍 Customer Scene Portraits")
                     .font(.caption2.bold())
                     .foregroundColor(.cyan)
                 
-                Text("Adjusting: Mildred only")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
-                    .italic()
+                // Character picker
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Select Character")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                    Picker("Character", selection: $selectedCharacterId) {
+                        Text("Mildred").tag("mildred")
+                        Text("Tomik").tag("tomik")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.cyan)
+                }
                 
                 Divider()
                     .background(Color.white.opacity(0.3))
                     .padding(.vertical, 4)
                 
-                // Per-character sliders (hardcoded to "mildred")
+                // Per-character sliders (now uses selectedCharacterId)
                 VStack(alignment: .leading, spacing: 10) {
                     let widthBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: "mildred").width },
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).width },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: "mildred")
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
                             scale.width = newValue
-                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Width", value: widthBinding, range: 0.5...3.0, format: "%.2f×")
                     
                     let heightBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: "mildred").height },
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).height },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: "mildred")
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
                             scale.height = newValue
-                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Height", value: heightBinding, range: 0.5...3.0, format: "%.2f×")
                     
                     let xBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: "mildred").x },
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).x },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: "mildred")
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
                             scale.x = newValue
-                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("X", value: xBinding, range: -200...200, format: "%.0f pt")
                     
                     let yBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: "mildred").y },
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).y },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: "mildred")
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
                             scale.y = newValue
-                            layoutConfig.updateCharacterScale(for: "mildred", scale: scale)
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Y", value: yBinding, range: -200...200, format: "%.0f pt")
                 }
                 
-                // Reset button
-                Button("Reset Mildred") {
-                    layoutConfig.updateCharacterScale(for: "mildred", scale: PotionShopLayoutConfig.CharacterScale())
+                // Reset button (now uses selected character)
+                Button("Reset \(selectedCharacterId.capitalized)") {
+                    layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: PotionShopLayoutConfig.CharacterScale())
                 }
                 .font(.caption)
                 .foregroundColor(.white)

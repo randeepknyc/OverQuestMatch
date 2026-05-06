@@ -37,7 +37,8 @@ class PotionShopLayoutConfig {
     // Per-Character Scaling (14 characters, indexed by customer ID)
     // Stores individual width/height/x/y for each character
     var perCharacterScales: [String: CharacterScale] = [
-        "mildred": CharacterScale(width: 2.34, height: 2.13, x: 5.0, y: 51.0)
+        "mildred": CharacterScale(width: 2.34, height: 2.13, x: 5.0, y: 51.0),
+        "tomik": CharacterScale(width: 2.34, height: 2.13, x: 5.0, y: 51.0)
     ]
     
     struct CharacterScale: Codable {
