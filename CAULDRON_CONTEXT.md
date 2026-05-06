@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 6, 2026 (Customer Scaling System Complete)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling (Mildred only for now). **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden. **Customer scaling system ready for art integration (May 6, 2026).**  
+> **Last Updated:** May 6, 2026 (Tomik Added to Customer Scaling)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling. **Character picker with Mildred & Tomik** - both use `*_scene.png` assets with 2.34×2.13× default scaling. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden. **Customer scaling system active with 2 characters (May 6, 2026).**  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -1034,20 +1034,24 @@ showBrewZone: false
 
 #### **12.1.2 Customer Scene Scaling (NEW - May 6, 2026)**
 
-**Status:** ✅ COMPLETE - Ready for Art Integration  
-**Feature:** Per-character width/height/X/Y scaling with live preview (Mildred only for now)
+**Status:** ✅ COMPLETE - Mildred & Tomik Ready  
+**Feature:** Per-character width/height/X/Y scaling with live preview and character picker
 
 The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently.
 
 **Key Features:**
-- ✅ **Mildred-only controls** (simplified from all 14 characters)
+- ✅ **Character picker dropdown** - Select Mildred or Tomik
 - ✅ **Width slider** (0.5× to 3.0×) - Horizontal scaling
 - ✅ **Height slider** (0.5× to 3.0×) - Vertical scaling
 - ✅ **X Offset slider** (-200 to +200 pts) - Horizontal position
 - ✅ **Y Offset slider** (-200 to +200 pts) - Vertical position
-- ✅ **"Reset Mildred" button** - Reset all values to 1.0×/0pt
-- ✅ **Live preview** - Changes apply instantly to Mildred in the customer scene
+- ✅ **Dynamic reset button** - Changes to "Reset Mildred" or "Reset Tomik" based on selection
+- ✅ **Live preview** - Changes apply instantly to the selected character
 - ✅ **No circle clipping** - Full images visible for proper resizing
+
+**Current Characters with Art:**
+- **Mildred** - `mildred_scene.png` (2.34×, 2.13×, 5pt, 51pt)
+- **Tomik** - `tomik_scene.png` (2.34×, 2.13×, 5pt, 51pt)
 
 **Circle Clipping Removal (CRITICAL FIX):**
 
@@ -1077,7 +1081,7 @@ Image(uiImage: uiImage)
 ```
 Layout Editor Sliders
     ↓
-PotionShopLayoutConfig.perCharacterScales["mildred"]
+PotionShopLayoutConfig.perCharacterScales["mildred" or "tomik"]
     ↓
 PotionShopGameView (passes layoutConfig to scene)
     ↓
@@ -1088,14 +1092,16 @@ PotionShopCustomerInSceneView (receives width/height/x/y values)
 .scaleEffect(x: customerSceneWidth, y: customerSceneHeight)
 .offset(x: customerSceneX, y: customerSceneY)
     ↓
-VISUAL UPDATE (Mildred resizes/repositions instantly!)
+VISUAL UPDATE (Selected character resizes/repositions instantly!)
 ```
 
 **Files Modified:**
-1. **PotionShopLayoutConfig.swift** - Added `perCharacterScales` dictionary
-2. **PotionShopGameView.swift** - Passes `layoutConfig`, simplified 🧍 section to Mildred-only
+1. **PotionShopLayoutConfig.swift** - Added `perCharacterScales` dictionary with Mildred & Tomik defaults
+2. **PotionShopGameView.swift** - Character picker dropdown, dynamic sliders for selected character
 3. **PotionShopCustomerSceneView.swift** - Receives config, passes values to customer views
 4. **PotionShopModels.swift** - **REMOVED circle clipping**, changed to `.scaledToFit()`
+5. **PotionShopData.swift** - Updated Tomik's `scenePortrait` to `"tomik_scene"`
+6. **PotionShopDebugMenu.swift** - Clipboard output includes both Mildred and Tomik values
 
 **Deprecation:**
 - The old sheet-based editor (`PotionShopNewLayoutEditor` struct in `PotionShopDebugMenu.swift`) is still present but **not used**
@@ -1134,7 +1140,7 @@ VISUAL UPDATE (Mildred resizes/repositions instantly!)
 | **7e** | **Art scaling FIX (May 4 evening)** | ✅ | **CRITICAL FIX: Removed `.scaledToFill()` from both images and added missing `*ArtScale` multiplier. Width/height sliders now work independently with true distortion. Images can be stretched/squished freely without aspect ratio constraints.** |
 | **7f** | **Live preview overlay editor (May 5)** | ✅ | **MAJOR REFACTOR: Replaced sheet-based editor with semi-transparent floating overlay that appears OVER the game. Shared `@Observable` config (`PotionShopLayoutConfig.shared`) enables true live preview. Section-focused UI with horizontal pill picker (📏🧙🍲🥘🔵🎲🥄). Added 🔵 Nodes section for grid positioning. Slider changes update game instantly without rebuild. See §12.1 for full documentation.** |
 | **7g** | **Per-node fine-tuning (May 5)** | ✅ | **Added 🔧 Fine-Tune section to layout editor. Individual X/Y offset controls for all 12 nodes (±100pt range). Dropdown picker to select node. "Reset This Node" and "Reset All Nodes" buttons. Offsets apply AFTER spacing multiplier (layered positioning). See §12.1.1 for full documentation.** |
-| **7h** | **Customer scene scaling system (May 6)** | ✅ | **Added 🧍 Customers section to layout editor. Per-character width/height/X/Y scaling (currently Mildred only). Removed circle clipping from scene portraits so full images are visible. Values passed from layoutConfig → GameView → SceneView → CustomerView. See §12.1.2 for full documentation.** |
+| **7h** | **Customer scene scaling system (May 6)** | ✅ | **Added 🧍 Customers section to layout editor. Per-character width/height/X/Y scaling with character picker dropdown (Mildred & Tomik). Removed circle clipping from scene portraits so full images are visible. Values passed from layoutConfig → GameView → SceneView → CustomerView. Both characters default to 2.34×2.13× with 5pt, 51pt offsets. See §12.1.2 for full documentation.** |
 
 ---
 
