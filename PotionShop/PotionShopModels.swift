@@ -34,6 +34,33 @@ struct PotionShopImageLoader {
                 .font(.system(size: size * 0.55))
         }
     }
+    
+    /// Creates a view showing scene portrait with graceful fallback chain:
+    /// 1. Try scenePortrait asset
+    /// 2. If not found, try portrait asset (profile closeup)
+    /// 3. If not found, show emoji
+    @ViewBuilder
+    static func sceneImageOrFallback(sceneAsset: String, profileAsset: String, fallbackEmoji: String, size: CGFloat) -> some View {
+        if let uiImage = loadImage(named: sceneAsset) {
+            // Preferred: scene portrait (full body)
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        } else if let uiImage = loadImage(named: profileAsset) {
+            // Fallback: profile portrait (head closeup)
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        } else {
+            // Last resort: emoji
+            Text(fallbackEmoji)
+                .font(.system(size: size * 0.55))
+        }
+    }
 }
 
 // MARK: - Game state phases
@@ -124,7 +151,8 @@ struct PotionShopCharacter: Identifiable {
     let id: String          // e.g. "mildred"
     let name: String        // e.g. "Mildred Honeycomb"
     let title: String       // e.g. "Anxious Farmwife"
-    let portrait: String    // asset name for the portrait PNG (used when art arrives)
+    let portrait: String    // asset name for profile row portrait PNG (head closeup)
+    let scenePortrait: String // asset name for customer scene portrait PNG (full body/bust)
     let iconFallback: String // emoji used as placeholder until portrait is in
     let difficulty: Int     // 1 (tutorial) - 5 (boss)
     let timeOfDay: [PotionShopTimeOfDay]

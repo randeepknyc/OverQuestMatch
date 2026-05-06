@@ -267,6 +267,12 @@ struct PotionShopEdnarView: View {
 //   - Shake when gs.customerShakeCounters[id] increments
 //   - Slide off-screen + fade when gs.expiringCustomerIds contains id
 //   - Optional 💢 emoji burst on expiration (PotionShopBrewAnimator.expirationShowEmoji)
+//
+// PHASE 7H (May 5, 2026): FULL-BODY CUSTOMERS (NO CIRCLES)
+//   - Character image shows at natural 2:3 aspect ratio (NO circle crop!)
+//   - HP badge ABOVE head (centered horizontally)
+//   - Attack badges ABOVE head (offset to left/right)
+//   - All effects, values, and behaviors unchanged
 
 struct PotionShopCustomerInSceneView: View {
     @Bindable var gs: PotionShopGameState
@@ -329,24 +335,15 @@ struct PotionShopCustomerInSceneView: View {
     var body: some View {
         if let char = char {
             ZStack {
-                Circle()
-                    .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
-                    .overlay(
-                        PotionShopImageLoader.imageOrEmoji(
-                            assetName: char.portrait,
-                            fallbackEmoji: char.iconFallback,
-                            size: PotionShopSceneLayout.portraitDiameter * scale
-                        )
-                    )
-                    .frame(
-                        width: PotionShopSceneLayout.portraitDiameter * scale,
-                        height: PotionShopSceneLayout.portraitDiameter * scale
-                    )
-                    .overlay(
-                        Circle()
-                            .stroke(PotionShopTheme.ink, lineWidth: dim ? 2 : 3)
-                    )
+                // Character image (full body, NO circle!)
+                PotionShopImageLoader.sceneImageOrFallback(
+                    sceneAsset: char.scenePortrait,
+                    profileAsset: char.portrait,
+                    fallbackEmoji: char.iconFallback,
+                    size: PotionShopSceneLayout.portraitDiameter * scale
+                )
 
+                // HP Badge (ABOVE character's head, centered)
                 if isActive {
                     Text("\(customer.hp)")
                         .font(.system(size: 14 * scale, weight: .bold))
@@ -357,10 +354,11 @@ struct PotionShopCustomerInSceneView: View {
                         )
                         .background(Circle().fill(PotionShopTheme.composureBad))
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                        .offset(x: -28 * scale, y: -28 * scale)
+                        .offset(x: 0, y: -60 * scale)  // ABOVE head (centered horizontally)
                         .transition(.scale.combined(with: .opacity))
                 }
 
+                // Attack Badge (ABOVE character's head, offset to right)
                 if attack > 0 {
                     Text("\(attack)")
                         .font(.system(size: 11 * scale, weight: .bold))
@@ -371,7 +369,7 @@ struct PotionShopCustomerInSceneView: View {
                         )
                         .background(Circle().fill(PotionShopTheme.composureBad))
                         .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                        .offset(x: 28 * scale, y: 28 * scale)
+                        .offset(x: 20 * scale, y: -50 * scale)  // ABOVE head (offset right)
                 }
 
                 // PHASE 7: 💢 emoji burst on expiration

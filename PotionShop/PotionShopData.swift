@@ -115,6 +115,7 @@ enum PotionShopData {
             name: "Mildred Honeycomb",
             title: "Anxious Farmwife",
             portrait: "mildred",
+            scenePortrait: "mildred_scene",  // DUAL PORTRAIT SYSTEM - Full body art
             iconFallback: "🧑‍🌾",
             difficulty: 1,
             timeOfDay: [.morning],
@@ -138,6 +139,7 @@ enum PotionShopData {
             name: "Tomik Cooper",
             title: "Sleepy Apprentice",
             portrait: "tomik",
+            scenePortrait: "tomik",  // Temporary - will become "tomik_scene" later
             iconFallback: "😴",
             difficulty: 1,
             timeOfDay: [.morning],
@@ -161,6 +163,7 @@ enum PotionShopData {
             name: "Greta Marshlow",
             title: "Cheerful Villager",
             portrait: "greta",
+            scenePortrait: "greta",  // Temporary - will become "greta_scene" later
             iconFallback: "🌻",
             difficulty: 1,
             timeOfDay: [.morning, .afternoon],
@@ -186,6 +189,7 @@ enum PotionShopData {
             name: "Pemberton Quill",
             title: "Travelling Merchant",
             portrait: "pemberton",
+            scenePortrait: "pemberton",  // Temporary - will become "pemberton_scene" later
             iconFallback: "🧔",
             difficulty: 2,
             timeOfDay: [.afternoon],
@@ -209,6 +213,7 @@ enum PotionShopData {
             name: "Sister Halla",
             title: "Wandering Sister",
             portrait: "sister_halla",
+            scenePortrait: "sister_halla",  // Temporary - will become "sister_halla_scene" later
             iconFallback: "🧎",
             difficulty: 2,
             timeOfDay: [.morning, .afternoon],
@@ -232,6 +237,7 @@ enum PotionShopData {
             name: "Ardo Quill",
             title: "Nervous Scholar",
             portrait: "ardo",
+            scenePortrait: "ardo",  // Temporary - will become "ardo_scene" later
             iconFallback: "📚",
             difficulty: 2,
             timeOfDay: [.morning, .afternoon],
@@ -257,6 +263,7 @@ enum PotionShopData {
             name: "Wendelina Rookpool",
             title: "Hedge Witch",
             portrait: "wendelina",
+            scenePortrait: "wendelina",  // Temporary - will become "wendelina_scene" later
             iconFallback: "🧙‍♀️",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -280,6 +287,7 @@ enum PotionShopData {
             name: "Bram the Bard",
             title: "Travelling Lutist",
             portrait: "bram",
+            scenePortrait: "bram",  // Temporary - will become "bram_scene" later
             iconFallback: "🎻",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -303,6 +311,7 @@ enum PotionShopData {
             name: "Lord Crispin Vorne",
             title: "Petty Noble",
             portrait: "crispin",
+            scenePortrait: "crispin",  // Temporary - will become "crispin_scene" later
             iconFallback: "🎩",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -328,6 +337,7 @@ enum PotionShopData {
             name: "Hexa Mott",
             title: "Murky Witch",
             portrait: "hexa_mott",
+            scenePortrait: "hexa_mott",  // Temporary - will become "hexa_mott_scene" later
             iconFallback: "🌒",
             difficulty: 4,
             timeOfDay: [.evening],
@@ -351,6 +361,7 @@ enum PotionShopData {
             name: "Captain Ironhilde",
             title: "Battle-Weary Knight",
             portrait: "ironhilde",
+            scenePortrait: "ironhilde",  // Temporary - will become "ironhilde_scene" later
             iconFallback: "🛡️",
             difficulty: 4,
             timeOfDay: [.evening],
@@ -376,6 +387,7 @@ enum PotionShopData {
             name: "Grimdrek the Volatile",
             title: "Hellsworn Merchant",
             portrait: "grimdrek",
+            scenePortrait: "grimdrek",  // Temporary - will become "grimdrek_scene" later
             iconFallback: "👹",
             difficulty: 5,
             timeOfDay: [.night],
@@ -399,6 +411,7 @@ enum PotionShopData {
             name: "Lady Carmilla Veil",
             title: "Vampire Countess",
             portrait: "carmilla",
+            scenePortrait: "carmilla",  // Temporary - will become "carmilla_scene" later
             iconFallback: "🦇",
             difficulty: 5,
             timeOfDay: [.night],
@@ -422,6 +435,7 @@ enum PotionShopData {
             name: "The Royal Envoy",
             title: "On Crown Business",
             portrait: "royal_envoy",
+            scenePortrait: "royal_envoy",  // Temporary - will become "royal_envoy_scene" later
             iconFallback: "👑",
             difficulty: 5,
             timeOfDay: [.night],
