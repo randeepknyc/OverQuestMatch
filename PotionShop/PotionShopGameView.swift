@@ -434,9 +434,49 @@ struct PotionShopLayoutOverlay: View {
                     Picker("Character", selection: $selectedCharacterId) {
                         Text("Mildred").tag("mildred")
                         Text("Tomik").tag("tomik")
+                        Text("Greta").tag("greta")
+                        Text("Sister Halla").tag("sister_halla")
+                        Text("Wendelina").tag("wendelina")
+                        Text("Grimdrek").tag("grimdrek")
+                        Text("Hexa Mott").tag("hexa_mott")
                     }
                     .pickerStyle(.menu)
                     .tint(.cyan)
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+                
+                // 🔗 Uniform Scale slider (adjusts both width AND height together)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("🔗 Uniform Scale")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        Spacer()
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).width))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.yellow)
+                    }
+                    Slider(
+                        value: Binding<Double>(
+                            get: { layoutConfig.characterScale(for: selectedCharacterId).width },
+                            set: { newValue in
+                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                scale.width = newValue
+                                scale.height = newValue  // ← Apply same value to height!
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            }
+                        ),
+                        in: 0.5...3.0
+                    )
+                    .tint(.yellow)
+                    
+                    Text("Adjusts width AND height together")
+                        .font(.system(size: 9))
+                        .foregroundColor(.yellow.opacity(0.8))
+                        .italic()
                 }
                 
                 Divider()

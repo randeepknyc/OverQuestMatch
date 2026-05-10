@@ -205,7 +205,7 @@ struct PotionShopCauldronView: View {
             )
 
             ZStack {
-                // SINGLE CAULDRON IMAGE (behind nodes)
+                // LAYER 0: SINGLE CAULDRON IMAGE (bottom layer)
                 if let cauldronImage = PotionShopImageLoader.loadImage(named: "cauldron") {
                     Image(uiImage: cauldronImage)
                         .resizable()
@@ -220,6 +220,7 @@ struct PotionShopCauldronView: View {
                             y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
                         )
                         .allowsHitTesting(false)  // Don't intercept touches meant for nodes
+                        .zIndex(0)  // 🔧 EXPLICIT Z-INDEX: Bottom layer
                 } else {
                     // Placeholder: Simple bowl shape when no art
                     PotionShopBowlShape()
@@ -240,29 +241,19 @@ struct PotionShopCauldronView: View {
                         .frame(width: g.bowlW, height: g.bowlH)
                         .position(x: g.bowlCenterX, y: g.bowlOriginY + g.bowlH / 2)
                         .shadow(color: .black.opacity(0.20), radius: 6, x: 0, y: 4)
+                        .zIndex(0)  // 🔧 EXPLICIT Z-INDEX: Bottom layer
                 }
 
-                // Edge lines connecting nodes
-                Path { path in
-                    for (a, b) in PotionShopBoard.edges {
-                        let na = PotionShopBoard.nodes[a]
-                        let nb = PotionShopBoard.nodes[b]
-                        path.move(
-                            to: CGPoint(
-                                x: g.nodeOriginX + CGFloat(na.x) * g.nodeSpacingMultiplier,
-                                y: g.nodeOriginY + CGFloat(na.y) * g.nodeSpacingMultiplier
-                            )
-                        )
-                        path.addLine(
-                            to: CGPoint(
-                                x: g.nodeOriginX + CGFloat(nb.x) * g.nodeSpacingMultiplier,
-                                y: g.nodeOriginY + CGFloat(nb.y) * g.nodeSpacingMultiplier
-                            )
-                        )
-                    }
-                }
-                .stroke(Color.white.opacity(0.30), lineWidth: 1)
+                // LAYER 1: Connecting lines between nodes (BEHIND nodes, above cauldron)
+                PotionShopNodeConnectionLines(
+                    nodeOriginX: g.nodeOriginX,
+                    nodeOriginY: g.nodeOriginY,
+                    nodeSpacingMultiplier: g.nodeSpacingMultiplier,
+                    perNodeOffsets: perNodeOffsets
+                )
+                    .zIndex(1)  // 🔧 EXPLICIT Z-INDEX: Middle layer (above cauldron, behind nodes)
 
+                // LAYER 2: Nodes (TOP LAYER - above lines and cauldron)
                 ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
                     let node = PotionShopBoard.nodes[idx]
                     let perNodeOffset = idx < perNodeOffsets.count ? perNodeOffsets[idx] : .zero
@@ -276,6 +267,7 @@ struct PotionShopCauldronView: View {
                             x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier + perNodeOffset.x,
                             y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier + perNodeOffset.y
                         )
+                        .zIndex(2)  // 🔧 EXPLICIT Z-INDEX: Top layer (above everything)
                 }
 
                 // BREW BUTTON (conditionally shown)
@@ -285,6 +277,7 @@ struct PotionShopCauldronView: View {
                             x: g.totalW + brewXOffset,
                             y: g.bowlOriginY + g.bowlH * brewYPercent
                         )
+                        .zIndex(3)  // Above nodes
                 }
                 
                 // BREW TAP ZONE (custom tappable area - shown only in editor)
@@ -329,6 +322,7 @@ struct PotionShopCauldronView: View {
                     }
                     .position(x: zoneX, y: zoneY)
                     .disabled(gs.placements.isEmpty || gs.isAnimating || gs.phase != .playing)
+                    .zIndex(3)  // Above nodes
                 }
             }
         }
@@ -431,11 +425,11 @@ struct PotionShopNodeButtonView: View {
 
     private var visibleFill: Color {
         if isHovered && canReceiveDrop { 
-            return Color(red: 1.0, green: 0.95, blue: 0.4).opacity(0.9)
+            return Color(red: 1.0, green: 0.95, blue: 0.4)  // Fully opaque (removed .opacity(0.9))
         }
-        if canBePlacedOn { return Color(red: 1.0, green: 0.92, blue: 0.62) }
-        if atCap { return Color(red: 0.85, green: 0.78, blue: 0.58).opacity(0.5) }
-        return Color(red: 0.95, green: 0.87, blue: 0.65).opacity(0.85)
+        if canBePlacedOn { return Color(red: 1.0, green: 0.92, blue: 0.62) }  // Already opaque
+        if atCap { return Color(red: 0.85, green: 0.78, blue: 0.58) }  // Fully opaque (removed .opacity(0.5))
+        return Color(red: 0.95, green: 0.87, blue: 0.65)  // Fully opaque (removed .opacity(0.85))
     }
 
     private var visibleStroke: Color {
@@ -806,3 +800,49 @@ struct PotionShopDieButtonView: View {
         .disabled(gs.isAnimating)
     }
 }
+// MARK: - Node Connection Lines
+//
+// Draws lines connecting nodes based on PotionShopBoard.edges topology.
+// These lines appear BEHIND the nodes (z-index 1) but above the cauldron (z-index 0).
+// Lines automatically connect to the actual node positions including all offsets.
+
+struct PotionShopNodeConnectionLines: View {
+    let nodeOriginX: CGFloat
+    let nodeOriginY: CGFloat
+    let nodeSpacingMultiplier: CGFloat
+    let perNodeOffsets: [CGPoint]
+    
+    var body: some View {
+        Canvas { context, size in
+            // Draw each edge as a line
+            for (fromIdx, toIdx) in PotionShopBoard.edges {
+                // Get base node positions
+                let fromNode = PotionShopBoard.nodes[fromIdx]
+                let toNode = PotionShopBoard.nodes[toIdx]
+                
+                // Calculate actual positions with all transforms applied
+                let fromOffset = fromIdx < perNodeOffsets.count ? perNodeOffsets[fromIdx] : .zero
+                let toOffset = toIdx < perNodeOffsets.count ? perNodeOffsets[toIdx] : .zero
+                
+                let fromX = nodeOriginX + CGFloat(fromNode.x) * nodeSpacingMultiplier + fromOffset.x
+                let fromY = nodeOriginY + CGFloat(fromNode.y) * nodeSpacingMultiplier + fromOffset.y
+                
+                let toX = nodeOriginX + CGFloat(toNode.x) * nodeSpacingMultiplier + toOffset.x
+                let toY = nodeOriginY + CGFloat(toNode.y) * nodeSpacingMultiplier + toOffset.y
+                
+                // Create path for this edge
+                var path = Path()
+                path.move(to: CGPoint(x: fromX, y: fromY))
+                path.addLine(to: CGPoint(x: toX, y: toY))
+                
+                // Draw the line with green color matching the image
+                context.stroke(
+                    path,
+                    with: .color(Color(red: 0.18, green: 0.80, blue: 0.44).opacity(0.6)),  // Green with slight transparency
+                    lineWidth: 2.5
+                )
+            }
+        }
+    }
+}
+

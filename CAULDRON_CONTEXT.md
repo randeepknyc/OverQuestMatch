@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 6, 2026 (Tomik Added to Customer Scaling)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling. **Character picker with Mildred & Tomik** - both use `*_scene.png` assets with 2.34×2.13× default scaling. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden. **Customer scaling system active with 2 characters (May 6, 2026).**  
+> **Last Updated:** May 10, 2026 (Customer Scene Portrait Integration - Default Scaling + Uniform Scale Control)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **7 customer scene portraits integrated** (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **7-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Character picker expanded to 7 characters** - Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions updated**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for all customer scene portraits. **Default scale**: 1.6× width, 2.0× height (matches Ednar proportions). **Uniform scale slider added** - adjusts both width AND height together for quick proportional scaling. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -1032,26 +1032,52 @@ brewZoneHeight: 95.51772773265839
 showBrewZone: false
 ```
 
-#### **12.1.2 Customer Scene Scaling (NEW - May 6, 2026)**
+#### **12.1.2 Customer Scene Scaling (UPDATED - May 10, 2026)**
 
-**Status:** ✅ COMPLETE - Mildred & Tomik Ready  
-**Feature:** Per-character width/height/X/Y scaling with live preview and character picker
+**Status:** ✅ COMPLETE - 7 Characters Integrated + Uniform Scale Control  
+**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, and uniform scale slider
 
 The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently.
 
 **Key Features:**
-- ✅ **Character picker dropdown** - Select Mildred or Tomik
-- ✅ **Width slider** (0.5× to 3.0×) - Horizontal scaling
-- ✅ **Height slider** (0.5× to 3.0×) - Vertical scaling
+- ✅ **Character picker dropdown** - Select any of 7 characters (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott)
+- ✅ **🔗 Uniform Scale slider** (0.5× to 3.0×) - **NEW!** Adjusts width AND height together (yellow color)
+- ✅ **Width slider** (0.5× to 3.0×) - Horizontal scaling (independent)
+- ✅ **Height slider** (0.5× to 3.0×) - Vertical scaling (independent)
 - ✅ **X Offset slider** (-200 to +200 pts) - Horizontal position
 - ✅ **Y Offset slider** (-200 to +200 pts) - Vertical position
-- ✅ **Dynamic reset button** - Changes to "Reset Mildred" or "Reset Tomik" based on selection
+- ✅ **Dynamic reset button** - Changes to "Reset [Character]" based on selection
 - ✅ **Live preview** - Changes apply instantly to the selected character
 - ✅ **No circle clipping** - Full images visible for proper resizing
 
-**Current Characters with Art:**
-- **Mildred** - `mildred_scene.png` (2.34×, 2.13×, 5pt, 51pt)
-- **Tomik** - `tomik_scene.png` (2.34×, 2.13×, 5pt, 51pt)
+**Uniform Scale Feature (NEW - May 10, 2026):**
+- Located at the **top of 🧍 Customers section**, below character picker
+- **Yellow color** (distinct from cyan individual sliders)
+- Dragging slider sets **both width AND height to the same value**
+- Perfect for **quick proportional scaling** without touching individual sliders
+- Displays current width value (since width = height when using uniform scale)
+- Helper text: "Adjusts width AND height together"
+
+**Workflow:**
+1. Select character from picker
+2. Drag **🔗 Uniform Scale** for quick proportional sizing (e.g., 1.5× makes character 1.5× wider AND 1.5× taller)
+3. OR drag individual Width/Height sliders for asymmetric scaling (e.g., 2.0× wide, 1.5× tall)
+4. Adjust X/Y sliders to position
+5. Character updates instantly in live preview
+
+**Current Characters with Art (UPDATED - May 10, 2026):**
+- **Mildred** - `mildred_scene.png` (2.18×, 2.03×, -5.3pt, 5.6pt) - Already tuned
+- **Tomik** - `tomik_scene.png` (2.09×, 1.90×, -17pt, 18pt) - Already tuned
+- **Greta** - `greta_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+- **Sister Halla** - `sister_halla_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+- **Wendelina** - `wendelina_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+- **Grimdrek** - `grimdrek_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+- **Hexa Mott** - `hexa_mott_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+
+**Default Scale Rationale:**
+- 1.6× width, 2.0× height matches Ednar's proportions (`ednar_idle.png`)
+- Ensures new characters appear at a visible size (not tiny 1.0×)
+- Based on user's 1536×1024 px Procreate canvas (3:2 landscape)
 
 **Circle Clipping Removal (CRITICAL FIX):**
 
@@ -1233,23 +1259,76 @@ These are items the user explicitly flagged as "I might change this" or "let's r
 
 ---
 
-## 16. ART ASSETS — 34 PNGs (LOCKED SPEC)
+## 16. ART ASSETS — CUSTOMER SCENE PORTRAITS (UPDATED MAY 10, 2026)
 
-The user is drawing all art in **Procreate on iPad**. Naming and dimensions below are final (changeable per-file later if needed; user said "I may rename, but the spec is fine for now").
+The user is drawing all art in **Procreate on iPad**. Customer scene portraits use a **dual portrait system** with separate profile and scene images.
 
-### 16.1 Asset list with Procreate canvas sizes
+### 16.1 Customer Scene Portrait Canvas Dimensions (✅ SPECIFIED - UPDATED MAY 10, 2026)
+
+Based on the user's Procreate workflow, customer scene portraits are drawn at:
+
+**CANVAS SIZE: 1536 × 1024 pixels @ 300 DPI**
+
+- **Aspect Ratio**: 3:2 (width:height, landscape orientation)
+- **Default scale in code**: 1.6× width, 2.0× height (matches Ednar's proportions)
+- **Reference image**: `ednar_idle.png` (all customer portraits scaled relative to this)
+
+**Why these dimensions:**
+- Matches the user's existing Procreate canvas setup
+- Provides high-quality retina rendering for iPhone displays
+- Default 1.6× × 2.0× scaling brings portraits to visible size in-game
+- Independent width/height sliders allow fine-tuning per character
+
+**Scaling Math:**
+- Mildred: Base (76×114) × Scaling (2.18×2.03) = **165.88 × 231.96 px** final render
+- Tomik: Base (76×114) × Scaling (2.09×1.90) = **158.84 × 216.60 px** final render
+
+### 16.2 Customer Scene Portraits - Asset Naming Convention
+
+**Profile portraits** (head closeups for profile buttons): Use character ID only
+- `mildred.png`, `tomik.png`, `greta.png`, etc.
+
+**Scene portraits** (full-body for customer scene): Use character ID + `_scene` suffix
+- `mildred_scene.png`, `tomik_scene.png`, `greta_scene.png`, etc.
+
+### 16.3 Integrated Customer Scene Portraits (Status: May 10, 2026)
+
+| Character    | Profile Asset   | Scene Asset         | Status        |
+|--------------|-----------------|---------------------|---------------|
+| Mildred      | `mildred`       | `mildred_scene`     | ✅ INTEGRATED |
+| Tomik        | `tomik`         | `tomik_scene`       | ✅ INTEGRATED |
+| Greta        | `greta`         | `greta_scene`       | ✅ INTEGRATED |
+| Sister Halla | `sister_halla`  | `sister_halla_scene`| ✅ INTEGRATED |
+| Wendelina    | `wendelina`     | `wendelina_scene`   | ✅ INTEGRATED |
+| Grimdrek     | `grimdrek`      | `grimdrek_scene`    | ✅ INTEGRATED |
+| Hexa Mott    | `hexa_mott`     | `hexa_mott_scene`   | ✅ INTEGRATED |
+| Pemberton    | `pemberton`     | `pemberton_scene`   | 🟡 PENDING    |
+| Ardo         | `ardo`          | `ardo_scene`        | 🟡 PENDING    |
+| Bram         | `bram`          | `bram_scene`        | 🟡 PENDING    |
+| Crispin      | `crispin`       | `crispin_scene`     | 🟡 PENDING    |
+| Ironhilde    | `ironhilde`     | `ironhilde_scene`   | 🟡 PENDING    |
+| Carmilla     | `carmilla`      | `carmilla_scene`    | 🟡 PENDING    |
+| Royal Envoy  | `royal_envoy`   | `royal_envoy_scene` | 🟡 PENDING    |
+
+**Per-Character Scaling System:**
+- Each character has independent width/height/x/y values in `PotionShopLayoutConfig.swift`
+- Adjusted via Layout Editor → 🧍 Customers section → Character picker dropdown
+- Values locked in config after tuning for each character
+
+### 16.4 Original Art Asset Spec (Profile Portraits & Other Assets)
 
 | Category               | Count | Procreate canvas | Notes                                                    |
 |------------------------|-------|------------------|----------------------------------------------------------|
-| Character portraits    | 14    | 1024×1024 px @ 300 DPI | One per customer. Square; circular crop in-game. Transparent BG. |
+| Character profile portraits | 14 | 1024×1024 px @ 300 DPI | Head closeups for profile buttons. Square; circular crop in-game. Transparent BG. |
+| Character scene portraits | 14 | 512×768 px @ 300 DPI | Full-body for customer scene. 2:3 aspect ratio. Transparent BG. **NO circle crop!** |
 | Ednar expressions      | 5     | 1024×1536 px @ 300 DPI | calm / focused / concerned / alarmed / satisfied — same body, different face |
 | Cauldron (layered)     | 3     | 2048×1536 px @ 300 DPI | back / liquid / front — single Procreate file, exported as 3 PNGs |
 | Dice (flat-faced)      | 5     | 512×512 px @ 300 DPI   | potency / stability / boost / heal / shield. Center 30% kept BLANK (runtime renders the number on top) |
-| Background             | 1     | 1242×2688 px @ 300 DPI | Full-screen iPhone Pro Max. Shop interior, top→bottom zones described in §16.4 |
+| Background             | 1     | 1242×2688 px @ 300 DPI | Full-screen iPhone Pro Max. Shop interior, top→bottom zones described in §16.7 |
 | UI icons               | 6     | 256×256 px @ 300 DPI   | heart, shield, potion, brew sign, hamburger, etc.       |
-| **TOTAL v1**           | **34**|                  |                                                          |
+| **TOTAL v1**           | **47**|                  | (14 profiles + 14 scenes + 5 Ednar + 3 cauldron + 5 dice + 1 bg + 6 icons) |
 
-### 16.2 Procreate export rules
+### 16.5 Procreate export rules
 - Format: PNG
 - Background: **transparent** — user must toggle off the bottom "Background" layer in Procreate before File → Share → PNG, otherwise the export has a white background
 - Color profile: sRGB or Display P3

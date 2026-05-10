@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "ednar_alarmed.jpg",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -9,7 +10,6 @@
       "scale" : "2x"
     },
     {
-      "filename" : "ednar_alarmed.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

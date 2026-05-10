@@ -163,7 +163,7 @@ enum PotionShopData {
             name: "Greta Marshlow",
             title: "Cheerful Villager",
             portrait: "greta",
-            scenePortrait: "greta",  // Temporary - will become "greta_scene" later
+            scenePortrait: "greta_scene",  // ✅ Updated for new full-body portrait
             iconFallback: "🌻",
             difficulty: 1,
             timeOfDay: [.morning, .afternoon],
@@ -213,7 +213,7 @@ enum PotionShopData {
             name: "Sister Halla",
             title: "Wandering Sister",
             portrait: "sister_halla",
-            scenePortrait: "sister_halla",  // Temporary - will become "sister_halla_scene" later
+            scenePortrait: "sister_halla_scene",  // ✅ Updated for new full-body portrait
             iconFallback: "🧎",
             difficulty: 2,
             timeOfDay: [.morning, .afternoon],
@@ -263,7 +263,7 @@ enum PotionShopData {
             name: "Wendelina Rookpool",
             title: "Hedge Witch",
             portrait: "wendelina",
-            scenePortrait: "wendelina",  // Temporary - will become "wendelina_scene" later
+            scenePortrait: "wendelina_scene",  // ✅ Updated for new full-body portrait
             iconFallback: "🧙‍♀️",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -337,7 +337,7 @@ enum PotionShopData {
             name: "Hexa Mott",
             title: "Murky Witch",
             portrait: "hexa_mott",
-            scenePortrait: "hexa_mott",  // Temporary - will become "hexa_mott_scene" later
+            scenePortrait: "hexa_mott_scene",  // ✅ Updated for new full-body portrait
             iconFallback: "🌒",
             difficulty: 4,
             timeOfDay: [.evening],
@@ -387,7 +387,7 @@ enum PotionShopData {
             name: "Grimdrek the Volatile",
             title: "Hellsworn Merchant",
             portrait: "grimdrek",
-            scenePortrait: "grimdrek",  // Temporary - will become "grimdrek_scene" later
+            scenePortrait: "grimdrek_scene",  // ✅ Updated for new full-body portrait
             iconFallback: "👹",
             difficulty: 5,
             timeOfDay: [.night],

@@ -36,9 +36,15 @@ class PotionShopLayoutConfig {
     
     // Per-Character Scaling (14 characters, indexed by customer ID)
     // Stores individual width/height/x/y for each character
+    // Default scale based on Ednar's proportions (1.6× width, 2.0× height) for 1536×1024 canvas
     var perCharacterScales: [String: CharacterScale] = [
-        "mildred": CharacterScale(width: 2.461897164583206, height: 2.13, x: -1.0283708572387695, y: 15.539002418518066),
-        "tomik": CharacterScale(width: 2.34, height: 2.13, x: 5.0, y: 51.0)
+        "mildred": CharacterScale(width: 2.1826418042182922, height: 2.0346986055374146, x: -5.283689498901367, y: 5.609917640686035),
+        "tomik": CharacterScale(width: 2.09, height: 1.90, x: -17.0, y: 18.0),
+        "greta": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
+        "sister_halla": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
+        "wendelina": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
+        "grimdrek": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
+        "hexa_mott": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0)
     ]
     
     struct CharacterScale: Codable {

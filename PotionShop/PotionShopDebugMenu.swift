@@ -267,12 +267,42 @@ struct PotionShopDebugMenu: View {
         ednarY: \(cfg.ednarY)
         
         ───────────────────────────────────────────────────────────────
-        🧍 MILDRED SCENE PORTRAIT (per-character scaling)
+        🧍 CUSTOMER SCENE PORTRAITS (per-character scaling)
         ───────────────────────────────────────────────────────────────
         mildred_width: \(cfg.characterScale(for: "mildred").width)
         mildred_height: \(cfg.characterScale(for: "mildred").height)
         mildred_x: \(cfg.characterScale(for: "mildred").x)
         mildred_y: \(cfg.characterScale(for: "mildred").y)
+        
+        tomik_width: \(cfg.characterScale(for: "tomik").width)
+        tomik_height: \(cfg.characterScale(for: "tomik").height)
+        tomik_x: \(cfg.characterScale(for: "tomik").x)
+        tomik_y: \(cfg.characterScale(for: "tomik").y)
+        
+        greta_width: \(cfg.characterScale(for: "greta").width)
+        greta_height: \(cfg.characterScale(for: "greta").height)
+        greta_x: \(cfg.characterScale(for: "greta").x)
+        greta_y: \(cfg.characterScale(for: "greta").y)
+        
+        sister_halla_width: \(cfg.characterScale(for: "sister_halla").width)
+        sister_halla_height: \(cfg.characterScale(for: "sister_halla").height)
+        sister_halla_x: \(cfg.characterScale(for: "sister_halla").x)
+        sister_halla_y: \(cfg.characterScale(for: "sister_halla").y)
+        
+        wendelina_width: \(cfg.characterScale(for: "wendelina").width)
+        wendelina_height: \(cfg.characterScale(for: "wendelina").height)
+        wendelina_x: \(cfg.characterScale(for: "wendelina").x)
+        wendelina_y: \(cfg.characterScale(for: "wendelina").y)
+        
+        grimdrek_width: \(cfg.characterScale(for: "grimdrek").width)
+        grimdrek_height: \(cfg.characterScale(for: "grimdrek").height)
+        grimdrek_x: \(cfg.characterScale(for: "grimdrek").x)
+        grimdrek_y: \(cfg.characterScale(for: "grimdrek").y)
+        
+        hexa_mott_width: \(cfg.characterScale(for: "hexa_mott").width)
+        hexa_mott_height: \(cfg.characterScale(for: "hexa_mott").height)
+        hexa_mott_x: \(cfg.characterScale(for: "hexa_mott").x)
+        hexa_mott_y: \(cfg.characterScale(for: "hexa_mott").y)
         
         ───────────────────────────────────────────────────────────────
         🍲 CAULDRON ART (freeform scaling + positioning)

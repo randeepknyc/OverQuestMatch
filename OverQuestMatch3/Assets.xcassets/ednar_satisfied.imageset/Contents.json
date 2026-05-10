@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "ednar_satisfied.jpg",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -9,7 +10,6 @@
       "scale" : "2x"
     },
     {
-      "filename" : "ednar_satisfied.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

@@ -1,9 +1,9 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** May 4, 2026 (Ednar's Potion Cauldron Added - Day 1 Playable)  
+> **Last Updated:** May 6, 2026 (Ednar's Potion Cauldron - Mildred Layout Refined)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
-> **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only)
+> **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only, layout refinement ongoing)
 
 ---
 
@@ -770,11 +770,13 @@ Each game has its own image sets:
 - ✅ Easy testing on physical devices (no code editing)
 
 ### **What's In Progress:**
-- 🟡 **Ednar's Cauldron Rewrite** - Phase 1 (Data Layer) complete, Phase 2 next
-  - JSON loading working
-  - 14 characters, 8 traits, 3 days loaded
-  - Existing old game still functional
-  - See REPLACEMENT_PLAN.md for next steps
+- 🟡 **Ednar's Potion Cauldron** - Phase 7 complete, layout refinement ongoing (May 6, 2026)
+  - Day 1 fully playable (Morning → Afternoon → Evening → Night)
+  - Live preview overlay layout editor functional
+  - Per-character scaling system active (Mildred: 2.46×2.13×, Tomik: 2.34×2.13×)
+  - **Latest update:** Mildred's width refined from 2.34× to 2.46× (5.2% wider)
+  - Art is placeholder (ready for asset integration - Phase 8)
+  - See `CAULDRON_CONTEXT.md` for complete details
 
 ### **What's Planned:**
 - 📋 Cooking game design & implementation
