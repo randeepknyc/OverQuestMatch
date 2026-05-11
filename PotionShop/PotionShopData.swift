@@ -189,7 +189,7 @@ enum PotionShopData {
             name: "Pemberton Quill",
             title: "Travelling Merchant",
             portrait: "pemberton",
-            scenePortrait: "pemberton",  // Temporary - will become "pemberton_scene" later
+            scenePortrait: "pemberton_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "🧔",
             difficulty: 2,
             timeOfDay: [.afternoon],
@@ -237,7 +237,7 @@ enum PotionShopData {
             name: "Ardo Quill",
             title: "Nervous Scholar",
             portrait: "ardo",
-            scenePortrait: "ardo",  // Temporary - will become "ardo_scene" later
+            scenePortrait: "ardo_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "📚",
             difficulty: 2,
             timeOfDay: [.morning, .afternoon],
@@ -287,7 +287,7 @@ enum PotionShopData {
             name: "Bram the Bard",
             title: "Travelling Lutist",
             portrait: "bram",
-            scenePortrait: "bram",  // Temporary - will become "bram_scene" later
+            scenePortrait: "bram_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "🎻",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -311,7 +311,7 @@ enum PotionShopData {
             name: "Lord Crispin Vorne",
             title: "Petty Noble",
             portrait: "crispin",
-            scenePortrait: "crispin",  // Temporary - will become "crispin_scene" later
+            scenePortrait: "crispin_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "🎩",
             difficulty: 3,
             timeOfDay: [.afternoon, .evening],
@@ -361,7 +361,7 @@ enum PotionShopData {
             name: "Captain Ironhilde",
             title: "Battle-Weary Knight",
             portrait: "ironhilde",
-            scenePortrait: "ironhilde",  // Temporary - will become "ironhilde_scene" later
+            scenePortrait: "ironhilde_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "🛡️",
             difficulty: 4,
             timeOfDay: [.evening],
@@ -411,7 +411,7 @@ enum PotionShopData {
             name: "Lady Carmilla Veil",
             title: "Vampire Countess",
             portrait: "carmilla",
-            scenePortrait: "carmilla",  // Temporary - will become "carmilla_scene" later
+            scenePortrait: "carmilla_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "🦇",
             difficulty: 5,
             timeOfDay: [.night],
@@ -435,7 +435,7 @@ enum PotionShopData {
             name: "The Royal Envoy",
             title: "On Crown Business",
             portrait: "royal_envoy",
-            scenePortrait: "royal_envoy",  // Temporary - will become "royal_envoy_scene" later
+            scenePortrait: "royal_envoy_scene",  // ✅ Updated for full-body scene portrait
             iconFallback: "👑",
             difficulty: 5,
             timeOfDay: [.night],

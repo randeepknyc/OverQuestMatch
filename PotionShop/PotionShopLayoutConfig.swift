@@ -37,14 +37,73 @@ class PotionShopLayoutConfig {
     // Per-Character Scaling (14 characters, indexed by customer ID)
     // Stores individual width/height/x/y for each character
     // Default scale based on Ednar's proportions (1.6× width, 2.0× height) for 1536×1024 canvas
+    // Waiting scale defaults to 0.8×0.8× (80% of active) unless explicitly set
     var perCharacterScales: [String: CharacterScale] = [
-        "mildred": CharacterScale(width: 2.1826418042182922, height: 2.0346986055374146, x: -5.283689498901367, y: 5.609917640686035),
-        "tomik": CharacterScale(width: 2.09, height: 1.90, x: -17.0, y: 18.0),
-        "greta": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
-        "sister_halla": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
-        "wendelina": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
-        "grimdrek": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0),
-        "hexa_mott": CharacterScale(width: 1.6, height: 2.0, x: 0.0, y: 0.0)
+        "mildred": CharacterScale(
+            width: 1.983173742890358, height: 1.983173742890358, 
+            x: -5.283689498901367, y: 5.609917640686035,
+            waitingWidth: 3.097872316837311, waitingHeight: 3.097872316837311, waitingX: 0.0, waitingY: -5.6737542152404785
+        ),
+        "tomik": CharacterScale(
+            width: 1.9703190326690674, height: 1.9703190326690674, 
+            x: -17.0, y: 8.425545692443848,
+            waitingWidth: 3.0619679987430573, waitingHeight: 3.0619679987430573, waitingX: 0.0, waitingY: 0.0
+        ),
+        "greta": CharacterScale(
+            width: 1.8557623773813248, height: 1.8557623773813248, 
+            x: 0.0, y: 13.829779624938965,
+            waitingWidth: 2.9183509945869446, waitingHeight: 2.9183509945869446, waitingX: 0.0, waitingY: 0.0
+        ),
+        "sister_halla": CharacterScale(
+            width: 1.6398936361074448, height: 1.6398936361074448, 
+            x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "wendelina": CharacterScale(
+            width: 2.158510684967041, height: 2.158510684967041, 
+            x: -36.52482032775879, y: -1.063835620880127,
+            waitingWidth: 3.337233990430832, waitingHeight: 3.337233990430832, waitingX: -5.6737542152404785, waitingY: -9.929072856903076
+        ),
+        "grimdrek": CharacterScale(
+            width: 2.0547872483730316, height: 2.0547872483730316, 
+            x: -61.34752035140991, y: 8.156037330627441,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "hexa_mott": CharacterScale(
+            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "pemberton": CharacterScale(
+            width: 1.5122340321540833, height: 1.5122340321540833, 
+            x: 0.0, y: 35.10637283325195,
+            waitingWidth: 2.6111702024936676, waitingHeight: 2.6111702024936676, waitingX: 0.0, waitingY: 14.893627166748047
+        ),
+        "ardo": CharacterScale(
+            width: 1.9550531953573227, height: 1.9550531953573227, 
+            x: -14.184391498565674, y: 8.156037330627441,
+            waitingWidth: 3.2534576058387756, waitingHeight: 3.2534576058387756, waitingX: -26.24112367630005, waitingY: -10.992908477783203
+        ),
+        "bram": CharacterScale(
+            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "crispin": CharacterScale(
+            width: 1.803457424044609, height: 1.803457424044609, 
+            x: -17.3758864402771, y: 12.056732177734375,
+            waitingWidth: 3.125798135995865, waitingHeight: 3.125798135995865, waitingX: -7.801413536071777, waitingY: 10.992908477783203
+        ),
+        "ironhilde": CharacterScale(
+            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "carmilla": CharacterScale(
+            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        ),
+        "royal_envoy": CharacterScale(
+            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
+        )
     ]
     
     struct CharacterScale: Codable {

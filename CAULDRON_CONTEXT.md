@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 10, 2026 (Customer Scene Portrait Integration - Default Scaling + Uniform Scale Control)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **7 customer scene portraits integrated** (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **7-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Character picker expanded to 7 characters** - Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions updated**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for all customer scene portraits. **Default scale**: 1.6× width, 2.0× height (matches Ednar proportions). **Uniform scale slider added** - adjusts both width AND height together for quick proportional scaling. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden.  
+> **Last Updated:** May 10, 2026 (Active/Waiting Scale System + All 14 Characters Linked)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **Active/Waiting scale system implemented** - each character has separate scale/position values for when they're active (front of line) vs waiting (back of line). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Character picker expanded to 14 characters** - all customers ready for art. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for all customer scene portraits. **Default active scale**: 1.6× width, 2.0× height (matches Ednar). **Default waiting scale**: 0.8× width, 0.8× height (creates depth effect). **Smooth transitions** between active/waiting states during queue swaps. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -1034,50 +1034,105 @@ showBrewZone: false
 
 #### **12.1.2 Customer Scene Scaling (UPDATED - May 10, 2026)**
 
-**Status:** ✅ COMPLETE - 7 Characters Integrated + Uniform Scale Control  
-**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, and uniform scale slider
+**Status:** ✅ COMPLETE - All 14 Characters + Active/Waiting Scale System  
+**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, uniform scale slider, AND separate active/waiting positions
 
-The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently.
+The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently for **both active (front of line) and waiting (back of line) positions**.
 
 **Key Features:**
-- ✅ **Character picker dropdown** - Select any of 7 characters (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott)
-- ✅ **🔗 Uniform Scale slider** (0.5× to 3.0×) - **NEW!** Adjusts width AND height together (yellow color)
-- ✅ **Width slider** (0.5× to 3.0×) - Horizontal scaling (independent)
-- ✅ **Height slider** (0.5× to 3.0×) - Vertical scaling (independent)
-- ✅ **X Offset slider** (-200 to +200 pts) - Horizontal position
-- ✅ **Y Offset slider** (-200 to +200 pts) - Vertical position
+- ✅ **Character picker dropdown** - Select any of 14 characters (ALL customers now included!)
+- ✅ **⭐️ ACTIVE POSITION** section (green header) - Controls for when customer is at front of line
+  - 🔗 Uniform Scale slider (0.5× to 3.0×) - Adjusts width AND height together (yellow color)
+  - Width slider (0.5× to 3.0×) - Horizontal scaling (independent)
+  - Height slider (0.5× to 3.0×) - Vertical scaling (independent)
+  - X Offset slider (-200 to +200 pts) - Horizontal position
+  - Y Offset slider (-200 to +200 pts) - Vertical position
+- ✅ **⏸️ WAITING POSITION** section (orange header) - **NEW!** Controls for when customer is in back of line
+  - 🔗 Uniform Scale slider (0.5× to 3.0×) - Adjusts waiting width AND height together
+  - Width slider (0.5× to 3.0×) - Waiting horizontal scaling
+  - Height slider (0.5× to 3.0×) - Waiting vertical scaling
+  - X Offset slider (-200 to +200 pts) - Waiting horizontal position
+  - Y Offset slider (-200 to +200 pts) - Waiting vertical position
 - ✅ **Dynamic reset button** - Changes to "Reset [Character]" based on selection
 - ✅ **Live preview** - Changes apply instantly to the selected character
 - ✅ **No circle clipping** - Full images visible for proper resizing
+- ✅ **Smooth transitions** - Characters animate between active/waiting scales during queue swaps
 
-**Uniform Scale Feature (NEW - May 10, 2026):**
-- Located at the **top of 🧍 Customers section**, below character picker
+**All 14 Characters Available:**
+1. Mildred Honeycomb
+2. Tomik Cooper
+3. Greta Marshlow
+4. Pemberton Quill
+5. Sister Halla
+6. Ardo Quill
+7. Wendelina Rookpool
+8. Bram the Bard
+9. Lord Crispin Vorne
+10. Hexa Mott
+11. Captain Ironhilde
+12. Grimdrek the Volatile
+13. Lady Carmilla Veil
+14. The Royal Envoy
+
+**Uniform Scale Feature:**
+- Located at the **top of each section** (Active and Waiting)
 - **Yellow color** (distinct from cyan individual sliders)
 - Dragging slider sets **both width AND height to the same value**
 - Perfect for **quick proportional scaling** without touching individual sliders
 - Displays current width value (since width = height when using uniform scale)
-- Helper text: "Adjusts width AND height together"
+- Helper text: "Adjusts width AND height together" (Active) or "Waiting scale (when not active)" (Waiting)
+
+**Active vs Waiting Positions:**
+- **Active position** = When customer is at `queue[0]` (front of line, closest to Ednar)
+- **Waiting position** = When customer is at `queue[1+]` (back of line)
+- **Queue swap animation** smoothly transitions between the two states
+- **Example use**: Make waiting customers 80% size to create depth effect
 
 **Workflow:**
 1. Select character from picker
-2. Drag **🔗 Uniform Scale** for quick proportional sizing (e.g., 1.5× makes character 1.5× wider AND 1.5× taller)
-3. OR drag individual Width/Height sliders for asymmetric scaling (e.g., 2.0× wide, 1.5× tall)
-4. Adjust X/Y sliders to position
-5. Character updates instantly in live preview
+2. **Adjust Active Position:**
+   - Scroll to **⭐️ ACTIVE POSITION** (green header)
+   - Drag **🔗 Uniform Scale** for quick proportional sizing
+   - OR drag individual Width/Height sliders for asymmetric scaling
+   - Adjust X/Y sliders to position when active
+3. **Adjust Waiting Position:**
+   - Scroll to **⏸️ WAITING POSITION** (orange header)
+   - Drag **🔗 Uniform Scale** for quick proportional sizing
+   - OR drag individual Width/Height sliders for asymmetric scaling
+   - Adjust X/Y sliders to position when waiting
+4. Character updates instantly in live preview
+5. Test by playing round with multiple customers and tapping profiles to swap
 
-**Current Characters with Art (UPDATED - May 10, 2026):**
-- **Mildred** - `mildred_scene.png` (2.18×, 2.03×, -5.3pt, 5.6pt) - Already tuned
-- **Tomik** - `tomik_scene.png` (2.09×, 1.90×, -17pt, 18pt) - Already tuned
-- **Greta** - `greta_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
-- **Sister Halla** - `sister_halla_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
-- **Wendelina** - `wendelina_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
-- **Grimdrek** - `grimdrek_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
-- **Hexa Mott** - `hexa_mott_scene.png` (1.6×, 2.0×, 0pt, 0pt) - Default visible size
+**Current Characters with Default Values (May 10, 2026):**
+
+| Character    | Active Scale  | Active Pos  | Waiting Scale | Waiting Pos | Notes |
+|--------------|---------------|-------------|---------------|-------------|-------|
+| Mildred      | 2.18×2.03×    | -5pt, 6pt   | 0.8×0.8×      | 0pt, 0pt    | Custom active, default waiting |
+| Tomik        | 2.09×1.90×    | -17pt, 18pt | 0.8×0.8×      | 0pt, 0pt    | Custom active, default waiting |
+| Greta        | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
+| Sister Halla | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
+| Wendelina    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
+| Grimdrek     | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
+| Hexa Mott    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
+| Pemberton    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Ardo         | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Bram         | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Crispin      | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Ironhilde    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Carmilla     | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Royal Envoy  | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
 
 **Default Scale Rationale:**
-- 1.6× width, 2.0× height matches Ednar's proportions (`ednar_idle.png`)
+- Active: 1.6× width, 2.0× height matches Ednar's proportions (`ednar_idle.png`)
+- Waiting: 0.8× width, 0.8× height (80% of active) creates depth effect
 - Ensures new characters appear at a visible size (not tiny 1.0×)
 - Based on user's 1536×1024 px Procreate canvas (3:2 landscape)
+
+**Technical Implementation:**
+- Data structure: `CharacterScale` struct with 8 properties (4 active + 4 waiting)
+- Dynamic rendering: `isActive ? activeValues : waitingValues`
+- Animation: `matchedGeometryEffect` handles smooth transitions during queue swaps
+- Spring animation: 0.55s response, 0.78 damping fraction
 
 **Circle Clipping Removal (CRITICAL FIX):**
 
@@ -1107,27 +1162,46 @@ Image(uiImage: uiImage)
 ```
 Layout Editor Sliders
     ↓
-PotionShopLayoutConfig.perCharacterScales["mildred" or "tomik"]
+PotionShopLayoutConfig.perCharacterScales[characterId]
     ↓
 PotionShopGameView (passes layoutConfig to scene)
     ↓
 PotionShopCustomerSceneView (reads character scale from config)
     ↓
-PotionShopCustomerInSceneView (receives width/height/x/y values)
+PotionShopCustomerInSceneView (receives active + waiting values)
     ↓
-.scaleEffect(x: customerSceneWidth, y: customerSceneHeight)
-.offset(x: customerSceneX, y: customerSceneY)
+let effectiveWidth = isActive ? customerSceneWidth : customerWaitingWidth
+let effectiveHeight = isActive ? customerSceneHeight : customerWaitingHeight
     ↓
-VISUAL UPDATE (Selected character resizes/repositions instantly!)
+.scaleEffect(x: effectiveWidth, y: effectiveHeight)
+.offset(x: effectiveX, y: effectiveY)
+    ↓
+VISUAL UPDATE (Character uses correct values based on queue position!)
+    ↓
+During queue swap: matchedGeometryEffect animates smooth transition
 ```
 
 **Files Modified:**
-1. **PotionShopLayoutConfig.swift** - Added `perCharacterScales` dictionary with Mildred & Tomik defaults
-2. **PotionShopGameView.swift** - Character picker dropdown, dynamic sliders for selected character
-3. **PotionShopCustomerSceneView.swift** - Receives config, passes values to customer views
-4. **PotionShopModels.swift** - **REMOVED circle clipping**, changed to `.scaledToFit()`
-5. **PotionShopData.swift** - Updated Tomik's `scenePortrait` to `"tomik_scene"`
-6. **PotionShopDebugMenu.swift** - Clipboard output includes both Mildred and Tomik values
+1. **PotionShopLayoutConfig.swift** 
+   - Added `waitingWidth`, `waitingHeight`, `waitingX`, `waitingY` to `CharacterScale` struct
+   - Added all 14 characters to `perCharacterScales` dictionary
+   - Default waiting values: 0.8×, 0.8×, 0pt, 0pt
+2. **PotionShopGameView.swift** 
+   - Character picker dropdown updated to 14 characters
+   - Added **"⏸️ WAITING POSITION"** UI section (orange header)
+   - Added waiting uniform scale slider (yellow)
+   - Added 4 waiting sliders (width/height/x/y)
+   - Split UI with green **"⭐️ ACTIVE"** and orange **"⏸️ WAITING"** headers
+3. **PotionShopCustomerSceneView.swift** 
+   - Added 4 waiting parameters to `PotionShopCustomerInSceneView`
+   - Added dynamic `effectiveWidth/Height/X/Y` selection based on `isActive`
+   - Passes waiting values from layout config
+   - Renders using correct values based on queue position
+4. **PotionShopData.swift**
+   - Updated 7 characters from placeholder to `_scene` suffix
+   - Pemberton, Ardo, Bram, Crispin, Ironhilde, Carmilla, Royal Envoy now use proper naming
+5. **PotionShopModels.swift** 
+   - **REMOVED circle clipping**, changed to `.scaledToFit()`
 
 **Deprecation:**
 - The old sheet-based editor (`PotionShopNewLayoutEditor` struct in `PotionShopDebugMenu.swift`) is still present but **not used**
@@ -1302,31 +1376,41 @@ Based on the user's Procreate workflow, customer scene portraits are drawn at:
 | Wendelina    | `wendelina`     | `wendelina_scene`   | ✅ INTEGRATED |
 | Grimdrek     | `grimdrek`      | `grimdrek_scene`    | ✅ INTEGRATED |
 | Hexa Mott    | `hexa_mott`     | `hexa_mott_scene`   | ✅ INTEGRATED |
-| Pemberton    | `pemberton`     | `pemberton_scene`   | 🟡 PENDING    |
-| Ardo         | `ardo`          | `ardo_scene`        | 🟡 PENDING    |
-| Bram         | `bram`          | `bram_scene`        | 🟡 PENDING    |
-| Crispin      | `crispin`       | `crispin_scene`     | 🟡 PENDING    |
-| Ironhilde    | `ironhilde`     | `ironhilde_scene`   | 🟡 PENDING    |
-| Carmilla     | `carmilla`      | `carmilla_scene`    | 🟡 PENDING    |
-| Royal Envoy  | `royal_envoy`   | `royal_envoy_scene` | 🟡 PENDING    |
+| Pemberton    | `pemberton`     | `pemberton_scene`   | ✅ INTEGRATED |
+| Ardo         | `ardo`          | `ardo_scene`        | ✅ INTEGRATED |
+| Bram         | `bram`          | `bram_scene`        | ✅ INTEGRATED |
+| Crispin      | `crispin`       | `crispin_scene`     | ✅ INTEGRATED |
+| Ironhilde    | `ironhilde`     | `ironhilde_scene`   | ✅ INTEGRATED |
+| Carmilla     | `carmilla`      | `carmilla_scene`    | ✅ INTEGRATED |
+| Royal Envoy  | `royal_envoy`   | `royal_envoy_scene` | ✅ INTEGRATED |
+
+**All 14 Characters Now Integrated:**
+- ✅ All have `scenePortrait` field using proper `_scene` nomenclature
+- ✅ All have config entries in `PotionShopLayoutConfig.perCharacterScales`
+- ✅ All appear in layout editor character picker dropdown
+- ✅ All have default active scale (1.6×2.0× for most, custom for Mildred/Tomik)
+- ✅ All have default waiting scale (0.8×0.8×)
+- ✅ All support active/waiting position system with smooth transitions
 
 **Per-Character Scaling System:**
 - Each character has independent width/height/x/y values in `PotionShopLayoutConfig.swift`
+- **Active values** used when character is at `queue[0]` (front of line)
+- **Waiting values** used when character is at `queue[1+]` (back of line)
 - Adjusted via Layout Editor → 🧍 Customers section → Character picker dropdown
-- Values locked in config after tuning for each character
+- Values can be locked in config after tuning for each character
 
 ### 16.4 Original Art Asset Spec (Profile Portraits & Other Assets)
 
 | Category               | Count | Procreate canvas | Notes                                                    |
 |------------------------|-------|------------------|----------------------------------------------------------|
 | Character profile portraits | 14 | 1024×1024 px @ 300 DPI | Head closeups for profile buttons. Square; circular crop in-game. Transparent BG. |
-| Character scene portraits | 14 | 512×768 px @ 300 DPI | Full-body for customer scene. 2:3 aspect ratio. Transparent BG. **NO circle crop!** |
+| Character scene portraits | 14 | 1536×1024 px @ 300 DPI | Full-body for customer scene. 3:2 landscape ratio. Transparent BG. Uses `_scene` suffix. **ALL 14 NOW INTEGRATED!** |
 | Ednar expressions      | 5     | 1024×1536 px @ 300 DPI | calm / focused / concerned / alarmed / satisfied — same body, different face |
 | Cauldron (layered)     | 3     | 2048×1536 px @ 300 DPI | back / liquid / front — single Procreate file, exported as 3 PNGs |
 | Dice (flat-faced)      | 5     | 512×512 px @ 300 DPI   | potency / stability / boost / heal / shield. Center 30% kept BLANK (runtime renders the number on top) |
 | Background             | 1     | 1242×2688 px @ 300 DPI | Full-screen iPhone Pro Max. Shop interior, top→bottom zones described in §16.7 |
 | UI icons               | 6     | 256×256 px @ 300 DPI   | heart, shield, potion, brew sign, hamburger, etc.       |
-| **TOTAL v1**           | **47**|                  | (14 profiles + 14 scenes + 5 Ednar + 3 cauldron + 5 dice + 1 bg + 6 icons) |
+| **TOTAL v1**           | **47**|                  | (14 profiles + 14 scenes + 5 Ednar + 3 cauldron + 5 dice + 1 bg + 6 icons) - **All characters integrated!** |
 
 ### 16.5 Procreate export rules
 - Format: PNG

@@ -415,8 +415,8 @@ struct PotionShopLayoutOverlay: View {
             }
         case .ednar:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Width", value: $layoutConfig.ednarWidth, range: 0.5...3.0, format: "%.2f×")
-                sliderRow("Height", value: $layoutConfig.ednarHeight, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Width", value: $layoutConfig.ednarWidth, range: 0.5...5.0, format: "%.2f×")
+                sliderRow("Height", value: $layoutConfig.ednarHeight, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.ednarX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.ednarY, range: -200...200, format: "%.0f")
             }
@@ -439,6 +439,13 @@ struct PotionShopLayoutOverlay: View {
                         Text("Wendelina").tag("wendelina")
                         Text("Grimdrek").tag("grimdrek")
                         Text("Hexa Mott").tag("hexa_mott")
+                        Text("Pemberton").tag("pemberton")
+                        Text("Ardo").tag("ardo")
+                        Text("Bram").tag("bram")
+                        Text("Crispin").tag("crispin")
+                        Text("Ironhilde").tag("ironhilde")
+                        Text("Carmilla").tag("carmilla")
+                        Text("Royal Envoy").tag("royal_envoy")
                     }
                     .pickerStyle(.menu)
                     .tint(.cyan)
@@ -474,7 +481,7 @@ struct PotionShopLayoutOverlay: View {
                                 layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                             }
                         ),
-                        in: 0.5...3.0
+                        in: 0.5...5.0
                     )
                     .tint(.yellow)
                     
@@ -498,7 +505,7 @@ struct PotionShopLayoutOverlay: View {
                             layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
-                    sliderRow("Width", value: widthBinding, range: 0.5...3.0, format: "%.2f×")
+                    sliderRow("Width", value: widthBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let heightBinding = Binding<Double>(
                         get: { layoutConfig.characterScale(for: selectedCharacterId).height },
@@ -508,7 +515,7 @@ struct PotionShopLayoutOverlay: View {
                             layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
-                    sliderRow("Height", value: heightBinding, range: 0.5...3.0, format: "%.2f×")
+                    sliderRow("Height", value: heightBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let xBinding = Binding<Double>(
                         get: { layoutConfig.characterScale(for: selectedCharacterId).x },
@@ -561,7 +568,7 @@ struct PotionShopLayoutOverlay: View {
                                 layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                             }
                         ),
-                        in: 0.5...3.0
+                        in: 0.5...5.0
                     )
                     .tint(.yellow)
                     
@@ -585,7 +592,7 @@ struct PotionShopLayoutOverlay: View {
                             layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
-                    sliderRow("Width", value: waitingWidthBinding, range: 0.5...3.0, format: "%.2f×")
+                    sliderRow("Width", value: waitingWidthBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waitingHeightBinding = Binding<Double>(
                         get: { layoutConfig.characterScale(for: selectedCharacterId).waitingHeight },
@@ -595,7 +602,7 @@ struct PotionShopLayoutOverlay: View {
                             layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
                         }
                     )
-                    sliderRow("Height", value: waitingHeightBinding, range: 0.5...3.0, format: "%.2f×")
+                    sliderRow("Height", value: waitingHeightBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waitingXBinding = Binding<Double>(
                         get: { layoutConfig.characterScale(for: selectedCharacterId).waitingX },
@@ -631,20 +638,20 @@ struct PotionShopLayoutOverlay: View {
             }
         case .cauldronArt:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Width", value: $layoutConfig.cauldronWidth, range: 0.5...3.0, format: "%.2f×")
-                sliderRow("Height", value: $layoutConfig.cauldronHeight, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Width", value: $layoutConfig.cauldronWidth, range: 0.5...5.0, format: "%.2f×")
+                sliderRow("Height", value: $layoutConfig.cauldronHeight, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.cauldronX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.cauldronY, range: -200...200, format: "%.0f")
             }
         case .cauldronBowl:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Scale", value: $layoutConfig.cauldronBowlScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Scale", value: $layoutConfig.cauldronBowlScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.cauldronBowlX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.cauldronBowlY, range: -200...200, format: "%.0f")
             }
         case .nodes:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Node Scale", value: $layoutConfig.nodeScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Node Scale", value: $layoutConfig.nodeScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Grid X", value: $layoutConfig.nodeXOffset, range: -200...200, format: "%.0f")
                 sliderRow("Grid Y", value: $layoutConfig.nodeYOffset, range: -200...200, format: "%.0f")
                 
@@ -732,7 +739,7 @@ struct PotionShopLayoutOverlay: View {
             }
         case .dice:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...3.0, format: "%.2f×")
+                sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
             }
