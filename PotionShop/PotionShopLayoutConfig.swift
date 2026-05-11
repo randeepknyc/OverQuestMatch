@@ -48,10 +48,17 @@ class PotionShopLayoutConfig {
     ]
     
     struct CharacterScale: Codable {
+        // Active position (when customer is at queue[0] - front of line)
         var width: Double = 1.0
         var height: Double = 1.0
         var x: Double = 0.0
         var y: Double = 0.0
+        
+        // Waiting position (when customer is at queue[1+] - back of line)
+        var waitingWidth: Double = 0.8     // 80% of active by default
+        var waitingHeight: Double = 0.8
+        var waitingX: Double = 0.0
+        var waitingY: Double = 0.0
     }
     
     // Helper to get or create a character scale

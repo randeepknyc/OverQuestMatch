@@ -117,7 +117,7 @@ struct PotionShopCustomerSceneView: View {
 
                 ForEach(Array(gs.queue.enumerated()), id: \.element) { idx, custId in
                     if let cust = gs.customers.first(where: { $0.id == custId }) {
-                        // Get per-character scaling values from layout config (for Mildred only)
+                        // Get per-character scaling values from layout config
                         let charKey = cust.charKey
                         let scale = layoutConfig?.characterScale(for: charKey) ?? PotionShopLayoutConfig.CharacterScale()
                         
@@ -129,10 +129,16 @@ struct PotionShopCustomerSceneView: View {
                             sceneSize: geo.size,
                             animationNamespace: queueAnimation,
                             arrivalCounter: activeArrivalCounter,
-                            customerSceneWidth: scale.width,   // ← NOW CONNECTED!
-                            customerSceneHeight: scale.height, // ← NOW CONNECTED!
-                            customerSceneX: scale.x,           // ← NOW CONNECTED!
-                            customerSceneY: scale.y            // ← NOW CONNECTED!
+                            // Active position values
+                            customerSceneWidth: scale.width,
+                            customerSceneHeight: scale.height,
+                            customerSceneX: scale.x,
+                            customerSceneY: scale.y,
+                            // Waiting position values (NEW!)
+                            customerWaitingWidth: scale.waitingWidth,
+                            customerWaitingHeight: scale.waitingHeight,
+                            customerWaitingX: scale.waitingX,
+                            customerWaitingY: scale.waitingY
                         )
                     }
                 }
@@ -292,11 +298,18 @@ struct PotionShopCustomerInSceneView: View {
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
     
-    // Customer scaling parameters (May 5, 2026)
+    // Customer scaling parameters (May 10, 2026 - SPLIT: Active vs Waiting)
+    // Active position (queue[0])
     var customerSceneWidth: Double = 1.0
     var customerSceneHeight: Double = 1.0
     var customerSceneX: Double = 0.0
     var customerSceneY: Double = 0.0
+    
+    // Waiting position (queue[1+]) - NEW!
+    var customerWaitingWidth: Double = 0.8
+    var customerWaitingHeight: Double = 0.8
+    var customerWaitingX: Double = 0.0
+    var customerWaitingY: Double = 0.0
 
     @State private var shakeOffset: CGFloat = 0
     @State private var settleBoost: CGFloat = 1.0
@@ -349,6 +362,12 @@ struct PotionShopCustomerInSceneView: View {
 
     var body: some View {
         if let char = char {
+            // Determine which scale to use based on position in queue
+            let effectiveWidth = isActive ? customerSceneWidth : customerWaitingWidth
+            let effectiveHeight = isActive ? customerSceneHeight : customerWaitingHeight
+            let effectiveX = isActive ? customerSceneX : customerWaitingX
+            let effectiveY = isActive ? customerSceneY : customerWaitingY
+            
             ZStack {
                 // Character image (full body, NO circle!)
                 // Apply custom scaling and positioning
@@ -365,8 +384,8 @@ struct PotionShopCustomerInSceneView: View {
                         fallbackEmoji: char.iconFallback,
                         size: PotionShopSceneLayout.portraitDiameter * scale
                     )
-                    .scaleEffect(x: customerSceneWidth, y: customerSceneHeight, anchor: .center)
-                    .offset(x: customerSceneX, y: customerSceneY)
+                    .scaleEffect(x: effectiveWidth, y: effectiveHeight, anchor: .center)
+                    .offset(x: effectiveX, y: effectiveY)
                 }
 
                 // HP Badge (ABOVE character's head, centered)

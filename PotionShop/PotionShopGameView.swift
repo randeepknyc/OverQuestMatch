@@ -448,6 +448,11 @@ struct PotionShopLayoutOverlay: View {
                     .background(Color.white.opacity(0.3))
                     .padding(.vertical, 4)
                 
+                // ACTIVE POSITION CONTROLS
+                Text("⭐️ ACTIVE POSITION")
+                    .font(.caption2.bold())
+                    .foregroundColor(.green)
+                
                 // 🔗 Uniform Scale slider (adjusts both width AND height together)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -524,6 +529,93 @@ struct PotionShopLayoutOverlay: View {
                         }
                     )
                     sliderRow("Y", value: yBinding, range: -200...200, format: "%.0f pt")
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+                
+                // WAITING POSITION CONTROLS (NEW!)
+                Text("⏸️ WAITING POSITION")
+                    .font(.caption2.bold())
+                    .foregroundColor(.orange)
+                
+                // Waiting Uniform Scale slider
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("🔗 Uniform Scale")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        Spacer()
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).waitingWidth))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.yellow)
+                    }
+                    Slider(
+                        value: Binding<Double>(
+                            get: { layoutConfig.characterScale(for: selectedCharacterId).waitingWidth },
+                            set: { newValue in
+                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                scale.waitingWidth = newValue
+                                scale.waitingHeight = newValue  // ← Apply same value to waiting height!
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            }
+                        ),
+                        in: 0.5...3.0
+                    )
+                    .tint(.yellow)
+                    
+                    Text("Waiting scale (when not active)")
+                        .font(.system(size: 9))
+                        .foregroundColor(.yellow.opacity(0.8))
+                        .italic()
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+                
+                // Waiting position individual sliders
+                VStack(alignment: .leading, spacing: 10) {
+                    let waitingWidthBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingWidth },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waitingWidth = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Width", value: waitingWidthBinding, range: 0.5...3.0, format: "%.2f×")
+                    
+                    let waitingHeightBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingHeight },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waitingHeight = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Height", value: waitingHeightBinding, range: 0.5...3.0, format: "%.2f×")
+                    
+                    let waitingXBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingX },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waitingX = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("X", value: waitingXBinding, range: -200...200, format: "%.0f pt")
+                    
+                    let waitingYBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingY },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waitingY = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Y", value: waitingYBinding, range: -200...200, format: "%.0f pt")
                 }
                 
                 // Reset button (now uses selected character)
