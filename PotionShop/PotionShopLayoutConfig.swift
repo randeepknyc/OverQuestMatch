@@ -58,18 +58,18 @@ class PotionShopLayoutConfig {
     // Use layout editor sliders to fine-tune individual positions per character
     var perCharacterScales: [String: CharacterScale] = [
         "mildred": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
+            width: 1.0, height: 1.0, x: -5.6737542152404785, y: 7.801413536071777,
+            waitingWidth: 0.9880319200456142, waitingHeight: 0.9880319200456142, waitingX: 0.0, waitingY: -9.219861030578613,
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "tomik": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
+            width: 1.0, height: 1.0, x: -34.7517728805542, y: 10.283684730529785,
+            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: -7.446813583374023,
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "greta": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
+            width: 0.8563829660415649, height: 0.8563829660415649, x: -46.45390510559082, y: 19.5035457611084,
+            waitingWidth: 0.8882978670299053, waitingHeight: 0.8882978670299053, waitingX: 0.0, waitingY: 3.9007186889648438,
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "sister_halla": CharacterScale(
@@ -78,9 +78,9 @@ class PotionShopLayoutConfig {
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "wendelina": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            width: 1.0, height: 1.0, x: -43.6170220375061, y: 3.9007186889648438,
+            waitingWidth: 1.003989353775978, waitingHeight: 1.003989353775978, waitingX: -18.794333934783936, waitingY: -9.929072856903076,
+            waiting2Width: 0.9960106536746025, waiting2Height: 0.9960106536746025, waiting2X: -4.964542388916016, waiting2Y: -6.0283660888671875
         ),
         "grimdrek": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
@@ -93,14 +93,14 @@ class PotionShopLayoutConfig {
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "pemberton": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
+            width: 0.8324467986822128, height: 0.8324467986822128, x: -39.361703395843506, y: 24.11346435546875,
+            waitingWidth: 0.8643616996705532, waitingHeight: 0.8643616996705532, waitingX: -23.049640655517578, waitingY: 5.3191423416137695,
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "ardo": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            width: 0.9840425699949265, height: 0.9840425699949265, x: -39.716315269470215, y: 10.283684730529785,
+            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: -9.574460983276367, waitingY: -5.3191423416137695,
+            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: -5.319154262542725, waiting2Y: -5.319154262542725
         ),
         "bram": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
@@ -108,9 +108,9 @@ class PotionShopLayoutConfig {
             waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
         ),
         "crispin": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            width: 1.0319149382412434, height: 1.0319149382412434, x: -31.914889812469482, y: 0.0,
+            waitingWidth: 1.0279255546629429, waitingHeight: 1.0279255546629429, waitingX: -21.631205081939697, waitingY: -12.765955924987793,
+            waiting2Width: 1.0279255546629429, waiting2Height: 1.0279255546629429, waiting2X: -18.794333934783936, waiting2Y: -15.957450866699219
         ),
         "ironhilde": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,

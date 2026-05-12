@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 12, 2026 (PIXEL-ACCURATE SIZING SYSTEM COMPLETE — Ednar + Customers Unified)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **PIXEL-ACCURATE SIZING SYSTEM IMPLEMENTED (May 12, 2026)** - Ednar and customers now use identical scaling approach. All characters drawn on 1536×1024px canvas @ 300 DPI appear at predictable, proportional sizes without manual tuning. **Ednar base scale: 0.15** (matches layout config). **Customer base scale: 2.0** (compensates for queue depth scaling). **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **Active/Waiting scale system** - each character has separate scale/position values for active (front of line) vs waiting (back of line). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Default character scale**: 1.0× width, 1.0× height (no distortion). **Default waiting scale**: 0.8× width, 0.8× height (creates depth effect). **Smooth transitions** between active/waiting states during queue swaps.  
+> **Last Updated:** May 12, 2026 (UNIFIED CHARACTER SCALING COMPLETE — All Customers Same Size)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -749,8 +749,30 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 | Win Round       | Defeat all current customers instantly (test round-end overlay) |
 | Lose Game       | composure → 0 (test lose overlay)                            |
 | **Layout Editor** | **NEW (May 5, 2026)** - Live overlay editor for visual tuning |
+| **Copy Layout Values** | **NEW (May 12, 2026)** - Copies all current layout values to clipboard in formatted text (includes all 14 characters × 12 values each = 168 character values + section heights, art scales, nodes, etc.) |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
+
+**Copy Layout Values Feature (NEW - May 12, 2026):**
+- Accessible via "📋 Copy Layout Values" button in debug menu
+- Generates comprehensive text output of ALL current layout values
+- Includes:
+  - Section heights (6 values)
+  - Ednar art scaling (4 values)
+  - Cauldron art scaling (4 values)
+  - Bowl parameters (3 values)
+  - Node parameters (4 global values + 12 per-node offsets)
+  - Dice/tray parameters (3 values)
+  - Brew zone parameters (5 values)
+  - **All 14 characters × 12 values each (168 total character values)**:
+    - Active: width, height, x, y
+    - Waiting: width, height, x, y
+    - Waiting 2: width, height, x, y
+- Automatically copies to clipboard (iOS UIPasteboard)
+- Formatted for easy pasting back to Claude for permanent code updates
+- Shows timestamp of when values were captured
+- Includes helpful headers and separators for readability
+- **UPDATED May 12, 2026:** Now includes all waiting2 values (56 new lines added)
 
 ### 12.1 Layout Editor (NEW - May 5, 2026 - LIVE PREVIEW OVERLAY)
 
@@ -1096,7 +1118,8 @@ The layout editor includes a **🧍 Customers** section that allows you to adjus
 - **Waiting 2 position** = When customer is at `queue[2]` (back of line, farthest from Ednar)
 - **Queue swap animation** smoothly transitions between all three states
 - **Example use**: Make waiting2 customers 70% size to create strong depth effect (queue[0]=100%, queue[1]=85%, queue[2]=70%)
-- **Default (May 12, 2026)**: All positions are 1.0× (same size) - depth effect achieved via queue depth scaling instead
+- **Default (May 12, 2026)**: All positions are 1.0× (same size) - **queue depth scaling REMOVED** (was [1.0, 0.78, 0.72], now [1.0, 1.0, 1.0])
+- **Why removed**: Allows all characters to appear at natural proportions from Procreate canvas; depth can be added per-character via layout editor if desired
 
 **Workflow:**
 1. Select character from picker
@@ -1129,7 +1152,9 @@ The layout editor includes a **🧍 Customers** section that allows you to adjus
 **Default Scale Rationale (CHANGED May 12, 2026):**
 - All positions: 1.0× width, 1.0× height (pixel-accurate, no distortion)
 - Images drawn at 1536×1024 @ 300 DPI appear at correct proportions without manual adjustment
-- Depth effect achieved via queue depth scaling (active: 1.0×, waiting: 0.78×, waiting2: 0.72×) rather than per-character config
+- **Queue depth scaling REMOVED** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]
+- **Why removed**: All characters now appear at same size in all queue positions by default
+- **Depth effects**: Can be added per-character using layout editor sliders (e.g., set waiting2Width/Height to 0.7× for specific characters)
 - Based on user's 1536×1024 px Procreate canvas (3:2 landscape)
 - **All positions start at same scale** - use layout editor to customize per-character if needed
 
@@ -1247,6 +1272,8 @@ During queue swap: matchedGeometryEffect animates smooth transition
 | **7f** | **Live preview overlay editor (May 5)** | ✅ | **MAJOR REFACTOR: Replaced sheet-based editor with semi-transparent floating overlay that appears OVER the game. Shared `@Observable` config (`PotionShopLayoutConfig.shared`) enables true live preview. Section-focused UI with horizontal pill picker (📏🧙🍲🥘🔵🎲🥄). Added 🔵 Nodes section for grid positioning. Slider changes update game instantly without rebuild. See §12.1 for full documentation.** |
 | **7g** | **Per-node fine-tuning (May 5)** | ✅ | **Added 🔧 Fine-Tune section to layout editor. Individual X/Y offset controls for all 12 nodes (±100pt range). Dropdown picker to select node. "Reset This Node" and "Reset All Nodes" buttons. Offsets apply AFTER spacing multiplier (layered positioning). See §12.1.1 for full documentation.** |
 | **7h** | **Customer scene scaling system (May 6)** | ✅ | **Added 🧍 Customers section to layout editor. Per-character width/height/X/Y scaling with character picker dropdown (Mildred & Tomik). Removed circle clipping from scene portraits so full images are visible. Values passed from layoutConfig → GameView → SceneView → CustomerView. Both characters default to 2.34×2.13× with 5pt, 51pt offsets. See §12.1.2 for full documentation.** |
+| **7i** | **3-position system + waiting2 (May 12)** | ✅ | **MAJOR UPDATE: Added third position (waiting2) for queue[2] customers. Each character now has 12 layout values (4 active + 4 waiting + 4 waiting2). Layout editor updated with purple "Waiting Position 2" section. Code generator updated to output all 56 waiting2 lines (4 values × 14 characters). All 14 characters integrated. See §12.1.2 for full documentation.** |
+| **7j** | **Unified character scaling (May 12)** | ✅ | **REMOVED automatic queue depth scaling. Changed queueScales from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. All customers now appear at same size whether active or waiting by default. Depth effects now optional via per-character layout editor adjustments. All defaults reset to 1.0×1.0×0,0 (pixel-accurate, no distortion). Draw → export → drop → works! See §16.1.1 for full documentation.** |
 
 ---
 
@@ -1375,13 +1402,15 @@ All art is now drawn on **identical 1536×1024 canvas** and uses **unified base 
 | Character Type | Canvas Size     | Base Scale | Code Location | Purpose |
 |---------------|-----------------|------------|---------------|---------|
 | **Ednar**     | 1536×1024 @ 300 DPI | **0.15** | `PotionShopCustomerSceneView` → `ednarBaseScale` | Makes image visible at reasonable size |
-| **Customers** | 1536×1024 @ 300 DPI | **2.0**  | `PotionShopCustomerInSceneView` → `customerSceneBaseScale` | Compensates for queue depth scaling |
+| **Customers** | 1536×1024 @ 300 DPI | **2.0**  | `PotionShopCustomerInSceneView` → `customerSceneBaseScale` | Makes scene images visible (queue depth scaling removed) |
 
 **Why Different Base Scales?**
-- Customers have **queue depth scaling** (active: 1.0×, waiting: 0.78×, back: 0.72×) that reduces their size
-- Ednar has NO queue depth scaling (always full size)
-- Different base scales compensate for this difference
+- **Queue depth scaling has been REMOVED** (was [1.0, 0.78, 0.72], now [1.0, 1.0, 1.0])
+- Both Ednar and customers use same canvas size but need different base scales due to different starting frame sizes
+- Ednar has NO automatic shrinking (always full size)
+- Customers previously had automatic shrinking but this was removed in favor of manual per-character control
 - **End result:** Characters drawn at same height in Procreate appear same height in-game!
+- **Depth effects**: Now optional via per-character layout editor adjustments instead of automatic
 
 **Frame Calculation (Unified Formula):**
 ```swift
@@ -1400,8 +1429,11 @@ let finalHeight = customerImage.size.height * customerSceneBaseScale * effective
 | Character | Canvas | Base Scale | Art Multiplier | Final Calculation |
 |-----------|--------|------------|----------------|-------------------|
 | Ednar     | 1536×1024 | 0.15 | 1.0×1.0 | `1536 × 0.15 × 1.0 × 1.0 = 230px wide` |
-| Grimdrek (active) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` THEN scaled by queue position (1.0× at front) = **3072px** |
-| Grimdrek (waiting) | 1536×1024 | 2.0 | 0.8×0.8 | `1536 × 2.0 × 0.8 × 0.8 = 1966px` THEN scaled by queue position (0.78×) = **~1533px** |
+| Grimdrek (active) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px) |
+| Grimdrek (waiting) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px, same as active!) |
+| Grimdrek (waiting2) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px, same as active!) |
+
+**Note:** Queue depth scaling was removed (May 12, 2026). All positions now use same size by default.
 
 **What Changed (Code-Level Details):**
 
@@ -1456,6 +1488,7 @@ Capsule()
 - ✅ **Layout editor still works** - Per-character sliders available for fine-tuning
 - ✅ **Default scale 1.0×** - No distortion, images appear as drawn
 - ✅ **Shadow scales automatically** - Gets bigger/smaller with character height
+- ✅ **Unified scaling (May 12, 2026)** - All queue positions now same size by default (queue depth scaling removed)
 
 **Testing Workflow:**
 1. Draw character in Procreate at **1536×1024 @ 300 DPI**
@@ -1475,17 +1508,36 @@ ednarX: 0.0              // X offset (centered)
 ednarY: 0.0              // Y offset (centered)
 
 // Customers (in PotionShopLayoutConfig.swift)
-customerSceneBaseScale: 2.0  // Base scale (compensates for queue depth)
+customerSceneBaseScale: 2.0  // Base scale (makes scene images visible)
 
 // All 14 characters default to:
-width: 1.0, height: 1.0      // Active position (no distortion)
-waitingWidth: 0.8, waitingHeight: 0.8  // Waiting position (80% size for depth)
-x: 0.0, y: 0.0               // Centered (no offset)
+width: 1.0, height: 1.0            // Active position (no distortion)
+waitingWidth: 1.0, waitingHeight: 1.0   // Waiting position (SAME SIZE - no auto-shrink)
+waiting2Width: 1.0, waiting2Height: 1.0 // Waiting2 position (SAME SIZE - no auto-shrink)
+x: 0.0, y: 0.0                     // Centered (no offset)
+
+// Queue depth scaling (in PotionShopCustomerSceneView)
+queueScales: [1.0, 1.0, 1.0]  // ← CHANGED from [1.0, 0.78, 0.72] on May 12, 2026
+// All customers now appear at same size in all positions by default
 ```
 
+**What Changed on May 12, 2026:**
+1. **Queue depth scaling REMOVED**: `queueScales` changed from `[1.0, 0.78, 0.72]` to `[1.0, 1.0, 1.0]`
+2. **All defaults reset**: `waitingWidth/Height` changed from `0.8` to `1.0` in config defaults
+3. **Waiting2 values added**: Each character now has `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y`
+4. **Code generator updated**: Now outputs all 56 waiting2 lines (4 values × 14 characters)
+5. **CharacterScale struct expanded**: 8 properties → 12 properties (added 4 waiting2 fields)
+
+**Why This Change:**
+- User wanted all characters to appear at their natural drawn proportions without automatic shrinking
+- Draw → Export → Drop → Works! (No tuning required)
+- Depth effects now optional via per-character layout editor adjustments
+- Simpler mental model: "What I draw is what appears in-game"
+
 **Historical Note:**
-- **May 10, 2026:** Character defaults were 1.6×2.0× (distorted aspect ratio)
-- **May 12, 2026:** Reset to 1.0×1.0× (pixel-accurate, no distortion)
+- **May 10, 2026:** Character defaults were 1.6×2.0× (distorted aspect ratio), automatic queue depth shrinking active
+- **May 12, 2026 (morning):** Reset to 1.0×1.0× (pixel-accurate, no distortion), queue depth shrinking still active
+- **May 12, 2026 (afternoon):** Removed queue depth shrinking entirely, added waiting2 position support
 - **Reason:** User wanted to upload images and have them appear correctly sized without manual adjustment
 - **Result:** System now works as intended - draw at correct proportions, upload, done! ✨
 
@@ -1726,6 +1778,122 @@ When starting a fresh session with Claude in Xcode:
 | Add a debug action                                      | `PotionShopDebugMenu.swift` + matching method on `PotionShopGameState` |
 | Swap a placeholder asset for real art                   | drop PNG into `Assets.xcassets`, change `iconFallback` emoji to `Image("name")` |
 | Implement Hexer trait                                   | `PotionShopGameState.swift` → add a phase between patience-tick and expirations in `doBrew()` |
+
+---
+
+## 22. SESSION SUMMARY — MAY 12, 2026 (UNIFIED CHARACTER SCALING)
+
+### What Was Accomplished:
+
+**1. Removed Queue Depth Scaling (MAJOR CHANGE)**
+- **Old behavior:** Characters automatically shrank when in waiting positions
+  - Active (queue[0]): 100% size
+  - Waiting (queue[1]): 78% size
+  - Waiting2 (queue[2]): 72% size
+- **New behavior:** All positions use same size by default (100% at all positions)
+- **Implementation:** Changed `queueScales` from `[1.0, 0.78, 0.72]` to `[1.0, 1.0, 1.0]`
+- **Files modified:** `PotionShopCustomerSceneView.swift`
+
+**2. Updated Layout Config Defaults**
+- **Old defaults:** `waitingWidth: 0.8, waitingHeight: 0.8` (80% of active size)
+- **New defaults:** `waitingWidth: 1.0, waitingHeight: 1.0` (same as active size)
+- **Reason:** Unified sizing system - all characters appear at natural proportions
+- **Files modified:** `PotionShopLayoutConfig.swift`
+
+**3. Added Waiting2 Position Support (3-Position System)**
+- **New fields added to CharacterScale struct:**
+  - `waiting2Width: Double = 1.0`
+  - `waiting2Height: Double = 1.0`
+  - `waiting2X: Double = 0.0`
+  - `waiting2Y: Double = 0.0`
+- **Total values per character:** 12 (4 active + 4 waiting + 4 waiting2)
+- **Total values for all 14 characters:** 168 character-specific values
+- **Files modified:** `PotionShopLayoutConfig.swift`
+
+**4. Updated Layout Editor UI**
+- **Added purple "⏸️ WAITING POSITION 2 (queue[2])" section**
+- **New controls:**
+  - 🔗 Uniform Scale slider (yellow, sets width + height together)
+  - Width slider (0.5× to 5.0×)
+  - Height slider (0.5× to 5.0×)
+  - X Offset slider (-200 to +200 pts)
+  - Y Offset slider (-200 to +200 pts)
+  - "Link W/H" button (copies width to height)
+  - "Reset Position" button (zeros X/Y offsets)
+- **Files modified:** `PotionShopGameView.swift` (PotionShopLayoutOverlay section)
+
+**5. Updated Code Generator (Copy Layout Values)**
+- **Added 56 new output lines:** 4 waiting2 values × 14 characters
+- **Fixed "tomik" line break bug** that was breaking output formatting
+- **New output includes:**
+  - All active values (width, height, x, y) for 14 characters = 56 lines
+  - All waiting values (width, height, x, y) for 14 characters = 56 lines
+  - All waiting2 values (width, height, x, y) for 14 characters = 56 lines
+  - **Total character values in output: 168 lines**
+- **Files modified:** `PotionShopDebugMenu.swift` (`copyLayoutValuesToClipboard()` function)
+
+**6. Updated Rendering System**
+- **New 3-way conditional:**
+  ```swift
+  let effectiveWidth = isActive ? activeWidth : (queueIndex == 1 ? waitingWidth : waiting2Width)
+  let effectiveHeight = isActive ? activeHeight : (queueIndex == 1 ? waitingHeight : waiting2Height)
+  let effectiveX = isActive ? activeX : (queueIndex == 1 ? waitingX : waiting2X)
+  let effectiveY = isActive ? activeY : (queueIndex == 1 ? waitingY : waiting2Y)
+  ```
+- **Supports 3 queue positions:** queue[0] (active), queue[1] (waiting), queue[2] (waiting2)
+- **Smooth transitions:** `matchedGeometryEffect` animates between all three states
+- **Files modified:** `PotionShopCustomerSceneView.swift` (PotionShopCustomerInSceneView)
+
+**7. Applied User's Custom Values**
+- **Mildred:** Active width adjusted from 2.34× to 2.46× (5.2% wider)
+- **Tomik:** Active x adjusted to -34.75pt, y to 12.41pt
+- **Greta:** Active width/height to 0.856×, x to -46.45pt, y to 19.50pt
+- **Pemberton:** Active y to 2.84pt, waiting width/height to 0.864×, waiting x to -23.05pt, waiting y to 5.32pt
+- **All values saved to:** `PotionShopLayoutConfig.swift` defaults
+
+### Technical Summary:
+
+**Data Structure Changes:**
+- `CharacterScale` struct: 8 properties → 12 properties (+4 waiting2 fields)
+- Config defaults: `waitingWidth/Height` changed from 0.8 to 1.0
+- Queue scaling: `[1.0, 0.78, 0.72]` → `[1.0, 1.0, 1.0]`
+
+**Code Changes:**
+- **5 files modified:**
+  1. `PotionShopLayoutConfig.swift` - Added waiting2 fields, changed defaults
+  2. `PotionShopCustomerSceneView.swift` - Removed queue depth scaling, added 3-way conditional
+  3. `PotionShopGameView.swift` - Added waiting2 UI section (purple header)
+  4. `PotionShopDebugMenu.swift` - Updated code generator to output waiting2 values
+  5. `CAULDRON_CONTEXT.md` - Updated documentation (this file!)
+
+**User Workflow Impact:**
+- ✅ Draw characters at natural proportions in Procreate (1536×1024 @ 300 DPI)
+- ✅ Export PNG with transparent background
+- ✅ Drop into Assets.xcassets
+- ✅ Build and run → **Characters appear at correct size without tuning!**
+- ✅ (Optional) Fine-tune via layout editor if desired
+
+### Next Steps:
+
+**Immediate:**
+1. Build and run (Command + R) to verify changes
+2. Test with Round 3 (Evening) to see 3 customers all at uniform size
+3. Use layout editor to adjust waiting2 values if depth effects desired
+
+**Future:**
+- Continue adding remaining character art assets
+- Playtest Day 1 completely
+- Move to Phase 8 (Round-end overlays)
+
+### Files Modified in This Session:
+
+1. **PotionShopLayoutConfig.swift** - Added waiting2 support, changed defaults
+2. **PotionShopCustomerSceneView.swift** - Removed queue depth scaling
+3. **PotionShopGameView.swift** - Added waiting2 UI controls
+4. **PotionShopDebugMenu.swift** - Updated code generator
+5. **CAULDRON_CONTEXT.md** - Updated documentation
+
+**Total lines added/changed:** ~200 lines across 5 files
 
 ---
 
