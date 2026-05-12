@@ -138,11 +138,16 @@ struct PotionShopCustomerSceneView: View {
                             customerSceneHeight: scale.height,
                             customerSceneX: scale.x,
                             customerSceneY: scale.y,
-                            // Waiting position values
+                            // Waiting position 1 values
                             customerWaitingWidth: scale.waitingWidth,
                             customerWaitingHeight: scale.waitingHeight,
                             customerWaitingX: scale.waitingX,
-                            customerWaitingY: scale.waitingY
+                            customerWaitingY: scale.waitingY,
+                            // Waiting position 2 values ← NEW!
+                            customerWaiting2Width: scale.waiting2Width,
+                            customerWaiting2Height: scale.waiting2Height,
+                            customerWaiting2X: scale.waiting2X,
+                            customerWaiting2Y: scale.waiting2Y
                         )
                     }
                 }
@@ -315,7 +320,7 @@ struct PotionShopCustomerInSceneView: View {
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
     
-    // Customer scaling parameters (May 11, 2026 - ACTUAL SIZE SYSTEM)
+    // Customer scaling parameters (May 12, 2026 - 3-POSITION SYSTEM)
     // Base scale applied to ALL images (makes 1536×1024 images visible)
     var customerSceneBaseScale: Double = 2.0
     
@@ -325,11 +330,17 @@ struct PotionShopCustomerInSceneView: View {
     var customerSceneX: Double = 0.0
     var customerSceneY: Double = 0.0
     
-    // Waiting position (queue[1+])
-    var customerWaitingWidth: Double = 0.8
-    var customerWaitingHeight: Double = 0.8
+    // Waiting position 1 (queue[1])
+    var customerWaitingWidth: Double = 1.0     // ← CHANGED: Now defaults to 1.0 (was 0.8)
+    var customerWaitingHeight: Double = 1.0    // ← CHANGED: Now defaults to 1.0 (was 0.8)
     var customerWaitingX: Double = 0.0
     var customerWaitingY: Double = 0.0
+    
+    // Waiting position 2 (queue[2]) ← NEW!
+    var customerWaiting2Width: Double = 1.0
+    var customerWaiting2Height: Double = 1.0
+    var customerWaiting2X: Double = 0.0
+    var customerWaiting2Y: Double = 0.0
 
     @State private var shakeOffset: CGFloat = 0
     @State private var settleBoost: CGFloat = 1.0
@@ -381,13 +392,13 @@ struct PotionShopCustomerInSceneView: View {
     }
 
     var body: some View {
+        // Determine which scale to use based on position in queue (3-way choice)
+        let effectiveWidth: Double = isActive ? customerSceneWidth : (queueIndex == 1 ? customerWaitingWidth : customerWaiting2Width)
+        let effectiveHeight: Double = isActive ? customerSceneHeight : (queueIndex == 1 ? customerWaitingHeight : customerWaiting2Height)
+        let effectiveX: Double = isActive ? customerSceneX : (queueIndex == 1 ? customerWaitingX : customerWaiting2X)
+        let effectiveY: Double = isActive ? customerSceneY : (queueIndex == 1 ? customerWaitingY : customerWaiting2Y)
+        
         if let char = char {
-            // Determine which scale to use based on position in queue
-            let effectiveWidth = isActive ? customerSceneWidth : customerWaitingWidth
-            let effectiveHeight = isActive ? customerSceneHeight : customerWaitingHeight
-            let effectiveX = isActive ? customerSceneX : customerWaitingX
-            let effectiveY = isActive ? customerSceneY : customerWaitingY
-            
             ZStack {
                 // Character image (full body, NO circle!)
                 // Apply custom scaling and positioning

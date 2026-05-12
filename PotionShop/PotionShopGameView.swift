@@ -625,6 +625,127 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow("Y", value: waitingYBinding, range: -200...200, format: "%.0f pt")
                 }
                 
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+                
+                // WAITING POSITION 2 CONTROLS (NEW! - queue[2])
+                Text("⏸️ WAITING POSITION 2 (queue[2])")
+                    .font(.caption2.bold())
+                    .foregroundColor(.purple)
+                
+                // Waiting2 Uniform Scale slider
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("🔗 Uniform Scale")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        Spacer()
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).waiting2Width))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.yellow)
+                    }
+                    Slider(
+                        value: Binding<Double>(
+                            get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Width },
+                            set: { newValue in
+                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                scale.waiting2Width = newValue
+                                scale.waiting2Height = newValue  // ← Apply same value to waiting2 height!
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            }
+                        ),
+                        in: 0.5...5.0
+                    )
+                    .tint(.yellow)
+                    
+                    Text("Back position scale (queue[2])")
+                        .font(.system(size: 9))
+                        .foregroundColor(.yellow.opacity(0.8))
+                        .italic()
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+                
+                // Waiting position 2 individual sliders
+                VStack(alignment: .leading, spacing: 10) {
+                    let waiting2WidthBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Width },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waiting2Width = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Width", value: waiting2WidthBinding, range: 0.5...5.0, format: "%.2f×")
+                    
+                    let waiting2HeightBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Height },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waiting2Height = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Height", value: waiting2HeightBinding, range: 0.5...5.0, format: "%.2f×")
+                    
+                    let waiting2XBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2X },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waiting2X = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("X", value: waiting2XBinding, range: -200...200, format: "%.0f pt")
+                    
+                    let waiting2YBinding = Binding<Double>(
+                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Y },
+                        set: { newValue in
+                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            scale.waiting2Y = newValue
+                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        }
+                    )
+                    sliderRow("Y", value: waiting2YBinding, range: -200...200, format: "%.0f pt")
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+                
+                // Helper buttons
+                HStack(spacing: 12) {
+                    // Link W/H button
+                    Button("Link W/H") {
+                        var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                        scale.waiting2Height = scale.waiting2Width
+                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                    }
+                    .font(.caption2.bold())
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan)
+                    .cornerRadius(4)
+                    
+                    // Reset Position button
+                    Button("Reset Position") {
+                        var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                        scale.waiting2X = 0
+                        scale.waiting2Y = 0
+                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                    }
+                    .font(.caption2.bold())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange)
+                    .cornerRadius(4)
+                }
+                
                 // Reset button (now uses selected character)
                 Button("Reset \(selectedCharacterId.capitalized)") {
                     layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: PotionShopLayoutConfig.CharacterScale())

@@ -781,7 +781,7 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 |---------|----------|-------|-------|
 | **📏 Sections** | Header, Scene, Profile, Cauldron, Preview, Tray percentages | 0-60% each | Shows total % (red if >100%) |
 | **🧙 Ednar** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Character art scaling |
-| **🧍 Customers** | **Mildred width, height, X, Y** | **0.5-3.0× scale, ±200pt position** | **Per-character scene portrait scaling (May 6)** |
+| **🧍 Customers** | **All 14 characters: Active + Waiting + Waiting 2 positions** | **0.5-5.0× scale, ±200pt position** | **3-position system with uniform scale (May 12, 2026)** |
 | **🍲 Cauldron** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Cauldron art scaling |
 | **🥘 Bowl** | Scale, X offset, Y offset | 0.5-3.0× scale, ±200pt offset | Parametric bowl shape |
 | **🔵 Nodes** | Node scale, Grid X, Grid Y, **⚠️ Spacing Multiplier** | 0.5-3.0× scale, ±200pt offset, **0.5-2.0× spacing (EXPERIMENTAL)** | Entire node grid positioning + **experimental spacing** |

@@ -5,13 +5,12 @@
 //  Layout configuration shared between game view and layout editor overlay.
 //  This allows live preview of layout changes.
 //
-//  ✅ UPDATED: May 12, 2026 - 3-POSITION SYSTEM
-//  Each character now has 3 sets of scale/position values:
-//    - Active (queue[0]): Front of line
-//    - Waiting 1 (queue[1]): First waiting spot
-//    - Waiting 2 (queue[2]): Second waiting spot
-//  All positions default to 1.0×1.0×0,0 (no distortion, pixel-accurate sizing).
-//  Use layout editor sliders to adjust individual positions per character.
+//  ✅ UPDATED: May 11, 2026 - ACTUAL SIZE SYSTEM
+//  All customer portraits and Ednar reset to 1.0× scale (no distortion).
+//  Images drawn on 1536×1024 canvas appear at natural relative sizes.
+//  Use layout editor sliders to adjust individual characters if needed.
+//
+//  🔄 BACKUP CREATED: May 12, 2026 - Before 3-position system implementation
 //
 
 import SwiftUI
@@ -48,84 +47,67 @@ class PotionShopLayoutConfig {
     var customerSceneY: Double = 0.0
     
     // Per-Character Scaling (14 characters, indexed by customer ID)
-    // 3-POSITION SYSTEM (May 12, 2026):
-    // Each character has 3 sets of scale/position values:
-    //   - Active (queue[0]): Front of line, closest to Ednar
-    //   - Waiting 1 (queue[1]): First waiting spot
-    //   - Waiting 2 (queue[2]): Second waiting spot
+    // ACTUAL SIZE SYSTEM (May 11, 2026):
     // All characters drawn on 1536×1024 canvas at their natural relative sizes
-    // Default scale 1.0×1.0 for ALL positions = no distortion, images appear as drawn
-    // Use layout editor sliders to fine-tune individual positions per character
+    // Default scale 1.0×1.0 = no distortion, images appear as drawn
+    // Waiting scale 0.8×0.8 = slight depth effect (adjustable)
+    // Use layout editor sliders to fine-tune individual characters if needed
     var perCharacterScales: [String: CharacterScale] = [
         "mildred": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "tomik": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "greta": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "sister_halla": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "wendelina": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "grimdrek": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "hexa_mott": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "pemberton": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "ardo": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "bram": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "crispin": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "ironhilde": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "carmilla": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "royal_envoy": CharacterScale(
             width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         )
     ]
     
@@ -136,17 +118,11 @@ class PotionShopLayoutConfig {
         var x: Double = 0.0
         var y: Double = 0.0
         
-        // Waiting position 1 (when customer is at queue[1] - first waiting spot)
-        var waitingWidth: Double = 1.0     // ← CHANGED: Now defaults to match active (was 0.8)
-        var waitingHeight: Double = 1.0    // ← CHANGED: Now defaults to match active (was 0.8)
+        // Waiting position (when customer is at queue[1+] - back of line)
+        var waitingWidth: Double = 0.8     // 80% of active by default
+        var waitingHeight: Double = 0.8
         var waitingX: Double = 0.0
         var waitingY: Double = 0.0
-        
-        // Waiting position 2 (when customer is at queue[2] - second waiting spot) ← NEW!
-        var waiting2Width: Double = 1.0
-        var waiting2Height: Double = 1.0
-        var waiting2X: Double = 0.0
-        var waiting2Y: Double = 0.0
     }
     
     // Helper to get or create a character scale
