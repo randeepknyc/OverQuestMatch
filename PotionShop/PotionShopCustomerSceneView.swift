@@ -81,6 +81,7 @@ struct PotionShopSceneLayout {
 
 struct PotionShopCustomerSceneView: View {
     @Bindable var gs: PotionShopGameState
+    var ednarBaseScale: Double = 0.15 // BASE SCALE - Makes 1536×1024 images visible at reasonable size (MATCHES LAYOUT CONFIG)
     var ednarArtScale: Double = 1.0  // ART SCALE - Pass through to Ednar view
     var ednarArtWidth: Double = 1.0  // FREEFORM - Width scale
     var ednarArtHeight: Double = 1.0 // FREEFORM - Height scale
@@ -104,6 +105,7 @@ struct PotionShopCustomerSceneView: View {
                 // LAYER 3: Ednar
                 PotionShopEdnarView(
                     gs: gs,
+                    ednarBaseScale: ednarBaseScale,
                     ednarArtScale: ednarArtScale,
                     ednarArtWidth: ednarArtWidth,
                     ednarArtHeight: ednarArtHeight,
@@ -129,12 +131,14 @@ struct PotionShopCustomerSceneView: View {
                             sceneSize: geo.size,
                             animationNamespace: queueAnimation,
                             arrivalCounter: activeArrivalCounter,
+                            // Base scale (makes 1536×1024 images visible)
+                            customerSceneBaseScale: layoutConfig?.customerSceneBaseScale ?? 2.0,
                             // Active position values
                             customerSceneWidth: scale.width,
                             customerSceneHeight: scale.height,
                             customerSceneX: scale.x,
                             customerSceneY: scale.y,
-                            // Waiting position values (NEW!)
+                            // Waiting position values
                             customerWaitingWidth: scale.waitingWidth,
                             customerWaitingHeight: scale.waitingHeight,
                             customerWaitingX: scale.waitingX,
@@ -219,6 +223,7 @@ struct PotionShopCustomerSceneView: View {
 
 struct PotionShopEdnarView: View {
     @Bindable var gs: PotionShopGameState
+    var ednarBaseScale: Double = 0.15   // BASE SCALE - Makes 1536×1024 images visible at reasonable size (MATCHES LAYOUT CONFIG)
     var ednarArtScale: Double = 1.0    // ART SCALE - Scale multiplier for Ednar image
     var ednarArtWidth: Double = 1.0    // FREEFORM - Independent width scale
     var ednarArtHeight: Double = 1.0   // FREEFORM - Independent height scale
@@ -244,34 +249,46 @@ struct PotionShopEdnarView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Try to load Ednar expression image, fallback to emoji
-            ZStack {
-                // Invisible spacer to maintain layout position
-                Color.clear
-                    .frame(width: 100, height: 120)
+            // ACTUAL SIZE SYSTEM (May 12, 2026): Uses real pixel dimensions (same scale as layout config)
+            if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
+                let finalWidth = ednarImage.size.width * ednarBaseScale * ednarArtScale * ednarArtWidth
+                let finalHeight = ednarImage.size.height * ednarBaseScale * ednarArtScale * ednarArtHeight
                 
-                // Image with independent positioning (can move outside bounds)
-                if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
-                    Image(uiImage: ednarImage)
-                        .resizable()
-                        // NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
-                        .frame(
-                            width: 100 * ednarArtScale * ednarArtWidth,    // base × uniform × width
-                            height: 120 * ednarArtScale * ednarArtHeight   // base × uniform × height
-                        )
-                        // NO .clipped() - allows image to escape frame bounds
-                        .offset(x: ednarArtXOffset, y: ednarArtYOffset)
-                        .allowsHitTesting(false)  // Don't intercept touches
-                } else {
-                    Text(expressionEmojiFallback)
-                        .font(.system(size: 64 * ednarArtScale))
-                        .offset(x: ednarArtXOffset, y: ednarArtYOffset)
-                }
+                Image(uiImage: ednarImage)
+                    .resizable()
+                    .scaledToFit()  // Preserve aspect ratio
+                    .frame(width: finalWidth, height: finalHeight)
+                    .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                    .allowsHitTesting(false)
+                
+                // Shadow scales proportionally to image height (20% of height, min 4pt)
+                Capsule()
+                    .fill(PotionShopTheme.ink.opacity(0.15))
+                    .frame(
+                        width: max(64, finalHeight * 0.20),  // Shadow width = 20% of height
+                        height: 4
+                    )
+                    .blur(radius: 1)
+                    .offset(y: ednarArtYOffset * 0.5)  // Shadow follows Y offset (damped)
+            } else {
+                // Emoji fallback - pixel-accurate sizing
+                let baseEmojiSize: CGFloat = 76  // Match customer base size
+                let finalSize = baseEmojiSize
+                
+                Text(expressionEmojiFallback)
+                    .font(.system(size: finalSize))
+                    .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                
+                // Shadow scales with emoji size
+                Capsule()
+                    .fill(PotionShopTheme.ink.opacity(0.15))
+                    .frame(
+                        width: max(64, finalSize * 0.64),  // Shadow width = 64% of emoji size
+                        height: 4
+                    )
+                    .blur(radius: 1)
+                    .offset(y: ednarArtYOffset * 0.5)
             }
-            
-            Capsule()
-                .fill(PotionShopTheme.ink.opacity(0.15))
-                .frame(width: 64, height: 4)
-                .blur(radius: 1)
         }
     }
 }
@@ -298,14 +315,17 @@ struct PotionShopCustomerInSceneView: View {
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
     
-    // Customer scaling parameters (May 10, 2026 - SPLIT: Active vs Waiting)
+    // Customer scaling parameters (May 11, 2026 - ACTUAL SIZE SYSTEM)
+    // Base scale applied to ALL images (makes 1536×1024 images visible)
+    var customerSceneBaseScale: Double = 2.0
+    
     // Active position (queue[0])
     var customerSceneWidth: Double = 1.0
     var customerSceneHeight: Double = 1.0
     var customerSceneX: Double = 0.0
     var customerSceneY: Double = 0.0
     
-    // Waiting position (queue[1+]) - NEW!
+    // Waiting position (queue[1+])
     var customerWaitingWidth: Double = 0.8
     var customerWaitingHeight: Double = 0.8
     var customerWaitingX: Double = 0.0
@@ -384,7 +404,10 @@ struct PotionShopCustomerInSceneView: View {
                         fallbackEmoji: char.iconFallback,
                         size: PotionShopSceneLayout.portraitDiameter * scale
                     )
-                    .scaleEffect(x: effectiveWidth, y: effectiveHeight, anchor: .center)
+                    // Apply base scale FIRST (makes 1536×1024 visible), then per-character scale
+                    .scaleEffect(x: customerSceneBaseScale * effectiveWidth, 
+                                y: customerSceneBaseScale * effectiveHeight, 
+                                anchor: .center)
                     .offset(x: effectiveX, y: effectiveY)
                 }
 

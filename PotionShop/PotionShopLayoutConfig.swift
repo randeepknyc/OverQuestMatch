@@ -5,7 +5,10 @@
 //  Layout configuration shared between game view and layout editor overlay.
 //  This allows live preview of layout changes.
 //
-//  ✅ UPDATED: May 5, 2026 - 1:44 AM - Section heights refined, preview bar removed
+//  ✅ UPDATED: May 11, 2026 - ACTUAL SIZE SYSTEM
+//  All customer portraits and Ednar reset to 1.0× scale (no distortion).
+//  Images drawn on 1536×1024 canvas appear at natural relative sizes.
+//  Use layout editor sliders to adjust individual characters if needed.
 //
 
 import SwiftUI
@@ -22,86 +25,86 @@ class PotionShopLayoutConfig {
     var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
     var trayPercent: Double = 19.3
     
-    // Ednar Art
-    var ednarWidth: Double = 1.59
-    var ednarHeight: Double = 2.0
-    var ednarX: Double = 14.0
-    var ednarY: Double = -17.0
+    // Ednar Art (ACTUAL SIZE - May 11, 2026)
+    // All images drawn at same canvas size (1536×1024) and displayed uniformly
+    // Scale multipliers at 1.0 = no distortion, images appear at natural proportions
+    var ednarBaseScale: Double = 0.15  // Base scale to make 1536×1024 images visible
+    var ednarWidth: Double = 1.0
+    var ednarHeight: Double = 1.0
+    var ednarX: Double = 0.0
+    var ednarY: Double = 0.0
     
     // Customer Scene Portraits (full-body standing characters)
+    // BASE SCALE: Multiplier applied to ALL scene images before per-character scaling
+    // This makes 1536×1024 canvas images appear at a visible size
+    // Adjust this ONE value to make all characters bigger/smaller together
+    var customerSceneBaseScale: Double = 2.0  // 200% of base to match visible Ednar size
     var customerSceneWidth: Double = 1.0
     var customerSceneHeight: Double = 1.0
     var customerSceneX: Double = 0.0
     var customerSceneY: Double = 0.0
     
     // Per-Character Scaling (14 characters, indexed by customer ID)
-    // Stores individual width/height/x/y for each character
-    // Default scale based on Ednar's proportions (1.6× width, 2.0× height) for 1536×1024 canvas
-    // Waiting scale defaults to 0.8×0.8× (80% of active) unless explicitly set
+    // ACTUAL SIZE SYSTEM (May 11, 2026):
+    // All characters drawn on 1536×1024 canvas at their natural relative sizes
+    // Default scale 1.0×1.0 = no distortion, images appear as drawn
+    // Waiting scale 0.8×0.8 = slight depth effect (adjustable)
+    // Use layout editor sliders to fine-tune individual characters if needed
     var perCharacterScales: [String: CharacterScale] = [
         "mildred": CharacterScale(
-            width: 1.983173742890358, height: 1.983173742890358, 
-            x: -5.283689498901367, y: 5.609917640686035,
-            waitingWidth: 3.097872316837311, waitingHeight: 3.097872316837311, waitingX: 0.0, waitingY: -5.6737542152404785
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "tomik": CharacterScale(
-            width: 1.9703190326690674, height: 1.9703190326690674, 
-            x: -17.0, y: 8.425545692443848,
-            waitingWidth: 3.0619679987430573, waitingHeight: 3.0619679987430573, waitingX: 0.0, waitingY: 0.0
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "greta": CharacterScale(
-            width: 1.8557623773813248, height: 1.8557623773813248, 
-            x: 0.0, y: 13.829779624938965,
-            waitingWidth: 2.9183509945869446, waitingHeight: 2.9183509945869446, waitingX: 0.0, waitingY: 0.0
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "sister_halla": CharacterScale(
-            width: 1.6398936361074448, height: 1.6398936361074448, 
-            x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "wendelina": CharacterScale(
-            width: 2.158510684967041, height: 2.158510684967041, 
-            x: -36.52482032775879, y: -1.063835620880127,
-            waitingWidth: 3.337233990430832, waitingHeight: 3.337233990430832, waitingX: -5.6737542152404785, waitingY: -9.929072856903076
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "grimdrek": CharacterScale(
-            width: 2.0547872483730316, height: 2.0547872483730316, 
-            x: -61.34752035140991, y: 8.156037330627441,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "hexa_mott": CharacterScale(
-            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "pemberton": CharacterScale(
-            width: 1.5122340321540833, height: 1.5122340321540833, 
-            x: 0.0, y: 35.10637283325195,
-            waitingWidth: 2.6111702024936676, waitingHeight: 2.6111702024936676, waitingX: 0.0, waitingY: 14.893627166748047
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "ardo": CharacterScale(
-            width: 1.9550531953573227, height: 1.9550531953573227, 
-            x: -14.184391498565674, y: 8.156037330627441,
-            waitingWidth: 3.2534576058387756, waitingHeight: 3.2534576058387756, waitingX: -26.24112367630005, waitingY: -10.992908477783203
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "bram": CharacterScale(
-            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "crispin": CharacterScale(
-            width: 1.803457424044609, height: 1.803457424044609, 
-            x: -17.3758864402771, y: 12.056732177734375,
-            waitingWidth: 3.125798135995865, waitingHeight: 3.125798135995865, waitingX: -7.801413536071777, waitingY: 10.992908477783203
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
+            waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "ironhilde": CharacterScale(
-            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "carmilla": CharacterScale(
-            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         ),
         "royal_envoy": CharacterScale(
-            width: 1.6, height: 2.0, x: 0.0, y: 0.0,
+            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
             waitingWidth: 0.8, waitingHeight: 0.8, waitingX: 0.0, waitingY: 0.0
         )
     ]

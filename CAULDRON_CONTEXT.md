@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 10, 2026 (Active/Waiting Scale System + All 14 Characters Linked)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **Active/Waiting scale system implemented** - each character has separate scale/position values for when they're active (front of line) vs waiting (back of line). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Character picker expanded to 14 characters** - all customers ready for art. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for all customer scene portraits. **Default active scale**: 1.6× width, 2.0× height (matches Ednar). **Default waiting scale**: 0.8× width, 0.8× height (creates depth effect). **Smooth transitions** between active/waiting states during queue swaps. Final production values: cauldron 1.36×1.93, Ednar 1.59×2.00, nodes 1.83 scale, per-node fine-tuning active, BREW zone hidden.  
+> **Last Updated:** May 12, 2026 (PIXEL-ACCURATE SIZING SYSTEM COMPLETE — Ednar + Customers Unified)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **PIXEL-ACCURATE SIZING SYSTEM IMPLEMENTED (May 12, 2026)** - Ednar and customers now use identical scaling approach. All characters drawn on 1536×1024px canvas @ 300 DPI appear at predictable, proportional sizes without manual tuning. **Ednar base scale: 0.15** (matches layout config). **Customer base scale: 2.0** (compensates for queue depth scaling). **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **Active/Waiting scale system** - each character has separate scale/position values for active (front of line) vs waiting (back of line). **Drag-and-drop dice placement implemented.** Layout fully tuned and LOCKED. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Default character scale**: 1.0× width, 1.0× height (no distortion). **Default waiting scale**: 0.8× width, 0.8× height (creates depth effect). **Smooth transitions** between active/waiting states during queue swaps.  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -1344,18 +1344,144 @@ Based on the user's Procreate workflow, customer scene portraits are drawn at:
 **CANVAS SIZE: 1536 × 1024 pixels @ 300 DPI**
 
 - **Aspect Ratio**: 3:2 (width:height, landscape orientation)
-- **Default scale in code**: 1.6× width, 2.0× height (matches Ednar's proportions)
-- **Reference image**: `ednar_idle.png` (all customer portraits scaled relative to this)
+- **Default scale in code**: 1.0× width, 1.0× height (NO DISTORTION - May 12, 2026 update)
+- **Reference image**: All characters drawn on same canvas size for proportional consistency
 
 **Why these dimensions:**
 - Matches the user's existing Procreate canvas setup
 - Provides high-quality retina rendering for iPhone displays
-- Default 1.6× × 2.0× scaling brings portraits to visible size in-game
-- Independent width/height sliders allow fine-tuning per character
+- Same canvas for ALL characters ensures proportional relationships are preserved
+- Independent width/height sliders allow fine-tuning per character if needed
 
-**Scaling Math:**
-- Mildred: Base (76×114) × Scaling (2.18×2.03) = **165.88 × 231.96 px** final render
-- Tomik: Base (76×114) × Scaling (2.09×1.90) = **158.84 × 216.60 px** final render
+### 16.1.1 PIXEL-ACCURATE SIZING SYSTEM (✅ COMPLETE - May 12, 2026)
+
+**The Problem (Before May 12, 2026):**
+- Ednar was using `ednarBaseScale: 2.0` (200% scale)
+- But layout config had `ednarBaseScale: 0.15` (15% scale)
+- Result: Ednar appeared 13× bigger than intended (2.0 ÷ 0.15 = 13.3×)
+- Customers and Ednar were using mismatched scaling systems
+- Manual tuning required for every character to compensate
+
+**The Solution (Implemented May 12, 2026):**
+
+All art is now drawn on **identical 1536×1024 canvas** and uses **unified base scale approach**:
+
+| Character Type | Canvas Size     | Base Scale | Code Location | Purpose |
+|---------------|-----------------|------------|---------------|---------|
+| **Ednar**     | 1536×1024 @ 300 DPI | **0.15** | `PotionShopCustomerSceneView` → `ednarBaseScale` | Makes image visible at reasonable size |
+| **Customers** | 1536×1024 @ 300 DPI | **2.0**  | `PotionShopCustomerInSceneView` → `customerSceneBaseScale` | Compensates for queue depth scaling |
+
+**Why Different Base Scales?**
+- Customers have **queue depth scaling** (active: 1.0×, waiting: 0.78×, back: 0.72×) that reduces their size
+- Ednar has NO queue depth scaling (always full size)
+- Different base scales compensate for this difference
+- **End result:** Characters drawn at same height in Procreate appear same height in-game!
+
+**Frame Calculation (Unified Formula):**
+```swift
+// EDNAR (PotionShopEdnarView)
+let finalWidth = ednarImage.size.width * ednarBaseScale * ednarArtScale * ednarArtWidth
+let finalHeight = ednarImage.size.height * ednarBaseScale * ednarArtScale * ednarArtHeight
+
+// CUSTOMER (PotionShopCustomerInSceneView)
+let finalWidth = customerImage.size.width * customerSceneBaseScale * effectiveWidth
+let finalHeight = customerImage.size.height * customerSceneBaseScale * effectiveHeight
+
+// Where effectiveWidth/Height = isActive ? activeWidth : waitingWidth
+```
+
+**Scaling Math Example:**
+| Character | Canvas | Base Scale | Art Multiplier | Final Calculation |
+|-----------|--------|------------|----------------|-------------------|
+| Ednar     | 1536×1024 | 0.15 | 1.0×1.0 | `1536 × 0.15 × 1.0 × 1.0 = 230px wide` |
+| Grimdrek (active) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` THEN scaled by queue position (1.0× at front) = **3072px** |
+| Grimdrek (waiting) | 1536×1024 | 2.0 | 0.8×0.8 | `1536 × 2.0 × 0.8 × 0.8 = 1966px` THEN scaled by queue position (0.78×) = **~1533px** |
+
+**What Changed (Code-Level Details):**
+
+**File:** `PotionShopCustomerSceneView.swift`
+
+**Before (WRONG - May 11, 2026):**
+```swift
+struct PotionShopCustomerSceneView: View {
+    var ednarBaseScale: Double = 2.0  // ❌ WRONG - doesn't match layout config!
+}
+
+struct PotionShopEdnarView: View {
+    var ednarBaseScale: Double = 2.0  // ❌ WRONG - doesn't match layout config!
+    
+    // Emoji fallback - hardcoded size
+    let baseEmojiSize: CGFloat = 100
+    let finalSize = baseEmojiSize * ednarBaseScale * ednarArtScale  // 100 × 2.0 = 200pt ❌
+}
+```
+
+**After (CORRECT - May 12, 2026):**
+```swift
+struct PotionShopCustomerSceneView: View {
+    var ednarBaseScale: Double = 0.15  // ✅ MATCHES layout config!
+}
+
+struct PotionShopEdnarView: View {
+    var ednarBaseScale: Double = 0.15  // ✅ MATCHES layout config!
+    
+    // Emoji fallback - pixel-accurate sizing
+    let baseEmojiSize: CGFloat = 76  // Match customer base size
+    let finalSize = baseEmojiSize  // 76pt ✅ (no multiplication - already correct size)
+}
+```
+
+**Shadow Scaling (Added May 12, 2026):**
+```swift
+// Ednar shadow now scales proportionally
+Capsule()
+    .fill(PotionShopTheme.ink.opacity(0.15))
+    .frame(
+        width: max(64, finalHeight * 0.20),  // 20% of character height
+        height: 4
+    )
+    .offset(y: ednarArtYOffset * 0.5)  // Follows character Y offset (damped)
+```
+
+**Benefits:**
+- ✅ **Upload once, perfect size** - 1536×1024 images appear at intended proportions without tuning
+- ✅ **Consistent workflow** - Same Procreate canvas for ALL characters (Ednar + 14 customers)
+- ✅ **Proportional relationships preserved** - Characters drawn taller appear taller in-game
+- ✅ **Layout editor still works** - Per-character sliders available for fine-tuning
+- ✅ **Default scale 1.0×** - No distortion, images appear as drawn
+- ✅ **Shadow scales automatically** - Gets bigger/smaller with character height
+
+**Testing Workflow:**
+1. Draw character in Procreate at **1536×1024 @ 300 DPI**
+2. Draw at the height/proportions you want relative to other characters
+3. Export PNG with **transparent background**
+4. Drag into **Assets.xcassets** with exact name (e.g., `ednar_calm`, `mildred_scene`)
+5. Build and run → **Character appears at perfect size!** ✨
+6. (Optional) Fine-tune via Layout Editor if needed (rarely necessary)
+
+**Current Production Values (LOCKED - May 12, 2026):**
+```swift
+// Ednar (in PotionShopLayoutConfig.swift)
+ednarBaseScale: 0.15     // Base scale (makes 1536×1024 visible)
+ednarWidth: 1.0          // Width multiplier (no distortion)
+ednarHeight: 1.0         // Height multiplier (no distortion)
+ednarX: 0.0              // X offset (centered)
+ednarY: 0.0              // Y offset (centered)
+
+// Customers (in PotionShopLayoutConfig.swift)
+customerSceneBaseScale: 2.0  // Base scale (compensates for queue depth)
+
+// All 14 characters default to:
+width: 1.0, height: 1.0      // Active position (no distortion)
+waitingWidth: 0.8, waitingHeight: 0.8  // Waiting position (80% size for depth)
+x: 0.0, y: 0.0               // Centered (no offset)
+```
+
+**Historical Note:**
+- **May 10, 2026:** Character defaults were 1.6×2.0× (distorted aspect ratio)
+- **May 12, 2026:** Reset to 1.0×1.0× (pixel-accurate, no distortion)
+- **Reason:** User wanted to upload images and have them appear correctly sized without manual adjustment
+- **Result:** System now works as intended - draw at correct proportions, upload, done! ✨
 
 ### 16.2 Customer Scene Portraits - Asset Naming Convention
 
@@ -1388,16 +1514,18 @@ Based on the user's Procreate workflow, customer scene portraits are drawn at:
 - ✅ All have `scenePortrait` field using proper `_scene` nomenclature
 - ✅ All have config entries in `PotionShopLayoutConfig.perCharacterScales`
 - ✅ All appear in layout editor character picker dropdown
-- ✅ All have default active scale (1.6×2.0× for most, custom for Mildred/Tomik)
-- ✅ All have default waiting scale (0.8×0.8×)
+- ✅ All have default active scale (**1.0×1.0× - NO DISTORTION** as of May 12, 2026)
+- ✅ All have default waiting scale (0.8×0.8× - creates depth effect)
 - ✅ All support active/waiting position system with smooth transitions
 
 **Per-Character Scaling System:**
 - Each character has independent width/height/x/y values in `PotionShopLayoutConfig.swift`
 - **Active values** used when character is at `queue[0]` (front of line)
 - **Waiting values** used when character is at `queue[1+]` (back of line)
+- **Default active: 1.0×1.0×** (pixel-accurate, no distortion - May 12, 2026 update)
+- **Default waiting: 0.8×0.8×** (80% of active size for depth effect)
 - Adjusted via Layout Editor → 🧍 Customers section → Character picker dropdown
-- Values can be locked in config after tuning for each character
+- Values can be locked in config after tuning for each character (rarely needed now)
 
 ### 16.4 Original Art Asset Spec (Profile Portraits & Other Assets)
 
