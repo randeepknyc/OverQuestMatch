@@ -61,7 +61,7 @@ struct PotionShopSceneLayout {
 
     static let queueYFractions: [CGFloat] = [0.48, 0.55, 0.55]
 
-    static let queueScales: [CGFloat] = [1.0, 0.78, 0.72]
+    static let queueScales: [CGFloat] = [1.0, 1.0, 1.0]  // ← CHANGED: All same size (was [1.0, 0.78, 0.72])
     static let queueDims:   [Bool]    = [false, true, true]
 
     static let portraitDiameter: CGFloat = 76

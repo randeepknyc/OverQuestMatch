@@ -1032,31 +1032,39 @@ brewZoneHeight: 95.51772773265839
 showBrewZone: false
 ```
 
-#### **12.1.2 Customer Scene Scaling (UPDATED - May 10, 2026)**
+#### **12.1.2 Customer Scene Scaling (UPDATED - May 12, 2026)**
 
-**Status:** ✅ COMPLETE - All 14 Characters + Active/Waiting Scale System  
-**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, uniform scale slider, AND separate active/waiting positions
+**Status:** ✅ COMPLETE - All 14 Characters + 3-Position System (Active / Waiting / Waiting 2)  
+**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, uniform scale slider, AND separate active/waiting/waiting2 positions
 
-The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently for **both active (front of line) and waiting (back of line) positions**.
+The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently for **THREE queue positions: active (queue[0]), waiting (queue[1]), and waiting 2 (queue[2])**.
 
 **Key Features:**
 - ✅ **Character picker dropdown** - Select any of 14 characters (ALL customers now included!)
-- ✅ **⭐️ ACTIVE POSITION** section (green header) - Controls for when customer is at front of line
-  - 🔗 Uniform Scale slider (0.5× to 3.0×) - Adjusts width AND height together (yellow color)
-  - Width slider (0.5× to 3.0×) - Horizontal scaling (independent)
-  - Height slider (0.5× to 3.0×) - Vertical scaling (independent)
+- ✅ **⭐️ ACTIVE POSITION** section (green header) - Controls for when customer is at queue[0] (front of line)
+  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts width AND height together (yellow color)
+  - Width slider (0.5× to 5.0×) - Horizontal scaling (independent)
+  - Height slider (0.5× to 5.0×) - Vertical scaling (independent)
   - X Offset slider (-200 to +200 pts) - Horizontal position
   - Y Offset slider (-200 to +200 pts) - Vertical position
-- ✅ **⏸️ WAITING POSITION** section (orange header) - **NEW!** Controls for when customer is in back of line
-  - 🔗 Uniform Scale slider (0.5× to 3.0×) - Adjusts waiting width AND height together
-  - Width slider (0.5× to 3.0×) - Waiting horizontal scaling
-  - Height slider (0.5× to 3.0×) - Waiting vertical scaling
+- ✅ **⏸️ WAITING POSITION** section (orange header) - Controls for when customer is at queue[1] (second position)
+  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts waiting width AND height together
+  - Width slider (0.5× to 5.0×) - Waiting horizontal scaling
+  - Height slider (0.5× to 5.0×) - Waiting vertical scaling
   - X Offset slider (-200 to +200 pts) - Waiting horizontal position
   - Y Offset slider (-200 to +200 pts) - Waiting vertical position
+- ✅ **⏸️ WAITING POSITION 2 (queue[2])** section (**NEW May 12, 2026** - purple header) - Controls for when customer is at queue[2] (back of line)
+  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts waiting2 width AND height together
+  - Width slider (0.5× to 5.0×) - Waiting2 horizontal scaling
+  - Height slider (0.5× to 5.0×) - Waiting2 vertical scaling
+  - X Offset slider (-200 to +200 pts) - Waiting2 horizontal position
+  - Y Offset slider (-200 to +200 pts) - Waiting2 vertical position
+  - **"Link W/H" button** (cyan) - Copies width value to height for proportional scaling
+  - **"Reset Position" button** (orange) - Resets X and Y offsets to 0
 - ✅ **Dynamic reset button** - Changes to "Reset [Character]" based on selection
 - ✅ **Live preview** - Changes apply instantly to the selected character
 - ✅ **No circle clipping** - Full images visible for proper resizing
-- ✅ **Smooth transitions** - Characters animate between active/waiting scales during queue swaps
+- ✅ **Smooth transitions** - Characters animate between active/waiting/waiting2 scales during queue swaps
 
 **All 14 Characters Available:**
 1. Mildred Honeycomb
@@ -1082,11 +1090,13 @@ The layout editor includes a **🧍 Customers** section that allows you to adjus
 - Displays current width value (since width = height when using uniform scale)
 - Helper text: "Adjusts width AND height together" (Active) or "Waiting scale (when not active)" (Waiting)
 
-**Active vs Waiting Positions:**
+**3-Position System (NEW - May 12, 2026):**
 - **Active position** = When customer is at `queue[0]` (front of line, closest to Ednar)
-- **Waiting position** = When customer is at `queue[1+]` (back of line)
-- **Queue swap animation** smoothly transitions between the two states
-- **Example use**: Make waiting customers 80% size to create depth effect
+- **Waiting position** = When customer is at `queue[1]` (middle position)
+- **Waiting 2 position** = When customer is at `queue[2]` (back of line, farthest from Ednar)
+- **Queue swap animation** smoothly transitions between all three states
+- **Example use**: Make waiting2 customers 70% size to create strong depth effect (queue[0]=100%, queue[1]=85%, queue[2]=70%)
+- **Default (May 12, 2026)**: All positions are 1.0× (same size) - depth effect achieved via queue depth scaling instead
 
 **Workflow:**
 1. Select character from picker
@@ -1099,38 +1109,33 @@ The layout editor includes a **🧍 Customers** section that allows you to adjus
    - Scroll to **⏸️ WAITING POSITION** (orange header)
    - Drag **🔗 Uniform Scale** for quick proportional sizing
    - OR drag individual Width/Height sliders for asymmetric scaling
-   - Adjust X/Y sliders to position when waiting
-4. Character updates instantly in live preview
-5. Test by playing round with multiple customers and tapping profiles to swap
+   - Adjust X/Y sliders to position when waiting at queue[1]
+4. **Adjust Waiting 2 Position (NEW!):**
+   - Scroll to **⏸️ WAITING POSITION 2 (queue[2])** (purple header)
+   - Drag **🔗 Uniform Scale** for quick proportional sizing
+   - OR drag individual Width/Height sliders for asymmetric scaling
+   - Adjust X/Y sliders to position when waiting at queue[2]
+   - Use **"Link W/H"** button to make width = height (proportional)
+   - Use **"Reset Position"** button to zero out X/Y offsets
+5. Character updates instantly in live preview
+6. Test by playing round with 3 customers (Skip to Round 3 - Evening) and tapping profiles to swap
 
-**Current Characters with Default Values (May 10, 2026):**
+**Current Characters with Default Values (May 12, 2026):**
 
-| Character    | Active Scale  | Active Pos  | Waiting Scale | Waiting Pos | Notes |
-|--------------|---------------|-------------|---------------|-------------|-------|
-| Mildred      | 2.18×2.03×    | -5pt, 6pt   | 0.8×0.8×      | 0pt, 0pt    | Custom active, default waiting |
-| Tomik        | 2.09×1.90×    | -17pt, 18pt | 0.8×0.8×      | 0pt, 0pt    | Custom active, default waiting |
-| Greta        | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
-| Sister Halla | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
-| Wendelina    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
-| Grimdrek     | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
-| Hexa Mott    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | Default visible |
-| Pemberton    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Ardo         | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Bram         | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Crispin      | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Ironhilde    | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Carmilla     | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
-| Royal Envoy  | 1.6×2.0×      | 0pt, 0pt    | 0.8×0.8×      | 0pt, 0pt    | ✅ NEW |
+| Character    | Active Scale | Active Pos | Waiting Scale | Waiting Pos | Waiting 2 Scale | Waiting 2 Pos | Notes |
+|--------------|--------------|------------|---------------|-------------|-----------------|---------------|-------|
+| All 14       | 1.0×1.0×     | 0pt, 0pt   | 1.0×1.0×      | 0pt, 0pt    | 1.0×1.0×        | 0pt, 0pt      | Same size at all positions (May 12) |
 
-**Default Scale Rationale:**
-- Active: 1.6× width, 2.0× height matches Ednar's proportions (`ednar_idle.png`)
-- Waiting: 0.8× width, 0.8× height (80% of active) creates depth effect
-- Ensures new characters appear at a visible size (not tiny 1.0×)
+**Default Scale Rationale (CHANGED May 12, 2026):**
+- All positions: 1.0× width, 1.0× height (pixel-accurate, no distortion)
+- Images drawn at 1536×1024 @ 300 DPI appear at correct proportions without manual adjustment
+- Depth effect achieved via queue depth scaling (active: 1.0×, waiting: 0.78×, waiting2: 0.72×) rather than per-character config
 - Based on user's 1536×1024 px Procreate canvas (3:2 landscape)
+- **All positions start at same scale** - use layout editor to customize per-character if needed
 
 **Technical Implementation:**
-- Data structure: `CharacterScale` struct with 8 properties (4 active + 4 waiting)
-- Dynamic rendering: `isActive ? activeValues : waitingValues`
+- Data structure: `CharacterScale` struct with 12 properties (4 active + 4 waiting + 4 waiting2)
+- Dynamic rendering: `isActive ? activeValues : (queueIndex == 1 ? waitingValues : waiting2Values)`
 - Animation: `matchedGeometryEffect` handles smooth transitions during queue swaps
 - Spring animation: 0.55s response, 0.78 damping fraction
 
@@ -1183,25 +1188,26 @@ During queue swap: matchedGeometryEffect animates smooth transition
 
 **Files Modified:**
 1. **PotionShopLayoutConfig.swift** 
-   - Added `waitingWidth`, `waitingHeight`, `waitingX`, `waitingY` to `CharacterScale` struct
-   - Added all 14 characters to `perCharacterScales` dictionary
-   - Default waiting values: 0.8×, 0.8×, 0pt, 0pt
+   - Added `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y` to `CharacterScale` struct (May 12, 2026)
+   - Changed all defaults to 1.0×1.0× for all positions (active, waiting, waiting2)
+   - All 14 characters in `perCharacterScales` dictionary
 2. **PotionShopGameView.swift** 
-   - Character picker dropdown updated to 14 characters
-   - Added **"⏸️ WAITING POSITION"** UI section (orange header)
-   - Added waiting uniform scale slider (yellow)
-   - Added 4 waiting sliders (width/height/x/y)
-   - Split UI with green **"⭐️ ACTIVE"** and orange **"⏸️ WAITING"** headers
+   - Added **"⏸️ WAITING POSITION 2 (queue[2])"** UI section (purple header) (May 12, 2026)
+   - Added waiting2 uniform scale slider (yellow)
+   - Added 4 waiting2 sliders (width/height/x/y)
+   - Added "Link W/H" and "Reset Position" helper buttons for waiting2
+   - Split UI with green **"⭐️ ACTIVE"**, orange **"⏸️ WAITING"**, and purple **"⏸️ WAITING 2"** headers
 3. **PotionShopCustomerSceneView.swift** 
-   - Added 4 waiting parameters to `PotionShopCustomerInSceneView`
-   - Added dynamic `effectiveWidth/Height/X/Y` selection based on `isActive`
-   - Passes waiting values from layout config
-   - Renders using correct values based on queue position
+   - Added 4 waiting2 parameters to `PotionShopCustomerInSceneView` (May 12, 2026)
+   - Updated to 3-way conditional: `isActive ? active : (queueIndex == 1 ? waiting : waiting2)`
+   - Passes waiting2 values from layout config
+   - Renders using correct values based on queue position (0, 1, or 2)
 4. **PotionShopData.swift**
-   - Updated 7 characters from placeholder to `_scene` suffix
-   - Pemberton, Ardo, Bram, Crispin, Ironhilde, Carmilla, Royal Envoy now use proper naming
+   - All 14 characters use proper `_scene` suffix for scene portraits
 5. **PotionShopModels.swift** 
    - **REMOVED circle clipping**, changed to `.scaledToFit()`
+6. **CAULDRON_CONTEXT.md**
+   - Updated documentation to reflect 3-position system (May 12, 2026)
 
 **Deprecation:**
 - The old sheet-based editor (`PotionShopNewLayoutEditor` struct in `PotionShopDebugMenu.swift`) is still present but **not used**
