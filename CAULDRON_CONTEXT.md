@@ -734,8 +734,10 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
   - **Colored patience ring:** Green/amber based on remaining time (green > 40%, amber ≤ 40%)
   - **Portrait circle (62pt):** Contains character image, cream background
   - **Z-index: 1** (renders on TOP of banner)
-- **Banner capsule (RIGHT):** White semi-transparent (85% opacity) with 2pt accent border
+- **Banner capsule (RIGHT):** White semi-transparent (85% opacity) with custom border
   - Contains: Character name, order type, attack value, AND potion bottle emoji + number
+  - **Code border:** 2pt cyan stroke (PotionShopTheme.accent) - always present as fallback
+  - **Custom border (NEW - May 14, 2026):** `banner_border.png` overlays on top if present
   - **Z-index: 0** (renders BEHIND portrait circle)
 - **Height:** Auto-sizes based on text + 8pt vertical padding (~50-60pt tall)
 
@@ -743,7 +745,40 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
 - `HStack(spacing: -35)` creates left overlap between portrait and banner
 - Banner left padding: `50pt` (prevents text collision with portrait)
 
-### 11.2 Key Technical Details (Z-Index Fix)
+### 11.2 Border System (Updated May 14, 2026)
+
+**Code-Drawn Border (Always Present - Fallback):**
+- **Shape:** Capsule stroke (pill shape with rounded ends)
+- **Color:** `PotionShopTheme.accent` (cyan/teal)
+- **Thickness:** 2pt solid line
+- **Animation:** Fades in with banner (0.45s spring on open, 0.2s ease-in-out on close)
+- **Behavior:** Static - no pulse, glow, or thickness changes
+
+**Custom Parchment Border (NEW - May 14, 2026):**
+- **Asset:** `banner_border.png` (800×160px @ 300 DPI)
+- **Style:** Hand-drawn scroll/ribbon with torn/ripped edges (drawn in Procreate)
+- **Implementation:** Overlays on top of code border via `.overlay()` modifier
+- **Fallback:** If image not found, code border remains visible
+- **Design notes:**
+  - Transparent background (center empty - text shows through)
+  - Left/right ends have dramatic "ripped scroll" effect
+  - Top/bottom edges have subtle torn parchment texture
+  - Stretches to fit different banner widths (short names vs long names)
+
+**Current State (May 14, 2026):**
+- **Option 3 Active:** Parchment border fully replaces code border (clean hand-drawn aesthetic!)
+- Cyan stroke only appears if `banner_border.png` is missing (fallback safety net)
+
+**Layer Order in Banner Background (bottom to top):**
+1. **IF `banner_border.png` exists:**
+   - Your parchment image fills entire banner frame
+2. **ELSE (fallback if image missing):**
+   - White fill (85% opacity) - Banner background
+   - Cyan capsule stroke (2pt) - Code-drawn border
+
+### 11.3 Animation Sequence
+
+### 11.4 Key Technical Details (Z-Index Fix)
 
 **Problem Solved (May 14, 2026):**
 - Initial design had portrait border "dipping behind" banner edge
@@ -761,20 +796,20 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
 3. **Colored patience ring (70pt)** - Shows remaining time
 4. **Portrait circle + image (62pt)** - Character portrait
 
-### 11.3 Animation Sequence
+### 11.5 Animation Sequence
 
 **Open (0.45s spring):**
 1. Portrait slides from `x: 40pt` → `x: 0pt` (comes from right, moves left to overlap position)
 2. Text slides from `x: -40pt` → `x: 0pt` (comes from center-left, expands right)
 3. Potion bottle slides from `x: -60pt` → `x: 0pt` (comes from center-right, expands further right)
 4. All elements fade opacity: `0.0 → 1.0`
-5. Banner background fades: `0.0 → 1.0`
+5. Banner background + borders fade: `0.0 → 1.0` (both code border and parchment border fade together)
 
 **Close (0.2s ease-in-out):**
 - Tap strip → `gs.dismissInspect()`
 - All elements fade out and reverse animation back to collapsed positions
 
-### 11.4 Code Structure
+### 11.6 Code Structure
 
 **File:** `PotionShopCustomerSceneView.swift` → `PotionShopInspectStripView`
 
@@ -790,7 +825,24 @@ HStack(spacing: -35) {
         Spacer()
         HStack { 🧪 + number }  // Potion bottle INSIDE banner
     }
-    .background(Capsule().fill(...))
+    .background(
+        Capsule()
+            .fill(Color.white.opacity(0.85))
+            .overlay(
+                Capsule()
+                    .stroke(PotionShopTheme.accent, lineWidth: 2)  // Code border
+            )
+            .overlay(
+                // Custom parchment border (NEW - May 14, 2026)
+                GeometryReader { geo in
+                    if let borderImage = UIImage(named: "banner_border") {
+                        Image(uiImage: borderImage)
+                            .resizable()
+                            .frame(width: geo.size.width, height: geo.size.height)
+                    }
+                }
+            )
+    )
     .zIndex(0)
 }
 ```
@@ -805,7 +857,7 @@ ZStack {
 }
 ```
 
-### 11.5 Dismiss Behavior
+### 11.7 Dismiss Behavior
 
 **Tap anywhere on strip → closes:**
 ```swift
@@ -823,14 +875,60 @@ ZStack {
 3. Profile button row fades back in
 4. Takes 0.2s with ease-in-out animation
 
+### 11.8 Custom Border Integration (May 14, 2026)
+
+**Procreate Canvas Specifications:**
+- **Size:** 800 × 160 pixels @ 300 DPI
+- **Style:** Scroll/ribbon shape with torn/ripped edges on left/right ends
+- **Background:** Transparent (turn off Background layer before export)
+- **Center:** Empty (just border outline - banner content shows through)
+- **Filename:** `banner_border.png`
+
+**Implementation Workflow:**
+1. Draw border in Procreate at specified canvas size
+2. Export as PNG with transparent background
+3. Import to Xcode → Assets.xcassets
+4. Code automatically loads via `UIImage(named: "banner_border")`
+5. Border stretches to fit different banner widths
+
+**Current Implementation:**
+- **Option 3 (Active):** Parchment fully replaces code border
+- Cyan stroke only visible if image file missing (automatic fallback)
+
+**Option 3 Code (Full Replacement - CURRENTLY ACTIVE):**
+```swift
+.background(
+    // OPTION 3: Custom parchment border replaces code border entirely
+    GeometryReader { geo in
+        if let borderImage = UIImage(named: "banner_border") {
+            // User's hand-drawn parchment border (PRIMARY)
+            Image(uiImage: borderImage)
+                .resizable()
+                .frame(width: geo.size.width, height: geo.size.height)
+        } else {
+            // Fallback to code-drawn border if image missing (SAFETY NET)
+            Capsule()
+                .fill(Color.white.opacity(0.85))
+                .overlay(
+                    Capsule()
+                        .stroke(PotionShopTheme.accent, lineWidth: 2)
+                )
+        }
+    }
+    .opacity(isExpanded ? 1.0 : 0.0)
+)
+```
+
 ---
 
 **Design Evolution (May 14, 2026):**
 1. **Initial attempt:** ZStack with absolute positioning - broke original layout ❌
 2. **Revert + fix:** HStack with negative spacing + explicit z-index ✅
 3. **Final touch:** Opaque background circle prevents banner see-through ✅
+4. **Custom border (Option 2):** Parchment overlay system for testing (both borders visible) ✅
+5. **Custom border (Option 3 - ACTIVE):** Full replacement - only parchment shows! ✅
 
-**Result:** Clean portrait overlap with no border dip, no background bleed-through! 🎨
+**Result:** Clean portrait overlap with no border dip, no background bleed-through, and beautiful hand-drawn parchment scroll border! 🎨📜✨
 
 ---
 

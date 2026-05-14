@@ -775,13 +775,24 @@ struct PotionShopInspectStripView: View {
                 .padding(.trailing, 14)
                 .padding(.vertical, 8)
                 .background(
-                    Capsule()
-                        .fill(Color.white.opacity(0.85))
-                        .overlay(
+                    // OPTION 3: Custom parchment border replaces code border entirely
+                    GeometryReader { geo in
+                        if let borderImage = UIImage(named: "banner_border") {
+                            // User's hand-drawn parchment border (PRIMARY)
+                            Image(uiImage: borderImage)
+                                .resizable()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                        } else {
+                            // Fallback to code-drawn border if image missing (SAFETY NET)
                             Capsule()
-                                .stroke(PotionShopTheme.accent, lineWidth: 2)
-                        )
-                        .opacity(isExpanded ? 1.0 : 0.0)
+                                .fill(Color.white.opacity(0.85))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(PotionShopTheme.accent, lineWidth: 2)
+                                )
+                        }
+                    }
+                    .opacity(isExpanded ? 1.0 : 0.0)
                 )
                 .zIndex(0)
             }
