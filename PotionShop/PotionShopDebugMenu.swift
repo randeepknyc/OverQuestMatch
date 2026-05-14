@@ -77,6 +77,21 @@ struct PotionShopDebugMenu: View {
                                 .opacity(0.7)
                         }
                     }
+                    
+                    Button(role: .destructive) {
+                        PotionShopLayoutConfig.shared.restoreLockedDefaults()
+                    } label: {
+                        HStack {
+                            Image(systemName: "lock.rotation")
+                                .foregroundColor(.orange)
+                            Text("🔒 Restore Locked Defaults")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("May 13")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
 
                 // ─── Round shortcuts ──────────────────────────────

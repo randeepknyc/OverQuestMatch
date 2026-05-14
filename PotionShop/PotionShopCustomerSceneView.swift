@@ -728,20 +728,15 @@ struct PotionShopInspectStripView: View {
 
     var body: some View {
         if let char = char {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.85))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(PotionShopTheme.accent, lineWidth: 2)
-                    )
+            HStack(spacing: -35) {
+                // Portrait circle (LEFT - sticks out)
+                portraitView(char: char)
+                    .offset(x: isExpanded ? 0 : 40)
                     .opacity(isExpanded ? 1.0 : 0.0)
-
+                    .zIndex(1)
+                
+                // Main banner capsule (contains text + potion bottle value)
                 HStack(spacing: 14) {
-                    portraitView(char: char)
-                        .offset(x: isExpanded ? 0 : 40)
-                        .opacity(isExpanded ? 1.0 : 0.0)
-
                     VStack(alignment: .leading, spacing: 4) {
                         Text(char.name)
                             .font(.system(size: 18, weight: .bold, design: .serif))
@@ -762,9 +757,10 @@ struct PotionShopInspectStripView: View {
                     }
                     .offset(x: isExpanded ? 0 : -40)
                     .opacity(isExpanded ? 1.0 : 0.0)
-
+                    
                     Spacer()
-
+                    
+                    // Potion bottle value (INSIDE banner)
                     HStack(spacing: 4) {
                         Text("🧪")
                             .font(.system(size: 13))
@@ -772,21 +768,22 @@ struct PotionShopInspectStripView: View {
                             .font(.system(size: 18, weight: .heavy, design: .serif))
                             .foregroundColor(PotionShopTheme.composureBad)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(Color(red: 1.0, green: 0.93, blue: 0.93))
-                            .overlay(
-                                Capsule()
-                                    .stroke(PotionShopTheme.composureBad.opacity(0.5), lineWidth: 1.5)
-                            )
-                    )
                     .offset(x: isExpanded ? 0 : -60)
                     .opacity(isExpanded ? 1.0 : 0.0)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.leading, 50)
+                .padding(.trailing, 14)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.85))
+                        .overlay(
+                            Capsule()
+                                .stroke(PotionShopTheme.accent, lineWidth: 2)
+                        )
+                        .opacity(isExpanded ? 1.0 : 0.0)
+                )
+                .zIndex(0)
             }
             .padding(.horizontal, 12)
             .contentShape(Rectangle())
@@ -806,9 +803,17 @@ struct PotionShopInspectStripView: View {
     @ViewBuilder
     private func portraitView(char: PotionShopCharacter) -> some View {
         ZStack {
+            // Opaque background circle (blocks banner behind it)
+            Circle()
+                .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
+                .frame(width: 70, height: 70)
+            
+            // Gray guide ring (shows full patience capacity)
             Circle()
                 .stroke(PotionShopTheme.muted.opacity(0.25), lineWidth: 3)
                 .frame(width: 70, height: 70)
+            
+            // Colored patience ring (shows remaining time)
             Circle()
                 .trim(
                     from: 0,
@@ -820,6 +825,8 @@ struct PotionShopInspectStripView: View {
                 .rotationEffect(.degrees(-90))
                 .frame(width: 70, height: 70)
                 .animation(.easeInOut(duration: 0.4), value: customer.patience)
+            
+            // Portrait image (on top of everything)
             Circle()
                 .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
                 .frame(width: 62, height: 62)

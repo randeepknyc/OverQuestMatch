@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 12, 2026 (UNIFIED CHARACTER SCALING COMPLETE — All Customers Same Size)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
+> **Last Updated:** May 13, 2026 (LOCKED DEFAULTS SYSTEM ADDED — One-Tap Baseline Restoration)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **LOCKED DEFAULTS SYSTEM (May 13, 2026)** - Complete 227-value snapshot system with one-tap restore. Experiment fearlessly! **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -720,16 +720,117 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
 
 ---
 
-## 11. INSPECT STRIP (the dynamic card)
+## 11. INSPECT STRIP (the dynamic card) — UPDATED MAY 14, 2026
 
 **Trigger:** tapping any profile button (active or waiting).
 **Effect:** the customer becomes active (queue swap fires) AND the strip opens.
-**Layout:** parchment-cream pill, brown border, ~64pt tall.
-- **Left:** circular portrait with green→amber patience ring (matches profile button ring color logic — green > 40%, amber otherwise). The ring is a real `Circle().trim(...)` reflecting `customer.patience / customer.maxPatience`.
-- **Middle:** customer name (bold serif) on top, `OrderName • Atk N` subtitle on bottom.
-- **Right:** red rounded-capsule pill with `🧪 N` showing the brew target (HP + Intimidating modifier if applicable; just HP for waiting customers).
-**Open animation:** portrait slides outward to the LEFT from a center-collapsed position; body (name+subtitle) slides outward to the RIGHT; pill slides further right to its final spot. All three pieces fade in. ~0.45s spring. **Not a top-down drop** — that was a Phase 6 regression we explicitly fixed.
-**Dismiss:** tap the strip → it fades out and shrinks back in place.
+
+### 11.1 Visual Design (Final - May 14, 2026)
+
+**Layout:**
+- **Portrait circle (LEFT):** 70pt diameter, overlaps banner left edge
+  - **Opaque cream background (70pt):** Full circle blocks banner behind it
+  - **Gray guide ring:** Shows full patience capacity (25% opacity)
+  - **Colored patience ring:** Green/amber based on remaining time (green > 40%, amber ≤ 40%)
+  - **Portrait circle (62pt):** Contains character image, cream background
+  - **Z-index: 1** (renders on TOP of banner)
+- **Banner capsule (RIGHT):** White semi-transparent (85% opacity) with 2pt accent border
+  - Contains: Character name, order type, attack value, AND potion bottle emoji + number
+  - **Z-index: 0** (renders BEHIND portrait circle)
+- **Height:** Auto-sizes based on text + 8pt vertical padding (~50-60pt tall)
+
+**Spacing:**
+- `HStack(spacing: -35)` creates left overlap between portrait and banner
+- Banner left padding: `50pt` (prevents text collision with portrait)
+
+### 11.2 Key Technical Details (Z-Index Fix)
+
+**Problem Solved (May 14, 2026):**
+- Initial design had portrait border "dipping behind" banner edge
+- Caused by HStack negative spacing without explicit z-index control
+
+**Solution:**
+- Added `.zIndex(1)` to portrait (appears on TOP)
+- Added `.zIndex(0)` to banner (appears BEHIND)
+- Added **70pt opaque background circle** as bottom layer of portrait
+- Rings and portrait image render on TOP of solid background
+
+**Layer Order in Portrait (bottom to top):**
+1. **Opaque cream circle (70pt)** - Blocks banner completely
+2. **Gray guide ring (70pt)** - Shows patience capacity
+3. **Colored patience ring (70pt)** - Shows remaining time
+4. **Portrait circle + image (62pt)** - Character portrait
+
+### 11.3 Animation Sequence
+
+**Open (0.45s spring):**
+1. Portrait slides from `x: 40pt` → `x: 0pt` (comes from right, moves left to overlap position)
+2. Text slides from `x: -40pt` → `x: 0pt` (comes from center-left, expands right)
+3. Potion bottle slides from `x: -60pt` → `x: 0pt` (comes from center-right, expands further right)
+4. All elements fade opacity: `0.0 → 1.0`
+5. Banner background fades: `0.0 → 1.0`
+
+**Close (0.2s ease-in-out):**
+- Tap strip → `gs.dismissInspect()`
+- All elements fade out and reverse animation back to collapsed positions
+
+### 11.4 Code Structure
+
+**File:** `PotionShopCustomerSceneView.swift` → `PotionShopInspectStripView`
+
+```swift
+HStack(spacing: -35) {
+    // Portrait (zIndex: 1, top layer)
+    portraitView(char: char)
+        .zIndex(1)
+    
+    // Banner (zIndex: 0, bottom layer)
+    HStack {
+        VStack { name + subtitle }
+        Spacer()
+        HStack { 🧪 + number }  // Potion bottle INSIDE banner
+    }
+    .background(Capsule().fill(...))
+    .zIndex(0)
+}
+```
+
+**Portrait View Structure:**
+```swift
+ZStack {
+    Circle().fill(cream)  // 70pt opaque background (bottom)
+    Circle().stroke(gray) // Guide ring
+    Circle().trim(...).stroke(color) // Patience ring
+    Circle().fill(cream).frame(62, 62) // Portrait circle + image (top)
+}
+```
+
+### 11.5 Dismiss Behavior
+
+**Tap anywhere on strip → closes:**
+```swift
+.contentShape(Rectangle())
+.onTapGesture {
+    withAnimation(.easeInOut(duration: 0.2)) {
+        gs.dismissInspect()  // Sets gs.inspectedId = nil
+    }
+}
+```
+
+**What happens:**
+1. `gs.inspectedId` set to `nil`
+2. `ZStack` in `PotionShopProfileRowView` fades out inspect strip
+3. Profile button row fades back in
+4. Takes 0.2s with ease-in-out animation
+
+---
+
+**Design Evolution (May 14, 2026):**
+1. **Initial attempt:** ZStack with absolute positioning - broke original layout ❌
+2. **Revert + fix:** HStack with negative spacing + explicit z-index ✅
+3. **Final touch:** Opaque background circle prevents banner see-through ✅
+
+**Result:** Clean portrait overlap with no border dip, no background bleed-through! 🎨
 
 ---
 
@@ -750,6 +851,7 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 | Lose Game       | composure → 0 (test lose overlay)                            |
 | **Layout Editor** | **NEW (May 5, 2026)** - Live overlay editor for visual tuning |
 | **Copy Layout Values** | **NEW (May 12, 2026)** - Copies all current layout values to clipboard in formatted text (includes all 14 characters × 12 values each = 168 character values + section heights, art scales, nodes, etc.) |
+| **🔒 Restore Locked Defaults** | **NEW (May 13, 2026)** - ONE TAP returns to known-good baseline (May 13 locked state). Resets ALL layout values instantly. |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
 
@@ -1244,6 +1346,450 @@ During queue swap: matchedGeometryEffect animates smooth transition
 - Node rearrangement/removal is **NOT implemented** (would break graph topology)
 - All changes are real-time but NOT persisted (closing app resets to defaults)
 - To make changes permanent: copy values from layout editor → paste into `PotionShopLayoutConfig.swift` defaults
+
+### 12.2 🔒 LOCKED DEFAULTS SYSTEM (NEW - May 13, 2026)
+
+**Status:** ✅ COMPLETE - One-Tap Baseline Restoration System
+
+The Locked Defaults system provides an **infinitely easy way to return to a known-good layout state** after experimenting with changes. This is the safety net that lets you test ideas fearlessly.
+
+---
+
+#### **What It Is:**
+
+A complete snapshot of all 200+ layout values stored in the `restoreLockedDefaults()` method in `PotionShopLayoutConfig.swift`. One tap in the debug menu restores everything to this exact state.
+
+**Think of it as:** A "checkpoint" system for your entire layout configuration.
+
+---
+
+#### **How to Access:**
+
+**In-Game:**
+1. Tap **⚙️ gear icon** (top-right)
+2. Debug menu opens
+3. Scroll to **"Layout Tools"** section
+4. Tap **"🔒 Restore Locked Defaults"** (orange button)
+5. **Done!** All values instantly restored
+
+**What You See:**
+- Button icon: 🔒 (lock with rotation arrow)
+- Button color: Orange (indicates destructive action - overwrites current state)
+- Button label: "🔒 Restore Locked Defaults"
+- Timestamp badge: "May 13" (shows which baseline you're restoring to)
+
+---
+
+#### **What Gets Restored:**
+
+**ALL of these values reset to locked defaults in ONE TAP:**
+
+**Section Heights (6 values):**
+- `headerPercent`
+- `scenePercent`
+- `profilePercent`
+- `cauldronPercent`
+- `previewPercent`
+- `trayPercent`
+
+**Ednar Art Scaling (5 values):**
+- `ednarBaseScale`
+- `ednarWidth`
+- `ednarHeight`
+- `ednarX`
+- `ednarY`
+
+**Customer Scene Base Scale (5 values):**
+- `customerSceneBaseScale`
+- `customerSceneWidth`
+- `customerSceneHeight`
+- `customerSceneX`
+- `customerSceneY`
+
+**Per-Character Scales (168 values! - 14 characters × 12 values each):**
+For EACH of 14 characters (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott, Pemberton, Ardo, Bram, Crispin, Ironhilde, Carmilla, Royal Envoy):
+- Active position: `width`, `height`, `x`, `y`
+- Waiting position: `waitingWidth`, `waitingHeight`, `waitingX`, `waitingY`
+- Waiting2 position: `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y`
+
+**Cauldron Art (4 values):**
+- `cauldronWidth`
+- `cauldronHeight`
+- `cauldronX`
+- `cauldronY`
+
+**Cauldron Bowl (3 values):**
+- `cauldronBowlScale`
+- `cauldronBowlX`
+- `cauldronBowlY`
+
+**Nodes (28 values - 4 global + 12 per-node):**
+- `nodeScale`
+- `nodeXOffset`
+- `nodeYOffset`
+- `nodeSpacingMultiplier`
+- **Per-Node Offsets:** 12 nodes × 2 values (x, y) = 24 values
+
+**Dice & Tray (3 values):**
+- `dieScale`
+- `trayOffsetX`
+- `trayOffsetY`
+
+**Brew Zone (5 values):**
+- `brewZoneX`
+- `brewZoneY`
+- `brewZoneWidth`
+- `brewZoneHeight`
+- `showBrewZone`
+
+**TOTAL: 227 values restored with ONE button tap!** 🎯
+
+---
+
+#### **When to Use It:**
+
+| Situation | Example |
+|-----------|---------|
+| **After experimenting** | "I tried making the cauldron huge but I don't like it - go back!" |
+| **Fresh start** | "I want to start tuning from the known-good baseline again" |
+| **Version comparison** | "Let me compare my new layout to the documented state" |
+| **Bug recovery** | "Something broke the layout - restore to working state" |
+| **Before sharing** | "Reset to documented values before sending to testers" |
+| **After accidental changes** | "I moved the wrong slider - undo everything!" |
+
+---
+
+#### **How to CODIFY New Changes (Make Them the New Locked State):**
+
+You have **two methods** for making your experimental changes permanent:
+
+---
+
+##### **Method 1: Manual Update (Small Changes)**
+
+**Use when:** You've changed 1-10 values and want to lock them in.
+
+**Steps:**
+1. Make your changes in the layout editor
+2. Tap **⚙️** → **"📋 Copy Layout Values"**
+3. Paste into Notes app
+4. Tell Claude: "I changed these values, make them the new defaults"
+5. Claude updates **both** places in code:
+   - Live variables (what you edit)
+   - `restoreLockedDefaults()` method (what the button restores to)
+
+**Example Message to Claude:**
+```
+"I adjusted:
+- profilePercent: now 12.0 (was 9.5)
+- Mildred's active width: now 1.15 (was 1.0)
+- Node 3 X offset: now -12.0 (was -7.4)
+
+Make these the new locked defaults."
+```
+
+**What Claude Does:**
+1. Updates 3 values in the live `var` declarations
+2. Updates the same 3 values in `restoreLockedDefaults()`
+3. Provides complete copy-paste code
+4. Updates documentation timestamp
+
+---
+
+##### **Method 2: Full State Snapshot (Major Overhaul)**
+
+**Use when:** You've done extensive layout work and want to save EVERYTHING as the new baseline.
+
+**Steps:**
+1. Finish all your changes in the layout editor
+2. Tap **⚙️** → **"📋 Copy Layout Values"**
+3. Send the **ENTIRE output** to Claude (all ~300 lines)
+4. Tell Claude: "Make this the new locked state"
+5. Claude replaces ALL 227 values in both locations
+
+**Example Message to Claude:**
+```
+"Here are my new layout values. Make this the new May 13 locked state:
+
+[paste entire Copy Layout Values output - all 300 lines]
+"
+```
+
+**What Claude Does:**
+1. Replaces ALL live variable defaults
+2. Replaces ALL values in `restoreLockedDefaults()`
+3. Updates timestamp to reflect new baseline date
+4. Updates documentation
+
+---
+
+#### **Technical Implementation:**
+
+**File:** `PotionShopLayoutConfig.swift`
+
+**Two Storage Locations (Always Kept in Sync):**
+
+**Location 1: Live Variables**
+```swift
+class PotionShopLayoutConfig {
+    // These change when you drag sliders
+    var profilePercent: Double = 9.5
+    var nodeScale: Double = 1.83
+    var perCharacterScales: [String: CharacterScale] = [...]
+    // ... 224 more values ...
+}
+```
+
+**Location 2: Locked Defaults Method**
+```swift
+func restoreLockedDefaults() {
+    // Same values hardcoded here
+    profilePercent = 9.5
+    nodeScale = 1.83
+    perCharacterScales = [...]
+    // ... 224 more values ...
+    
+    print("✅ RESTORED LOCKED DEFAULTS (May 13, 2026)")
+}
+```
+
+**Why Two Locations?**
+- Live variables = What you're currently editing
+- Locked defaults = What the restore button returns to
+- Keeping them in sync = Your safety net always works
+
+---
+
+#### **Workflow Diagram:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│  LOCKED STATE (May 13, 2026)                        │
+│  All 227 values in restoreLockedDefaults()          │
+└─────────────────────────────────────────────────────┘
+                        ↓
+          ┌─────────────────────────┐
+          │  Make Changes           │
+          │  (Layout Editor)        │
+          └─────────────────────────┘
+                        ↓
+          ┌─────────────────────────┐
+          │  Test in Game           │
+          │  (Live Preview)         │
+          └─────────────────────────┘
+                        ↓
+          ┌─────────────────────────┐
+          │  Like it?               │
+          └─────────────────────────┘
+                   ↙         ↘
+         YES (Keep)         NO (Discard)
+              ↓                    ↓
+    ┌──────────────────┐   ┌─────────────────────┐
+    │ Copy Layout      │   │ Tap 🔒 Restore      │
+    │ Send to Claude   │   │ Locked Defaults     │
+    │ → New baseline!  │   │ → Back to May 13!   │
+    └──────────────────┘   └─────────────────────┘
+```
+
+---
+
+#### **Safety Features:**
+
+**🔒 Immutable Baseline:**
+- Values in `restoreLockedDefaults()` are hardcoded
+- Won't change unless you explicitly tell Claude to update them
+- Can't be accidentally overwritten by slider changes
+
+**⚡ Instant Restore:**
+- No rebuild needed
+- One tap → all values reset → UI updates immediately
+- Takes < 1 second
+
+**🎯 Complete Coverage:**
+- EVERY tunable parameter is included
+- Nothing is left out or forgotten
+- Comprehensive safety net
+
+**📝 Console Confirmation:**
+- Prints "✅ RESTORED LOCKED DEFAULTS (May 13, 2026)" when executed
+- Easy to verify it worked
+
+**🔄 Non-Destructive:**
+- Doesn't affect game state (composure, customers, etc.)
+- Only resets layout/visual values
+- Game continues playing normally
+
+---
+
+#### **Example Use Cases:**
+
+**Scenario 1: Safe Experimentation**
+```
+Current: Known-good layout
+↓ Make cauldron 3× bigger, dice 0.5× smaller
+↓ Test in Evening round (3 customers)
+↓ Don't like it - too cramped
+↓ Tap "🔒 Restore Locked Defaults"
+✅ Back to original in 1 second
+```
+
+**Scenario 2: Incremental Refinement**
+```
+Current: May 13 locked state
+↓ Adjust Mildred's active width to 1.15
+↓ Test in Morning round
+↓ Looks good!
+↓ Copy values → Send to Claude
+↓ Claude updates locked defaults
+✅ New baseline saved (still May 13, but refined)
+```
+
+**Scenario 3: Major Redesign**
+```
+Current: May 13 locked state
+↓ Spend 2 hours repositioning ALL customers
+↓ Adjust ALL node positions
+↓ Resize cauldron and tray
+↓ Happy with new look!
+↓ Copy ALL values → Send to Claude
+↓ Claude replaces entire locked state
+✅ May 13 (evening) is new baseline
+```
+
+---
+
+#### **Current Locked State (May 13, 2026 - Established Baseline):**
+
+**Last Snapshot Taken:** May 13, 2026
+**Total Values Locked:** 227
+**Status:** Stable, fully playable, aesthetically balanced
+
+**Key Baseline Values:**
+- Header: 1.72% (minimal)
+- Scene: 27.28% (customer focus)
+- Profile: 9.5% (inspect strip space)
+- Cauldron: 37.2% (HERO element)
+- Tray: 19.3% (big dice)
+- All characters: 1.0×1.0× active scale (pixel-accurate)
+- Nodes: 1.83× scale with custom per-node offsets
+- Dice: 1.41× scale
+
+**Special Notes:**
+- Queue depth scaling REMOVED (all positions 1.0×)
+- 3-position system active (active/waiting/waiting2)
+- Circle clipping removed (full images visible)
+- Drag-and-drop dice enabled
+
+---
+
+#### **Maintenance:**
+
+**When to Update the Locked State:**
+- After completing a major layout phase
+- When you reach a "checkpoint" you're happy with
+- Before moving to a new phase of work
+- After playtesting confirms layout is good
+
+**How Often to Update:**
+- No set schedule
+- Update when YOU decide a state is worth preserving
+- Can update multiple times per day if iterating quickly
+- Can go weeks without updating if layout is stable
+
+**Version Tracking:**
+- Timestamp in button badge shows baseline date
+- `restoreLockedDefaults()` has print statement with date
+- Documentation section header shows "Last Updated" date
+- All three should match for consistency
+
+---
+
+#### **Quick Reference Commands:**
+
+**To Restore Baseline:**
+```
+Debug Menu (⚙️) → "🔒 Restore Locked Defaults"
+```
+
+**To Save New Baseline (Small Changes):**
+```
+Debug Menu (⚙️) → "📋 Copy Layout Values"
+→ Find changed values
+→ Tell Claude: "Make these new defaults: [list values]"
+```
+
+**To Save New Baseline (Full Overhaul):**
+```
+Debug Menu (⚙️) → "📋 Copy Layout Values"
+→ Copy ALL output
+→ Tell Claude: "Make this the new locked state: [paste all]"
+```
+
+---
+
+#### **Files Involved:**
+
+| File | What It Does |
+|------|--------------|
+| `PotionShopLayoutConfig.swift` | Contains live variables AND locked defaults method |
+| `PotionShopDebugMenu.swift` | Contains "🔒 Restore Locked Defaults" button |
+| `PotionShopGameView.swift` | Reads from `layoutConfig` for live preview |
+| `CAULDRON_CONTEXT.md` | Documents the system (this section!) |
+
+---
+
+#### **Common Questions:**
+
+**Q: Does restoring defaults restart the game?**
+A: No. It only resets visual layout values. Game state (HP, round, etc.) is untouched.
+
+**Q: Can I restore to a state from 3 weeks ago?**
+A: Only if you saved that state as locked defaults. The button restores to whatever was last locked in via Claude.
+
+**Q: What if I want multiple saved states?**
+A: Store "Copy Layout Values" outputs as text files. You can send any saved output to Claude to restore that state.
+
+**Q: Does closing the app save my changes?**
+A: NO. Slider changes are temporary. Only locked defaults (updated via Claude) persist.
+
+**Q: Can I undo a restore?**
+A: No direct undo, but if you had "Copy Layout Values" before restoring, send that to Claude to go back.
+
+**Q: How do I know what the current locked state is?**
+A: Check the `restoreLockedDefaults()` method in `PotionShopLayoutConfig.swift` or tap the button and see what values appear.
+
+---
+
+#### **Best Practices:**
+
+**✅ DO:**
+- Restore before showing to testers
+- Save state before major experiments
+- Update locked defaults after successful changes
+- Use "Copy Layout Values" frequently as snapshots
+- Test after restoring to verify it worked
+
+**❌ DON'T:**
+- Assume slider changes persist after closing app
+- Edit `restoreLockedDefaults()` manually (let Claude do it)
+- Restore in the middle of a gameplay session (finish round first)
+- Forget to update documentation timestamp when locking new state
+
+---
+
+#### **Future Enhancements (Potential v2 Features):**
+
+**Not currently implemented, but possible:**
+- Multiple named presets ("Before Art", "After Art", "Tournament Layout")
+- Export/import of layout configs as JSON
+- Undo/redo stack for layout changes
+- Comparison mode (show before/after side-by-side)
+- Per-round/per-customer layout overrides
+- Animation of transition between states
+
+---
+
+This system ensures you can **experiment fearlessly** knowing you can always return to a known-good state with one tap. It's your safety net for layout iteration! 🎨🔒
 
 ---
 
