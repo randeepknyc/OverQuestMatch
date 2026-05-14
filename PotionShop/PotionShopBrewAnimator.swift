@@ -83,17 +83,15 @@ enum PotionShopBrewAnimator {
     // ─── 4. FLOATING NUMBER ────────────────────────────────────────────
 
     /// How far up a floating number drifts (pixels)
-    static let floatRiseDistance: CGFloat = 50
+    static let floatRiseDistance: CGFloat = 100
     /// How long it's visible
     static let floatDuration: Double = 0.80
     /// Font size for floating numbers
-    static let floatFontSize: CGFloat = 22
+    static let floatFontSize: CGFloat = 28
 
-    /// SWAP THIS LINE WHEN OVERQUEST FONT IS AVAILABLE.
-    /// Replace with: Font.custom("OverQuest", size: size)
-    /// or whatever the registered name of your font ends up being.
+    /// OverQuest font for floating numbers
     static func numberFont(size: CGFloat = floatFontSize) -> Font {
-        Font.system(size: size, weight: .heavy, design: .serif)
+        Font.gameScore(size: size)
     }
 
     // ─── 5. COMPOSURE FLASH ────────────────────────────────────────────

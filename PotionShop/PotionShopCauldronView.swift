@@ -305,10 +305,10 @@ struct PotionShopCauldronView: View {
                                     // Label
                                     VStack(spacing: 2) {
                                         Text("🥄 BREW")
-                                            .font(.system(size: 14, weight: .heavy))
+                                            .font(Font.gameScore(size: 14))
                                             .foregroundColor(.yellow)
                                         Text("TAP ZONE")
-                                            .font(.system(size: 10, weight: .bold))
+                                            .font(Font.gameUI(size: 10))
                                             .foregroundColor(.yellow)
                                     }
                                 }
@@ -468,7 +468,7 @@ struct PotionShopPlacedDieView: View {
                 
                 // Die value overlaid on center (center 30% kept blank on art)
                 Text("\(die.value)")
-                    .font(.system(size: 13 * visualScale, weight: .heavy, design: .serif))
+                    .font(Font.gameScore(size: 13 * visualScale))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 1, x: 0, y: 1)
             }
@@ -486,7 +486,7 @@ struct PotionShopPlacedDieView: View {
                 )
                 .overlay(
                     Text("\(die.value)")
-                        .font(.system(size: 13 * visualScale, weight: .heavy, design: .serif))
+                        .font(Font.gameScore(size: 13 * visualScale))
                         .foregroundColor(.white)
                 )
         }
@@ -529,7 +529,7 @@ struct PotionShopBrewSignView: View {
                             .frame(width: 70, height: 32)
 
                         Text("BREW")
-                            .font(.system(size: 14, weight: .heavy, design: .serif))
+                            .font(Font.gameScore(size: 14))
                             .tracking(2)
                             .foregroundColor(canBrew ? Color(red: 0.30, green: 0.18, blue: 0.10) : Color.gray.opacity(0.6))
                     }
@@ -578,7 +578,7 @@ struct PotionShopBrewPreviewBar: View {
     var body: some View {
         HStack {
             Text("Placed \(gs.placements.count) / \(PotionShopConfig.maxPlacementsPerBrew)\(atCap ? " (full)" : "")")
-                .font(.system(size: 11, weight: atCap ? .bold : .regular))
+                .font(Font.gameUI(size: 11))
                 .foregroundColor(atCap ? PotionShopTheme.composureBad : PotionShopTheme.muted)
 
             Spacer()
@@ -599,10 +599,10 @@ struct PotionShopBrewPreviewBar: View {
                     + Text(preview.shielding > 0 ? "  +\(preview.shielding)🛡" : "")
                         .foregroundColor(PotionShopTheme.shield)
                 }
-                .font(.system(size: 11))
+                .font(Font.gameUI(size: 11))
             } else {
                 Text("Place dice to preview")
-                    .font(.system(size: 11))
+                    .font(Font.gameUI(size: 11))
                     .foregroundColor(PotionShopTheme.muted.opacity(0.6))
             }
         }
@@ -724,7 +724,7 @@ struct PotionShopDieButtonView: View {
                     
                     // Die value overlaid on center
                     Text("\(die.value)")
-                        .font(.system(size: scaledFontSize, weight: .heavy, design: .serif))
+                        .font(Font.gameScore(size: scaledFontSize))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
                 }
@@ -732,9 +732,9 @@ struct PotionShopDieButtonView: View {
                 // Placeholder colored square with text
                 VStack(spacing: 1) {
                     Text(die.type.abbr)
-                        .font(.system(size: 9 * dieScale, weight: .semibold))
+                        .font(Font.gameUI(size: 9 * dieScale))
                     Text("\(die.value)")
-                        .font(.system(size: 14 * dieScale, weight: .heavy, design: .serif))
+                        .font(Font.gameScore(size: 14 * dieScale))
                 }
                 .foregroundColor(.white)
                 .frame(width: scaledSize, height: scaledSize)

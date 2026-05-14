@@ -30,9 +30,9 @@ struct PotionShopHeaderView: View {
             }
 
             HStack(spacing: 4) {
-                Text("🧪").font(.system(size: 18))
+                Text("🧪").font(.system(size: 20))
                 Text("×\(gs.potionsBrewed)")
-                    .font(.system(size: 14, weight: .bold, design: .serif))
+                    .font(Font.gameScore(size: 22))
                     .foregroundColor(PotionShopTheme.accent)
             }
 
@@ -47,10 +47,10 @@ struct PotionShopHeaderView: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("Day 1")
-                    .font(.system(size: 9, weight: .semibold, design: .serif))
+                    .font(Font.gameUI(size: 25))
                     .foregroundColor(PotionShopTheme.muted)
                 Text(gs.currentRoundLabel)
-                    .font(.system(size: 12, weight: .bold, design: .serif))
+                    .font(Font.gameUI(size: 20))
                     .foregroundColor(PotionShopTheme.ink)
             }
         }
@@ -136,11 +136,11 @@ struct PotionShopComposureBarView: View {
 
             HStack(spacing: 6) {
                 Text("Composure \(composure)")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Font.gameUI(size: 20))
                     .foregroundColor(PotionShopTheme.muted)
                 if shield > 0 {
                     Text("(+\(shield) 🛡)")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Font.gameUI(size: 20))
                         .foregroundColor(PotionShopTheme.shield)
                 }
                 Spacer()

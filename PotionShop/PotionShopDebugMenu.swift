@@ -196,7 +196,7 @@ struct PotionShopDebugMenu: View {
                                 .foregroundColor(PotionShopTheme.composureBad)
                             Text("End Game (back to selector)")
                                 .foregroundColor(PotionShopTheme.composureBad)
-                                .fontWeight(.semibold)
+                                .font(Font.gameUI(size: 17))
                         }
                     }
                 }

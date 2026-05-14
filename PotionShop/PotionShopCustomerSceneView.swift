@@ -154,7 +154,7 @@ struct PotionShopCustomerSceneView: View {
 
                 if gs.shield > 0 {
                     Text("🛡 \(gs.shield)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(Font.gameScore(size: 12))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -425,7 +425,7 @@ struct PotionShopCustomerInSceneView: View {
                 // HP Badge (ABOVE character's head, centered)
                 if isActive {
                     Text("\(customer.hp)")
-                        .font(.system(size: 14 * scale, weight: .bold))
+                        .font(Font.gameScore(size: 14 * scale))
                         .foregroundColor(.white)
                         .frame(
                             width: 26 * scale,
@@ -440,7 +440,7 @@ struct PotionShopCustomerInSceneView: View {
                 // Attack Badge (ABOVE character's head, offset to right)
                 if attack > 0 {
                     Text("\(attack)")
-                        .font(.system(size: 11 * scale, weight: .bold))
+                        .font(Font.gameScore(size: 11 * scale))
                         .foregroundColor(.white)
                         .frame(
                             width: 22 * scale,
@@ -568,7 +568,7 @@ struct PotionShopProfileRowView: View {
                     Text("🎯")
                         .font(.system(size: 13))
                     Text("Tap a node in the cauldron to place this die")
-                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .font(Font.gameUI(size: 12))
                         .foregroundColor(PotionShopTheme.accent)
                 }
                 .padding(.vertical, 6)
@@ -670,7 +670,7 @@ struct PotionShopProfileButtonView: View {
                             height: PotionShopSceneLayout.profileDiameter
                         )
                     Text("✓")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(Font.gameScore(size: 28))
                         .foregroundColor(PotionShopTheme.composureGood)
                 } else if customer.status == .expired {
                     Circle()
@@ -680,7 +680,7 @@ struct PotionShopProfileButtonView: View {
                             height: PotionShopSceneLayout.profileDiameter
                         )
                     Text("✗")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(Font.gameScore(size: 28))
                         .foregroundColor(PotionShopTheme.composureBad)
                 }
             }
@@ -739,19 +739,19 @@ struct PotionShopInspectStripView: View {
                 HStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(char.name)
-                            .font(.system(size: 18, weight: .bold, design: .serif))
+                            .font(Font.gameUI(size: 28))
                             .foregroundColor(PotionShopTheme.ink)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                         HStack(spacing: 6) {
                             Text(char.orderName)
-                                .font(.system(size: 13, design: .serif))
+                                .font(Font.gameUI(size: 20))
                                 .foregroundColor(PotionShopTheme.muted)
                                 .lineLimit(1)
                             Text("•")
                                 .foregroundColor(PotionShopTheme.muted)
                             Text("Atk \(attackForSubtitle)")
-                                .font(.system(size: 13, design: .serif))
+                                .font(Font.gameUI(size: 20))
                                 .foregroundColor(PotionShopTheme.muted)
                         }
                     }
@@ -765,7 +765,7 @@ struct PotionShopInspectStripView: View {
                         Text("🧪")
                             .font(.system(size: 13))
                         Text("\(brewTargetForPill)")
-                            .font(.system(size: 18, weight: .heavy, design: .serif))
+                            .font(Font.gameScore(size: 30))
                             .foregroundColor(PotionShopTheme.composureBad)
                     }
                     .offset(x: isExpanded ? 0 : -60)

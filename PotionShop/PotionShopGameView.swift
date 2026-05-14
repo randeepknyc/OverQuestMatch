@@ -195,10 +195,10 @@ struct PotionShopGameView: View {
 
             VStack(spacing: 18) {
                 Text(title)
-                    .font(.system(size: 28, weight: .heavy, design: .serif))
+                    .font(Font.gameUI(size: 28))
                     .foregroundColor(.white)
                 Text(subtitle)
-                    .font(.system(size: 14, design: .serif))
+                    .font(Font.gameUI(size: 14))
                     .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
 
@@ -206,7 +206,7 @@ struct PotionShopGameView: View {
                     action()
                 } label: {
                     Text(buttonLabel)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(Font.gameUI(size: 15))
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)
