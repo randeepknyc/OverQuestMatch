@@ -68,16 +68,8 @@ struct GameSelectorView: View {
                         )
                         
                         gameButton(
-                            title: "Ednar's Cauldron",
-                            icon: "🧪",
-                            description: "Dice-based potion brewing roguelite",
-                            game: .cauldron
-                        )
-                        
-                        // ✨ NEW (Phase 1): Ednar's Potion Cauldron — the new game
-                        gameButton(
                             title: "Ednar's Potion Cauldron",
-                            icon: "",
+                            icon: "🧪",
                             description: "Brew potions for the town",
                             game: .ednarsPotionShop
                         )
@@ -165,9 +157,7 @@ struct GameSelectorView: View {
             PhysicsChainGameView()
         case .shopOfOddities:
             ShopOfOdditiesView()
-        case .cauldron:
-            CauldronGameView()
-        case .ednarsPotionShop:                  // ← ✨ NEW (Phase 1)
+        case .ednarsPotionShop:
             PotionShopGameView()
         case .cooking:
             PlaceholderView(gameName: "Cooking Game")

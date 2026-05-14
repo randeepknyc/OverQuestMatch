@@ -79,8 +79,8 @@ enum GameType: CaseIterable {
     case cooking
     case potionSolitaire
     case mapNavigation
-    case cauldron
-    case ednarsPotionShop  // ← ✨ NEW: Ednar's Potion Cauldron (added Phase 1)
+    case ednarsPotionShop  // ← Ednar's Potion Cauldron (the working game in PotionShop/ folder)
+    // Note: .cauldron case removed - legacy CauldronGame/ folder deprecated (May 13, 2026)
 }
 
 // MARK: - Placeholder View (for unfinished games)

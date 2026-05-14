@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** May 6, 2026 (Ednar's Potion Cauldron - Mildred Layout Refined)  
+> **Last Updated:** May 13, 2026 (Legacy CauldronGame Deprecated - Removed from Selector)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
 > **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only, layout refinement ongoing)
 
@@ -22,6 +22,8 @@
 5. **Cooking Game** - 📋 Planned
 6. **Potion Solitaire** - 📋 Planned
 7. **Map Navigation System** - 📋 Planned
+
+**Note:** Legacy `CauldronGame/` folder deprecated and removed from game selector (May 13, 2026). The working game is in `PotionShop/`.
 
 ### **Testing Flow:**
 **Current (PERFECTED):** Splash → Title → Map → Game Selector → All Games Work  
@@ -129,20 +131,20 @@ OverQuestMatch3/ (ROOT)
 │  ├─ ShopSceneView.swift (3-layer composite scene system)
 │  └─ AssetsDebugView.swift (debug menu for asset testing + character forcing + toggles)
 │
-├─ CauldronGame/ 🟡 IN REWRITE (Phase 1 of 9 Complete - May 3, 2026)
-│  ├─ CauldronGameData.swift ✨ NEW - JSON loader + Codable structs (traits, characters, rounds)
-│  ├─ traits.json ✨ NEW - 8 trait definitions (intimidating, volatile, pious, skittish, etc.)
-│  ├─ characters.json ✨ NEW - 14 customers with combat stats (Mildred, Grimdrek, etc.)
-│  ├─ rounds.json ✨ NEW - Day/round structure (Day 1 curated, Days 2-3 rule-based)
-│  ├─ CauldronModels.swift ⚠️ TO BE REPLACED - Old implementation (salvaging parts)
-│  ├─ CauldronViewModel.swift ⚠️ TO BE REPLACED - Old implementation (salvaging bag system)
-│  └─ CauldronGameView.swift ⚠️ TO BE REPLACED - Old implementation (salvaging debug tools)
+├─ CauldronGame/ ⚠️ DEPRECATED (May 13, 2026 - Removed from game selector)
+│  ├─ CauldronGameData.swift ⚠️ OLD - JSON loader (not used by new game)
+│  ├─ traits.json ⚠️ OLD - 8 trait definitions (not used by new game)
+│  ├─ characters.json ⚠️ OLD - 14 customers with combat stats (not used by new game)
+│  ├─ rounds.json ⚠️ OLD - Day/round structure (not used by new game)
+│  ├─ CauldronModels.swift ⚠️ OLD implementation
+│  ├─ CauldronViewModel.swift ⚠️ OLD implementation
+│  └─ CauldronGameView.swift ⚠️ OLD implementation
 │  
-│  **Cauldron Rewrite Context:**
-│  - See REPLACEMENT_PLAN.md for 9-phase rewrite plan
-│  - See SESSION_CHECKPOINT.md for design decisions
-│  - See EdnarsCauldron_Reference.jsx for architecture
-│  - See PHASE_1_COMPLETE.md for verification steps
+│  **⚠️ THIS FOLDER IS DEPRECATED:**
+│  - No longer accessible from game selector
+│  - The working game is in PotionShop/ folder
+│  - Will be deleted in a future cleanup
+│  - DO NOT modify files in this folder
 │
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
@@ -183,10 +185,12 @@ OverQuestMatch3/ (ROOT)
 
 ### **Game Selector Features:**
 - Clean list-style interface
-- Shows only working games (Match-3, Physics Chain, Shop of Oddities)
+- Shows working games (Match-3, Physics Chain, Shop of Oddities, Ednar's Potion Cauldron)
 - Tap any game → Launches full-screen
 - "Back to Map" button to return
 - Clearly labeled as "🎮 DEBUG TEST 🎮"
+
+**Note:** Legacy CauldronGame removed from selector (May 13, 2026). Only the working PotionShop game is accessible.
 
 **To Access:**
 1. Run app (splash/title/map flow)
@@ -251,6 +255,9 @@ private let currentGame: GameType = .match3
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)
+
+**Removed (May 13, 2026):**
+- `.cauldron` - DEPRECATED (legacy CauldronGame/ folder, removed from selector)
 
 ---
 

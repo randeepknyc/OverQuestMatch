@@ -237,10 +237,10 @@ struct PotionShopEdnarView: View {
 
     private var expressionAssetName: String {
         let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
-        if pct < 0.3 { return "ednar_alarmed" }
-        if pct < 0.7 { return "ednar_concerned" }
-        if !gs.placements.isEmpty { return "ednar_focused" }
-        return "ednar_calm"
+        if pct < 0.3 { return "ps_ednar_alarmed" }
+        if pct < 0.7 { return "ps_ednar_concerned" }
+        if !gs.placements.isEmpty { return "ps_ednar_focused" }
+        return "ps_ednar_calm"
     }
     
     private var expressionEmojiFallback: String {
