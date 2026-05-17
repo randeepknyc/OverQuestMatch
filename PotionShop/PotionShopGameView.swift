@@ -304,6 +304,7 @@ struct PotionShopLayoutOverlay: View {
         case sections = "📏 Sections"
         case ednar = "🧙 Ednar"
         case customers = "🧍 Customers"  // NEW: Customer scene portraits
+        case permutations = "🎭 Permutations"  // NEW: 3-character queue spacing
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
@@ -863,6 +864,298 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+            }
+        case .permutations:
+            // 🎭 QUEUE PERMUTATIONS - Custom 3-character spacing
+            VStack(alignment: .leading, spacing: 12) {
+                Text("🎭 Queue Permutations (3-Character Spacing)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                
+                // Get current queue arrangement
+                let currentKeys = gs.queue.compactMap { id in
+                    gs.customers.first(where: { $0.id == id })?.charKey
+                }
+                
+                if currentKeys.count == 3 {
+                    // Show current arrangement
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Current Arrangement:")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text(currentKeys.joined(separator: " → "))
+                            .font(.caption.bold())
+                            .foregroundColor(.orange)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.orange.opacity(0.2))
+                            .cornerRadius(4)
+                    }
+                    
+                    Divider()
+                        .background(Color.white.opacity(0.3))
+                        .padding(.vertical, 4)
+                    
+                    // Get or create permutation for current arrangement
+                    let permutation = layoutConfig.queuePositions(for: currentKeys)
+                    
+                    // X Positions Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Horizontal Spacing (X Positions)")
+                            .font(.caption2.bold())
+                            .foregroundColor(.green)
+                        
+                        Text("Fractions of scene width (0.0 = left, 1.0 = right)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.6))
+                            .italic()
+                        
+                        ForEach(0..<3, id: \.self) { index in
+                            HStack(spacing: 8) {
+                                Text("queue[\(index)]")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .frame(width: 60, alignment: .leading)
+                                
+                                Slider(
+                                    value: Binding<Double>(
+                                        get: { permutation.xPositions[index] },
+                                        set: { newValue in
+                                            var updatedPermutation = layoutConfig.queuePositions(for: currentKeys)
+                                            updatedPermutation.xPositions[index] = newValue
+                                            layoutConfig.queuePermutations[currentKeys.joined(separator: "_")] = updatedPermutation
+                                        }
+                                    ),
+                                    in: 0.0...1.0
+                                )
+                                .tint(.green)
+                                
+                                Text(String(format: "%.2f", permutation.xPositions[index]))
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .foregroundColor(.green)
+                                    .frame(width: 40, alignment: .trailing)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .background(Color.white.opacity(0.3))
+                        .padding(.vertical, 4)
+                    
+                    // Y Positions Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Vertical Positioning (Y Positions)")
+                            .font(.caption2.bold())
+                            .foregroundColor(.blue)
+                        
+                        Text("Fractions of scene height (0.0 = top, 1.0 = bottom)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.6))
+                            .italic()
+                        
+                        ForEach(0..<3, id: \.self) { index in
+                            HStack(spacing: 8) {
+                                Text("queue[\(index)]")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .frame(width: 60, alignment: .leading)
+                                
+                                Slider(
+                                    value: Binding<Double>(
+                                        get: { permutation.yPositions[index] },
+                                        set: { newValue in
+                                            var updatedPermutation = layoutConfig.queuePositions(for: currentKeys)
+                                            updatedPermutation.yPositions[index] = newValue
+                                            layoutConfig.queuePermutations[currentKeys.joined(separator: "_")] = updatedPermutation
+                                        }
+                                    ),
+                                    in: 0.0...1.0
+                                )
+                                .tint(.blue)
+                                
+                                Text(String(format: "%.2f", permutation.yPositions[index]))
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .foregroundColor(.blue)
+                                    .frame(width: 40, alignment: .trailing)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .background(Color.white.opacity(0.3))
+                        .padding(.vertical, 4)
+                    
+                    // Scale Overrides Section (Optional)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Scale Overrides (Optional)")
+                                .font(.caption2.bold())
+                                .foregroundColor(.purple)
+                            
+                            Spacer()
+                            
+                            Toggle("Enable", isOn: Binding<Bool>(
+                                get: { permutation.scaleOverrides != nil },
+                                set: { enabled in
+                                    var updatedPermutation = layoutConfig.queuePositions(for: currentKeys)
+                                    if enabled {
+                                        updatedPermutation.scaleOverrides = [1.0, 1.0, 1.0]
+                                    } else {
+                                        updatedPermutation.scaleOverrides = nil
+                                    }
+                                    layoutConfig.queuePermutations[currentKeys.joined(separator: "_")] = updatedPermutation
+                                }
+                            ))
+                            .toggleStyle(SwitchToggleStyle(tint: .purple))
+                            .labelsHidden()
+                        }
+                        
+                        if permutation.scaleOverrides != nil {
+                            Text("Override default [1.0, 1.0, 1.0] scales")
+                                .font(.system(size: 9))
+                                .foregroundColor(.white.opacity(0.6))
+                                .italic()
+                            
+                            ForEach(0..<3, id: \.self) { index in
+                                HStack(spacing: 8) {
+                                    Text("queue[\(index)]")
+                                        .font(.caption2)
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .frame(width: 60, alignment: .leading)
+                                    
+                                    Slider(
+                                        value: Binding<Double>(
+                                            get: { permutation.scaleOverrides?[index] ?? 1.0 },
+                                            set: { newValue in
+                                                var updatedPermutation = layoutConfig.queuePositions(for: currentKeys)
+                                                var scales = updatedPermutation.scaleOverrides ?? [1.0, 1.0, 1.0]
+                                                scales[index] = newValue
+                                                updatedPermutation.scaleOverrides = scales
+                                                layoutConfig.queuePermutations[currentKeys.joined(separator: "_")] = updatedPermutation
+                                            }
+                                        ),
+                                        in: 0.5...2.0
+                                    )
+                                    .tint(.purple)
+                                    
+                                    Text(String(format: "%.2f×", permutation.scaleOverrides?[index] ?? 1.0))
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .foregroundColor(.purple)
+                                        .frame(width: 50, alignment: .trailing)
+                                }
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .background(Color.white.opacity(0.3))
+                        .padding(.vertical, 4)
+                    
+                    // Quick Presets
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Quick Presets")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        
+                        HStack(spacing: 8) {
+                            Button {
+                                layoutConfig.addPermutation(
+                                    for: currentKeys,
+                                    xPositions: [0.40, 0.65, 0.90]
+                                )
+                            } label: {
+                                Text("Wider")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.green.opacity(0.6))
+                                    .cornerRadius(4)
+                            }
+                            
+                            Button {
+                                layoutConfig.addPermutation(
+                                    for: currentKeys,
+                                    xPositions: [0.50, 0.70, 0.85]
+                                )
+                            } label: {
+                                Text("Tighter")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.blue.opacity(0.6))
+                                    .cornerRadius(4)
+                            }
+                            
+                            Button {
+                                layoutConfig.removePermutation(for: currentKeys)
+                            } label: {
+                                Text("Reset")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.orange.opacity(0.6))
+                                    .cornerRadius(4)
+                            }
+                        }
+                    }
+                    
+                    // Current Values Summary
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Current Values:")
+                            .font(.caption2.bold())
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text("X: [\(permutation.xPositions.map { String(format: "%.2f", $0) }.joined(separator: ", "))]")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.green)
+                        
+                        Text("Y: [\(permutation.yPositions.map { String(format: "%.2f", $0) }.joined(separator: ", "))]")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.blue)
+                        
+                        if let scales = permutation.scaleOverrides {
+                            Text("Scales: [\(scales.map { String(format: "%.2f", $0) }.joined(separator: ", "))]")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.purple)
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(8)
+                    .background(Color.black.opacity(0.3))
+                    .cornerRadius(6)
+                    
+                } else {
+                    // Not a 3-character round
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("⚠️ Not Available")
+                            .font(.caption.bold())
+                            .foregroundColor(.orange)
+                        
+                        Text("Queue permutations only work for 3-character rounds (Evening, or future multi-customer rounds).")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        if currentKeys.count < 3 {
+                            Text("Current queue has \(currentKeys.count) character\(currentKeys.count == 1 ? "" : "s").")
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.6))
+                                .italic()
+                        }
+                        
+                        Text("💡 Tip: Skip to Round 3 (Evening) to test this feature.")
+                            .font(.caption2)
+                            .foregroundColor(.cyan)
+                            .padding(.top, 4)
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                }
             }
         case .brewZone:
             VStack(alignment: .leading, spacing: 10) {

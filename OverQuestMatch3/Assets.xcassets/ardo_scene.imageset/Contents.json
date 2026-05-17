@@ -1,7 +1,6 @@
 {
   "images" : [
     {
-      "filename" : "ardo_scene.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -10,6 +9,7 @@
       "scale" : "2x"
     },
     {
+      "filename" : "ardo_scene2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

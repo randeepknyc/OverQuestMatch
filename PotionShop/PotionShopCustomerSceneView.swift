@@ -55,6 +55,7 @@ struct PotionShopSceneLayout {
     static let ednarX: CGFloat = 0.13
     static let ednarYFraction: CGFloat = 0.55
 
+    // DEFAULT positions (used when no custom permutation is defined)
     static let queueXFractions1: [CGFloat] = [0.75]
     static let queueXFractions2: [CGFloat] = [0.55, 0.85]
     static let queueXFractions3: [CGFloat] = [0.48, 0.68, 0.88]
@@ -67,13 +68,47 @@ struct PotionShopSceneLayout {
     static let portraitDiameter: CGFloat = 76
     static let profileDiameter:  CGFloat = 56
 
-    static func queueXFractions(for count: Int) -> [CGFloat] {
+    /// Get X positions for queue, checking for custom permutation first
+    static func queueXFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+        // Check for custom permutation in config
+        if let config = config, count == 3 {
+            let permutation = config.queuePositions(for: characterKeys)
+            return permutation.xPositions.map { CGFloat($0) }
+        }
+        
+        // Fall back to defaults
         switch count {
         case 1:  return queueXFractions1
         case 2:  return queueXFractions2
         case 3:  return queueXFractions3
         default: return queueXFractions3
         }
+    }
+    
+    /// Get Y positions for queue, checking for custom permutation first
+    static func queueYFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+        // Check for custom permutation in config
+        if let config = config, count == 3 {
+            let permutation = config.queuePositions(for: characterKeys)
+            return permutation.yPositions.map { CGFloat($0) }
+        }
+        
+        // Fall back to defaults
+        return queueYFractions
+    }
+    
+    /// Get scales for queue, checking for custom permutation first
+    static func queueScales(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+        // Check for custom permutation in config
+        if let config = config, count == 3 {
+            let permutation = config.queuePositions(for: characterKeys)
+            if let overrides = permutation.scaleOverrides {
+                return overrides.map { CGFloat($0) }
+            }
+        }
+        
+        // Fall back to defaults
+        return queueScales
     }
 }
 
@@ -95,6 +130,11 @@ struct PotionShopCustomerSceneView: View {
 
     var body: some View {
         GeometryReader { geo in
+            // Get character keys in queue order for permutation lookup
+            let characterKeys = gs.queue.compactMap { id in
+                gs.customers.first(where: { $0.id == id })?.charKey
+            }
+            
             ZStack(alignment: .topLeading) {
                 // LAYER 1: BACKGROUND (always first = bottom layer)
                 backgroundLayer(geo: geo)
@@ -131,6 +171,8 @@ struct PotionShopCustomerSceneView: View {
                             sceneSize: geo.size,
                             animationNamespace: queueAnimation,
                             arrivalCounter: activeArrivalCounter,
+                            characterKeys: characterKeys,  // ← NEW: Pass character keys for permutation lookup
+                            layoutConfig: layoutConfig,     // ← NEW: Pass layout config
                             // Base scale (makes 1536×1024 images visible)
                             customerSceneBaseScale: layoutConfig?.customerSceneBaseScale ?? 2.0,
                             // Active position values
@@ -320,6 +362,10 @@ struct PotionShopCustomerInSceneView: View {
     let animationNamespace: Namespace.ID
     let arrivalCounter: Int
     
+    // NEW: Character keys for permutation lookup
+    let characterKeys: [String]
+    let layoutConfig: PotionShopLayoutConfig?
+    
     // Customer scaling parameters (May 12, 2026 - 3-POSITION SYSTEM)
     // Base scale applied to ALL images (makes 1536×1024 images visible)
     var customerSceneBaseScale: Double = 2.0
@@ -366,13 +412,16 @@ struct PotionShopCustomerInSceneView: View {
         return true
     }
     private var scale: CGFloat {
-        if queueIndex < PotionShopSceneLayout.queueScales.count {
-            return PotionShopSceneLayout.queueScales[queueIndex]
+        // Use permutation-aware scale lookup
+        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
+        if queueIndex < scales.count {
+            return scales[queueIndex]
         }
         return 0.7
     }
     private var xPos: CGFloat {
-        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount)
+        // Use permutation-aware X position lookup
+        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
         let frac: CGFloat
         if queueIndex < fractions.count {
             frac = fractions[queueIndex]
@@ -382,9 +431,11 @@ struct PotionShopCustomerInSceneView: View {
         return sceneSize.width * frac
     }
     private var yPos: CGFloat {
+        // Use permutation-aware Y position lookup
+        let fractions = PotionShopSceneLayout.queueYFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
         let frac: CGFloat
-        if queueIndex < PotionShopSceneLayout.queueYFractions.count {
-            frac = PotionShopSceneLayout.queueYFractions[queueIndex]
+        if queueIndex < fractions.count {
+            frac = fractions[queueIndex]
         } else {
             frac = 0.55
         }

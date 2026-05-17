@@ -90,6 +90,7 @@
 		7F5574A22F7872CA00081E01 /* MATCH3_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A12F7872CA00081E01 /* MATCH3_CONTEXT.md */; };
 		7F5574A42F78748000081E01 /* PHYSICS_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */; };
 		7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */; };
+		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F7907B32F8A2E5F00412002 /* cardrotation_anim.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */; };
 		7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908492F99DF6A00412002 /* CauldronModels.swift */; };
 		7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908482F99DF6A00412002 /* CauldronGameView.swift */; };
@@ -240,6 +241,7 @@
 		7F5574A12F7872CA00081E01 /* MATCH3_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MATCH3_CONTEXT.md; sourceTree = "<group>"; };
 		7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PHYSICS_CONTEXT.md; sourceTree = "<group>"; };
 		7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTEXT_REORGANIZATION_SUMMARY.md; sourceTree = "<group>"; };
+		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = cardrotation_anim.md; sourceTree = "<group>"; };
 		7F7908482F99DF6A00412002 /* CauldronGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameView.swift; sourceTree = "<group>"; };
 		7F7908492F99DF6A00412002 /* CauldronModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronModels.swift; sourceTree = "<group>"; };
@@ -501,6 +503,7 @@
 				7F7908A12FB2F1DE00412002 /* tmp3_POSITION_IMPLEMENTATION_COMPLETE.md */,
 				7F7908A32FB2F1F000412002 /* tmp3_POSITION_SYSTEM_IMPLEMENTATION_SUMMARY.md */,
 				7F7908A52FB2F50A00412002 /* tmpERROR_FIXED_READY_TO_TEST.md */,
+				7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */,
 			);
 			path = PotionShop;
 			sourceTree = "<group>";
@@ -746,6 +749,7 @@
 				7F0095372F6F50C500E10AEB /* QUICK_TEST_GUIDE.md in Resources */,
 				7F3124532F724C1200316079 /* POISON_PILL_CONTEXT_FOR_NEXT_SESSION.md in Resources */,
 				7F00948F2F691AB200E10AEB /* CASCADE_ANIMATION_SUMMARY.md in Resources */,
+				7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */,
 				7F55742D2F735C9800081E01 /* SESSION_SUMMARY.md in Resources */,
 				7F7908762FA8456200412002 /* CAULDRON_CONTEXT.md in Resources */,
 				7F55748B2F7867E500081E01 /* PHYSICS_CHAIN_GAME_COMPLETE.md in Resources */,

@@ -93,6 +93,93 @@ struct PotionShopDebugMenu: View {
                         }
                     }
                 }
+                
+                // ─── Queue Permutations (NEW - Prevent Overlaps) ──
+                Section {
+                    Text("Define custom spacing for specific 3-character arrangements")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    let currentKeys = gs.queue.compactMap { id in
+                        gs.customers.first(where: { $0.id == id })?.charKey
+                    }
+                    
+                    if currentKeys.count == 3 {
+                        Text("Current: \(currentKeys.joined(separator: " → "))")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .padding(.bottom, 4)
+                        
+                        Button {
+                            // Quick preset: wider spacing for Evening round
+                            PotionShopLayoutConfig.shared.addPermutation(
+                                for: currentKeys,
+                                xPositions: [0.40, 0.65, 0.90],  // More spread out than default [0.48, 0.68, 0.88]
+                                yPositions: [0.48, 0.55, 0.55]   // Same Y as default
+                            )
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.left.and.right")
+                                    .foregroundColor(.cyan)
+                                Text("Use Wider Spacing")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("40% → 65% → 90%")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Button {
+                            // Quick preset: tighter spacing
+                            PotionShopLayoutConfig.shared.addPermutation(
+                                for: currentKeys,
+                                xPositions: [0.50, 0.70, 0.85],  // Tighter than default
+                                yPositions: [0.48, 0.55, 0.55]
+                            )
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                                    .foregroundColor(.cyan)
+                                Text("Use Tighter Spacing")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("50% → 70% → 85%")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Button(role: .destructive) {
+                            PotionShopLayoutConfig.shared.removePermutation(for: currentKeys)
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .foregroundColor(.orange)
+                                Text("Reset to Default Spacing")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("48% → 68% → 88%")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    } else {
+                        Text("(Only available in 3-customer rounds)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                } header: {
+                    Text("🎭 Queue Permutations")
+                } footer: {
+                    let permutations = PotionShopLayoutConfig.shared.listPermutations()
+                    if permutations.isEmpty {
+                        Text("No custom permutations defined yet")
+                    } else {
+                        Text("Active: \(permutations.joined(separator: ", "))")
+                    }
+                }
 
                 // ─── Round shortcuts ──────────────────────────────
                 Section("Skip to Round") {
@@ -518,6 +605,45 @@ struct PotionShopDebugMenu: View {
         brewZoneHeight: \(cfg.brewZoneHeight)
         showBrewZone: \(cfg.showBrewZone)
         
+        """
+        
+        // ─── QUEUE PERMUTATIONS (3-character spacing) ─────────────
+        if !cfg.queuePermutations.isEmpty {
+            text += """
+            
+            ───────────────────────────────────────────────────────────────
+            🎭 QUEUE PERMUTATIONS (3-character spacing overrides)
+            ───────────────────────────────────────────────────────────────
+            
+            """
+            
+            for (key, perm) in cfg.queuePermutations.sorted(by: { $0.key < $1.key }) {
+                let chars = key.split(separator: "_").map(String.init)
+                text += """
+                \(chars.joined(separator: " → "))
+                  X: [\(perm.xPositions.map { String(format: "%.2f", $0) }.joined(separator: ", "))]
+                  Y: [\(perm.yPositions.map { String(format: "%.2f", $0) }.joined(separator: ", "))]
+                
+                """
+                
+                if let scales = perm.scaleOverrides {
+                    text += """
+                      Scales: [\(scales.map { String(format: "%.2f", $0) }.joined(separator: ", "))]
+                    
+                    """
+                }
+            }
+        } else {
+            text += """
+            
+            ───────────────────────────────────────────────────────────────
+            🎭 QUEUE PERMUTATIONS: None defined (using defaults)
+            ───────────────────────────────────────────────────────────────
+            
+            """
+        }
+        
+        text += """
         ═══════════════════════════════════════════════════════════════
         END OF LAYOUT VALUES
         ═══════════════════════════════════════════════════════════════

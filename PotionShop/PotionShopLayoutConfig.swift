@@ -132,6 +132,85 @@ class PotionShopLayoutConfig {
         )
     ]
     
+    // MARK: - Per-Permutation Queue Positioning (NEW - Prevents Overlaps)
+    //
+    // Define custom X/Y positions for specific 3-character arrangements.
+    // Key format: "character1_character2_character3" (in queue order)
+    // Value: QueuePermutation with custom positions for all 3 spots
+    //
+    // Example: "wendelina_crispin_ardo" = custom spacing for Evening round
+    //
+    // If no entry exists for a permutation, falls back to default spacing.
+    var queuePermutations: [String: QueuePermutation] = [:]
+    
+    struct QueuePermutation: Codable {
+        // X positions (as fraction of scene width, 0.0 to 1.0)
+        var xPositions: [Double] = [0.48, 0.68, 0.88]
+        // Y positions (as fraction of scene height, 0.0 to 1.0)
+        var yPositions: [Double] = [0.48, 0.55, 0.55]
+        // Optional: Scale overrides for this specific arrangement
+        var scaleOverrides: [Double]? = nil  // nil = use default [1.0, 1.0, 1.0]
+    }
+    
+    /// Get queue positions for a specific arrangement of characters.
+    /// Falls back to default if no custom permutation is defined.
+    func queuePositions(for characterKeys: [String]) -> QueuePermutation {
+        guard characterKeys.count == 3 else {
+            // Not a 3-character round, return defaults
+            return QueuePermutation()
+        }
+        
+        let key = characterKeys.joined(separator: "_")
+        return queuePermutations[key] ?? QueuePermutation()
+    }
+    
+    /// Add a custom permutation for a specific 3-character arrangement.
+    /// Use this in debug menu or layout editor to prevent overlaps.
+    /// Example: config.addPermutation(for: ["wendelina", "crispin", "ardo"], xPositions: [0.40, 0.65, 0.90])
+    func addPermutation(for characterKeys: [String], 
+                       xPositions: [Double]? = nil,
+                       yPositions: [Double]? = nil,
+                       scaleOverrides: [Double]? = nil) {
+        guard characterKeys.count == 3 else {
+            print("⚠️ Permutation must have exactly 3 characters")
+            return
+        }
+        
+        let key = characterKeys.joined(separator: "_")
+        var permutation = queuePermutations[key] ?? QueuePermutation()
+        
+        if let xPositions = xPositions {
+            permutation.xPositions = xPositions
+        }
+        if let yPositions = yPositions {
+            permutation.yPositions = yPositions
+        }
+        if let scaleOverrides = scaleOverrides {
+            permutation.scaleOverrides = scaleOverrides
+        }
+        
+        queuePermutations[key] = permutation
+        
+        print("✅ Added permutation for: \(characterKeys.joined(separator: " → "))")
+        print("   X: \(permutation.xPositions)")
+        print("   Y: \(permutation.yPositions)")
+        if let scales = permutation.scaleOverrides {
+            print("   Scales: \(scales)")
+        }
+    }
+    
+    /// Remove a custom permutation (returns to default spacing)
+    func removePermutation(for characterKeys: [String]) {
+        let key = characterKeys.joined(separator: "_")
+        queuePermutations.removeValue(forKey: key)
+        print("🗑️ Removed permutation for: \(characterKeys.joined(separator: " → "))")
+    }
+    
+    /// List all custom permutations currently defined
+    func listPermutations() -> [String] {
+        return Array(queuePermutations.keys).sorted()
+    }
+    
     struct CharacterScale: Codable {
         // Active position (when customer is at queue[0] - front of line)
         var width: Double = 1.0
@@ -212,7 +291,45 @@ class PotionShopLayoutConfig {
     var brewZoneHeight: Double = 95.51772773265839
     var showBrewZone: Bool = false
     
-    private init() {}
+    private init() {
+        // MARK: - Queue Permutations (Custom 3-Character Spacing)
+        // Evening round arrangements to prevent character overlaps
+        
+        // Arrangement 1: ardo → wendelina → crispin
+        addPermutation(
+            for: ["ardo", "wendelina", "crispin"],
+            xPositions: [0.46, 0.59, 0.87],
+            yPositions: [0.48, 0.55, 0.55]
+        )
+        
+        // Arrangement 2: crispin → ardo → wendelina
+        addPermutation(
+            for: ["crispin", "ardo", "wendelina"],
+            xPositions: [0.48, 0.70, 0.88],
+            yPositions: [0.50, 0.55, 0.55]
+        )
+        
+        // Arrangement 3: crispin → wendelina → ardo
+        addPermutation(
+            for: ["crispin", "wendelina", "ardo"],
+            xPositions: [0.48, 0.69, 0.92],
+            yPositions: [0.50, 0.55, 0.55]
+        )
+        
+        // Arrangement 4: wendelina → ardo → crispin
+        addPermutation(
+            for: ["wendelina", "ardo", "crispin"],
+            xPositions: [0.47, 0.61, 0.87],
+            yPositions: [0.50, 0.55, 0.57]
+        )
+        
+        // Arrangement 5: wendelina → crispin → ardo
+        addPermutation(
+            for: ["wendelina", "crispin", "ardo"],
+            xPositions: [0.46, 0.69, 0.92],
+            yPositions: [0.50, 0.56, 0.55]
+        )
+    }
     
     // MARK: - 🔒 LOCKED DEFAULTS (May 13, 2026 - Known-Good State)
     

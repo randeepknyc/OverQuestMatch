@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 13, 2026 (LOCKED DEFAULTS SYSTEM ADDED — One-Tap Baseline Restoration)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **LOCKED DEFAULTS SYSTEM (May 13, 2026)** - Complete 227-value snapshot system with one-tap restore. Experiment fearlessly! **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
+> **Last Updated:** May 17, 2026 (QUEUE PERMUTATION SYSTEM ADDED — Prevent 3-Character Overlaps)  
+> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **QUEUE PERMUTATION SYSTEM (May 17, 2026)** - Custom X/Y positioning for specific 3-character arrangements. Visual editor + debug menu presets + code export. Prevents overlaps in Evening round. See §8B. **LOCKED DEFAULTS SYSTEM (May 13, 2026)** - Complete 227-value snapshot system with one-tap restore. Experiment fearlessly! **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -647,6 +647,368 @@ These values are locked into both PotionShopGameView.swift and PotionShopLayoutE
 
 ---
 
+## 8B. QUEUE PERMUTATION SYSTEM (May 17, 2026) — Custom 3-Character Spacing
+
+**Status:** ✅ COMPLETE — Visual Editor + Debug Menu Presets + Code Export  
+**Purpose:** Prevent character overlaps in 3-customer rounds by defining custom X/Y positions for specific arrangements  
+**Master guide concept:** Permutation spacing defines the "spatial budget" for characters; character art should fit within this budget
+
+### 8B.1 What Problem Does This Solve?
+
+When 3 characters appear together (Evening round: Wendelina, Crispin, Ardo), they can overlap because:
+- Each character has different widths (some are wider than others)
+- Default spacing [0.48, 0.68, 0.88] doesn't work for all combinations
+- Different characters in different queue positions create different layouts
+- The active customer (queue[0]) may have a wide stance that collides with waiting customers
+
+**The permutation system lets you define custom spacing for ANY specific arrangement of 3 characters.**
+
+### 8B.2 Key Concept: Permutations
+
+A "permutation" is a specific arrangement of 3 characters in queue order:
+- `["wendelina", "crispin", "ardo"]` = Wendelina at front, Crispin in middle, Ardo at back
+- `["crispin", "wendelina", "ardo"]` = Different permutation (Crispin at front now)
+
+**Each permutation stores:**
+- **X positions:** Horizontal spacing as fractions of scene width (0.0 to 1.0)
+  - `[0.40, 0.65, 0.90]` = queue[0] at 40%, queue[1] at 65%, queue[2] at 90%
+- **Y positions:** Vertical positioning as fractions of scene height (0.0 to 1.0)
+  - `[0.48, 0.55, 0.55]` = queue[0] slightly higher than waiters
+- **Scale overrides** (optional): Per-position size multipliers
+  - `[1.0, 0.85, 0.75]` = active full size, waiters progressively smaller (depth effect)
+
+**Default fallback (when no custom permutation is defined):**
+- X: [0.48, 0.68, 0.88]
+- Y: [0.48, 0.55, 0.55]
+- Scales: [1.0, 1.0, 1.0]
+
+### 8B.3 Three Ways to Adjust Permutations
+
+**Method 1: Debug Menu Quick Presets** (quickest for testing)
+1. ⚙️ → Skip to Round 3 (Evening)
+2. ⚙️ → Scroll to "🎭 Queue Permutations"
+3. Tap "Use Wider Spacing" → [0.40, 0.65, 0.90]
+4. Or "Use Tighter Spacing" → [0.50, 0.70, 0.85]
+5. Or "Reset to Default Spacing" → [0.48, 0.68, 0.88]
+6. Close menu → spacing applies instantly!
+
+**Method 2: Visual Layout Editor** (most powerful — real-time sliders!)
+1. ⚙️ → "Layout Editor (Live Overlay)"
+2. Tap **🎭 Permutations** pill
+3. Drag **green sliders** for X positions (left/right)
+4. Drag **blue sliders** for Y positions (up/down)
+5. Toggle **purple scale overrides** for size control
+6. **Characters move in real-time as you drag!**
+7. Tap **Wider/Tighter/Reset** buttons for quick presets
+8. Close editor → values persist until reset
+
+**Method 3: Permanent Code** (for locking in final values)
+1. Adjust permutations using Method 1 or 2
+2. ⚙️ → "📋 Copy Layout Values"
+3. Paste output into chat with Claude
+4. Claude extracts permutations and adds to `PotionShopLayoutConfig.swift` `init()`
+5. Permutations now survive app restarts!
+
+### 8B.4 The Visual Layout Editor
+
+**Access:** ⚙️ → Layout Editor → 🎭 Permutations
+
+**UI Sections:**
+- **Current Arrangement badge** (orange): Shows which 3 characters (e.g., "wendelina → crispin → ardo")
+- **Horizontal Spacing (X Positions)** — Green sliders
+  - queue[0]: Left/right position for active customer (0.0 to 1.0)
+  - queue[1]: Left/right position for first waiting customer
+  - queue[2]: Left/right position for second waiting customer
+- **Vertical Positioning (Y Positions)** — Blue sliders
+  - queue[0]: Up/down position for active customer
+  - queue[1]: Up/down for first waiter
+  - queue[2]: Up/down for second waiter
+- **Scale Overrides** (optional) — Purple toggle + sliders
+  - Enable: Turns on per-position size control
+  - queue[0]/[1]/[2]: Scale multipliers (0.5× to 2.0×)
+- **Quick Presets** — Colored buttons
+  - **Wider** (green): [0.40, 0.65, 0.90]
+  - **Tighter** (blue): [0.50, 0.70, 0.85]
+  - **Reset** (orange): [0.48, 0.68, 0.88]
+- **Current Values Summary** — Black box
+  - Shows exact X/Y/Scale arrays for current permutation
+
+**Live Preview:**
+- Game view visible behind overlay (80% brightness)
+- Characters move **instantly** as you drag sliders
+- No rebuild needed — see changes in real-time!
+
+**Only visible in 3-character rounds:**
+- Morning/Afternoon (2 customers): Shows "Not Available" message
+- Evening (3 customers): Full editor active
+- Night (1 boss): Shows "Not Available" message
+
+### 8B.5 Permutation System as Master Guide for Character Art
+
+**The workflow that makes "Draw → Export → Works!" possible:**
+
+1. **Define permutation spacing first**
+   - Use visual editor to find perfect spacing for a 3-character arrangement
+   - Example: Evening round set to [0.40, 0.65, 0.90] (wider spacing)
+   - **This becomes the "spatial budget"** for those positions
+
+2. **Draw characters at standard canvas size**
+   - All characters: **1536×1024 @ 300 DPI** in Procreate
+   - Draw at natural proportions (taller characters = taller on canvas)
+   - **Keep characters within canvas bounds**
+
+3. **Permutation positions define max width**
+   - Position at 40%: Character centered at 40% of scene width
+   - Position at 65%: Character centered at 65% of scene width
+   - Spacing between positions (40% → 65% = 25%) is the "width budget"
+   - If characters overlap → adjust permutation spacing (make positions further apart)
+
+4. **System auto-sizes characters**
+   - `customerSceneBaseScale: 2.0` applied to ALL 1536×1024 images
+   - Per-character multipliers at **1.0×1.0** (no distortion)
+   - Characters appear at natural proportions from Procreate
+
+5. **Result: Spatial contract**
+   - Permutation X positions = **where characters stand**
+   - Canvas size (1536×1024) = **maximum character dimensions**
+   - As long as canvas is uniform, characters **auto-fit the spacing**
+   - No manual per-character adjustment needed!
+
+**Example: Evening Round Master Guide**
+
+```
+Permutation: ["wendelina", "crispin", "ardo"]
+X positions: [0.40, 0.65, 0.90]  ← 25% gap, then 25% gap
+
+Wendelina:
+- Position: 40% of scene width (left side)
+- Width budget: ~25% of scene width
+- Canvas: 1536×1024, drawn with wide stance
+- Fits because: 25% scene width > Wendelina's canvas width × scale
+
+Crispin:
+- Position: 65% of scene width (middle)
+- Width budget: ~25% of scene width (25% gap on each side)
+- Canvas: 1536×1024, drawn narrower than Wendelina
+- Fits because: centered, narrower than budget
+
+Ardo:
+- Position: 90% of scene width (right side)
+- Width budget: ~10% to right edge
+- Canvas: 1536×1024, drawn thin (nervous scholar)
+- Fits because: small character, easily within budget
+```
+
+**If characters overlap after adding art:**
+1. **Option A:** Increase permutation spacing
+   - Visual editor → drag X sliders further apart
+   - Example: [0.40, 0.65, 0.90] → [0.35, 0.65, 0.95]
+2. **Option B:** Shrink the overlapping character via per-character scaling
+   - Layout editor → 🧍 Customers → Select character → Reduce active width
+3. **Option C:** Redraw character smaller within the same 1536×1024 canvas
+   - Keep canvas size same, draw character taking up less space
+
+**Recommended workflow:**
+- Define permutation spacing for all 6 arrangements of Evening round first
+- Use that spacing as the guide when drawing characters
+- If overlap occurs, adjust spacing (not character scale) as first resort
+
+### 8B.6 Testing All Permutations
+
+**Evening round has 3 characters = 6 possible arrangements:**
+
+1. **wendelina → crispin → ardo** (default spawn order)
+2. **crispin → wendelina → ardo** (tap Crispin's profile)
+3. **ardo → wendelina → crispin** (tap Ardo's profile)
+4. **wendelina → ardo → crispin** (multiple swaps)
+5. **crispin → ardo → wendelina** (multiple swaps)
+6. **ardo → crispin → wendelina** (multiple swaps)
+
+**Testing workflow:**
+1. Load Evening round (⚙️ → Round 3)
+2. Open layout editor → 🎭 Permutations
+3. Adjust spacing for current arrangement (default: wendelina → crispin → ardo)
+4. Note values in summary box
+5. Close editor
+6. Tap a profile button → queue swaps
+7. Reopen editor → **different permutation controls appear!**
+8. Adjust spacing for THIS arrangement
+9. Repeat for all 6
+
+**Pro tip:** Only define permutations that actually overlap. Most arrangements work fine with defaults!
+
+### 8B.7 Technical Implementation
+
+**Files involved:**
+- `PotionShopLayoutConfig.swift` — Permutation data structure + helper methods
+- `PotionShopCustomerSceneView.swift` — Position lookup + rendering
+- `PotionShopGameView.swift` — Visual editor UI (🎭 Permutations section)
+- `PotionShopDebugMenu.swift` — Quick preset buttons + export function
+
+**Data structure:**
+```swift
+struct QueuePermutation: Codable {
+    var xPositions: [Double] = [0.48, 0.68, 0.88]
+    var yPositions: [Double] = [0.48, 0.55, 0.55]
+    var scaleOverrides: [Double]? = nil
+}
+
+var queuePermutations: [String: QueuePermutation] = [:]
+// Key format: "character1_character2_character3"
+// Example: "wendelina_crispin_ardo"
+```
+
+**Position lookup flow:**
+1. Customer scene extracts character keys from queue: `["wendelina", "crispin", "ardo"]`
+2. Calls `layoutConfig.queuePositions(for: characterKeys)`
+3. Method builds key: `"wendelina_crispin_ardo"`
+4. Looks up in `queuePermutations` dictionary
+5. **If found:** Returns custom positions
+6. **If not found:** Returns default `QueuePermutation()` with [0.48, 0.68, 0.88]
+7. Scene renders each customer at their permutation-defined position
+
+**Rendering calculation:**
+```swift
+let permutation = layoutConfig.queuePositions(for: characterKeys)
+let xFraction = permutation.xPositions[queueIndex]  // e.g., 0.40
+let yFraction = permutation.yPositions[queueIndex]  // e.g., 0.48
+
+let xPos = sceneWidth * xFraction   // 40% of scene width
+let yPos = sceneHeight * yFraction  // 48% of scene height
+
+// Character centered at (xPos, yPos)
+```
+
+**Export format (in "Copy Layout Values"):**
+```
+───────────────────────────────────────────────────────────────
+🎭 QUEUE PERMUTATIONS (3-character spacing overrides)
+───────────────────────────────────────────────────────────────
+
+wendelina → crispin → ardo
+  X: [0.40, 0.65, 0.90]
+  Y: [0.48, 0.55, 0.55]
+  Scales: [1.00, 0.85, 0.75]
+
+crispin → wendelina → ardo
+  X: [0.42, 0.68, 0.90]
+  Y: [0.48, 0.55, 0.55]
+```
+
+**Code generation (done by Claude when you paste export):**
+```swift
+private init() {
+    addPermutation(
+        for: ["wendelina", "crispin", "ardo"],
+        xPositions: [0.40, 0.65, 0.90],
+        yPositions: [0.48, 0.55, 0.55],
+        scaleOverrides: [1.0, 0.85, 0.75]
+    )
+    
+    addPermutation(
+        for: ["crispin", "wendelina", "ardo"],
+        xPositions: [0.42, 0.68, 0.90],
+        yPositions: [0.48, 0.55, 0.55]
+    )
+}
+```
+
+### 8B.8 Position Value Guide
+
+**X Positions (Horizontal):**
+- 0.0 = Far left edge (near Ednar)
+- 0.5 = Center of scene
+- 1.0 = Far right edge
+
+**Typical ranges:**
+- queue[0] (active): 0.35 to 0.50 (left side, closest to Ednar)
+- queue[1] (waiting): 0.60 to 0.75 (middle)
+- queue[2] (waiting): 0.80 to 0.95 (right side)
+
+**Y Positions (Vertical):**
+- 0.0 = Top of scene
+- 0.5 = Middle
+- 1.0 = Bottom
+
+**Typical ranges:**
+- queue[0] (active): 0.45 to 0.52 (slightly higher for prominence)
+- queue[1] (waiting): 0.52 to 0.58 (middle)
+- queue[2] (waiting): 0.52 to 0.58 (same or slightly lower)
+
+**Scale Overrides (Optional):**
+- 1.0 = Normal size (100%)
+- 0.85 = 15% smaller
+- 1.2 = 20% bigger
+
+**Common patterns:**
+- **Wide spacing:** [0.40, 0.65, 0.90] — good for wide characters
+- **Default spacing:** [0.48, 0.68, 0.88] — balanced
+- **Tight spacing:** [0.50, 0.70, 0.85] — good for thin characters
+- **Depth effect:** scales [1.0, 0.85, 0.75] — characters shrink as they go back
+
+### 8B.9 When to Use Permutations vs Per-Character Scaling
+
+**Use Permutations when:**
+- ✅ Specific combination of 3 characters overlaps
+- ✅ You want custom spacing for one arrangement (e.g., Wendelina at front)
+- ✅ Overlap happens regardless of individual character sizes
+- ✅ You want depth effect (scale overrides) for specific grouping
+
+**Use Per-Character Scaling when:**
+- ✅ One character is too big in ALL arrangements
+- ✅ Character drawn too large on canvas and needs shrinking
+- ✅ Want fine positional offset for one character (X/Y offsets)
+- ✅ Want different sizes for active vs waiting positions (3-position system)
+
+**They stack:**
+- Base permutation position: 0.40 (40% of scene width)
+- Per-character X offset: -10pt
+- Final position: (sceneWidth × 0.40) - 10pt
+
+**Recommended priority:**
+1. Get permutation spacing right first (defines spatial budget)
+2. Draw characters to fit within that budget (on 1536×1024 canvas)
+3. Use per-character scaling only for edge cases
+
+### 8B.10 Current Status (May 17, 2026)
+
+**Implemented:**
+- ✅ Full permutation data structure in `PotionShopLayoutConfig`
+- ✅ Visual layout editor with real-time sliders (green/blue/purple sections)
+- ✅ Debug menu quick presets (Wider/Tighter/Reset buttons)
+- ✅ Export function includes permutation values in clipboard output
+- ✅ Position lookup with fallback to defaults
+- ✅ Smooth `matchedGeometryEffect` transitions when queue swaps
+- ✅ Per-permutation scale overrides (optional depth effects)
+- ✅ Documentation guide (`QUEUE_PERMUTATION_SYSTEM.md`)
+
+**Not yet defined:**
+- ⚪ No custom permutations locked in for Evening round (all use defaults)
+- ⚪ No custom permutations for other potential 3-customer rounds (future)
+
+**Next steps:**
+1. Play Evening round with real art
+2. Note which arrangements overlap
+3. Use visual editor to adjust spacing
+4. Copy values and lock in via `init()` in config file
+
+**📚 For Complete Guide:**
+See `QUEUE_PERMUTATION_SYSTEM.md` in the `ReadFilesForContext/` folder for:
+- Step-by-step beginner instructions for all 3 methods
+- Detailed troubleshooting guide
+- Copy-paste code examples for all 6 Evening round permutations
+- Position value guide with typical ranges
+- Testing workflow for all permutations
+- Best practices and common pitfalls
+
+**Quick Reference:**
+- **Access visual editor:** ⚙️ → Layout Editor → 🎭 Permutations pill
+- **Access debug presets:** ⚙️ → Scroll to "🎭 Queue Permutations"
+- **Export values:** ⚙️ → "📋 Copy Layout Values"
+- **Key formula:** `permutation.xPositions[queueIndex] × sceneWidth = character position`
+
+---
+
 ## 9. ANIMATION SYSTEM (Phase 7) — `PotionShopBrewAnimator.swift`
 
 **Single source of truth for every animation timing.** All values live in this file as static constants. Editing animation feel = editing this file. The user is an animator and will tune these.
@@ -950,6 +1312,7 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 | **Layout Editor** | **NEW (May 5, 2026)** - Live overlay editor for visual tuning |
 | **Copy Layout Values** | **NEW (May 12, 2026)** - Copies all current layout values to clipboard in formatted text (includes all 14 characters × 12 values each = 168 character values + section heights, art scales, nodes, etc.) |
 | **🔒 Restore Locked Defaults** | **NEW (May 13, 2026)** - ONE TAP returns to known-good baseline (May 13 locked state). Resets ALL layout values instantly. |
+| **🎭 Queue Permutations** | **NEW (May 17, 2026)** - Quick presets for 3-character spacing: "Use Wider Spacing" [0.40, 0.65, 0.90], "Use Tighter Spacing" [0.50, 0.70, 0.85], "Reset to Default Spacing" [0.48, 0.68, 0.88]. Only visible in 3-customer rounds. See §8B. |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
 
@@ -990,7 +1353,7 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 
 **UI Design:**
 - **Section-focused:** Only ONE section's controls visible at a time (reduced clutter)
-- **Horizontal pill picker:** Swipe through section pills at top (📏 🧙 🍲 🥘 🔵 🎲 🥄)
+- **Horizontal pill picker:** Swipe through section pills at top (📏 🧙 🍲 🥘 🔵 🎲 🥄 🎭)
 - **Active pill:** Solid cyan fill with white text
 - **Inactive pills:** Transparent with cyan border
 - **Floating panel:** Rounded rectangle at bottom with dark semi-transparent background
@@ -1010,6 +1373,7 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 | **🔧 Fine-Tune** | **Per-node X/Y offsets (0-11)** | **±100pt per node** | **Individual node positioning (NEW May 5, 2026)** |
 | **🎲 Dice** | Die scale, Tray X, Tray Y | 0.5-3.0× scale, ±200pt offset | Dice size + tray offset |
 | **🥄 Brew** | X, Y position (fraction), Width, Height (pts), Show Zone toggle | 0-1 position, 50-300pt size | Invisible tap zone |
+| **🎭 Permutations** | **X/Y positions for 3-character arrangements** | **0.0-1.0 scene fractions** | **Custom spacing per permutation (NEW May 17, 2026)** - Only in 3-customer rounds. See §8B |
 
 **How It Works:**
 1. Tap "Layout Editor (Live Overlay)" in debug menu
@@ -1918,6 +2282,7 @@ This system ensures you can **experiment fearlessly** knowing you can always ret
 | **7h** | **Customer scene scaling system (May 6)** | ✅ | **Added 🧍 Customers section to layout editor. Per-character width/height/X/Y scaling with character picker dropdown (Mildred & Tomik). Removed circle clipping from scene portraits so full images are visible. Values passed from layoutConfig → GameView → SceneView → CustomerView. Both characters default to 2.34×2.13× with 5pt, 51pt offsets. See §12.1.2 for full documentation.** |
 | **7i** | **3-position system + waiting2 (May 12)** | ✅ | **MAJOR UPDATE: Added third position (waiting2) for queue[2] customers. Each character now has 12 layout values (4 active + 4 waiting + 4 waiting2). Layout editor updated with purple "Waiting Position 2" section. Code generator updated to output all 56 waiting2 lines (4 values × 14 characters). All 14 characters integrated. See §12.1.2 for full documentation.** |
 | **7j** | **Unified character scaling (May 12)** | ✅ | **REMOVED automatic queue depth scaling. Changed queueScales from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. All customers now appear at same size whether active or waiting by default. Depth effects now optional via per-character layout editor adjustments. All defaults reset to 1.0×1.0×0,0 (pixel-accurate, no distortion). Draw → export → drop → works! See §16.1.1 for full documentation.** |
+| **7k** | **Queue permutation system (May 17)** | ✅ | **Added custom X/Y positioning for specific 3-character arrangements to prevent overlaps in Evening round. Visual layout editor with real-time sliders (green X positions, blue Y positions, purple scale overrides). Debug menu quick presets (Wider/Tighter/Reset). Export function includes permutation values. Fallback to defaults when no custom permutation defined. Data structure in `PotionShopLayoutConfig` with helper methods. See §8B for full documentation including QUEUE_PERMUTATION_SYSTEM.md reference.** |
 
 ---
 
@@ -2417,7 +2782,10 @@ When starting a fresh session with Claude in Xcode:
 | Tune any animation timing                               | `PotionShopBrewAnimator.swift`                       |
 | Change floating-number font                             | `PotionShopBrewAnimator.swift` → `numberFont(size:)` |
 | Change cauldron bowl shape / size                       | `PotionShopCauldronView.swift` → `PotionShopCauldronGeometry` |
-| Change customer queue X positions                       | `PotionShopCustomerSceneView.swift` → `queueXFractions` |
+| Change customer queue X positions (default spacing)     | `PotionShopCustomerSceneView.swift` → `queueXFractions` |
+| **Adjust 3-character spacing (live preview)**           | **⚙️ → Layout Editor → 🎭 Permutations** (see §8B)    |
+| **Add custom permutation spacing (permanent)**          | **`PotionShopLayoutConfig.swift` → `init()` → `addPermutation(for:xPositions:yPositions:)`** (see §8B) |
+| **Quick permutation presets (testing)**                 | **⚙️ → 🎭 Queue Permutations → Wider/Tighter/Reset** (see §8B) |
 | Change vertical section heights                         | `PotionShopGameView.swift` (GeometryReader fractions)|
 | Add a debug action                                      | `PotionShopDebugMenu.swift` + matching method on `PotionShopGameState` |
 | Swap a placeholder asset for real art                   | drop PNG into `Assets.xcassets`, change `iconFallback` emoji to `Image("name")` |
