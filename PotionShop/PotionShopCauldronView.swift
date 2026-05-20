@@ -18,6 +18,28 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - View extension for conditional modifiers
+
+extension View {
+    /// Conditionally applies a modifier to a view
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
+// MARK: - CGRect Extension for center point
+
+extension CGRect {
+    var center: CGPoint {
+        CGPoint(x: midX, y: midY)
+    }
+}
+
 // MARK: - Layout constants for the cauldron
 
 struct PotionShopCauldronLayout {
@@ -269,6 +291,28 @@ struct PotionShopCauldronView: View {
                         )
                         .zIndex(2)  // 🔧 EXPLICIT Z-INDEX: Top layer (above everything)
                 }
+                
+                // LAYER 3: Dragging die overlay (above ALL nodes!)
+                if gs.draggedFromNode != nil,
+                   let die = gs.draggedDie,
+                   let dragLocation = gs.nodeDragLocation {
+                    
+                    // Convert from global coordinates to this view's local coordinates
+                    let localPoint = geo.frame(in: .global).origin
+                    let localX = dragLocation.x - localPoint.x
+                    let localY = dragLocation.y - localPoint.y
+                    
+                    // Render the dragging die at finger position
+                    PotionShopPlacedDieView(die: die, visualScale: nodeScale)
+                        .scaleEffect(1.15)
+                        .shadow(
+                            color: die.type.color.opacity(0.5),
+                            radius: 12
+                        )
+                        .position(x: localX, y: localY)
+                        .zIndex(1000)  // Above EVERYTHING
+                        .allowsHitTesting(false)  // Don't intercept gestures
+                }
 
                 // BREW BUTTON (conditionally shown)
                 if showBrewButton {
@@ -338,14 +382,19 @@ struct PotionShopNodeButtonView: View {
     var visualScale: Double = 1.0  // Visual-only scale (doesn't affect position)
     
     @State private var globalFrame: CGRect = .zero
+    @State private var isDraggingFromHere: Bool = false  // Local drag state
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
-    private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil }
+    private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil && !isDraggingFromHere }
     private var isDraggingDie: Bool { gs.draggedDie != nil }
-    private var canReceiveDrop: Bool { isDraggingDie && !atCap && placedDie == nil }
-    private var isHovered: Bool { gs.hoveredNodeIndex == nodeIndex }
+    private var canReceiveDrop: Bool { 
+        isDraggingDie && !atCap && placedDie == nil && !isDraggingFromHere 
+    }
+    private var isHovered: Bool { 
+        gs.hoveredNodeIndex == nodeIndex && !isDraggingFromHere
+    }
 
     var body: some View {
         ZStack {
@@ -357,33 +406,92 @@ struct PotionShopNodeButtonView: View {
                 )
                 .contentShape(Rectangle())
 
+            // Show die if there's one placed here
             if let die = placedDie {
-                PotionShopPlacedDieView(die: die, visualScale: visualScale)
-                    .matchedGeometryEffect(
-                        id: die.id,
-                        in: diceFlight,
-                        properties: [.position, .size]
-                    )
-                    // Allow dragging placed die back to tray
-                    .gesture(
-                        DragGesture(minimumDistance: 5)
-                            .onEnded { _ in
-                                if !gs.isAnimating {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                                        gs.dragPlacedDieToTray(nodeId: nodeIndex)
-                                    }
-                                }
-                            }
-                    )
-                    // Also allow tap to remove (original behavior)
-                    .onTapGesture {
-                        if !gs.isAnimating {
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                                gs.unplaceDie(nodeIndex)
-                            }
+                ZStack {
+                    // Show dimmed die at node position when dragging, OR full die when not
+                    if isDraggingFromHere {
+                        // During drag: Show dimmed copy at original position (NO matchedGeometryEffect!)
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale)
+                            .opacity(0.3)
+                        
+                        // NOTE: Floating die is now rendered at cauldron level (see PotionShopCauldronView)
+                        // This ensures it appears above ALL nodes, not just the ones rendered before this one
+                    } else {
+                        // Not dragging: Show normal die with matchedGeometryEffect for smooth transitions
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale)
+                            .matchedGeometryEffect(
+                                id: die.id,
+                                in: diceFlight,
+                                properties: [.position, .size]
+                            )
+                    }
+                }
+                // Tap to remove (sends to tray)
+                .onTapGesture {
+                    if !gs.isAnimating && !isDraggingFromHere {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                            gs.unplaceDie(nodeIndex)
                         }
                     }
-            } else {
+                }
+                // Drag gesture to move to another node
+                .gesture(
+                    DragGesture(minimumDistance: 5, coordinateSpace: .global)
+                        .onChanged { value in
+                            if !gs.isAnimating {
+                                if !isDraggingFromHere {
+                                    // Start the drag
+                                    isDraggingFromHere = true
+                                    gs.startDraggingFromNode(nodeId: nodeIndex)
+                                }
+                                // Store the drag location (absolute position) for cauldron-level rendering
+                                gs.nodeDragLocation = value.location
+                                // Update hover position
+                                gs.updateDragHoverPosition(value.location)
+                            }
+                        }
+                        .onEnded { value in
+                            if !gs.isAnimating {
+                                // Check if drop is valid BEFORE actually moving the die
+                                let targetNodeId = gs.findNodeAtPosition(value.location)
+                                let canDrop = targetNodeId != nil && 
+                                              targetNodeId != nodeIndex &&
+                                              gs.placements[targetNodeId!] == nil
+                                
+                                if canDrop, let target = targetNodeId {
+                                    // SUCCESS: Move die immediately
+                                    if let die = gs.placements[nodeIndex] {
+                                        // Move die in data model FIRST
+                                        gs.placements[nodeIndex] = nil
+                                        gs.placements[target] = die
+                                    }
+                                    
+                                    // Then animate cleanup
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                        gs.nodeDragLocation = nil
+                                        isDraggingFromHere = false
+                                    }
+                                    gs.cancelNodeDrag()
+                                } else {
+                                    // FAILED: Return to source
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                        gs.nodeDragLocation = nil
+                                        isDraggingFromHere = false
+                                    }
+                                    gs.cancelNodeDrag()
+                                }
+                            } else {
+                                gs.nodeDragLocation = nil
+                                isDraggingFromHere = false
+                                gs.cancelNodeDrag()
+                            }
+                        }
+                )
+            }
+            
+            // Show empty node visual when there's no die placed
+            if placedDie == nil {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(visibleFill)
                     .frame(
@@ -411,8 +519,9 @@ struct PotionShopNodeButtonView: View {
                 Color.clear
                     .onAppear {
                         // Register this node's position in global coordinates
-                        globalFrame = geometry.frame(in: .global)
-                        gs.nodePositions[nodeIndex] = globalFrame
+                        let frame = geometry.frame(in: .global)
+                        globalFrame = frame
+                        gs.nodePositions[nodeIndex] = frame
                     }
                     .onChange(of: geometry.frame(in: .global)) { oldValue, newValue in
                         globalFrame = newValue

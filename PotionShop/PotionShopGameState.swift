@@ -122,10 +122,14 @@ class PotionShopGameState {
     var draggedDieIndex: Int? = nil
     /// Die that was being dragged (for animation purposes).
     var draggedDie: PotionShopDie? = nil
+    /// Source node when dragging from a placed die (for node-to-node moves).
+    var draggedFromNode: Int? = nil
     /// Node positions in global coordinates (set by nodes during layout)
     var nodePositions: [Int: CGRect] = [:]
     /// Currently hovered node index (for visual feedback)
     var hoveredNodeIndex: Int? = nil
+    /// Drag location for node-to-node moves (absolute position in global coords)
+    var nodeDragLocation: CGPoint? = nil
 
     // MARK: - Animation/UX state (used by Phase 7+)
 
@@ -358,10 +362,72 @@ class PotionShopGameState {
     func clearDragState() {
         draggedDieIndex = nil
         draggedDie = nil
+        draggedFromNode = nil
+        hoveredNodeIndex = nil
+        nodeDragLocation = nil
+    }
+    
+    /// Start dragging a placed die from a node (for node-to-node moves).
+    func startDraggingFromNode(nodeId: Int) {
+        guard let die = placements[nodeId] else { return }
+        draggedDie = die
+        draggedFromNode = nodeId
+        // DON'T REMOVE from placements - keep it visible during drag!
+        // It will be removed only when drop succeeds or cancelled
+    }
+    
+    /// Find which node (if any) is at the given position
+    func findNodeAtPosition(_ position: CGPoint) -> Int? {
+        for (nodeId, frame) in nodePositions {
+            if frame.contains(position) {
+                return nodeId
+            }
+        }
+        return nil
+    }
+    
+    /// Cancel the drag and reset state
+    func cancelNodeDrag() {
+        draggedFromNode = nil
+        draggedDie = nil
+        nodeDragLocation = nil
         hoveredNodeIndex = nil
     }
     
+    /// Try to drop a die being dragged from a node to a new position.
+    /// Returns true if placed on a node, false if should return to original node.
+    func tryDropFromNodeToPosition(_ position: CGPoint) -> Bool {
+        guard let die = draggedDie, let sourceNode = draggedFromNode else { return false }
+        
+        // Find which node (if any) contains this position
+        for (nodeId, rect) in nodePositions {
+            if rect.contains(position) {
+                // Check if target node is empty AND not the same as source
+                if placements[nodeId] == nil && nodeId != sourceNode {
+                    // SUCCESS: Move die from source to target
+                    placements[sourceNode] = nil  // Remove from source
+                    placements[nodeId] = die      // Add to target
+                    clearDragState()
+                    return true
+                } else if nodeId == sourceNode {
+                    // Dropped on same node - just cancel
+                    clearDragState()
+                    return false
+                } else {
+                    // Target node is occupied - cancel (die stays on source)
+                    clearDragState()
+                    return false
+                }
+            }
+        }
+        
+        // Dropped outside all nodes - cancel (die stays on source)
+        clearDragState()
+        return false
+    }
+    
     /// Drag a placed die from a node back to tray (remove it).
+    /// This is now only used for tap-to-remove gesture.
     func dragPlacedDieToTray(nodeId: Int) {
         guard let die = placements[nodeId] else { return }
         placements[nodeId] = nil
@@ -372,10 +438,29 @@ class PotionShopGameState {
     func updateDragHoverPosition(_ position: CGPoint) {
         // Find which node (if any) contains this position
         var foundNode: Int? = nil
+        
         for (nodeId, rect) in nodePositions {
-            if rect.contains(position) && placements[nodeId] == nil {
-                foundNode = nodeId
-                break
+            if rect.contains(position) {
+                // If dragging from a node, don't count the source node as a collision
+                if let sourceNode = draggedFromNode, nodeId == sourceNode {
+                    // This is the source node - skip it (don't show as hovered)
+                    continue
+                }
+                
+                // Check if target node is empty (ignore source node's die if we're moving it)
+                let nodeIsEmpty: Bool
+                if let sourceNode = draggedFromNode {
+                    // When dragging node-to-node, ignore the die on the source node
+                    nodeIsEmpty = (placements[nodeId] == nil)
+                } else {
+                    // When dragging from tray, just check if node is empty
+                    nodeIsEmpty = (placements[nodeId] == nil)
+                }
+                
+                if nodeIsEmpty {
+                    foundNode = nodeId
+                    break
+                }
             }
         }
         hoveredNodeIndex = foundNode
