@@ -460,18 +460,16 @@ struct PotionShopNodeButtonView: View {
                                               gs.placements[targetNodeId!] == nil
                                 
                                 if canDrop, let target = targetNodeId {
-                                    // SUCCESS: Move die immediately
+                                    // SUCCESS: Move die INSTANTLY (no withAnimation)
+                                    // matchedGeometryEffect will handle the visual slide automatically
                                     if let die = gs.placements[nodeIndex] {
-                                        // Move die in data model FIRST
                                         gs.placements[nodeIndex] = nil
                                         gs.placements[target] = die
                                     }
                                     
-                                    // Then animate cleanup
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                                        gs.nodeDragLocation = nil
-                                        isDraggingFromHere = false
-                                    }
+                                    // Clean up instantly
+                                    gs.nodeDragLocation = nil
+                                    isDraggingFromHere = false
                                     gs.cancelNodeDrag()
                                 } else {
                                     // FAILED: Return to source
