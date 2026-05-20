@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** May 13, 2026 (Legacy CauldronGame Deprecated - Removed from Selector)  
+> **Last Updated:** May 17, 2026 (Title Screen Background Fade Fixed)  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
 > **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only, layout refinement ongoing)
 
@@ -334,6 +334,45 @@ Each game has its own image sets:
 ---
 
 ## 🚀 DEVELOPMENT PHASES
+
+### **Phase 0: Title Screen Background Fade Fix** ✅ COMPLETE (May 17, 2026)
+**Fixed the title screen background transition sequence.**
+
+**Problem:**
+- Title screen was showing: `title_screen.png` → `title_screen01.png` → `title_screen.png` (double appearance)
+- User wanted: `title_screen01.png` → `title_screen.png` (clean fade)
+
+**Root Cause:**
+- Layer order was reversed - final background was on bottom, initial background faded out on top
+- This created the visual: background → 01 → background again
+
+**Solution Applied:**
+- **Reversed layer order** in TitleScreenView.swift:
+  - `title_screen01.png` is now BASE layer (bottom, always visible)
+  - `title_screen.png` is now TOP layer (fades IN from opacity 0 → 1)
+- Changed state variable from `initialBackgroundOpacity` (fade OUT) to `finalBackgroundOpacity` (fade IN)
+- Removed unnecessary `showInitialBackground` boolean
+
+**Files Modified:**
+- TitleScreenView.swift (lines 33-60, 143-154)
+  - Swapped Image layer positions in ZStack
+  - Changed opacity logic: fade IN final background instead of fade OUT initial
+  - Simplified state management
+
+**Result:**
+✅ Title screen now shows correct sequence: `title_screen01.png` FIRST → fades to `title_screen.png` after 2 seconds
+✅ No more double-appearance of backgrounds
+✅ Leaves continue animating throughout both backgrounds
+✅ Timing configurable via `displayDuration` (2.0s) and `fadeDuration` (1.25s)
+
+**Animation Flow:**
+1. Splash screen completes
+2. Title screen fades in showing `title_screen01.png`
+3. Leaves animate (leaf1 → leaf17 with 2s loop pause)
+4. After 2 seconds, `title_screen.png` fades in on top (1.25s fade)
+5. Final state: `title_screen.png` visible with leaves continuing
+
+---
 
 ### **Phase 1: Project Reorganization** ✅ COMPLETE (March 28, 2026)
 - Created folder structure
@@ -769,6 +808,10 @@ Each game has its own image sets:
 ### **What's Working:**
 - ✅ Project reorganization complete
 - ✅ Game selector flow functional (Splash → Title → Map → Selector → Games)
+- ✅ **Title screen background fade sequence working correctly** (May 17, 2026)
+  - ✅ Shows `title_screen01.png` first after splash
+  - ✅ Fades to `title_screen.png` after 2 seconds
+  - ✅ No more double-appearance of backgrounds
 - ✅ Match-3 game fully playable
 - ✅ Physics Chain Game fully playable with debug menu
 - ✅ Shop of Oddities fully playable with debug menu
@@ -869,3 +912,41 @@ For game-specific details, see:
 - Physics Chain Game: `PHYSICS_CONTEXT.md`
 - Shop of Oddities: `ShopOfOddities_CONTEXT.md`
 - Ednar's Cauldron: `REPLACEMENT_PLAN.md`, `SESSION_CHECKPOINT.md`, `EdnarsCauldron_Reference.jsx`
+---
+
+## 📝 RECENT SESSION LOG
+
+### **Session: Title Screen Background Fade Fix** (May 17, 2026)
+
+**Issue Reported:**
+User noticed title screen was showing backgrounds in wrong order:
+- Current (broken): `title_screen.png` → `title_screen01.png` → `title_screen.png`
+- Desired: `title_screen01.png` → `title_screen.png`
+
+**Diagnosis:**
+- Layer order in ZStack was reversed
+- `title_screen.png` was bottom layer (always visible)
+- `title_screen01.png` was top layer (fading OUT)
+- This created double-appearance effect
+
+**Fix Applied:**
+- Reversed layer positions in TitleScreenView.swift
+- Changed `title_screen01.png` to BASE layer (always visible)
+- Changed `title_screen.png` to TOP layer (fades IN)
+- Updated state variable: `initialBackgroundOpacity` → `finalBackgroundOpacity`
+- Changed opacity animation: fade OUT (1.0 → 0.0) to fade IN (0.0 → 1.0)
+
+**Files Modified:**
+- TitleScreenView.swift (complete rewrite of background layer logic)
+
+**Result:**
+✅ Title screen now correctly shows: 01 → final (2 second delay, 1.25 second fade)
+✅ No more double-appearance
+✅ Leaves continue animating throughout both backgrounds
+
+**Testing Verified:**
+- Splash screen plays
+- Fades to `title_screen01.png`
+- After 2 seconds, `title_screen.png` fades in smoothly
+- Final state maintained with leaf animation loop
+
