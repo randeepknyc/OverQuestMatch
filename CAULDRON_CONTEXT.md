@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 17, 2026 (QUEUE PERMUTATION SYSTEM ADDED — Prevent 3-Character Overlaps)  
-> **Status:** Phase 7+ complete. Game is playable end-to-end for Day 1. **QUEUE PERMUTATION SYSTEM (May 17, 2026)** - Custom X/Y positioning for specific 3-character arrangements. Visual editor + debug menu presets + code export. Prevents overlaps in Evening round. See §8B. **LOCKED DEFAULTS SYSTEM (May 13, 2026)** - Complete 227-value snapshot system with one-tap restore. Experiment fearlessly! **UNIFIED SCALING SYSTEM IMPLEMENTED (May 12, 2026)** - All customers appear at same size regardless of queue position (queue depth scaling REMOVED). Ednar and customers use identical canvas (1536×1024px @ 300 DPI). **Ednar base scale: 0.15**. **Customer base scale: 2.0**. **All 14 customer scene portraits linked** with proper `_scene` nomenclature. **3-Position System** - each character has separate scale/position values for active (queue[0]), waiting (queue[1]), and waiting2 (queue[2]) positions. **All defaults at 1.0×1.0×** (pixel-accurate, no distortion). **Queue depth scaling removed** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. **Drag-and-drop dice placement implemented.** Layout fully tuned. **Freeform art scaling system complete.** **Customer scene background integrated** - `customerbg.png` loading with gradient fallback. Live preview overlay layout editor complete with per-node fine-tuning AND per-character scaling with **14-character picker dropdown**. **Edge line controls implemented** - fully configurable color/opacity/thickness via 🔗 Lines section in layout editor. **Custom edge topology active** - 23 connections matching user's design. **Circle clipping REMOVED from scene portraits** - full images visible for proper resizing. **Canvas dimensions**: 1536×1024px @ 300 DPI (3:2 aspect ratio, landscape) for ALL art (Ednar + customers). **Smooth transitions** between active/waiting/waiting2 states during queue swaps. **Code generator updated** - now outputs all waiting2 values (56 lines added).  
+> **Last Updated:** May 22, 2026 — Node glow + die reach preview system added (see §22)
+> **Status:** Phase 7 complete. Game is playable end-to-end for Day 1. Art assets pending.
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -255,137 +255,6 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 - **On placement:** die slides via `matchedGeometryEffect` from tray slot to cauldron node (Phase 6). About 0.4s with a small spring bounce.
 - **On unplacement:** die slides back to tray (same mechanic, reversed).
 
-### 6.8 Drag-and-drop dice placement (May 4, 2026)
-
-**Status:** ✅ FULLY IMPLEMENTED AND WORKING (including node-to-node drag!)
-
-The game supports **three methods** for placing and moving dice on nodes:
-
-#### **Method 1: Tap-select-then-tap-node (original)**
-1. Tap a die in the tray → yellow border appears (selected)
-2. Tap an empty node → die slides to that node
-3. Tap the placed die → slides back to tray
-
-#### **Method 2: Drag-and-drop from tray to node**
-1. Touch and drag a die from the tray
-2. Die follows your finger with:
-   - **15% scale increase** (looks bigger while dragging)
-   - **Colored glow shadow** (matches die type color)
-   - **Stays visible** over all UI elements (no clipping)
-3. As you drag over nodes:
-   - **Empty nodes pulse** (scale 1.15×)
-   - **Empty nodes glow** (bright yellow fill + thick border)
-4. Release over an empty node:
-   - Die **smoothly slides** to node center via `matchedGeometryEffect`
-   - **Spring animation** (0.35s response, 0.72 damping)
-5. Release outside nodes:
-   - Die **springs back** to tray (0.4s response, 0.75 damping)
-
-#### **Method 3: Drag-and-drop from node to node (NEW - May 22, 2026)** ✨
-1. Touch and drag a die that's already placed on a node
-2. During drag:
-   - **Ghost die** appears at source node (30% opacity)
-   - **Floating die** follows your finger (115% scale + colored glow)
-   - **Source node** stays visible (doesn't disappear)
-   - **Target nodes glow** when you hover over them
-3. Release over an empty node:
-   - Die **instantly moves** in data model (no animation wrapper)
-   - `matchedGeometryEffect` **smoothly slides** die from source to target
-   - **No fade animation** (instant data update lets SwiftUI animate cleanly)
-4. Release over occupied node or outside:
-   - Die **springs back** to source node
-
-**⚠️ CRITICAL: Node-to-node animation fix (May 22, 2026):**
-- **DO NOT** wrap data model changes in `withAnimation` when using `matchedGeometryEffect`
-- Data model updates **instantly** (no animation wrapper)
-- `matchedGeometryEffect` handles the visual slide automatically
-- Adding `withAnimation` causes fade animation (competing animations)
-
-**Code pattern for node-to-node drop:**
-```swift
-// ✅ CORRECT - No fade, smooth slide
-if canDrop, let target = targetNodeId {
-    // Move die INSTANTLY (no withAnimation wrapper)
-    gs.placements[nodeIndex] = nil
-    gs.placements[target] = die
-    
-    // Clean up instantly
-    gs.nodeDragLocation = nil
-    isDraggingFromHere = false
-}
-
-// ❌ WRONG - Causes fade animation
-if canDrop, let target = targetNodeId {
-    withAnimation {  // ← Don't do this!
-        gs.placements[nodeIndex] = nil
-        gs.placements[target] = die
-    }
-}
-```
-
-#### **Removing placed dice (all methods work):**
-- **Tap:** Tap a placed die → slides back to tray
-- **Drag from tray:** Original placement method
-- **Drag node-to-node:** Reposition dice without returning to tray
-- **Drag to invalid target:** Springs back to source
-
-#### **Technical implementation:**
-- **Gesture:** `DragGesture(coordinateSpace: .global)` on dice in tray AND placed dice
-- **Position tracking:** Nodes register their global `CGRect` positions using `GeometryReader`
-- **Hit detection:** `findNodeAtPosition(_:)` checks if drop position intersects any node rect
-- **Hover state:** `updateDragHoverPosition(_:)` updates `hoveredNodeIndex` during drag
-- **Visual offset:** Tray dice use `.offset(dragOffset)` for manual positioning during drag
-- **Ghost die system:** Placed dice show 30% opacity copy at source during node-to-node drag
-- **Floating die:** Cauldron top layer renders dragging die at `zIndex: 1000` (above all nodes)
-- **Animation:** `matchedGeometryEffect(id: die.id, in: diceFlight)` handles ALL slide animations
-- **Z-index:** Dragging die has `zIndex: 1000` to appear above all content
-- **Clipping fix:** Removed `.clipShape()` from dice tray background to prevent dice from disappearing behind tray border
-
-#### **Edge cases handled:**
-- ✅ Can't place 4th die (max 3 placements enforced)
-- ✅ Can't drop on occupied node
-- ✅ Can't drag during brew animation (`isAnimating` check)
-- ✅ Can't drag to same node (just cancels)
-- ✅ Multiple dice can be dragged in quick succession
-- ✅ Tap still works without interfering with drag
-- ✅ Die stays visible during entire drag (no clipping behind cauldron/tray)
-- ✅ **Node-to-node drag has no fade animation** (fixed May 22, 2026)
-
-#### **Animation parameters (tunable in code):**
-```swift
-.scaleEffect(isDragging ? 1.15 : 1.0)  // Drag scale
-.shadow(radius: isDragging ? 12 : 0)    // Drag glow
-.zIndex(isDragging ? 1000 : 0)          // Z-layer
-
-// Node pulse
-.scaleEffect(isHovered ? 1.15 : 1.0)
-.animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
-
-// Ghost die during node-to-node drag
-.opacity(isDraggingFromHere ? 0.3 : 1.0)
-
-// Floating die (node-to-node)
-.scaleEffect(1.15)
-.shadow(color: die.type.color.opacity(0.5), radius: 12)
-
-// matchedGeometryEffect handles slide animation automatically
-// NO withAnimation wrapper needed!
-```
-
-#### **State management:**
-- `nodePositions: [Int: CGRect]` - Global positions of all nodes (updated by nodes)
-- `hoveredNodeIndex: Int?` - Which node is currently hovered during drag
-- `draggedDie: PotionShopDie?` - The die being dragged (tray or node)
-- `draggedFromNode: Int?` - Source node index for node-to-node moves
-- `nodeDragLocation: CGPoint?` - Current drag position (for floating die rendering)
-- `updateDragHoverPosition(_:)` - Updates hover state based on drag position
-- `tryDropDieAtPosition(_:dieIndex:)` - Attempts to place die from tray, returns success/fail
-- `findNodeAtPosition(_:)` - Finds which node is at a global position (for node-to-node)
-- `startDraggingFromNode(nodeId:)` - Starts a node-to-node drag operation
-- `cancelNodeDrag()` - Cleans up drag state (die stays at source)
-
-**See also:** `NODE_TO_NODE_DRAG_SESSION.md` for complete implementation history and troubleshooting guide.
-
 ---
 
 ## 7. STATE MACHINE — `PotionShopGameState`
@@ -403,18 +272,10 @@ if canDrop, let target = targetNodeId {
 - `customerShakeCounters: [String: Int]` — drives the shake modifier on each customer view
 - `composureFlashColor: Color?` — header listens to this for red/green flashes
 - `isAnimating: Bool` — when true, every interactive control is disabled
-- `nodePositions: [Int: CGRect]` — global screen positions of cauldron nodes (for drag-and-drop)
-- `hoveredNodeIndex: Int?` — which node is currently hovered during drag
 
 ### 7.2 Key methods
 - `tapProfile(customerId:)` — the queue swap. **DO NOT redesign this.** It took 8 attempts in the chat to get right. See §10 for the rule.
-- `selectHand(_ idx: Int)` - Tap-select a die from tray (toggles selection)
-- `tapNode(_ nodeId: Int)` - Tap an empty node to place selected die, or tap placed die to remove
-- `placeDie(handIdx:nodeId:)` - Internal method to place die on node
-- `unplaceDie(_ nodeId: Int)` - Remove die from node back to tray
-- `updateDragHoverPosition(_ position: CGPoint)` - Update hover state during drag
-- `tryDropDieAtPosition(_ position: CGPoint, dieIndex: Int)` - Attempt to drop die at position
-- `dragPlacedDieToTray(nodeId: Int)` - Remove placed die via drag gesture
+- `selectDie(handIndex:)` / `placeDie(nodeId:)` / `unplaceDie(nodeId:)`
 - `computeBrew()` — returns predicted damage/heal/shield from current placements (used for the preview bar above the tray)
 - `applyDamage(_ amount:)` — shield-first, then composure. Returns `(absorbed, dealt)` so animation events can show "🛡 -N" vs "-N" floaters.
 - `doBrew()` — `@MainActor async` — runs the 7-phase animated sequence with `Task.sleep` between phases. Emits floating numbers, shake events, flash colors.
@@ -428,26 +289,19 @@ if canDrop, let target = targetNodeId {
 
 ---
 
-## 8. LAYOUT (LOCKED PROPORTIONS) — Updated May 4, 2026
+## 8. LAYOUT (LOCKED PROPORTIONS)
 
-The layout is driven by `GeometryReader` in `PotionShopGameView.swift`, with vertical sections allocated as fractions of the available play area. **Layout was extensively tuned using an interactive layout editor** (see `LAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md`).
+The layout is driven by `GeometryReader` in `PotionShopGameView.swift`, with vertical sections allocated as fractions of the available play area. This was iterated repeatedly to match the web artifact mockup we built in earlier sessions.
 
-### 8.1 Vertical section heights (CURRENT PRODUCTION VALUES)
+### 8.1 Vertical section heights
 | Section                    | Fraction of play area | Why                                        |
 |----------------------------|-----------------------|--------------------------------------------|
-| Header                     | **1.0%**   (was 9%)   | Minimal - just composure bar               |
-| Customer scene (hero)      | **26.3%** (was 21%)   | The visual focus; Ednar + customer line    |
-| Profile row + inspect strip| **9.5%**  (same)      | Inspect strip overlays in place when shown |
-| **Cauldron + BREW**        | **37.2%** (was 32%)   | **HERO ELEMENT - biggest section!**        |
-| Brew preview bar           | **3.2%**  (same)      | Small status strip above tray              |
-| **Dice tray**              | **19.3%** (was 10.5%) | **BIG - easier to tap dice**               |
-| **Total:**                 | **96.5%**             | Spacer fills remaining 3.5%                |
-
-**Key changes:**
-- **Cauldron is now the largest section** (37.2%) - dominates the screen
-- **Dice tray is massive** (19.3%) - same height as scene! Easy to see and tap
-- **Header shrunk to 1%** - more room for gameplay
-- **Preview bar minimal** (3.2%) - just shows essential info
+| Header                     | ~6%                   | slim chrome, composure bar + day/round + gear |
+| Customer scene (hero)      | ~38%                  | the visual focus; Ednar + customer line    |
+| Profile row + inspect strip| ~12%                  | inspect strip overlays in place when shown |
+| Cauldron + BREW            | ~30%                  | the tool; not the focal point              |
+| Brew preview bar           | ~4%                   | small status strip above tray              |
+| Dice tray                  | ~10%                  | bottom edge                                |
 
 ### 8.2 Customer queue X-positions (count-aware, scene-relative fractions)
 The customer line is right-aligned with explicit space between Ednar (left) and the first customer:
@@ -470,602 +324,10 @@ The bowl is **NOT** a `Path.addArc` — that approach failed three times with mi
 - **Aspect ratio:** 1.65:1 (wide:tall). Looks like a shallow stew pot, not a half-pipe.
 - **Construction:** 60 line segments around the bottom half of an ellipse, computed via `cos(θ)`/`sin(θ)` outside the `Path { }` closure (precomputing avoids `Type '()' cannot conform to 'View'` errors).
 - **Node area inset:** 70% on each axis. Math check: `0.70² + 0.70² = 0.98 ≤ 1`, so corners of the inset rectangle are provably inside the ellipse. Nodes never escape the bowl.
-- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → 12 nodes → optional foreground rim → BREW sign/tap-zone.
+- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → 12 nodes → optional foreground rim → BREW sign on a tilted wooden post.
 
-### 8.5 Cauldron parameters (applied from layout editor)
-```swift
-PotionShopCauldronView(
-    gs: gs,
-    diceFlight: diceFlight,
-    cauldronScale: 1.29,          // 29% bigger than default
-    cauldronXOffset: 44,           // Shifted right 44pt
-    cauldronYOffset: 58,           // Shifted down 58pt
-    nodeScale: 1.30,               // Nodes 30% bigger (independent!)
-    nodeXOffset: 3,                // Nodes shifted right 3pt (independent!)
-    nodeYOffset: -8,               // Nodes shifted up 8pt (independent!)
-    brewXOffset: -50,              // (not used - button hidden)
-    brewYPercent: 0.30,            // (not used - button hidden)
-    showBrewButton: false,         // Button hidden - using tap zone
-    brewZoneX: 0.81,               // Tap zone at 81% from left
-    brewZoneY: 0.19,               // Tap zone at 19% from top
-    brewZoneWidth: 90,             // 90pt wide
-    brewZoneHeight: 123,           // 123pt tall
-    showBrewZone: false            // Hidden in production (set true to debug)
-)
-```
-
-**Node independent positioning:** Nodes scale and position separately from the bowl. This was added May 4, 2026 to allow fine-tuning the dice grid position without moving the bowl art.
-
-### 8.6 Dice tray parameters (applied from layout editor)
-```swift
-PotionShopDiceTrayView(
-    gs: gs,
-    diceFlight: diceFlight,
-    dieScale: 1.31                 // Dice 31% bigger than default
-)
-.offset(y: -25)                    // Tray moved up 25pt (closer to cauldron)
-```
-
-### 8.7 BREW button / tap zone (configurable)
-**Current setup:** BREW button is **hidden**. An invisible tap zone at (81%, 19%) handles brew action.
-
-**Purpose:** User plans to add a ladle art asset dipping into the cauldron. Tapping the ladle will brew. The tap zone is positioned where the ladle will be.
-
-**Debug visualization:** Set `showBrewZone: true` to see a yellow dashed rectangle showing the tap zone boundaries.
-
-### 8.8 Dice tray clipping fix (CRITICAL)
-The dice tray background originally used `.clipShape(RoundedRectangle(cornerRadius: 8))` which caused dragged dice to disappear behind the tray border. This was changed to:
-
-```swift
-.background(
-    RoundedRectangle(cornerRadius: 8)
-        .fill(...)  // Gradient
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(...)  // Border
-        )
-)
-// NO .clipShape() - allows dice to escape upward when dragged
-```
-
-This allows dice to remain visible during drag without being clipped by the tray's rounded corners.
-
-### 8.9 Art Scaling & Positioning System (May 4, 2026 - Evening - FIXED)
-
-**Status:** ✅ FULLY IMPLEMENTED AND FIXED
-
-**Critical Fix Applied (Evening):** Removed `.scaledToFill()` from both cauldron and Ednar images, and added missing `*ArtScale` multiplier. This allows **true independent width/height scaling with full distortion**. Images can now be stretched/squished in any direction without aspect ratio constraints.
-
-The layout editor includes comprehensive freeform art scaling and positioning controls for both the cauldron and Ednar images.
-
-#### **Access:**
-Debug Menu (⚙️) → Layout Editor → Scroll to **"🎨 ART SCALING & POSITIONING"**
-
-#### **Control Structure:**
-
-**Uniform Scale (Both):**
-- **🔗 Uniform Scale** slider (0.5× to 3.0×) - Test scale for both elements
-- **"Reset All to 1.0"** button - Resets all art controls
-- **"Apply Uniform"** button - Applies uniform scale to all dimensions
-
-**🍲 Cauldron Freeform (5 sliders):**
-- **Uniform Scale** (0.5× to 3.0×) - Proportional scaling
-- **↔️ Width Scale** (0.5× to 3.0×) - Independent width (stretch/squish horizontally) **✅ NOW WORKS**
-- **↕️ Height Scale** (0.5× to 3.0×) - Independent height (stretch/squish vertically) **✅ NOW WORKS**
-- **↔️ X Position** (-200 to +200 pts) - Horizontal offset from default position
-- **↕️ Y Position** (-200 to +200 pts) - Vertical offset from default position
-- **"Link W/H"** button - Copies width to height (make proportional)
-- **"Reset Position"** button - Returns X/Y offsets to 0
-
-**🧙 Ednar Freeform (5 sliders):**
-- Same 5 controls as cauldron (uniform scale, width, height, X pos, Y pos)
-- Same helper buttons ("Link W/H", "Reset Position")
-
-#### **How It Works:**
-
-**Real-Time Preview:**
-- All sliders update instantly as you drag them
-- No need to generate code or rebuild to see changes
-- Perfect for fine-tuning art dimensions and positions
-- **Images now distort freely** when width ≠ height scales
-
-**Implementation (FIXED):**
-```swift
-// Cauldron parameters (in PotionShopCauldronView)
-cauldronArtScale: Double = 1.0       // Uniform scale
-cauldronArtWidth: Double = 1.0       // Width multiplier
-cauldronArtHeight: Double = 1.0      // Height multiplier  
-cauldronArtXOffset: Double = 0       // X position offset (pts)
-cauldronArtYOffset: Double = 0       // Y position offset (pts)
-
-// Ednar parameters (in PotionShopEdnarView)
-ednarArtScale: Double = 1.0          // Uniform scale
-ednarArtWidth: Double = 1.0          // Width multiplier
-ednarArtHeight: Double = 1.0         // Height multiplier
-ednarArtXOffset: Double = 0          // X position offset (pts)
-ednarArtYOffset: Double = 0          // Y position offset (pts)
-```
-
-**Frame Calculation (FIXED - Now includes all multipliers and NO aspect ratio locking):**
-```swift
-// Cauldron image (PotionShopCauldronView.swift)
-Image(uiImage: cauldronImage)
-    .resizable()
-    // ✅ NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
-    .frame(
-        width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,   // ✅ All 3 multipliers
-        height: baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight  // ✅ All 3 multipliers
-    )
-    .position(
-        x: g.bowlCenterX + cauldronArtXOffset,
-        y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
-    )
-
-// Ednar image (PotionShopCustomerSceneView.swift)
-Image(uiImage: ednarImage)
-    .resizable()
-    // ✅ NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
-    .frame(
-        width: 100 * ednarArtScale * ednarArtWidth,    // ✅ All 3 multipliers
-        height: 120 * ednarArtScale * ednarArtHeight   // ✅ All 3 multipliers
-    )
-    .offset(x: ednarArtXOffset, y: ednarArtYOffset)
-```
-
-#### **What Was Fixed:**
-
-**Problem 1:** Missing `*ArtScale` multiplier
-- **Before:** `width: baseGeometry.bowlW * cauldronArtWidth`
-- **After:** `width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth`
-
-**Problem 2:** `.scaledToFill()` forced aspect ratio
-- **Before:** `.resizable().scaledToFill()` ← Ignores independent width/height!
-- **After:** `.resizable()` only ← Allows true distortion
-
-**Result:** Width and height sliders now work independently and can fully distort images to any aspect ratio.
-
-#### **Files Modified:**
-1. **PotionShopLayoutEditorView.swift** - Added art scaling UI section (8 state vars, ~50 lines UI)
-2. **PotionShopCauldronView.swift** - ✅ FIXED: Added missing scale multiplier, removed `.scaledToFill()`
-3. **PotionShopCustomerSceneView.swift** - ✅ FIXED: Added missing scale multiplier, removed `.scaledToFill()`
-
-#### **Common Use Cases:**
-
-**Make cauldron wider (without getting taller):**
-```
-Width Scale: 1.5
-Height Scale: 1.0
-Result: 50% wider, same height ✅ NOW WORKS
-```
-
-**Make cauldron flat and wide:**
-```
-Width Scale: 2.0
-Height Scale: 0.5
-Result: Double width, half height (squished) ✅ NOW WORKS
-```
-
-**Move Ednar left and up:**
-```
-X Position: -50
-Y Position: -20
-Result: 50pts left, 20pts up
-```
-
-**Make both 2× bigger proportionally:**
-```
-Uniform Scale: 2.0
-→ Tap "Apply Uniform"
-Result: Both double in size (both width and height)
-```
-
-#### **Code Generation:**
-
-The layout editor's "📋 Generate Code" button will output values like:
-
-```swift
-// In PotionShopGameView.swift
-PotionShopCauldronView(
-    gs: gs,
-    diceFlight: diceFlight,
-    // ... other parameters ...
-    cauldronArtScale: 1.0,
-    cauldronArtWidth: 1.5,      // ← From width slider
-    cauldronArtHeight: 0.8,     // ← From height slider
-    cauldronArtXOffset: 20,     // ← From X position slider
-    cauldronArtYOffset: -10     // ← From Y position slider
-)
-
-PotionShopCustomerSceneView(
-    gs: gs,
-    ednarArtScale: 1.0,
-    ednarArtWidth: 1.2,         // ← From width slider
-    ednarArtHeight: 1.4,        // ← From height slider
-    ednarArtXOffset: -30,       // ← From X position slider
-    ednarArtYOffset: 15         // ← From Y position slider
-)
-```
-
-#### **Current Production Values (LOCKED - May 4, 2026 Evening):**
-
-**Art Scaling:**
-- `cauldronArtWidth: 1.45` (stretched 45% wider)
-- `cauldronArtHeight: 2.00` (doubled in height)
-- `cauldronArtXOffset: 7` (shifted right 7pt)
-- `cauldronArtYOffset: -40` (shifted up 40pt)
-- `ednarArtWidth: 1.59` (stretched 59% wider)
-- `ednarArtHeight: 2.00` (doubled in height)
-- `ednarArtXOffset: 14` (shifted right 14pt)
-- `ednarArtYOffset: -17` (shifted up 17pt)
-
-**BREW Tap Zone:**
-- `brewZoneX: 0.83` (83% from left edge)
-- `brewZoneWidth: 112pt` (tap area width)
-- `showBrewZone: false` (yellow debug box hidden in production)
-
-These values are locked into both PotionShopGameView.swift and PotionShopLayoutEditorView.swift defaults.
-
----
-
-## 8B. QUEUE PERMUTATION SYSTEM (May 17, 2026) — Custom 3-Character Spacing
-
-**Status:** ✅ COMPLETE — Visual Editor + Debug Menu Presets + Code Export  
-**Purpose:** Prevent character overlaps in 3-customer rounds by defining custom X/Y positions for specific arrangements  
-**Master guide concept:** Permutation spacing defines the "spatial budget" for characters; character art should fit within this budget
-
-### 8B.1 What Problem Does This Solve?
-
-When 3 characters appear together (Evening round: Wendelina, Crispin, Ardo), they can overlap because:
-- Each character has different widths (some are wider than others)
-- Default spacing [0.48, 0.68, 0.88] doesn't work for all combinations
-- Different characters in different queue positions create different layouts
-- The active customer (queue[0]) may have a wide stance that collides with waiting customers
-
-**The permutation system lets you define custom spacing for ANY specific arrangement of 3 characters.**
-
-### 8B.2 Key Concept: Permutations
-
-A "permutation" is a specific arrangement of 3 characters in queue order:
-- `["wendelina", "crispin", "ardo"]` = Wendelina at front, Crispin in middle, Ardo at back
-- `["crispin", "wendelina", "ardo"]` = Different permutation (Crispin at front now)
-
-**Each permutation stores:**
-- **X positions:** Horizontal spacing as fractions of scene width (0.0 to 1.0)
-  - `[0.40, 0.65, 0.90]` = queue[0] at 40%, queue[1] at 65%, queue[2] at 90%
-- **Y positions:** Vertical positioning as fractions of scene height (0.0 to 1.0)
-  - `[0.48, 0.55, 0.55]` = queue[0] slightly higher than waiters
-- **Scale overrides** (optional): Per-position size multipliers
-  - `[1.0, 0.85, 0.75]` = active full size, waiters progressively smaller (depth effect)
-
-**Default fallback (when no custom permutation is defined):**
-- X: [0.48, 0.68, 0.88]
-- Y: [0.48, 0.55, 0.55]
-- Scales: [1.0, 1.0, 1.0]
-
-### 8B.3 Three Ways to Adjust Permutations
-
-**Method 1: Debug Menu Quick Presets** (quickest for testing)
-1. ⚙️ → Skip to Round 3 (Evening)
-2. ⚙️ → Scroll to "🎭 Queue Permutations"
-3. Tap "Use Wider Spacing" → [0.40, 0.65, 0.90]
-4. Or "Use Tighter Spacing" → [0.50, 0.70, 0.85]
-5. Or "Reset to Default Spacing" → [0.48, 0.68, 0.88]
-6. Close menu → spacing applies instantly!
-
-**Method 2: Visual Layout Editor** (most powerful — real-time sliders!)
-1. ⚙️ → "Layout Editor (Live Overlay)"
-2. Tap **🎭 Permutations** pill
-3. Drag **green sliders** for X positions (left/right)
-4. Drag **blue sliders** for Y positions (up/down)
-5. Toggle **purple scale overrides** for size control
-6. **Characters move in real-time as you drag!**
-7. Tap **Wider/Tighter/Reset** buttons for quick presets
-8. Close editor → values persist until reset
-
-**Method 3: Permanent Code** (for locking in final values)
-1. Adjust permutations using Method 1 or 2
-2. ⚙️ → "📋 Copy Layout Values"
-3. Paste output into chat with Claude
-4. Claude extracts permutations and adds to `PotionShopLayoutConfig.swift` `init()`
-5. Permutations now survive app restarts!
-
-### 8B.4 The Visual Layout Editor
-
-**Access:** ⚙️ → Layout Editor → 🎭 Permutations
-
-**UI Sections:**
-- **Current Arrangement badge** (orange): Shows which 3 characters (e.g., "wendelina → crispin → ardo")
-- **Horizontal Spacing (X Positions)** — Green sliders
-  - queue[0]: Left/right position for active customer (0.0 to 1.0)
-  - queue[1]: Left/right position for first waiting customer
-  - queue[2]: Left/right position for second waiting customer
-- **Vertical Positioning (Y Positions)** — Blue sliders
-  - queue[0]: Up/down position for active customer
-  - queue[1]: Up/down for first waiter
-  - queue[2]: Up/down for second waiter
-- **Scale Overrides** (optional) — Purple toggle + sliders
-  - Enable: Turns on per-position size control
-  - queue[0]/[1]/[2]: Scale multipliers (0.5× to 2.0×)
-- **Quick Presets** — Colored buttons
-  - **Wider** (green): [0.40, 0.65, 0.90]
-  - **Tighter** (blue): [0.50, 0.70, 0.85]
-  - **Reset** (orange): [0.48, 0.68, 0.88]
-- **Current Values Summary** — Black box
-  - Shows exact X/Y/Scale arrays for current permutation
-
-**Live Preview:**
-- Game view visible behind overlay (80% brightness)
-- Characters move **instantly** as you drag sliders
-- No rebuild needed — see changes in real-time!
-
-**Only visible in 3-character rounds:**
-- Morning/Afternoon (2 customers): Shows "Not Available" message
-- Evening (3 customers): Full editor active
-- Night (1 boss): Shows "Not Available" message
-
-### 8B.5 Permutation System as Master Guide for Character Art
-
-**The workflow that makes "Draw → Export → Works!" possible:**
-
-1. **Define permutation spacing first**
-   - Use visual editor to find perfect spacing for a 3-character arrangement
-   - Example: Evening round set to [0.40, 0.65, 0.90] (wider spacing)
-   - **This becomes the "spatial budget"** for those positions
-
-2. **Draw characters at standard canvas size**
-   - All characters: **1536×1024 @ 300 DPI** in Procreate
-   - Draw at natural proportions (taller characters = taller on canvas)
-   - **Keep characters within canvas bounds**
-
-3. **Permutation positions define max width**
-   - Position at 40%: Character centered at 40% of scene width
-   - Position at 65%: Character centered at 65% of scene width
-   - Spacing between positions (40% → 65% = 25%) is the "width budget"
-   - If characters overlap → adjust permutation spacing (make positions further apart)
-
-4. **System auto-sizes characters**
-   - `customerSceneBaseScale: 2.0` applied to ALL 1536×1024 images
-   - Per-character multipliers at **1.0×1.0** (no distortion)
-   - Characters appear at natural proportions from Procreate
-
-5. **Result: Spatial contract**
-   - Permutation X positions = **where characters stand**
-   - Canvas size (1536×1024) = **maximum character dimensions**
-   - As long as canvas is uniform, characters **auto-fit the spacing**
-   - No manual per-character adjustment needed!
-
-**Example: Evening Round Master Guide**
-
-```
-Permutation: ["wendelina", "crispin", "ardo"]
-X positions: [0.40, 0.65, 0.90]  ← 25% gap, then 25% gap
-
-Wendelina:
-- Position: 40% of scene width (left side)
-- Width budget: ~25% of scene width
-- Canvas: 1536×1024, drawn with wide stance
-- Fits because: 25% scene width > Wendelina's canvas width × scale
-
-Crispin:
-- Position: 65% of scene width (middle)
-- Width budget: ~25% of scene width (25% gap on each side)
-- Canvas: 1536×1024, drawn narrower than Wendelina
-- Fits because: centered, narrower than budget
-
-Ardo:
-- Position: 90% of scene width (right side)
-- Width budget: ~10% to right edge
-- Canvas: 1536×1024, drawn thin (nervous scholar)
-- Fits because: small character, easily within budget
-```
-
-**If characters overlap after adding art:**
-1. **Option A:** Increase permutation spacing
-   - Visual editor → drag X sliders further apart
-   - Example: [0.40, 0.65, 0.90] → [0.35, 0.65, 0.95]
-2. **Option B:** Shrink the overlapping character via per-character scaling
-   - Layout editor → 🧍 Customers → Select character → Reduce active width
-3. **Option C:** Redraw character smaller within the same 1536×1024 canvas
-   - Keep canvas size same, draw character taking up less space
-
-**Recommended workflow:**
-- Define permutation spacing for all 6 arrangements of Evening round first
-- Use that spacing as the guide when drawing characters
-- If overlap occurs, adjust spacing (not character scale) as first resort
-
-### 8B.6 Testing All Permutations
-
-**Evening round has 3 characters = 6 possible arrangements:**
-
-1. **wendelina → crispin → ardo** (default spawn order)
-2. **crispin → wendelina → ardo** (tap Crispin's profile)
-3. **ardo → wendelina → crispin** (tap Ardo's profile)
-4. **wendelina → ardo → crispin** (multiple swaps)
-5. **crispin → ardo → wendelina** (multiple swaps)
-6. **ardo → crispin → wendelina** (multiple swaps)
-
-**Testing workflow:**
-1. Load Evening round (⚙️ → Round 3)
-2. Open layout editor → 🎭 Permutations
-3. Adjust spacing for current arrangement (default: wendelina → crispin → ardo)
-4. Note values in summary box
-5. Close editor
-6. Tap a profile button → queue swaps
-7. Reopen editor → **different permutation controls appear!**
-8. Adjust spacing for THIS arrangement
-9. Repeat for all 6
-
-**Pro tip:** Only define permutations that actually overlap. Most arrangements work fine with defaults!
-
-### 8B.7 Technical Implementation
-
-**Files involved:**
-- `PotionShopLayoutConfig.swift` — Permutation data structure + helper methods
-- `PotionShopCustomerSceneView.swift` — Position lookup + rendering
-- `PotionShopGameView.swift` — Visual editor UI (🎭 Permutations section)
-- `PotionShopDebugMenu.swift` — Quick preset buttons + export function
-
-**Data structure:**
-```swift
-struct QueuePermutation: Codable {
-    var xPositions: [Double] = [0.48, 0.68, 0.88]
-    var yPositions: [Double] = [0.48, 0.55, 0.55]
-    var scaleOverrides: [Double]? = nil
-}
-
-var queuePermutations: [String: QueuePermutation] = [:]
-// Key format: "character1_character2_character3"
-// Example: "wendelina_crispin_ardo"
-```
-
-**Position lookup flow:**
-1. Customer scene extracts character keys from queue: `["wendelina", "crispin", "ardo"]`
-2. Calls `layoutConfig.queuePositions(for: characterKeys)`
-3. Method builds key: `"wendelina_crispin_ardo"`
-4. Looks up in `queuePermutations` dictionary
-5. **If found:** Returns custom positions
-6. **If not found:** Returns default `QueuePermutation()` with [0.48, 0.68, 0.88]
-7. Scene renders each customer at their permutation-defined position
-
-**Rendering calculation:**
-```swift
-let permutation = layoutConfig.queuePositions(for: characterKeys)
-let xFraction = permutation.xPositions[queueIndex]  // e.g., 0.40
-let yFraction = permutation.yPositions[queueIndex]  // e.g., 0.48
-
-let xPos = sceneWidth * xFraction   // 40% of scene width
-let yPos = sceneHeight * yFraction  // 48% of scene height
-
-// Character centered at (xPos, yPos)
-```
-
-**Export format (in "Copy Layout Values"):**
-```
-───────────────────────────────────────────────────────────────
-🎭 QUEUE PERMUTATIONS (3-character spacing overrides)
-───────────────────────────────────────────────────────────────
-
-wendelina → crispin → ardo
-  X: [0.40, 0.65, 0.90]
-  Y: [0.48, 0.55, 0.55]
-  Scales: [1.00, 0.85, 0.75]
-
-crispin → wendelina → ardo
-  X: [0.42, 0.68, 0.90]
-  Y: [0.48, 0.55, 0.55]
-```
-
-**Code generation (done by Claude when you paste export):**
-```swift
-private init() {
-    addPermutation(
-        for: ["wendelina", "crispin", "ardo"],
-        xPositions: [0.40, 0.65, 0.90],
-        yPositions: [0.48, 0.55, 0.55],
-        scaleOverrides: [1.0, 0.85, 0.75]
-    )
-    
-    addPermutation(
-        for: ["crispin", "wendelina", "ardo"],
-        xPositions: [0.42, 0.68, 0.90],
-        yPositions: [0.48, 0.55, 0.55]
-    )
-}
-```
-
-### 8B.8 Position Value Guide
-
-**X Positions (Horizontal):**
-- 0.0 = Far left edge (near Ednar)
-- 0.5 = Center of scene
-- 1.0 = Far right edge
-
-**Typical ranges:**
-- queue[0] (active): 0.35 to 0.50 (left side, closest to Ednar)
-- queue[1] (waiting): 0.60 to 0.75 (middle)
-- queue[2] (waiting): 0.80 to 0.95 (right side)
-
-**Y Positions (Vertical):**
-- 0.0 = Top of scene
-- 0.5 = Middle
-- 1.0 = Bottom
-
-**Typical ranges:**
-- queue[0] (active): 0.45 to 0.52 (slightly higher for prominence)
-- queue[1] (waiting): 0.52 to 0.58 (middle)
-- queue[2] (waiting): 0.52 to 0.58 (same or slightly lower)
-
-**Scale Overrides (Optional):**
-- 1.0 = Normal size (100%)
-- 0.85 = 15% smaller
-- 1.2 = 20% bigger
-
-**Common patterns:**
-- **Wide spacing:** [0.40, 0.65, 0.90] — good for wide characters
-- **Default spacing:** [0.48, 0.68, 0.88] — balanced
-- **Tight spacing:** [0.50, 0.70, 0.85] — good for thin characters
-- **Depth effect:** scales [1.0, 0.85, 0.75] — characters shrink as they go back
-
-### 8B.9 When to Use Permutations vs Per-Character Scaling
-
-**Use Permutations when:**
-- ✅ Specific combination of 3 characters overlaps
-- ✅ You want custom spacing for one arrangement (e.g., Wendelina at front)
-- ✅ Overlap happens regardless of individual character sizes
-- ✅ You want depth effect (scale overrides) for specific grouping
-
-**Use Per-Character Scaling when:**
-- ✅ One character is too big in ALL arrangements
-- ✅ Character drawn too large on canvas and needs shrinking
-- ✅ Want fine positional offset for one character (X/Y offsets)
-- ✅ Want different sizes for active vs waiting positions (3-position system)
-
-**They stack:**
-- Base permutation position: 0.40 (40% of scene width)
-- Per-character X offset: -10pt
-- Final position: (sceneWidth × 0.40) - 10pt
-
-**Recommended priority:**
-1. Get permutation spacing right first (defines spatial budget)
-2. Draw characters to fit within that budget (on 1536×1024 canvas)
-3. Use per-character scaling only for edge cases
-
-### 8B.10 Current Status (May 17, 2026)
-
-**Implemented:**
-- ✅ Full permutation data structure in `PotionShopLayoutConfig`
-- ✅ Visual layout editor with real-time sliders (green/blue/purple sections)
-- ✅ Debug menu quick presets (Wider/Tighter/Reset buttons)
-- ✅ Export function includes permutation values in clipboard output
-- ✅ Position lookup with fallback to defaults
-- ✅ Smooth `matchedGeometryEffect` transitions when queue swaps
-- ✅ Per-permutation scale overrides (optional depth effects)
-- ✅ Documentation guide (`QUEUE_PERMUTATION_SYSTEM.md`)
-
-**Not yet defined:**
-- ⚪ No custom permutations locked in for Evening round (all use defaults)
-- ⚪ No custom permutations for other potential 3-customer rounds (future)
-
-**Next steps:**
-1. Play Evening round with real art
-2. Note which arrangements overlap
-3. Use visual editor to adjust spacing
-4. Copy values and lock in via `init()` in config file
-
-**📚 For Complete Guide:**
-See `QUEUE_PERMUTATION_SYSTEM.md` in the `ReadFilesForContext/` folder for:
-- Step-by-step beginner instructions for all 3 methods
-- Detailed troubleshooting guide
-- Copy-paste code examples for all 6 Evening round permutations
-- Position value guide with typical ranges
-- Testing workflow for all permutations
-- Best practices and common pitfalls
-
-**Quick Reference:**
-- **Access visual editor:** ⚙️ → Layout Editor → 🎭 Permutations pill
-- **Access debug presets:** ⚙️ → Scroll to "🎭 Queue Permutations"
-- **Export values:** ⚙️ → "📋 Copy Layout Values"
-- **Key formula:** `permutation.xPositions[queueIndex] × sceneWidth = character position`
+### 8.5 BREW button (placeholder)
+Wooden brown sign with carved-style "BREW" text, tilted ~12°, on a vertical post going down toward the cauldron. **It is a placeholder.** The user will replace it with their own art (likely a real ladle dipping into the green liquid). Don't waste effort tuning placeholder pixels — the final position will be dictated by the art.
 
 ---
 
@@ -1142,215 +404,16 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
 
 ---
 
-## 11. INSPECT STRIP (the dynamic card) — UPDATED MAY 14, 2026
+## 11. INSPECT STRIP (the dynamic card)
 
 **Trigger:** tapping any profile button (active or waiting).
 **Effect:** the customer becomes active (queue swap fires) AND the strip opens.
-
-### 11.1 Visual Design (Final - May 14, 2026)
-
-**Layout:**
-- **Portrait circle (LEFT):** 70pt diameter, overlaps banner left edge
-  - **Opaque cream background (70pt):** Full circle blocks banner behind it
-  - **Gray guide ring:** Shows full patience capacity (25% opacity)
-  - **Colored patience ring:** Green/amber based on remaining time (green > 40%, amber ≤ 40%)
-  - **Portrait circle (62pt):** Contains character image, cream background
-  - **Z-index: 1** (renders on TOP of banner)
-- **Banner capsule (RIGHT):** White semi-transparent (85% opacity) with custom border
-  - Contains: Character name, order type, attack value, AND potion bottle emoji + number
-  - **Code border:** 2pt cyan stroke (PotionShopTheme.accent) - always present as fallback
-  - **Custom border (NEW - May 14, 2026):** `banner_border.png` overlays on top if present
-  - **Z-index: 0** (renders BEHIND portrait circle)
-- **Height:** Auto-sizes based on text + 8pt vertical padding (~50-60pt tall)
-
-**Spacing:**
-- `HStack(spacing: -35)` creates left overlap between portrait and banner
-- Banner left padding: `50pt` (prevents text collision with portrait)
-
-### 11.2 Border System (Updated May 14, 2026)
-
-**Code-Drawn Border (Always Present - Fallback):**
-- **Shape:** Capsule stroke (pill shape with rounded ends)
-- **Color:** `PotionShopTheme.accent` (cyan/teal)
-- **Thickness:** 2pt solid line
-- **Animation:** Fades in with banner (0.45s spring on open, 0.2s ease-in-out on close)
-- **Behavior:** Static - no pulse, glow, or thickness changes
-
-**Custom Parchment Border (NEW - May 14, 2026):**
-- **Asset:** `banner_border.png` (800×160px @ 300 DPI)
-- **Style:** Hand-drawn scroll/ribbon with torn/ripped edges (drawn in Procreate)
-- **Implementation:** Overlays on top of code border via `.overlay()` modifier
-- **Fallback:** If image not found, code border remains visible
-- **Design notes:**
-  - Transparent background (center empty - text shows through)
-  - Left/right ends have dramatic "ripped scroll" effect
-  - Top/bottom edges have subtle torn parchment texture
-  - Stretches to fit different banner widths (short names vs long names)
-
-**Current State (May 14, 2026):**
-- **Option 3 Active:** Parchment border fully replaces code border (clean hand-drawn aesthetic!)
-- Cyan stroke only appears if `banner_border.png` is missing (fallback safety net)
-
-**Layer Order in Banner Background (bottom to top):**
-1. **IF `banner_border.png` exists:**
-   - Your parchment image fills entire banner frame
-2. **ELSE (fallback if image missing):**
-   - White fill (85% opacity) - Banner background
-   - Cyan capsule stroke (2pt) - Code-drawn border
-
-### 11.3 Animation Sequence
-
-### 11.4 Key Technical Details (Z-Index Fix)
-
-**Problem Solved (May 14, 2026):**
-- Initial design had portrait border "dipping behind" banner edge
-- Caused by HStack negative spacing without explicit z-index control
-
-**Solution:**
-- Added `.zIndex(1)` to portrait (appears on TOP)
-- Added `.zIndex(0)` to banner (appears BEHIND)
-- Added **70pt opaque background circle** as bottom layer of portrait
-- Rings and portrait image render on TOP of solid background
-
-**Layer Order in Portrait (bottom to top):**
-1. **Opaque cream circle (70pt)** - Blocks banner completely
-2. **Gray guide ring (70pt)** - Shows patience capacity
-3. **Colored patience ring (70pt)** - Shows remaining time
-4. **Portrait circle + image (62pt)** - Character portrait
-
-### 11.5 Animation Sequence
-
-**Open (0.45s spring):**
-1. Portrait slides from `x: 40pt` → `x: 0pt` (comes from right, moves left to overlap position)
-2. Text slides from `x: -40pt` → `x: 0pt` (comes from center-left, expands right)
-3. Potion bottle slides from `x: -60pt` → `x: 0pt` (comes from center-right, expands further right)
-4. All elements fade opacity: `0.0 → 1.0`
-5. Banner background + borders fade: `0.0 → 1.0` (both code border and parchment border fade together)
-
-**Close (0.2s ease-in-out):**
-- Tap strip → `gs.dismissInspect()`
-- All elements fade out and reverse animation back to collapsed positions
-
-### 11.6 Code Structure
-
-**File:** `PotionShopCustomerSceneView.swift` → `PotionShopInspectStripView`
-
-```swift
-HStack(spacing: -35) {
-    // Portrait (zIndex: 1, top layer)
-    portraitView(char: char)
-        .zIndex(1)
-    
-    // Banner (zIndex: 0, bottom layer)
-    HStack {
-        VStack { name + subtitle }
-        Spacer()
-        HStack { 🧪 + number }  // Potion bottle INSIDE banner
-    }
-    .background(
-        Capsule()
-            .fill(Color.white.opacity(0.85))
-            .overlay(
-                Capsule()
-                    .stroke(PotionShopTheme.accent, lineWidth: 2)  // Code border
-            )
-            .overlay(
-                // Custom parchment border (NEW - May 14, 2026)
-                GeometryReader { geo in
-                    if let borderImage = UIImage(named: "banner_border") {
-                        Image(uiImage: borderImage)
-                            .resizable()
-                            .frame(width: geo.size.width, height: geo.size.height)
-                    }
-                }
-            )
-    )
-    .zIndex(0)
-}
-```
-
-**Portrait View Structure:**
-```swift
-ZStack {
-    Circle().fill(cream)  // 70pt opaque background (bottom)
-    Circle().stroke(gray) // Guide ring
-    Circle().trim(...).stroke(color) // Patience ring
-    Circle().fill(cream).frame(62, 62) // Portrait circle + image (top)
-}
-```
-
-### 11.7 Dismiss Behavior
-
-**Tap anywhere on strip → closes:**
-```swift
-.contentShape(Rectangle())
-.onTapGesture {
-    withAnimation(.easeInOut(duration: 0.2)) {
-        gs.dismissInspect()  // Sets gs.inspectedId = nil
-    }
-}
-```
-
-**What happens:**
-1. `gs.inspectedId` set to `nil`
-2. `ZStack` in `PotionShopProfileRowView` fades out inspect strip
-3. Profile button row fades back in
-4. Takes 0.2s with ease-in-out animation
-
-### 11.8 Custom Border Integration (May 14, 2026)
-
-**Procreate Canvas Specifications:**
-- **Size:** 800 × 160 pixels @ 300 DPI
-- **Style:** Scroll/ribbon shape with torn/ripped edges on left/right ends
-- **Background:** Transparent (turn off Background layer before export)
-- **Center:** Empty (just border outline - banner content shows through)
-- **Filename:** `banner_border.png`
-
-**Implementation Workflow:**
-1. Draw border in Procreate at specified canvas size
-2. Export as PNG with transparent background
-3. Import to Xcode → Assets.xcassets
-4. Code automatically loads via `UIImage(named: "banner_border")`
-5. Border stretches to fit different banner widths
-
-**Current Implementation:**
-- **Option 3 (Active):** Parchment fully replaces code border
-- Cyan stroke only visible if image file missing (automatic fallback)
-
-**Option 3 Code (Full Replacement - CURRENTLY ACTIVE):**
-```swift
-.background(
-    // OPTION 3: Custom parchment border replaces code border entirely
-    GeometryReader { geo in
-        if let borderImage = UIImage(named: "banner_border") {
-            // User's hand-drawn parchment border (PRIMARY)
-            Image(uiImage: borderImage)
-                .resizable()
-                .frame(width: geo.size.width, height: geo.size.height)
-        } else {
-            // Fallback to code-drawn border if image missing (SAFETY NET)
-            Capsule()
-                .fill(Color.white.opacity(0.85))
-                .overlay(
-                    Capsule()
-                        .stroke(PotionShopTheme.accent, lineWidth: 2)
-                )
-        }
-    }
-    .opacity(isExpanded ? 1.0 : 0.0)
-)
-```
-
----
-
-**Design Evolution (May 14, 2026):**
-1. **Initial attempt:** ZStack with absolute positioning - broke original layout ❌
-2. **Revert + fix:** HStack with negative spacing + explicit z-index ✅
-3. **Final touch:** Opaque background circle prevents banner see-through ✅
-4. **Custom border (Option 2):** Parchment overlay system for testing (both borders visible) ✅
-5. **Custom border (Option 3 - ACTIVE):** Full replacement - only parchment shows! ✅
-
-**Result:** Clean portrait overlap with no border dip, no background bleed-through, and beautiful hand-drawn parchment scroll border! 🎨📜✨
+**Layout:** parchment-cream pill, brown border, ~64pt tall.
+- **Left:** circular portrait with green→amber patience ring (matches profile button ring color logic — green > 40%, amber otherwise). The ring is a real `Circle().trim(...)` reflecting `customer.patience / customer.maxPatience`.
+- **Middle:** customer name (bold serif) on top, `OrderName • Atk N` subtitle on bottom.
+- **Right:** red rounded-capsule pill with `🧪 N` showing the brew target (HP + Intimidating modifier if applicable; just HP for waiting customers).
+**Open animation:** portrait slides outward to the LEFT from a center-collapsed position; body (name+subtitle) slides outward to the RIGHT; pill slides further right to its final spot. All three pieces fade in. ~0.45s spring. **Not a top-down drop** — that was a Phase 6 regression we explicitly fixed.
+**Dismiss:** tap the strip → it fades out and shrinks back in place.
 
 ---
 
@@ -1369,949 +432,8 @@ Triggered by **gear icon top-right of header**. Opens as a sheet.
 | Heal to Full    | composure → 30, shield → 0                                   |
 | Win Round       | Defeat all current customers instantly (test round-end overlay) |
 | Lose Game       | composure → 0 (test lose overlay)                            |
-| **Layout Editor** | **NEW (May 5, 2026)** - Live overlay editor for visual tuning |
-| **Copy Layout Values** | **NEW (May 12, 2026)** - Copies all current layout values to clipboard in formatted text (includes all 14 characters × 12 values each = 168 character values + section heights, art scales, nodes, etc.) |
-| **🔒 Restore Locked Defaults** | **NEW (May 13, 2026)** - ONE TAP returns to known-good baseline (May 13 locked state). Resets ALL layout values instantly. |
-| **🎭 Queue Permutations** | **NEW (May 17, 2026)** - Quick presets for 3-character spacing: "Use Wider Spacing" [0.40, 0.65, 0.90], "Use Tighter Spacing" [0.50, 0.70, 0.85], "Reset to Default Spacing" [0.48, 0.68, 0.88]. Only visible in 3-customer rounds. See §8B. |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
-
-**Copy Layout Values Feature (NEW - May 12, 2026):**
-- Accessible via "📋 Copy Layout Values" button in debug menu
-- Generates comprehensive text output of ALL current layout values
-- Includes:
-  - Section heights (6 values)
-  - Ednar art scaling (4 values)
-  - Cauldron art scaling (4 values)
-  - Bowl parameters (3 values)
-  - Node parameters (4 global values + 12 per-node offsets)
-  - Dice/tray parameters (3 values)
-  - Brew zone parameters (5 values)
-  - **All 14 characters × 12 values each (168 total character values)**:
-    - Active: width, height, x, y
-    - Waiting: width, height, x, y
-    - Waiting 2: width, height, x, y
-- Automatically copies to clipboard (iOS UIPasteboard)
-- Formatted for easy pasting back to Claude for permanent code updates
-- Shows timestamp of when values were captured
-- Includes helpful headers and separators for readability
-- **UPDATED May 12, 2026:** Now includes all waiting2 values (56 new lines added)
-
-### 12.1 Layout Editor (NEW - May 5, 2026 - LIVE PREVIEW OVERLAY)
-
-**Access:** Debug Menu → "Layout Editor (Live Overlay)"
-
-**Mode:** Semi-transparent floating overlay that appears OVER the game view (20% opacity background)
-
-**Key Innovation:** Overlay appears ON TOP of the actual game layout, so you see changes instantly in real-time while adjusting sliders. Game view is visible behind the controls at 80% brightness.
-
-**Architecture:**
-- **Shared Observable Config:** `PotionShopLayoutConfig.shared` singleton holds all layout values
-- **Game View Binding:** `PotionShopGameView` reads from `layoutConfig` instead of hardcoded values
-- **Overlay Binding:** `PotionShopLayoutOverlay` writes to same `layoutConfig` via sliders
-- **Result:** Slider changes → config updates → game re-renders instantly (true live preview!)
-
-**UI Design:**
-- **Section-focused:** Only ONE section's controls visible at a time (reduced clutter)
-- **Horizontal pill picker:** Swipe through section pills at top (📏 🧙 🍲 🥘 🔵 🎲 🥄 🎭)
-- **Active pill:** Solid cyan fill with white text
-- **Inactive pills:** Transparent with cyan border
-- **Floating panel:** Rounded rectangle at bottom with dark semi-transparent background
-- **Close button:** X icon at top-right of panel
-- **No code generation button:** (Old sheet-based editor had this; new overlay skips it for cleaner UX)
-
-**What You Can Control:**
-
-| Section | Controls | Range | Notes |
-|---------|----------|-------|-------|
-| **📏 Sections** | Header, Scene, Profile, Cauldron, Preview, Tray percentages | 0-60% each | Shows total % (red if >100%) |
-| **🧙 Ednar** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Character art scaling |
-| **🧍 Customers** | **All 14 characters: Active + Waiting + Waiting 2 positions** | **0.5-5.0× scale, ±200pt position** | **3-position system with uniform scale (May 12, 2026)** |
-| **🍲 Cauldron** | Width, Height, X, Y position | 0.5-3.0× scale, ±200pt position | Cauldron art scaling |
-| **🥘 Bowl** | Scale, X offset, Y offset | 0.5-3.0× scale, ±200pt offset | Parametric bowl shape |
-| **🔵 Nodes** | Node scale, Grid X, Grid Y, **⚠️ Spacing Multiplier** | 0.5-3.0× scale, ±200pt offset, **0.5-2.0× spacing (EXPERIMENTAL)** | Entire node grid positioning + **experimental spacing** |
-| **🔧 Fine-Tune** | **Per-node X/Y offsets (0-11)** | **±100pt per node** | **Individual node positioning (NEW May 5, 2026)** |
-| **🎲 Dice** | Die scale, Tray X, Tray Y | 0.5-3.0× scale, ±200pt offset | Dice size + tray offset |
-| **🥄 Brew** | X, Y position (fraction), Width, Height (pts), Show Zone toggle | 0-1 position, 50-300pt size | Invisible tap zone |
-| **🎭 Permutations** | **X/Y positions for 3-character arrangements** | **0.0-1.0 scene fractions** | **Custom spacing per permutation (NEW May 17, 2026)** - Only in 3-customer rounds. See §8B |
-
-**How It Works:**
-1. Tap "Layout Editor (Live Overlay)" in debug menu
-2. Debug menu **closes automatically**
-3. Overlay appears over game with section pill picker at top
-4. Game is **visible behind overlay** (darkened to 80%)
-5. Tap a section pill (e.g., **🧙 Ednar**)
-6. Pill turns **solid cyan**, sliders appear below
-7. **Drag sliders** → **game updates INSTANTLY** (live preview!)
-8. Tap **different pill** to switch sections (previous section collapses)
-9. Tap **X button** or **tap background** to close overlay
-10. Debug menu does NOT reopen (back to full game view)
-
-**Example Live Preview Flow:**
-```
-User drags Ednar Width slider to 3.0×
-    ↓
-PotionShopLayoutConfig.shared.ednarWidth = 3.0
-    ↓
-PotionShopGameView reads layoutConfig.ednarWidth
-    ↓
-Ednar re-renders at 3× width IMMEDIATELY (no rebuild needed!)
-```
-
-**Files Involved:**
-1. **PotionShopLayoutConfig.swift** (NEW) - Shared `@Observable` singleton with all layout values
-2. **PotionShopGameView.swift** - Modified to read from `layoutConfig` instead of hardcoded values
-3. **PotionShopDebugMenu.swift** - Modified to pass `$showLayoutOverlay` binding + close menu when opening overlay
-4. **PotionShopLayoutOverlay** (struct inside `PotionShopGameView.swift`) - The overlay UI itself
-5. **PotionShopCauldronView.swift** - Modified to apply per-node offsets to node positioning
-
-#### **12.1.1 Per-Node Fine-Tuning (NEW - May 5, 2026)**
-
-**Status:** ✅ COMPLETE - Ready for Testing  
-**Feature:** Individual node positioning with live preview
-
-The layout editor includes a **🔧 Fine-Tune** section that allows you to adjust the position of each individual node independently.
-
-**Key Features:**
-- ✅ **Dropdown picker** to select which node (0-11)
-- ✅ **X Offset slider** (-100 to +100 pts)
-- ✅ **Y Offset slider** (-100 to +100 pts)  
-- ✅ **Reset This Node** button (reset selected node to default)
-- ✅ **Reset All Nodes** button (reset all 12 nodes at once)
-- ✅ **Live preview** - changes apply instantly as you drag sliders
-- ✅ **Relative positioning** - offsets apply AFTER spacing multiplier (global controls still work)
-
-**How to Use:**
-
-1. **Open Layout Editor:**
-   - Debug Menu (⚙️) → "Layout Editor (Live Overlay)"
-
-2. **Access Fine-Tune Section:**
-   - Scroll pill picker to **🔧 Fine-Tune**
-   - Tap pill → controls appear
-
-3. **Adjust Individual Node:**
-   - Tap **"Select Node"** dropdown
-   - Choose a node (Node 0 through Node 11)
-   - **X Offset slider** - Move node left (-) or right (+)
-   - **Y Offset slider** - Move node up (-) or down (+)
-   - Watch the node move in real-time!
-
-4. **Reset When Done:**
-   - **"Reset This Node"** - Undo changes to current node only
-   - **"Reset All Nodes"** - Undo all per-node tweaks (back to defaults)
-
-**Layered Positioning System:**
-```
-Final Node Position = 
-  Grid Origin 
-  + (Base Coordinate × Spacing Multiplier)  // Global controls
-  + Per-Node Offset                          // Fine-tune controls
-```
-
-**Example:**
-- Node 5 base position: (5.4, 82.3)
-- Spacing multiplier: 1.2× = (6.5, 98.8)
-- Grid X offset: +10 = (16.5, 98.8)
-- Grid Y offset: -5 = (16.5, 93.8)
-- **Per-node X offset: +25** = (41.5, 93.8)
-- **Per-node Y offset: -10** = (41.5, 83.8) ← Final position!
-
-**This means:**
-- Global sliders (Grid X/Y) still move ALL nodes
-- Spacing slider still spreads them apart
-- Fine-tune offsets are applied ON TOP of those changes
-
-**Data Structure:**
-```swift
-// In PotionShopLayoutConfig
-var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)
-
-// CGPoint(x: Double, y: Double)
-// x: horizontal offset in points (-100 to +100)
-// y: vertical offset in points (-100 to +100)
-```
-
-**Position Calculation:**
-```swift
-// In PotionShopCauldronView
-ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
-    let node = PotionShopBoard.nodes[idx]
-    let perNodeOffset = perNodeOffsets[idx]  // Get this node's offset
-    
-    PotionShopNodeButtonView(...)
-        .position(
-            x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier + perNodeOffset.x,
-            y: g.nodeOriginY + CGFloat(node.y) * g.nodeSpacingMultiplier + perNodeOffset.y
-        )
-}
-```
-
-**UI Design:**
-- **Picker:** Dropdown menu shows "Node 0" through "Node 11"
-- **Sliders:** Cyan theme (consistent with other controls)
-- **"Reset This Node" button:** Orange (caution color)
-- **"Reset All Nodes" button:** Red (danger color - more destructive)
-- Currently selected node is highlighted in picker
-
-**Common Use Cases:**
-
-**Scenario 1: Fix Overlapping Nodes**
-- Problem: Node 3 and Node 4 are too close after adjusting spacing
-- Solution: Select Node 4 → X Offset +15 → nodes no longer overlap
-
-**Scenario 2: Create Custom Layout**
-- Problem: Want nodes in a circle instead of grid
-- Solution: Fine-tune each node individually to form circle shape
-
-**Scenario 3: Align with Art**
-- Problem: New cauldron art has custom markings for node positions
-- Solution: Fine-tune each node to align with art asset markings
-
-**Scenario 4: Experimental Layouts**
-- Problem: Want to test if different node positions affect gameplay
-- Solution: Move nodes around, playtest, reset if it doesn't work
-
-**⚠️ Warnings & Limitations:**
-
-**Graph Topology Unchanged:**
-- Moving nodes does NOT change which nodes are connected by edges
-- Boost reach is based on GRAPH structure, not visual distance
-- Example: Node 0 and Node 3 are connected via an edge. If you move Node 3 far away, the edge line will stretch but they're still "neighbors" for boost purposes.
-
-**No Boundary Validation:**
-- You CAN move nodes outside the cauldron bowl
-- You CAN overlap nodes completely
-- **Recommendation:** Use moderate offsets (-50 to +50) for best results
-
-**Not Saved Between Sessions:**
-- Closing the app resets all per-node offsets to zero
-- To save a layout: Copy values from layout editor and paste into `PotionShopLayoutConfig.swift` defaults
-
-**Testing Checklist:**
-
-**Basic Functionality:**
-- ✅ Fine-Tune pill appears in pill picker
-- ✅ Tapping pill shows controls
-- ✅ Dropdown shows all 12 nodes
-- ✅ Selecting different nodes updates sliders
-- ✅ X slider moves node left/right immediately
-- ✅ Y slider moves node up/down immediately
-
-**Reset Functions:**
-- ✅ "Reset This Node" zeros out current node's offset
-- ✅ "Reset All Nodes" zeros out all 12 nodes
-- ✅ Sliders update to show 0 after reset
-
-**Edge Cases:**
-- ✅ Switch between nodes - sliders show correct values for each
-- ✅ Move node to extreme (+100, +100) - still playable?
-- ✅ Move node to opposite extreme (-100, -100) - doesn't escape bowl?
-- ✅ Adjust global spacing THEN fine-tune - offsets stack correctly?
-- ✅ Adjust fine-tune THEN global spacing - node keeps relative position?
-
-**Gameplay:**
-- ✅ Dice can still be placed on fine-tuned nodes
-- ✅ Drag-and-drop still works
-- ✅ Edge lines still connect to moved nodes
-- ✅ No crashes during brew animation
-
-**Current Production Values (Locked - May 5, 2026 - 1:36 AM):**
-```swift
-// Section Heights
-headerPercent: 1.0
-scenePercent: 26.3
-profilePercent: 9.5
-cauldronPercent: 37.2
-previewPercent: 3.2
-trayPercent: 19.3
-
-// Ednar Art
-ednarWidth: 1.59
-ednarHeight: 2.0
-ednarX: 14.0
-ednarY: -17.0
-
-// Cauldron Art
-cauldronWidth: 1.3613475412130356
-cauldronHeight: 1.9335107803344727
-cauldronX: -2.219867706298828
-cauldronY: -34.326231479644775
-
-// Bowl
-cauldronBowlScale: 1.3121631294488907
-cauldronBowlX: 44.709229469299316
-cauldronBowlY: 58.0
-
-// Nodes
-nodeScale: 1.8311170041561127
-nodeXOffset: 70.21276950836182
-nodeYOffset: 74.82268810272217
-nodeSpacingMultiplier: 1.0  // ⚠️ EXPERIMENTAL: Kept at 1.0 for production
-
-// Per-Node Offsets (all 12 nodes individually positioned)
-perNodeOffsets: [
-    CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
-    CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
-    CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-    CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
-    CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
-    CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
-    CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
-    CGPoint(x: -53.014183044433594, y: 35.638296604156494),  // Node 7
-    CGPoint(x: -91.13475382328033, y: 28.19148302078247),    // Node 8
-    CGPoint(x: -38.1205677986145, y: 60.10638475418091),     // Node 9
-    CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
-    CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
-]
-
-// Dice
-dieScale: 1.405301421880722
-trayOffsetX: 4.609942436218262
-trayOffsetY: 6.2056779861450195
-
-// Brew Zone
-brewZoneX: 0.8424113392829895
-brewZoneY: 0.15010638535022736
-brewZoneWidth: 113.10815364122391
-brewZoneHeight: 95.51772773265839
-showBrewZone: false
-```
-
-#### **12.1.2 Customer Scene Scaling (UPDATED - May 12, 2026)**
-
-**Status:** ✅ COMPLETE - All 14 Characters + 3-Position System (Active / Waiting / Waiting 2)  
-**Feature:** Per-character width/height/X/Y scaling with live preview, character picker, uniform scale slider, AND separate active/waiting/waiting2 positions
-
-The layout editor includes a **🧍 Customers** section that allows you to adjust the size and position of customer scene portraits independently for **THREE queue positions: active (queue[0]), waiting (queue[1]), and waiting 2 (queue[2])**.
-
-**Key Features:**
-- ✅ **Character picker dropdown** - Select any of 14 characters (ALL customers now included!)
-- ✅ **⭐️ ACTIVE POSITION** section (green header) - Controls for when customer is at queue[0] (front of line)
-  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts width AND height together (yellow color)
-  - Width slider (0.5× to 5.0×) - Horizontal scaling (independent)
-  - Height slider (0.5× to 5.0×) - Vertical scaling (independent)
-  - X Offset slider (-200 to +200 pts) - Horizontal position
-  - Y Offset slider (-200 to +200 pts) - Vertical position
-- ✅ **⏸️ WAITING POSITION** section (orange header) - Controls for when customer is at queue[1] (second position)
-  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts waiting width AND height together
-  - Width slider (0.5× to 5.0×) - Waiting horizontal scaling
-  - Height slider (0.5× to 5.0×) - Waiting vertical scaling
-  - X Offset slider (-200 to +200 pts) - Waiting horizontal position
-  - Y Offset slider (-200 to +200 pts) - Waiting vertical position
-- ✅ **⏸️ WAITING POSITION 2 (queue[2])** section (**NEW May 12, 2026** - purple header) - Controls for when customer is at queue[2] (back of line)
-  - 🔗 Uniform Scale slider (0.5× to 5.0×) - Adjusts waiting2 width AND height together
-  - Width slider (0.5× to 5.0×) - Waiting2 horizontal scaling
-  - Height slider (0.5× to 5.0×) - Waiting2 vertical scaling
-  - X Offset slider (-200 to +200 pts) - Waiting2 horizontal position
-  - Y Offset slider (-200 to +200 pts) - Waiting2 vertical position
-  - **"Link W/H" button** (cyan) - Copies width value to height for proportional scaling
-  - **"Reset Position" button** (orange) - Resets X and Y offsets to 0
-- ✅ **Dynamic reset button** - Changes to "Reset [Character]" based on selection
-- ✅ **Live preview** - Changes apply instantly to the selected character
-- ✅ **No circle clipping** - Full images visible for proper resizing
-- ✅ **Smooth transitions** - Characters animate between active/waiting/waiting2 scales during queue swaps
-
-**All 14 Characters Available:**
-1. Mildred Honeycomb
-2. Tomik Cooper
-3. Greta Marshlow
-4. Pemberton Quill
-5. Sister Halla
-6. Ardo Quill
-7. Wendelina Rookpool
-8. Bram the Bard
-9. Lord Crispin Vorne
-10. Hexa Mott
-11. Captain Ironhilde
-12. Grimdrek the Volatile
-13. Lady Carmilla Veil
-14. The Royal Envoy
-
-**Uniform Scale Feature:**
-- Located at the **top of each section** (Active and Waiting)
-- **Yellow color** (distinct from cyan individual sliders)
-- Dragging slider sets **both width AND height to the same value**
-- Perfect for **quick proportional scaling** without touching individual sliders
-- Displays current width value (since width = height when using uniform scale)
-- Helper text: "Adjusts width AND height together" (Active) or "Waiting scale (when not active)" (Waiting)
-
-**3-Position System (NEW - May 12, 2026):**
-- **Active position** = When customer is at `queue[0]` (front of line, closest to Ednar)
-- **Waiting position** = When customer is at `queue[1]` (middle position)
-- **Waiting 2 position** = When customer is at `queue[2]` (back of line, farthest from Ednar)
-- **Queue swap animation** smoothly transitions between all three states
-- **Example use**: Make waiting2 customers 70% size to create strong depth effect (queue[0]=100%, queue[1]=85%, queue[2]=70%)
-- **Default (May 12, 2026)**: All positions are 1.0× (same size) - **queue depth scaling REMOVED** (was [1.0, 0.78, 0.72], now [1.0, 1.0, 1.0])
-- **Why removed**: Allows all characters to appear at natural proportions from Procreate canvas; depth can be added per-character via layout editor if desired
-
-**Workflow:**
-1. Select character from picker
-2. **Adjust Active Position:**
-   - Scroll to **⭐️ ACTIVE POSITION** (green header)
-   - Drag **🔗 Uniform Scale** for quick proportional sizing
-   - OR drag individual Width/Height sliders for asymmetric scaling
-   - Adjust X/Y sliders to position when active
-3. **Adjust Waiting Position:**
-   - Scroll to **⏸️ WAITING POSITION** (orange header)
-   - Drag **🔗 Uniform Scale** for quick proportional sizing
-   - OR drag individual Width/Height sliders for asymmetric scaling
-   - Adjust X/Y sliders to position when waiting at queue[1]
-4. **Adjust Waiting 2 Position (NEW!):**
-   - Scroll to **⏸️ WAITING POSITION 2 (queue[2])** (purple header)
-   - Drag **🔗 Uniform Scale** for quick proportional sizing
-   - OR drag individual Width/Height sliders for asymmetric scaling
-   - Adjust X/Y sliders to position when waiting at queue[2]
-   - Use **"Link W/H"** button to make width = height (proportional)
-   - Use **"Reset Position"** button to zero out X/Y offsets
-5. Character updates instantly in live preview
-6. Test by playing round with 3 customers (Skip to Round 3 - Evening) and tapping profiles to swap
-
-**Current Characters with Default Values (May 12, 2026):**
-
-| Character    | Active Scale | Active Pos | Waiting Scale | Waiting Pos | Waiting 2 Scale | Waiting 2 Pos | Notes |
-|--------------|--------------|------------|---------------|-------------|-----------------|---------------|-------|
-| All 14       | 1.0×1.0×     | 0pt, 0pt   | 1.0×1.0×      | 0pt, 0pt    | 1.0×1.0×        | 0pt, 0pt      | Same size at all positions (May 12) |
-
-**Default Scale Rationale (CHANGED May 12, 2026):**
-- All positions: 1.0× width, 1.0× height (pixel-accurate, no distortion)
-- Images drawn at 1536×1024 @ 300 DPI appear at correct proportions without manual adjustment
-- **Queue depth scaling REMOVED** - queueScales changed from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]
-- **Why removed**: All characters now appear at same size in all queue positions by default
-- **Depth effects**: Can be added per-character using layout editor sliders (e.g., set waiting2Width/Height to 0.7× for specific characters)
-- Based on user's 1536×1024 px Procreate canvas (3:2 landscape)
-- **All positions start at same scale** - use layout editor to customize per-character if needed
-
-**Technical Implementation:**
-- Data structure: `CharacterScale` struct with 12 properties (4 active + 4 waiting + 4 waiting2)
-- Dynamic rendering: `isActive ? activeValues : (queueIndex == 1 ? waitingValues : waiting2Values)`
-- Animation: `matchedGeometryEffect` handles smooth transitions during queue swaps
-- Spring animation: 0.55s response, 0.78 damping fraction
-
-**Circle Clipping Removal (CRITICAL FIX):**
-
-**Problem:** Scene portraits were being cropped to circles, making it impossible to see the full image while resizing.
-
-**Solution:** Modified `sceneImageOrFallback()` in `PotionShopModels.swift`:
-
-**Before (WRONG):**
-```swift
-Image(uiImage: uiImage)
-    .resizable()
-    .scaledToFill()
-    .frame(width: size, height: size)
-    .clipShape(Circle())  // ← CROPPED TO CIRCLE!
-```
-
-**After (CORRECT):**
-```swift
-Image(uiImage: uiImage)
-    .resizable()
-    .scaledToFit()  // ← Preserves aspect ratio
-    .frame(width: size, height: size * 1.5)  // ← 2:3 aspect ratio
-    // NO .clipShape(Circle()) ← REMOVED! Full image visible!
-```
-
-**Value Flow (Connection Chain):**
-```
-Layout Editor Sliders
-    ↓
-PotionShopLayoutConfig.perCharacterScales[characterId]
-    ↓
-PotionShopGameView (passes layoutConfig to scene)
-    ↓
-PotionShopCustomerSceneView (reads character scale from config)
-    ↓
-PotionShopCustomerInSceneView (receives active + waiting values)
-    ↓
-let effectiveWidth = isActive ? customerSceneWidth : customerWaitingWidth
-let effectiveHeight = isActive ? customerSceneHeight : customerWaitingHeight
-    ↓
-.scaleEffect(x: effectiveWidth, y: effectiveHeight)
-.offset(x: effectiveX, y: effectiveY)
-    ↓
-VISUAL UPDATE (Character uses correct values based on queue position!)
-    ↓
-During queue swap: matchedGeometryEffect animates smooth transition
-```
-
-**Files Modified:**
-1. **PotionShopLayoutConfig.swift** 
-   - Added `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y` to `CharacterScale` struct (May 12, 2026)
-   - Changed all defaults to 1.0×1.0× for all positions (active, waiting, waiting2)
-   - All 14 characters in `perCharacterScales` dictionary
-2. **PotionShopGameView.swift** 
-   - Added **"⏸️ WAITING POSITION 2 (queue[2])"** UI section (purple header) (May 12, 2026)
-   - Added waiting2 uniform scale slider (yellow)
-   - Added 4 waiting2 sliders (width/height/x/y)
-   - Added "Link W/H" and "Reset Position" helper buttons for waiting2
-   - Split UI with green **"⭐️ ACTIVE"**, orange **"⏸️ WAITING"**, and purple **"⏸️ WAITING 2"** headers
-3. **PotionShopCustomerSceneView.swift** 
-   - Added 4 waiting2 parameters to `PotionShopCustomerInSceneView` (May 12, 2026)
-   - Updated to 3-way conditional: `isActive ? active : (queueIndex == 1 ? waiting : waiting2)`
-   - Passes waiting2 values from layout config
-   - Renders using correct values based on queue position (0, 1, or 2)
-4. **PotionShopData.swift**
-   - All 14 characters use proper `_scene` suffix for scene portraits
-5. **PotionShopModels.swift** 
-   - **REMOVED circle clipping**, changed to `.scaledToFit()`
-6. **CAULDRON_CONTEXT.md**
-   - Updated documentation to reflect 3-position system (May 12, 2026)
-
-**Deprecation:**
-- The old sheet-based editor (`PotionShopNewLayoutEditor` struct in `PotionShopDebugMenu.swift`) is still present but **not used**
-- Can be deleted in a future cleanup
-- Old editor had collapsible sections + code generation button; new overlay is cleaner without those
-
-**Safety Notes:**
-- Node spacing/positioning is SAFE (only grid translation + uniform scale)
-- Node rearrangement/removal is **NOT implemented** (would break graph topology)
-- All changes are real-time but NOT persisted (closing app resets to defaults)
-- To make changes permanent: copy values from layout editor → paste into `PotionShopLayoutConfig.swift` defaults
-
-### 12.2 🔒 LOCKED DEFAULTS SYSTEM (NEW - May 13, 2026)
-
-**Status:** ✅ COMPLETE - One-Tap Baseline Restoration System
-
-The Locked Defaults system provides an **infinitely easy way to return to a known-good layout state** after experimenting with changes. This is the safety net that lets you test ideas fearlessly.
-
----
-
-#### **What It Is:**
-
-A complete snapshot of all 200+ layout values stored in the `restoreLockedDefaults()` method in `PotionShopLayoutConfig.swift`. One tap in the debug menu restores everything to this exact state.
-
-**Think of it as:** A "checkpoint" system for your entire layout configuration.
-
----
-
-#### **How to Access:**
-
-**In-Game:**
-1. Tap **⚙️ gear icon** (top-right)
-2. Debug menu opens
-3. Scroll to **"Layout Tools"** section
-4. Tap **"🔒 Restore Locked Defaults"** (orange button)
-5. **Done!** All values instantly restored
-
-**What You See:**
-- Button icon: 🔒 (lock with rotation arrow)
-- Button color: Orange (indicates destructive action - overwrites current state)
-- Button label: "🔒 Restore Locked Defaults"
-- Timestamp badge: "May 13" (shows which baseline you're restoring to)
-
----
-
-#### **What Gets Restored:**
-
-**ALL of these values reset to locked defaults in ONE TAP:**
-
-**Section Heights (6 values):**
-- `headerPercent`
-- `scenePercent`
-- `profilePercent`
-- `cauldronPercent`
-- `previewPercent`
-- `trayPercent`
-
-**Ednar Art Scaling (5 values):**
-- `ednarBaseScale`
-- `ednarWidth`
-- `ednarHeight`
-- `ednarX`
-- `ednarY`
-
-**Customer Scene Base Scale (5 values):**
-- `customerSceneBaseScale`
-- `customerSceneWidth`
-- `customerSceneHeight`
-- `customerSceneX`
-- `customerSceneY`
-
-**Per-Character Scales (168 values! - 14 characters × 12 values each):**
-For EACH of 14 characters (Mildred, Tomik, Greta, Sister Halla, Wendelina, Grimdrek, Hexa Mott, Pemberton, Ardo, Bram, Crispin, Ironhilde, Carmilla, Royal Envoy):
-- Active position: `width`, `height`, `x`, `y`
-- Waiting position: `waitingWidth`, `waitingHeight`, `waitingX`, `waitingY`
-- Waiting2 position: `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y`
-
-**Cauldron Art (4 values):**
-- `cauldronWidth`
-- `cauldronHeight`
-- `cauldronX`
-- `cauldronY`
-
-**Cauldron Bowl (3 values):**
-- `cauldronBowlScale`
-- `cauldronBowlX`
-- `cauldronBowlY`
-
-**Nodes (28 values - 4 global + 12 per-node):**
-- `nodeScale`
-- `nodeXOffset`
-- `nodeYOffset`
-- `nodeSpacingMultiplier`
-- **Per-Node Offsets:** 12 nodes × 2 values (x, y) = 24 values
-
-**Dice & Tray (3 values):**
-- `dieScale`
-- `trayOffsetX`
-- `trayOffsetY`
-
-**Brew Zone (5 values):**
-- `brewZoneX`
-- `brewZoneY`
-- `brewZoneWidth`
-- `brewZoneHeight`
-- `showBrewZone`
-
-**TOTAL: 227 values restored with ONE button tap!** 🎯
-
----
-
-#### **When to Use It:**
-
-| Situation | Example |
-|-----------|---------|
-| **After experimenting** | "I tried making the cauldron huge but I don't like it - go back!" |
-| **Fresh start** | "I want to start tuning from the known-good baseline again" |
-| **Version comparison** | "Let me compare my new layout to the documented state" |
-| **Bug recovery** | "Something broke the layout - restore to working state" |
-| **Before sharing** | "Reset to documented values before sending to testers" |
-| **After accidental changes** | "I moved the wrong slider - undo everything!" |
-
----
-
-#### **How to CODIFY New Changes (Make Them the New Locked State):**
-
-You have **two methods** for making your experimental changes permanent:
-
----
-
-##### **Method 1: Manual Update (Small Changes)**
-
-**Use when:** You've changed 1-10 values and want to lock them in.
-
-**Steps:**
-1. Make your changes in the layout editor
-2. Tap **⚙️** → **"📋 Copy Layout Values"**
-3. Paste into Notes app
-4. Tell Claude: "I changed these values, make them the new defaults"
-5. Claude updates **both** places in code:
-   - Live variables (what you edit)
-   - `restoreLockedDefaults()` method (what the button restores to)
-
-**Example Message to Claude:**
-```
-"I adjusted:
-- profilePercent: now 12.0 (was 9.5)
-- Mildred's active width: now 1.15 (was 1.0)
-- Node 3 X offset: now -12.0 (was -7.4)
-
-Make these the new locked defaults."
-```
-
-**What Claude Does:**
-1. Updates 3 values in the live `var` declarations
-2. Updates the same 3 values in `restoreLockedDefaults()`
-3. Provides complete copy-paste code
-4. Updates documentation timestamp
-
----
-
-##### **Method 2: Full State Snapshot (Major Overhaul)**
-
-**Use when:** You've done extensive layout work and want to save EVERYTHING as the new baseline.
-
-**Steps:**
-1. Finish all your changes in the layout editor
-2. Tap **⚙️** → **"📋 Copy Layout Values"**
-3. Send the **ENTIRE output** to Claude (all ~300 lines)
-4. Tell Claude: "Make this the new locked state"
-5. Claude replaces ALL 227 values in both locations
-
-**Example Message to Claude:**
-```
-"Here are my new layout values. Make this the new May 13 locked state:
-
-[paste entire Copy Layout Values output - all 300 lines]
-"
-```
-
-**What Claude Does:**
-1. Replaces ALL live variable defaults
-2. Replaces ALL values in `restoreLockedDefaults()`
-3. Updates timestamp to reflect new baseline date
-4. Updates documentation
-
----
-
-#### **Technical Implementation:**
-
-**File:** `PotionShopLayoutConfig.swift`
-
-**Two Storage Locations (Always Kept in Sync):**
-
-**Location 1: Live Variables**
-```swift
-class PotionShopLayoutConfig {
-    // These change when you drag sliders
-    var profilePercent: Double = 9.5
-    var nodeScale: Double = 1.83
-    var perCharacterScales: [String: CharacterScale] = [...]
-    // ... 224 more values ...
-}
-```
-
-**Location 2: Locked Defaults Method**
-```swift
-func restoreLockedDefaults() {
-    // Same values hardcoded here
-    profilePercent = 9.5
-    nodeScale = 1.83
-    perCharacterScales = [...]
-    // ... 224 more values ...
-    
-    print("✅ RESTORED LOCKED DEFAULTS (May 13, 2026)")
-}
-```
-
-**Why Two Locations?**
-- Live variables = What you're currently editing
-- Locked defaults = What the restore button returns to
-- Keeping them in sync = Your safety net always works
-
----
-
-#### **Workflow Diagram:**
-
-```
-┌─────────────────────────────────────────────────────┐
-│  LOCKED STATE (May 13, 2026)                        │
-│  All 227 values in restoreLockedDefaults()          │
-└─────────────────────────────────────────────────────┘
-                        ↓
-          ┌─────────────────────────┐
-          │  Make Changes           │
-          │  (Layout Editor)        │
-          └─────────────────────────┘
-                        ↓
-          ┌─────────────────────────┐
-          │  Test in Game           │
-          │  (Live Preview)         │
-          └─────────────────────────┘
-                        ↓
-          ┌─────────────────────────┐
-          │  Like it?               │
-          └─────────────────────────┘
-                   ↙         ↘
-         YES (Keep)         NO (Discard)
-              ↓                    ↓
-    ┌──────────────────┐   ┌─────────────────────┐
-    │ Copy Layout      │   │ Tap 🔒 Restore      │
-    │ Send to Claude   │   │ Locked Defaults     │
-    │ → New baseline!  │   │ → Back to May 13!   │
-    └──────────────────┘   └─────────────────────┘
-```
-
----
-
-#### **Safety Features:**
-
-**🔒 Immutable Baseline:**
-- Values in `restoreLockedDefaults()` are hardcoded
-- Won't change unless you explicitly tell Claude to update them
-- Can't be accidentally overwritten by slider changes
-
-**⚡ Instant Restore:**
-- No rebuild needed
-- One tap → all values reset → UI updates immediately
-- Takes < 1 second
-
-**🎯 Complete Coverage:**
-- EVERY tunable parameter is included
-- Nothing is left out or forgotten
-- Comprehensive safety net
-
-**📝 Console Confirmation:**
-- Prints "✅ RESTORED LOCKED DEFAULTS (May 13, 2026)" when executed
-- Easy to verify it worked
-
-**🔄 Non-Destructive:**
-- Doesn't affect game state (composure, customers, etc.)
-- Only resets layout/visual values
-- Game continues playing normally
-
----
-
-#### **Example Use Cases:**
-
-**Scenario 1: Safe Experimentation**
-```
-Current: Known-good layout
-↓ Make cauldron 3× bigger, dice 0.5× smaller
-↓ Test in Evening round (3 customers)
-↓ Don't like it - too cramped
-↓ Tap "🔒 Restore Locked Defaults"
-✅ Back to original in 1 second
-```
-
-**Scenario 2: Incremental Refinement**
-```
-Current: May 13 locked state
-↓ Adjust Mildred's active width to 1.15
-↓ Test in Morning round
-↓ Looks good!
-↓ Copy values → Send to Claude
-↓ Claude updates locked defaults
-✅ New baseline saved (still May 13, but refined)
-```
-
-**Scenario 3: Major Redesign**
-```
-Current: May 13 locked state
-↓ Spend 2 hours repositioning ALL customers
-↓ Adjust ALL node positions
-↓ Resize cauldron and tray
-↓ Happy with new look!
-↓ Copy ALL values → Send to Claude
-↓ Claude replaces entire locked state
-✅ May 13 (evening) is new baseline
-```
-
----
-
-#### **Current Locked State (May 13, 2026 - Established Baseline):**
-
-**Last Snapshot Taken:** May 13, 2026
-**Total Values Locked:** 227
-**Status:** Stable, fully playable, aesthetically balanced
-
-**Key Baseline Values:**
-- Header: 1.72% (minimal)
-- Scene: 27.28% (customer focus)
-- Profile: 9.5% (inspect strip space)
-- Cauldron: 37.2% (HERO element)
-- Tray: 19.3% (big dice)
-- All characters: 1.0×1.0× active scale (pixel-accurate)
-- Nodes: 1.83× scale with custom per-node offsets
-- Dice: 1.41× scale
-
-**Special Notes:**
-- Queue depth scaling REMOVED (all positions 1.0×)
-- 3-position system active (active/waiting/waiting2)
-- Circle clipping removed (full images visible)
-- Drag-and-drop dice enabled
-
----
-
-#### **Maintenance:**
-
-**When to Update the Locked State:**
-- After completing a major layout phase
-- When you reach a "checkpoint" you're happy with
-- Before moving to a new phase of work
-- After playtesting confirms layout is good
-
-**How Often to Update:**
-- No set schedule
-- Update when YOU decide a state is worth preserving
-- Can update multiple times per day if iterating quickly
-- Can go weeks without updating if layout is stable
-
-**Version Tracking:**
-- Timestamp in button badge shows baseline date
-- `restoreLockedDefaults()` has print statement with date
-- Documentation section header shows "Last Updated" date
-- All three should match for consistency
-
----
-
-#### **Quick Reference Commands:**
-
-**To Restore Baseline:**
-```
-Debug Menu (⚙️) → "🔒 Restore Locked Defaults"
-```
-
-**To Save New Baseline (Small Changes):**
-```
-Debug Menu (⚙️) → "📋 Copy Layout Values"
-→ Find changed values
-→ Tell Claude: "Make these new defaults: [list values]"
-```
-
-**To Save New Baseline (Full Overhaul):**
-```
-Debug Menu (⚙️) → "📋 Copy Layout Values"
-→ Copy ALL output
-→ Tell Claude: "Make this the new locked state: [paste all]"
-```
-
----
-
-#### **Files Involved:**
-
-| File | What It Does |
-|------|--------------|
-| `PotionShopLayoutConfig.swift` | Contains live variables AND locked defaults method |
-| `PotionShopDebugMenu.swift` | Contains "🔒 Restore Locked Defaults" button |
-| `PotionShopGameView.swift` | Reads from `layoutConfig` for live preview |
-| `CAULDRON_CONTEXT.md` | Documents the system (this section!) |
-
----
-
-#### **Common Questions:**
-
-**Q: Does restoring defaults restart the game?**
-A: No. It only resets visual layout values. Game state (HP, round, etc.) is untouched.
-
-**Q: Can I restore to a state from 3 weeks ago?**
-A: Only if you saved that state as locked defaults. The button restores to whatever was last locked in via Claude.
-
-**Q: What if I want multiple saved states?**
-A: Store "Copy Layout Values" outputs as text files. You can send any saved output to Claude to restore that state.
-
-**Q: Does closing the app save my changes?**
-A: NO. Slider changes are temporary. Only locked defaults (updated via Claude) persist.
-
-**Q: Can I undo a restore?**
-A: No direct undo, but if you had "Copy Layout Values" before restoring, send that to Claude to go back.
-
-**Q: How do I know what the current locked state is?**
-A: Check the `restoreLockedDefaults()` method in `PotionShopLayoutConfig.swift` or tap the button and see what values appear.
-
----
-
-#### **Best Practices:**
-
-**✅ DO:**
-- Restore before showing to testers
-- Save state before major experiments
-- Update locked defaults after successful changes
-- Use "Copy Layout Values" frequently as snapshots
-- Test after restoring to verify it worked
-
-**❌ DON'T:**
-- Assume slider changes persist after closing app
-- Edit `restoreLockedDefaults()` manually (let Claude do it)
-- Restore in the middle of a gameplay session (finish round first)
-- Forget to update documentation timestamp when locking new state
-
----
-
-#### **Future Enhancements (Potential v2 Features):**
-
-**Not currently implemented, but possible:**
-- Multiple named presets ("Before Art", "After Art", "Tournament Layout")
-- Export/import of layout configs as JSON
-- Undo/redo stack for layout changes
-- Comparison mode (show before/after side-by-side)
-- Per-round/per-customer layout overrides
-- Animation of transition between states
-
----
-
-This system ensures you can **experiment fearlessly** knowing you can always return to a known-good state with one tap. It's your safety net for layout iteration! 🎨🔒
 
 ---
 
@@ -2333,59 +455,23 @@ This system ensures you can **experiment fearlessly** knowing you can always ret
 | 6d    | Patience ring on inspect portrait    | ✅     | Reflects `patience/maxPatience` like profile buttons   |
 | 6e    | Inspect card slide-outward animation | ✅     | Portrait→left, body→right from center-collapsed start |
 | 7     | Animated 7-phase brew sequence       | ✅     | Full floating numbers, shake, flash, expiration slide-out, input lockout, animator constants file |
-| **7b** | **Interactive layout editor (May 4)** | ✅ | **Real-time visual editor with 20+ sliders, code generation, colored overlays. Node independent positioning. Integrated into debug menu. See `LAYOUT_EDITOR_SESSION_MAY4_2026_PART2.md`.** |
-| **7c** | **Drag-and-drop dice (May 4)**       | ✅ | **Full gesture-based drag system with visual feedback (scale, glow, node pulse). Both tap and drag methods work. Clipping fix for tray. Global coordinate hit detection.** |
-| **7d** | **Freeform art scaling (May 4 evening)** | ✅ | **Independent width/height scaling + X/Y positioning for cauldron & Ednar. Real-time sliders in layout editor. 8 new parameters total. See §8.9 for full documentation.** |
-| **7e** | **Art scaling FIX (May 4 evening)** | ✅ | **CRITICAL FIX: Removed `.scaledToFill()` from both images and added missing `*ArtScale` multiplier. Width/height sliders now work independently with true distortion. Images can be stretched/squished freely without aspect ratio constraints.** |
-| **7f** | **Live preview overlay editor (May 5)** | ✅ | **MAJOR REFACTOR: Replaced sheet-based editor with semi-transparent floating overlay that appears OVER the game. Shared `@Observable` config (`PotionShopLayoutConfig.shared`) enables true live preview. Section-focused UI with horizontal pill picker (📏🧙🍲🥘🔵🎲🥄). Added 🔵 Nodes section for grid positioning. Slider changes update game instantly without rebuild. See §12.1 for full documentation.** |
-| **7g** | **Per-node fine-tuning (May 5)** | ✅ | **Added 🔧 Fine-Tune section to layout editor. Individual X/Y offset controls for all 12 nodes (±100pt range). Dropdown picker to select node. "Reset This Node" and "Reset All Nodes" buttons. Offsets apply AFTER spacing multiplier (layered positioning). See §12.1.1 for full documentation.** |
-| **7h** | **Customer scene scaling system (May 6)** | ✅ | **Added 🧍 Customers section to layout editor. Per-character width/height/X/Y scaling with character picker dropdown (Mildred & Tomik). Removed circle clipping from scene portraits so full images are visible. Values passed from layoutConfig → GameView → SceneView → CustomerView. Both characters default to 2.34×2.13× with 5pt, 51pt offsets. See §12.1.2 for full documentation.** |
-| **7i** | **3-position system + waiting2 (May 12)** | ✅ | **MAJOR UPDATE: Added third position (waiting2) for queue[2] customers. Each character now has 12 layout values (4 active + 4 waiting + 4 waiting2). Layout editor updated with purple "Waiting Position 2" section. Code generator updated to output all 56 waiting2 lines (4 values × 14 characters). All 14 characters integrated. See §12.1.2 for full documentation.** |
-| **7j** | **Unified character scaling (May 12)** | ✅ | **REMOVED automatic queue depth scaling. Changed queueScales from [1.0, 0.78, 0.72] to [1.0, 1.0, 1.0]. All customers now appear at same size whether active or waiting by default. Depth effects now optional via per-character layout editor adjustments. All defaults reset to 1.0×1.0×0,0 (pixel-accurate, no distortion). Draw → export → drop → works! See §16.1.1 for full documentation.** |
-| **7k** | **Queue permutation system (May 17)** | ✅ | **Added custom X/Y positioning for specific 3-character arrangements to prevent overlaps in Evening round. Visual layout editor with real-time sliders (green X positions, blue Y positions, purple scale overrides). Debug menu quick presets (Wider/Tighter/Reset). Export function includes permutation values. Fallback to defaults when no custom permutation defined. Data structure in `PotionShopLayoutConfig` with helper methods. See §8B for full documentation including QUEUE_PERMUTATION_SYSTEM.md reference.** |
 
 ---
 
 ## 14. WHAT'S PENDING (NEXT STEPS)
 
-### 14.1 Phase 8 — Art asset integration (PRIORITY NEXT)
-**Status:** User is ready to begin adding art assets to the game.
-
-**Art System Overview:**
-- Asset loader in `PotionShopImageLoader` (or similar)
-- All placeholder art references use `UIImage` loading with emoji fallbacks
-- See §16 (ART ASSETS) for complete specifications
-
-**Assets Needed:**
-- 14 customer portraits (1024×1024 px)
-- 5 Ednar expressions (1024×1536 px)
-- 1 cauldron image (2048×1536 px) - single layer, replaces 3-layer system
-- 5 dice face images (512×512 px) - flat-faced, center 30% blank for number overlay
-- 1 shop background (1242×2688 px)
-- 6 UI icons (256×256 px)
-
-**Current Art Status:**
-- All art is emoji/placeholder colored shapes
-- Customer portraits: emoji fallbacks
-- Ednar: no art (implied presence)
-- Cauldron: parametric bowl shape (brown gradient)
-- Dice: colored squares with text labels
-- Background: parchment color fill
-
-**See NEW DOCUMENT:** `ART_INTEGRATION_HANDOFF_MAY4_2026.md` for complete guide to art integration work.
-
-### 14.2 Phase 9 — Round-end / Day-end / Lose overlays
+### 14.1 Phase 8 — Round-end / Day-end / Lose overlays (PRIORITY NEXT)
 Currently when a round ends the game shows a black overlay with "Round Complete" and a "Continue" button — placeholder from Phase 4. Need:
 - **Round complete overlay:** which customers were defeated, composure remaining, "Continue to [next round]" button
 - **Day complete overlay:** "Day 1 Complete" with full summary, "Return to Selector" button (or "Play Again")
 - **Lose overlay:** "You Collapsed" message, "Try Again" (restart current round) and "End Game" buttons
 - **Boss-defeat flourish** on Night round when Grimdrek goes down (light effect, not over-engineered)
 
-### 14.3 Phase 10 — Trait stub implementation
+### 14.2 Phase 9 — Trait stub implementation
 - **Loud (Bram):** while Bram is in the queue (and not active), reduce the player's "focus" by 1. **NOTE:** "focus" is not yet a defined mechanic in this codebase — needs design clarification before coding. Possible interpretations: -1 to all dice in hand while loud is waiting, or a separate visible "focus" stat. ASK the user before implementing.
 - **Hexer (Hexa Mott, Carmilla):** each turn the customer waits, one random die in the player's current hand rerolls to its lowest face. Mechanic is well-defined; needs to fire during a turn-end phase, probably between phase 5 (patience ticks) and phase 6 (expirations).
 
-### 14.4 Phase 11 — Day 2 + Day 3 (procedural rounds)
+### 14.3 Phase 10 — Day 2 + Day 3 (procedural rounds)
 The data file has Day 2 and Day 3 templates designed (random pulls + hybrid). Wiring them in requires:
 - A round-builder function that takes `min/max difficulty + must_include_tag + required_trait + exclude_ids` and returns a customer list
 - Day-transition flow (Day 1 complete → Day 2 starts)
@@ -2435,239 +521,23 @@ These are items the user explicitly flagged as "I might change this" or "let's r
 
 ---
 
-## 16. ART ASSETS — CUSTOMER SCENE PORTRAITS (UPDATED MAY 10, 2026)
+## 16. ART ASSETS — 34 PNGs (LOCKED SPEC)
 
-The user is drawing all art in **Procreate on iPad**. Customer scene portraits use a **dual portrait system** with separate profile and scene images.
+The user is drawing all art in **Procreate on iPad**. Naming and dimensions below are final (changeable per-file later if needed; user said "I may rename, but the spec is fine for now").
 
-### 16.1 Customer Scene Portrait Canvas Dimensions (✅ SPECIFIED - UPDATED MAY 10, 2026)
-
-Based on the user's Procreate workflow, customer scene portraits are drawn at:
-
-**CANVAS SIZE: 1536 × 1024 pixels @ 300 DPI**
-
-- **Aspect Ratio**: 3:2 (width:height, landscape orientation)
-- **Default scale in code**: 1.0× width, 1.0× height (NO DISTORTION - May 12, 2026 update)
-- **Reference image**: All characters drawn on same canvas size for proportional consistency
-
-**Why these dimensions:**
-- Matches the user's existing Procreate canvas setup
-- Provides high-quality retina rendering for iPhone displays
-- Same canvas for ALL characters ensures proportional relationships are preserved
-- Independent width/height sliders allow fine-tuning per character if needed
-
-### 16.1.1 PIXEL-ACCURATE SIZING SYSTEM (✅ COMPLETE - May 12, 2026)
-
-**The Problem (Before May 12, 2026):**
-- Ednar was using `ednarBaseScale: 2.0` (200% scale)
-- But layout config had `ednarBaseScale: 0.15` (15% scale)
-- Result: Ednar appeared 13× bigger than intended (2.0 ÷ 0.15 = 13.3×)
-- Customers and Ednar were using mismatched scaling systems
-- Manual tuning required for every character to compensate
-
-**The Solution (Implemented May 12, 2026):**
-
-All art is now drawn on **identical 1536×1024 canvas** and uses **unified base scale approach**:
-
-| Character Type | Canvas Size     | Base Scale | Code Location | Purpose |
-|---------------|-----------------|------------|---------------|---------|
-| **Ednar**     | 1536×1024 @ 300 DPI | **0.15** | `PotionShopCustomerSceneView` → `ednarBaseScale` | Makes image visible at reasonable size |
-| **Customers** | 1536×1024 @ 300 DPI | **2.0**  | `PotionShopCustomerInSceneView` → `customerSceneBaseScale` | Makes scene images visible (queue depth scaling removed) |
-
-**Why Different Base Scales?**
-- **Queue depth scaling has been REMOVED** (was [1.0, 0.78, 0.72], now [1.0, 1.0, 1.0])
-- Both Ednar and customers use same canvas size but need different base scales due to different starting frame sizes
-- Ednar has NO automatic shrinking (always full size)
-- Customers previously had automatic shrinking but this was removed in favor of manual per-character control
-- **End result:** Characters drawn at same height in Procreate appear same height in-game!
-- **Depth effects**: Now optional via per-character layout editor adjustments instead of automatic
-
-**Frame Calculation (Unified Formula):**
-```swift
-// EDNAR (PotionShopEdnarView)
-let finalWidth = ednarImage.size.width * ednarBaseScale * ednarArtScale * ednarArtWidth
-let finalHeight = ednarImage.size.height * ednarBaseScale * ednarArtScale * ednarArtHeight
-
-// CUSTOMER (PotionShopCustomerInSceneView)
-let finalWidth = customerImage.size.width * customerSceneBaseScale * effectiveWidth
-let finalHeight = customerImage.size.height * customerSceneBaseScale * effectiveHeight
-
-// Where effectiveWidth/Height = isActive ? activeWidth : waitingWidth
-```
-
-**Scaling Math Example:**
-| Character | Canvas | Base Scale | Art Multiplier | Final Calculation |
-|-----------|--------|------------|----------------|-------------------|
-| Ednar     | 1536×1024 | 0.15 | 1.0×1.0 | `1536 × 0.15 × 1.0 × 1.0 = 230px wide` |
-| Grimdrek (active) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px) |
-| Grimdrek (waiting) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px, same as active!) |
-| Grimdrek (waiting2) | 1536×1024 | 2.0 | 1.0×1.0 | `1536 × 2.0 × 1.0 × 1.0 = 3072px` (NO queue scaling applied - stays 3072px, same as active!) |
-
-**Note:** Queue depth scaling was removed (May 12, 2026). All positions now use same size by default.
-
-**What Changed (Code-Level Details):**
-
-**File:** `PotionShopCustomerSceneView.swift`
-
-**Before (WRONG - May 11, 2026):**
-```swift
-struct PotionShopCustomerSceneView: View {
-    var ednarBaseScale: Double = 2.0  // ❌ WRONG - doesn't match layout config!
-}
-
-struct PotionShopEdnarView: View {
-    var ednarBaseScale: Double = 2.0  // ❌ WRONG - doesn't match layout config!
-    
-    // Emoji fallback - hardcoded size
-    let baseEmojiSize: CGFloat = 100
-    let finalSize = baseEmojiSize * ednarBaseScale * ednarArtScale  // 100 × 2.0 = 200pt ❌
-}
-```
-
-**After (CORRECT - May 12, 2026):**
-```swift
-struct PotionShopCustomerSceneView: View {
-    var ednarBaseScale: Double = 0.15  // ✅ MATCHES layout config!
-}
-
-struct PotionShopEdnarView: View {
-    var ednarBaseScale: Double = 0.15  // ✅ MATCHES layout config!
-    
-    // Emoji fallback - pixel-accurate sizing
-    let baseEmojiSize: CGFloat = 76  // Match customer base size
-    let finalSize = baseEmojiSize  // 76pt ✅ (no multiplication - already correct size)
-}
-```
-
-**Shadow Scaling (Added May 12, 2026):**
-```swift
-// Ednar shadow now scales proportionally
-Capsule()
-    .fill(PotionShopTheme.ink.opacity(0.15))
-    .frame(
-        width: max(64, finalHeight * 0.20),  // 20% of character height
-        height: 4
-    )
-    .offset(y: ednarArtYOffset * 0.5)  // Follows character Y offset (damped)
-```
-
-**Benefits:**
-- ✅ **Upload once, perfect size** - 1536×1024 images appear at intended proportions without tuning
-- ✅ **Consistent workflow** - Same Procreate canvas for ALL characters (Ednar + 14 customers)
-- ✅ **Proportional relationships preserved** - Characters drawn taller appear taller in-game
-- ✅ **Layout editor still works** - Per-character sliders available for fine-tuning
-- ✅ **Default scale 1.0×** - No distortion, images appear as drawn
-- ✅ **Shadow scales automatically** - Gets bigger/smaller with character height
-- ✅ **Unified scaling (May 12, 2026)** - All queue positions now same size by default (queue depth scaling removed)
-
-**Testing Workflow:**
-1. Draw character in Procreate at **1536×1024 @ 300 DPI**
-2. Draw at the height/proportions you want relative to other characters
-3. Export PNG with **transparent background**
-4. Drag into **Assets.xcassets** with exact name (e.g., `ednar_calm`, `mildred_scene`)
-5. Build and run → **Character appears at perfect size!** ✨
-6. (Optional) Fine-tune via Layout Editor if needed (rarely necessary)
-
-**Current Production Values (LOCKED - May 12, 2026):**
-```swift
-// Ednar (in PotionShopLayoutConfig.swift)
-ednarBaseScale: 0.15     // Base scale (makes 1536×1024 visible)
-ednarWidth: 1.0          // Width multiplier (no distortion)
-ednarHeight: 1.0         // Height multiplier (no distortion)
-ednarX: 0.0              // X offset (centered)
-ednarY: 0.0              // Y offset (centered)
-
-// Customers (in PotionShopLayoutConfig.swift)
-customerSceneBaseScale: 2.0  // Base scale (makes scene images visible)
-
-// All 14 characters default to:
-width: 1.0, height: 1.0            // Active position (no distortion)
-waitingWidth: 1.0, waitingHeight: 1.0   // Waiting position (SAME SIZE - no auto-shrink)
-waiting2Width: 1.0, waiting2Height: 1.0 // Waiting2 position (SAME SIZE - no auto-shrink)
-x: 0.0, y: 0.0                     // Centered (no offset)
-
-// Queue depth scaling (in PotionShopCustomerSceneView)
-queueScales: [1.0, 1.0, 1.0]  // ← CHANGED from [1.0, 0.78, 0.72] on May 12, 2026
-// All customers now appear at same size in all positions by default
-```
-
-**What Changed on May 12, 2026:**
-1. **Queue depth scaling REMOVED**: `queueScales` changed from `[1.0, 0.78, 0.72]` to `[1.0, 1.0, 1.0]`
-2. **All defaults reset**: `waitingWidth/Height` changed from `0.8` to `1.0` in config defaults
-3. **Waiting2 values added**: Each character now has `waiting2Width`, `waiting2Height`, `waiting2X`, `waiting2Y`
-4. **Code generator updated**: Now outputs all 56 waiting2 lines (4 values × 14 characters)
-5. **CharacterScale struct expanded**: 8 properties → 12 properties (added 4 waiting2 fields)
-
-**Why This Change:**
-- User wanted all characters to appear at their natural drawn proportions without automatic shrinking
-- Draw → Export → Drop → Works! (No tuning required)
-- Depth effects now optional via per-character layout editor adjustments
-- Simpler mental model: "What I draw is what appears in-game"
-
-**Historical Note:**
-- **May 10, 2026:** Character defaults were 1.6×2.0× (distorted aspect ratio), automatic queue depth shrinking active
-- **May 12, 2026 (morning):** Reset to 1.0×1.0× (pixel-accurate, no distortion), queue depth shrinking still active
-- **May 12, 2026 (afternoon):** Removed queue depth shrinking entirely, added waiting2 position support
-- **Reason:** User wanted to upload images and have them appear correctly sized without manual adjustment
-- **Result:** System now works as intended - draw at correct proportions, upload, done! ✨
-
-### 16.2 Customer Scene Portraits - Asset Naming Convention
-
-**Profile portraits** (head closeups for profile buttons): Use character ID only
-- `mildred.png`, `tomik.png`, `greta.png`, etc.
-
-**Scene portraits** (full-body for customer scene): Use character ID + `_scene` suffix
-- `mildred_scene.png`, `tomik_scene.png`, `greta_scene.png`, etc.
-
-### 16.3 Integrated Customer Scene Portraits (Status: May 10, 2026)
-
-| Character    | Profile Asset   | Scene Asset         | Status        |
-|--------------|-----------------|---------------------|---------------|
-| Mildred      | `mildred`       | `mildred_scene`     | ✅ INTEGRATED |
-| Tomik        | `tomik`         | `tomik_scene`       | ✅ INTEGRATED |
-| Greta        | `greta`         | `greta_scene`       | ✅ INTEGRATED |
-| Sister Halla | `sister_halla`  | `sister_halla_scene`| ✅ INTEGRATED |
-| Wendelina    | `wendelina`     | `wendelina_scene`   | ✅ INTEGRATED |
-| Grimdrek     | `grimdrek`      | `grimdrek_scene`    | ✅ INTEGRATED |
-| Hexa Mott    | `hexa_mott`     | `hexa_mott_scene`   | ✅ INTEGRATED |
-| Pemberton    | `pemberton`     | `pemberton_scene`   | ✅ INTEGRATED |
-| Ardo         | `ardo`          | `ardo_scene`        | ✅ INTEGRATED |
-| Bram         | `bram`          | `bram_scene`        | ✅ INTEGRATED |
-| Crispin      | `crispin`       | `crispin_scene`     | ✅ INTEGRATED |
-| Ironhilde    | `ironhilde`     | `ironhilde_scene`   | ✅ INTEGRATED |
-| Carmilla     | `carmilla`      | `carmilla_scene`    | ✅ INTEGRATED |
-| Royal Envoy  | `royal_envoy`   | `royal_envoy_scene` | ✅ INTEGRATED |
-
-**All 14 Characters Now Integrated:**
-- ✅ All have `scenePortrait` field using proper `_scene` nomenclature
-- ✅ All have config entries in `PotionShopLayoutConfig.perCharacterScales`
-- ✅ All appear in layout editor character picker dropdown
-- ✅ All have default active scale (**1.0×1.0× - NO DISTORTION** as of May 12, 2026)
-- ✅ All have default waiting scale (0.8×0.8× - creates depth effect)
-- ✅ All support active/waiting position system with smooth transitions
-
-**Per-Character Scaling System:**
-- Each character has independent width/height/x/y values in `PotionShopLayoutConfig.swift`
-- **Active values** used when character is at `queue[0]` (front of line)
-- **Waiting values** used when character is at `queue[1+]` (back of line)
-- **Default active: 1.0×1.0×** (pixel-accurate, no distortion - May 12, 2026 update)
-- **Default waiting: 0.8×0.8×** (80% of active size for depth effect)
-- Adjusted via Layout Editor → 🧍 Customers section → Character picker dropdown
-- Values can be locked in config after tuning for each character (rarely needed now)
-
-### 16.4 Original Art Asset Spec (Profile Portraits & Other Assets)
+### 16.1 Asset list with Procreate canvas sizes
 
 | Category               | Count | Procreate canvas | Notes                                                    |
 |------------------------|-------|------------------|----------------------------------------------------------|
-| Character profile portraits | 14 | 1024×1024 px @ 300 DPI | Head closeups for profile buttons. Square; circular crop in-game. Transparent BG. |
-| Character scene portraits | 14 | 1536×1024 px @ 300 DPI | Full-body for customer scene. 3:2 landscape ratio. Transparent BG. Uses `_scene` suffix. **ALL 14 NOW INTEGRATED!** |
+| Character portraits    | 14    | 1024×1024 px @ 300 DPI | One per customer. Square; circular crop in-game. Transparent BG. |
 | Ednar expressions      | 5     | 1024×1536 px @ 300 DPI | calm / focused / concerned / alarmed / satisfied — same body, different face |
 | Cauldron (layered)     | 3     | 2048×1536 px @ 300 DPI | back / liquid / front — single Procreate file, exported as 3 PNGs |
 | Dice (flat-faced)      | 5     | 512×512 px @ 300 DPI   | potency / stability / boost / heal / shield. Center 30% kept BLANK (runtime renders the number on top) |
-| Background             | 1     | 1242×2688 px @ 300 DPI | Full-screen iPhone Pro Max. Shop interior, top→bottom zones described in §16.7 |
+| Background             | 1     | 1242×2688 px @ 300 DPI | Full-screen iPhone Pro Max. Shop interior, top→bottom zones described in §16.4 |
 | UI icons               | 6     | 256×256 px @ 300 DPI   | heart, shield, potion, brew sign, hamburger, etc.       |
-| **TOTAL v1**           | **47**|                  | (14 profiles + 14 scenes + 5 Ednar + 3 cauldron + 5 dice + 1 bg + 6 icons) - **All characters integrated!** |
+| **TOTAL v1**           | **34**|                  |                                                          |
 
-### 16.5 Procreate export rules
+### 16.2 Procreate export rules
 - Format: PNG
 - Background: **transparent** — user must toggle off the bottom "Background" layer in Procreate before File → Share → PNG, otherwise the export has a white background
 - Color profile: sRGB or Display P3
@@ -2684,42 +554,14 @@ ednar_alarmed.png, ednar_satisfied.png,
 
 cauldron_back.png, cauldron_liquid.png, cauldron_front.png,
 
+potion_node.png,
+
 die_potency.png, die_stability.png, die_boost.png, die_heal.png, die_shield.png,
 
-customerbg.png,    ← Customer scene background (✅ INTEGRATED May 5, 2026)
+background.png,
 
 icon_heart.png, icon_shield.png, icon_potion.png, icon_brew_sign.png,
 icon_hamburger.png, icon_gear.png
-```
-
-### 16.3.1 Customer Background Integration (✅ COMPLETE - May 5, 2026)
-
-**Asset:** `customerbg.png`  
-**Location in code:** `PotionShopCustomerSceneView.swift` → `backgroundLayer(geo:)`  
-**Implementation:** Uses `UIImage(named: "customerbg")` with `.scaledToFit()` scaling  
-**Layer order:**
-1. **Gradient** (bottom) - Tan/cream fallback, always present
-2. **customerbg** (above gradient) - User's sketch background
-3. **Floor line** (brown rectangle at bottom)
-4. **Ednar** (wizard character on left)
-5. **Customers** (characters on right)
-6. **Shield badge** (if player has shield)
-
-**Scaling behavior:**
-- `.scaledToFit()` maintains aspect ratio
-- Shows entire image without cropping
-- May show gradient at edges if aspect ratio doesn't match scene area
-- Gradient acts as underlay/fallback
-
-**Code location:**
-```swift
-// PotionShopCustomerSceneView.swift, line ~170
-if let backgroundImage = UIImage(named: "customerbg") {
-    Image(uiImage: backgroundImage)
-        .resizable()
-        .scaledToFit()
-        .frame(width: geo.size.width, height: geo.size.height)
-}
 ```
 
 ### 16.4 Background composition zones (1242×2688 canvas)
@@ -2737,6 +579,16 @@ if let backgroundImage = UIImage(named: "customerbg") {
 - Strong color identity: POT red, STB blue, BST purple, HEAL green, SHD teal
 - Optional icon in upper-left or top edge: POT flame, STB anchor, BST starburst, HEAL heart, SHD shield outline
 - Drop animation parameters (in code, not art): drop from -80pt above with spring bounce, **no rotation**, simultaneous deal of all 5
+
+### 16.5.1 Node socket rules (drawing)
+The `potion_node.png` asset is the empty cauldron slot art. Draw rules:
+- **Square canvas** (e.g., 256×256 or 512×512), transparent background
+- The actual socket shape lives in the center; **leave ~20% transparent padding around the edges** so the glow has room to bleed out beyond the visible art
+- Should read as an "empty socket" or "rune frame" — a die will be drawn inside it at ~78% of its size, so the inner well should be just slightly larger than what a die looks like
+- The glow color comes from the code (yellow/cyan/die-color), so the socket art itself should be **neutral / desaturated** — anything strongly colored will clash with the glow tint
+- If unsure, look at Die in the Dungeon's socket frames for reference
+
+If the asset isn't present, the code falls back to a parchment-colored rounded rectangle so the game still runs while you draw.
 
 ### 16.6 Ednar expression triggers
 | Expression       | When it shows                                                       |
@@ -2788,7 +640,7 @@ If numbers appear in the wrong screen position, those are the values to tweak. T
 
 | # | Item                                          | Status / mitigation                                                              |
 |---|-----------------------------------------------|----------------------------------------------------------------------------------|
-| 1 | Reach preview only works on desktop hover     | Mobile users see no preview. Needs a tap-and-hold or auto-show-on-select. v2.    |
+| 1 | ~~Reach preview only works on desktop hover~~ | **RESOLVED (May 22, 2026):** preview glow now triggers during drag-hover on mobile. See §22. |
 | 2 | Bag/discard not visualized                    | Mechanic works but invisible. v2.                                                |
 | 3 | Stability dice possibly underused             | At 80% efficiency, players may always favor Potency. Watch in playtest.           |
 | 4 | Loud trait stubbed                            | "Focus" not defined; needs design discussion before Phase 9.                     |
@@ -2842,130 +694,149 @@ When starting a fresh session with Claude in Xcode:
 | Tune any animation timing                               | `PotionShopBrewAnimator.swift`                       |
 | Change floating-number font                             | `PotionShopBrewAnimator.swift` → `numberFont(size:)` |
 | Change cauldron bowl shape / size                       | `PotionShopCauldronView.swift` → `PotionShopCauldronGeometry` |
-| Change customer queue X positions (default spacing)     | `PotionShopCustomerSceneView.swift` → `queueXFractions` |
-| **Adjust 3-character spacing (live preview)**           | **⚙️ → Layout Editor → 🎭 Permutations** (see §8B)    |
-| **Add custom permutation spacing (permanent)**          | **`PotionShopLayoutConfig.swift` → `init()` → `addPermutation(for:xPositions:yPositions:)`** (see §8B) |
-| **Quick permutation presets (testing)**                 | **⚙️ → 🎭 Queue Permutations → Wider/Tighter/Reset** (see §8B) |
+| Change customer queue X positions                       | `PotionShopCustomerSceneView.swift` → `queueXFractions` |
 | Change vertical section heights                         | `PotionShopGameView.swift` (GeometryReader fractions)|
 | Add a debug action                                      | `PotionShopDebugMenu.swift` + matching method on `PotionShopGameState` |
 | Swap a placeholder asset for real art                   | drop PNG into `Assets.xcassets`, change `iconFallback` emoji to `Image("name")` |
 | Implement Hexer trait                                   | `PotionShopGameState.swift` → add a phase between patience-tick and expirations in `doBrew()` |
+| Change which nodes a die affects (reach rules)          | `PotionShopModels.swift` → `PotionShopDieRules.affectedNodes` |
+| Change node socket art                                   | replace `potion_node.png` in `Assets.xcassets`       |
+| Tune node glow colors / intensity                       | `PotionShopCauldronView.swift` → `PotionShopNodeButtonView` → `glowColor` / `glowRadius` / `glowOpacity` |
+| Change base die size (tray)                             | `PotionShopCauldronView.swift` → `PotionShopCauldronLayout.dieSize` (default 44) |
+| Change base node size                                   | `PotionShopCauldronView.swift` → `PotionShopCauldronLayout.nodeVisible` (default 26) |
+| Change node touch-target size                           | `PotionShopCauldronView.swift` → `PotionShopCauldronLayout.nodeHitArea` (default 36) |
+| Change how big a placed die is INSIDE a node socket     | `PotionShopCauldronView.swift` → `PotionShopNodeButtonView`, the `* 0.78` multiplier (smaller = more frame shows) |
+| Runtime dice/node scale (already in Layout Editor)      | `dieScale` / `nodeScale` in `PotionShopLayoutConfig.swift` (or via Layout Editor sliders) |
 
 ---
 
-## 22. SESSION SUMMARY — MAY 12, 2026 (UNIFIED CHARACTER SCALING)
+## 22. NODE GLOW & DIE REACH SYSTEM (Session May 22, 2026)
 
-### What Was Accomplished:
+This section documents the cauldron interaction layer: how nodes look, how they glow, how the die-reach preview works, and where every tunable lives. It replaces the older grow/shrink scale system. **Read this if you want to change how dice interact with the board, change which nodes a die affects, or restyle the glow.**
 
-**1. Removed Queue Depth Scaling (MAJOR CHANGE)**
-- **Old behavior:** Characters automatically shrank when in waiting positions
-  - Active (queue[0]): 100% size
-  - Waiting (queue[1]): 78% size
-  - Waiting2 (queue[2]): 72% size
-- **New behavior:** All positions use same size by default (100% at all positions)
-- **Implementation:** Changed `queueScales` from `[1.0, 0.78, 0.72]` to `[1.0, 1.0, 1.0]`
-- **Files modified:** `PotionShopCustomerSceneView.swift`
+### 22.1 What changed in this session
+| Before | After |
+|--------|-------|
+| Empty node = parchment rectangle. Disappears when a die is placed. | Node art is **always visible** (your `potion_node.png`) — the die sits on top of it like a socket. |
+| Hover state = node *grows* 15%. | Hover state = node *glows*. No size change. |
+| Die-reach math was embedded inside `computeBrew()` only. | Reach rules now live in one struct (`PotionShopDieRules`) shared by both brew math and the preview glow. |
+| No preview of "which nodes will this die affect?" before placement. | Die-in-the-Dungeon-style: dragging a die over a target makes affected nodes **glow cyan**. |
+| Die was the same size as the node frame, so the frame never "showed". | Placed die is 78% of node size, so your `potion_node.png` shows as a frame around it. |
+| Drag gestures lived on the die view only — small hit area → "stuck dice" feel. | Drag/tap gestures live on the whole node area → entire node is grabbable. |
 
-**2. Updated Layout Config Defaults**
-- **Old defaults:** `waitingWidth: 0.8, waitingHeight: 0.8` (80% of active size)
-- **New defaults:** `waitingWidth: 1.0, waitingHeight: 1.0` (same as active size)
-- **Reason:** Unified sizing system - all characters appear at natural proportions
-- **Files modified:** `PotionShopLayoutConfig.swift`
+### 22.2 The four glow states
+Defined in `PotionShopNodeButtonView` inside `PotionShopCauldronView.swift`. Priority is top-down — the highest match wins.
 
-**3. Added Waiting2 Position Support (3-Position System)**
-- **New fields added to CharacterScale struct:**
-  - `waiting2Width: Double = 1.0`
-  - `waiting2Height: Double = 1.0`
-  - `waiting2X: Double = 0.0`
-  - `waiting2Y: Double = 0.0`
-- **Total values per character:** 12 (4 active + 4 waiting + 4 waiting2)
-- **Total values for all 14 characters:** 168 character-specific values
-- **Files modified:** `PotionShopLayoutConfig.swift`
+| State            | When                                                      | Default color           | Default radius |
+|------------------|-----------------------------------------------------------|-------------------------|----------------|
+| Hovered target   | Empty node, you're dragging a die over it                 | Bright yellow           | 20             |
+| Tap candidate    | Empty node, a die is selected from the tray (tap mode)    | Soft yellow             | 12             |
+| In reach preview | Empty node, within the dragged die's reach                | Cyan                    | 14             |
+| Locked-in        | Has a die placed                                          | Die's own type color    | 9              |
+| (none)           | Default                                                   | Transparent             | 0              |
 
-**4. Updated Layout Editor UI**
-- **Added purple "⏸️ WAITING POSITION 2 (queue[2])" section**
-- **New controls:**
-  - 🔗 Uniform Scale slider (yellow, sets width + height together)
-  - Width slider (0.5× to 5.0×)
-  - Height slider (0.5× to 5.0×)
-  - X Offset slider (-200 to +200 pts)
-  - Y Offset slider (-200 to +200 pts)
-  - "Link W/H" button (copies width to height)
-  - "Reset Position" button (zeros X/Y offsets)
-- **Files modified:** `PotionShopGameView.swift` (PotionShopLayoutOverlay section)
+### 22.3 The die-reach rules (THE most important tuning knob)
+File: **`PotionShopModels.swift`**, struct **`PotionShopDieRules`** at the bottom.
 
-**5. Updated Code Generator (Copy Layout Values)**
-- **Added 56 new output lines:** 4 waiting2 values × 14 characters
-- **Fixed "tomik" line break bug** that was breaking output formatting
-- **New output includes:**
-  - All active values (width, height, x, y) for 14 characters = 56 lines
-  - All waiting values (width, height, x, y) for 14 characters = 56 lines
-  - All waiting2 values (width, height, x, y) for 14 characters = 56 lines
-  - **Total character values in output: 168 lines**
-- **Files modified:** `PotionShopDebugMenu.swift` (`copyLayoutValuesToClipboard()` function)
+This is the **single source of truth** for "which nodes does this die affect?" — used both by the preview glow AND the brew math. Change it once, both systems update.
 
-**6. Updated Rendering System**
-- **New 3-way conditional:**
-  ```swift
-  let effectiveWidth = isActive ? activeWidth : (queueIndex == 1 ? waitingWidth : waiting2Width)
-  let effectiveHeight = isActive ? activeHeight : (queueIndex == 1 ? waitingHeight : waiting2Height)
-  let effectiveX = isActive ? activeX : (queueIndex == 1 ? waitingX : waiting2X)
-  let effectiveY = isActive ? activeY : (queueIndex == 1 ? waitingY : waiting2Y)
-  ```
-- **Supports 3 queue positions:** queue[0] (active), queue[1] (waiting), queue[2] (waiting2)
-- **Smooth transitions:** `matchedGeometryEffect` animates between all three states
-- **Files modified:** `PotionShopCustomerSceneView.swift` (PotionShopCustomerInSceneView)
+Each of the 5 die types (potency, stability, boost, heal, shield) has its own block. Each block returns a `[Int]` of node indices.
 
-**7. Applied User's Custom Values**
-- **Mildred:** Active width adjusted from 2.34× to 2.46× (5.2% wider)
-- **Tomik:** Active x adjusted to -34.75pt, y to 12.41pt
-- **Greta:** Active width/height to 0.856×, x to -46.45pt, y to 19.50pt
-- **Pemberton:** Active y to 2.84pt, waiting width/height to 0.864×, waiting x to -23.05pt, waiting y to 5.32pt
-- **All values saved to:** `PotionShopLayoutConfig.swift` defaults
+**Default for all five types:** `PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)` — nodes within `value` graph hops.
 
-### Technical Summary:
+**Common edits the file shows examples for:**
+- "Heal dice are self-only" → return `[]` in the `.heal` case
+- "Boost only affects immediate neighbors regardless of value" → `hops: 1` in the `.boost` case
+- "Boost is always 2 hops" → `hops: 2`
+- Hard-coded patterns (e.g., always corners) → return `[0, 1, 8, 11].filter { $0 != nodeIndex }`
+- Position-dependent reach → branch on `nodeIndex` inside the case
 
-**Data Structure Changes:**
-- `CharacterScale` struct: 8 properties → 12 properties (+4 waiting2 fields)
-- Config defaults: `waitingWidth/Height` changed from 0.8 to 1.0
-- Queue scaling: `[1.0, 0.78, 0.72]` → `[1.0, 1.0, 1.0]`
+Returning invalid indices or the die's own index never crashes — the brew loop and preview both ignore them.
 
-**Code Changes:**
-- **5 files modified:**
-  1. `PotionShopLayoutConfig.swift` - Added waiting2 fields, changed defaults
-  2. `PotionShopCustomerSceneView.swift` - Removed queue depth scaling, added 3-way conditional
-  3. `PotionShopGameView.swift` - Added waiting2 UI section (purple header)
-  4. `PotionShopDebugMenu.swift` - Updated code generator to output waiting2 values
-  5. `CAULDRON_CONTEXT.md` - Updated documentation (this file!)
+### 22.4 Size tuning knobs (cheat sheet)
+There are **three layers of scale**. They multiply together. If something looks too big or too small, figure out which layer is wrong before changing numbers.
 
-**User Workflow Impact:**
-- ✅ Draw characters at natural proportions in Procreate (1536×1024 @ 300 DPI)
-- ✅ Export PNG with transparent background
-- ✅ Drop into Assets.xcassets
-- ✅ Build and run → **Characters appear at correct size without tuning!**
-- ✅ (Optional) Fine-tune via layout editor if desired
+```
+final visible size  =  base constant  ×  runtime scale  ×  fine-tuning multiplier
+                       (in code)         (Layout Editor)    (e.g. the 0.78 for placed dice)
+```
 
-### Next Steps:
+#### Base constants (in `PotionShopCauldronLayout` at the top of `PotionShopCauldronView.swift`)
+| Constant         | Default | What it controls                                              |
+|------------------|--------:|---------------------------------------------------------------|
+| `dieSize`        |      44 | Size of dice **in the tray** (pre-runtime-scale)              |
+| `nodeVisible`    |      26 | Size of the node socket art / locked-in die slot              |
+| `nodeHitArea`    |      36 | Invisible touchable area around each node (bigger = more forgiving taps) |
 
-**Immediate:**
-1. Build and run (Command + R) to verify changes
-2. Test with Round 3 (Evening) to see 3 customers all at uniform size
-3. Use layout editor to adjust waiting2 values if depth effects desired
+These are starting points. Don't change them unless you've tried adjusting runtime scale first.
 
-**Future:**
-- Continue adding remaining character art assets
-- Playtest Day 1 completely
-- Move to Phase 8 (Round-end overlays)
+#### Runtime scales (already saved in your Layout Editor)
+| Field            | Where                                | What it does                                        |
+|------------------|--------------------------------------|-----------------------------------------------------|
+| `dieScale`       | Layout Editor → "🎲 Dice & Tray"     | Multiplies every tray die's visible size            |
+| `nodeScale`      | Layout Editor → "🔵 Nodes"           | Multiplies every node's visible AND touchable size  |
 
-### Files Modified in This Session:
+Your current values: `dieScale ≈ 1.41`, `nodeScale ≈ 1.83`.
 
-1. **PotionShopLayoutConfig.swift** - Added waiting2 support, changed defaults
-2. **PotionShopCustomerSceneView.swift** - Removed queue depth scaling
-3. **PotionShopGameView.swift** - Added waiting2 UI controls
-4. **PotionShopDebugMenu.swift** - Updated code generator
-5. **CAULDRON_CONTEXT.md** - Updated documentation
+#### Fine-tuning multiplier (the one most people miss)
+File: `PotionShopCauldronView.swift`, in `PotionShopNodeButtonView`, the line:
+```swift
+PotionShopPlacedDieView(die: die, visualScale: visualScale * 0.78)
+```
+That **`0.78`** controls how big the die looks **inside its socket**. Lower = more node frame shows around the die. Higher = die fills the socket. Two places in the function (one for ghosted, one for locked-in); change both to the same value.
 
-**Total lines added/changed:** ~200 lines across 5 files
+| Value | Look |
+|-------|------|
+| 0.60  | Tiny die, large empty frame around it (very "socket" feel) |
+| 0.78  | Default. Frame visible as a ring. |
+| 0.90  | Die fills most of the socket. Frame is just a thin border. |
+| 1.00  | Die fills the entire socket. Frame not visible — equivalent to the old behavior. |
+
+The touch area (drag/tap) is **the full `nodeHitArea`**, independent of how big the die looks. Shrinking the die visually doesn't make it harder to grab.
+
+### 22.5 Glow color tuning
+Same file, same struct. Find the three properties:
+```swift
+private var glowColor: Color { ... }
+private var glowRadius: CGFloat { ... }
+private var glowOpacity: Double { ... }
+```
+Each is a chain of `if` statements with one return value per state. Change the colors / numbers in any branch.
+
+**Examples:**
+- Want preview to be magical purple instead of cyan? Change the cyan RGB in the `isInPreview` branch of `glowColor` to `Color(red: 0.65, green: 0.45, blue: 1.00)`.
+- Want stronger glow when locked-in? Bump `placedDie != nil` branch of `glowRadius` from 9 to 14.
+- Want all dice to glow the same color when locked-in (not their type color)? In `glowColor`, change `return die.type.color` to a fixed color like `Color.orange`.
+
+### 22.6 How drag + tap routing works (so you don't break it)
+The whole `nodeHitArea` (~36pt × nodeScale) is one interactive zone with two gestures:
+
+- `.onTapGesture` — fires on a tap with no movement.
+   - If node has a die: removes the die back to the tray.
+   - If node is empty: places the currently-selected tray die here.
+- `.gesture(DragGesture(minimumDistance: 5))` — fires when you move 5pt+ before releasing.
+   - Only does anything if a die is present at this node.
+   - Updates `gs.nodeDragLocation` for the floating drag-overlay.
+   - On release: checks `findNodeAtPosition`, moves the die if target is empty, otherwise springs back.
+
+The visible die and the node art both have `.allowsHitTesting(false)` — they're purely decorative. **Don't add gestures to either of them.** Add them to the outer `ZStack` instead.
+
+### 22.7 If the game feels "stuck" or unresponsive
+Likely causes, in order:
+1. **Adjacent nodes overlap.** With `nodeHitArea = 36` and `nodeScale ≈ 1.83`, each hit zone is ~66pt. If two nodes' on-screen centers are closer than ~70pt, their hit zones overlap and drops can land on the wrong neighbor. Fix: reduce per-node fine-tuning offsets, lower `nodeScale`, or lower `nodeHitArea`.
+2. **`isAnimating` flag stuck on.** If a brew animation crashed midway, `gs.isAnimating` may have stayed `true`. The whole node disables itself when `gs.isAnimating == true`. Restart the round via the debug menu.
+3. **Hit area too small.** If you lowered `nodeHitArea` below ~30 at scale 1.0, fingers can miss the node. Bump back up.
+
+### 22.8 If you ever want to revert to grow/shrink scale instead of glow
+In `PotionShopNodeButtonView`, after the two `.shadow(...)` lines, add:
+```swift
+.scaleEffect(isHovered ? 1.15 : 1.0)
+.animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
+```
+This adds scale ON TOP of the glow. To replace the glow entirely, also delete the two `.shadow(...)` lines.
+
+### 22.9 Companion doc
+A focused, code-free tuning reference for this whole system lives in **`NODE_SYSTEM_GUIDE.md`** (separate file). Keep that one open while tuning visuals; keep this section as the deeper reference.
 
 ---
 

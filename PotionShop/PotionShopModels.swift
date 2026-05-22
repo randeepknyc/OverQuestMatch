@@ -383,3 +383,66 @@ struct PotionShopBoard {
         return Array(visited)
     }
 }
+
+// MARK: - Die reach rules
+//
+// ┌──────────────────────────────────────────────────────────────┐
+// │  EDIT THIS STRUCT TO CHANGE WHICH NODES EACH DIE AFFECTS.    │
+// │                                                              │
+// │  This is the ONLY place reach rules live. Both systems use   │
+// │  it automatically:                                           │
+// │    • The cyan preview glow (which nodes light up on hover)   │
+// │    • The brew calculation (which boost dice apply)           │
+// │                                                              │
+// │  Each die type has its own block. Mix and match patterns —   │
+// │  examples below show what's possible.                        │
+// └──────────────────────────────────────────────────────────────┘
+
+struct PotionShopDieRules {
+
+    /// Returns the node indices this die affects when placed at `nodeIndex`.
+    /// Does NOT include the die's own node.
+    static func affectedNodes(for die: PotionShopDie, placedAt nodeIndex: Int) -> [Int] {
+        switch die.type {
+
+        // ─── POTENCY ────────────────────────────────────────────
+        case .potency:
+            // Default: nodes within (die.value) graph hops
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+
+        // ─── STABILITY ──────────────────────────────────────────
+        case .stability:
+            // Default: same as potency, nodes within die.value hops
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+
+        // ─── BOOST ──────────────────────────────────────────────
+        case .boost:
+            // Default: nodes within die.value hops
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+            //
+            // ALTERNATE IDEAS (uncomment one and comment the default):
+            //
+            // Only direct neighbors, regardless of value:
+            //   return PotionShopBoard.neighborsWithin(nodeIndex, hops: 1)
+            //
+            // Always 2 hops, regardless of value:
+            //   return PotionShopBoard.neighborsWithin(nodeIndex, hops: 2)
+            //
+            // Affects NOTHING (purely decorative):
+            //   return []
+
+        // ─── HEAL ───────────────────────────────────────────────
+        case .heal:
+            // Default: nodes within die.value hops
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+            //
+            // ALTERNATE: Heals only affect themselves (no interaction):
+            //   return []
+
+        // ─── SHIELD ─────────────────────────────────────────────
+        case .shield:
+            // Default: nodes within die.value hops
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+        }
+    }
+}

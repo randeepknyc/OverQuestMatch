@@ -380,7 +380,7 @@ struct PotionShopNodeButtonView: View {
     let nodeIndex: Int
     let diceFlight: Namespace.ID
     var visualScale: Double = 1.0  // Visual-only scale (doesn't affect position)
-    
+
     @State private var globalFrame: CGRect = .zero
     @State private var isDraggingFromHere: Bool = false  // Local drag state
 
@@ -389,37 +389,86 @@ struct PotionShopNodeButtonView: View {
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
     private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil && !isDraggingFromHere }
     private var isDraggingDie: Bool { gs.draggedDie != nil }
-    private var canReceiveDrop: Bool { 
-        isDraggingDie && !atCap && placedDie == nil && !isDraggingFromHere 
+    private var canReceiveDrop: Bool {
+        isDraggingDie && !atCap && placedDie == nil && !isDraggingFromHere
     }
-    private var isHovered: Bool { 
+    private var isHovered: Bool {
         gs.hoveredNodeIndex == nodeIndex && !isDraggingFromHere
+    }
+    private var isInPreview: Bool {
+        gs.previewAffectedNodes.contains(nodeIndex)
+    }
+
+    // ─── GLOW APPEARANCE ─────────────────────────────────────────
+    // State priority (highest wins):
+    //   1. Hovered drop target        → bright yellow, biggest glow
+    //   2. Tap-place candidate         → softer yellow
+    //   3. In the reach preview        → cyan ("this die would affect me")
+    //   4. Has die locked in           → subtle die-tinted glow
+    //   5. Nothing                     → no glow
+
+    private var glowColor: Color {
+        if isHovered && canReceiveDrop { return Color.yellow }
+        if canBePlacedOn               { return Color.yellow }
+        if isInPreview                 { return Color(red: 0.30, green: 0.85, blue: 1.00) }  // cyan
+        if let die = placedDie         { return die.type.color }
+        return .clear
+    }
+
+    private var glowRadius: CGFloat {
+        if isHovered && canReceiveDrop { return 20 }
+        if canBePlacedOn               { return 12 }
+        if isInPreview                 { return 14 }
+        if placedDie != nil            { return 9 }
+        return 0
+    }
+
+    private var glowOpacity: Double {
+        if isHovered && canReceiveDrop { return 1.0 }
+        if canBePlacedOn               { return 0.75 }
+        if isInPreview                 { return 0.85 }
+        if placedDie != nil            { return 0.65 }
+        return 0.0
     }
 
     var body: some View {
         ZStack {
+            // Invisible hit area (sets the ZStack's overall size)
             Rectangle()
                 .fill(Color.clear)
                 .frame(
                     width: PotionShopCauldronLayout.nodeHitArea * visualScale,
                     height: PotionShopCauldronLayout.nodeHitArea * visualScale
                 )
-                .contentShape(Rectangle())
 
-            // Show die if there's one placed here
+            // ━━━ NODE BACKGROUND ART (always visible) ━━━━━━━━━━━━
+            // Uses your "potion_node" asset if present, otherwise
+            // falls back to a plain rounded rectangle.
+            nodeBackground
+                .frame(
+                    width: PotionShopCauldronLayout.nodeVisible * visualScale,
+                    height: PotionShopCauldronLayout.nodeVisible * visualScale
+                )
+                // Two stacked shadows = a thicker, softer glow
+                .shadow(color: glowColor.opacity(glowOpacity), radius: glowRadius)
+                .shadow(color: glowColor.opacity(glowOpacity * 0.55), radius: glowRadius * 0.5)
+                .animation(.easeInOut(duration: 0.22), value: isHovered)
+                .animation(.easeInOut(duration: 0.22), value: canBePlacedOn)
+                .animation(.easeInOut(duration: 0.30), value: placedDie?.id)
+                .animation(.easeInOut(duration: 0.18), value: isInPreview)
+                .allowsHitTesting(false)  // Gestures live on the outer ZStack
+
+            // ━━━ DIE ON TOP (visual only — no gestures here) ━━━━━━
             if let die = placedDie {
-                ZStack {
-                    // Show dimmed die at node position when dragging, OR full die when not
+                Group {
                     if isDraggingFromHere {
-                        // During drag: Show dimmed copy at original position (NO matchedGeometryEffect!)
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale)
+                        // Drag origin: ghosted die stays put
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0)
                             .opacity(0.3)
-                        
-                        // NOTE: Floating die is now rendered at cauldron level (see PotionShopCauldronView)
-                        // This ensures it appears above ALL nodes, not just the ones rendered before this one
                     } else {
-                        // Not dragging: Show normal die with matchedGeometryEffect for smooth transitions
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale)
+                        // Locked-in die, scaled down so node frame shows
+                        // around it as a "socket".
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0)
                             .matchedGeometryEffect(
                                 id: die.id,
                                 in: diceFlight,
@@ -427,96 +476,74 @@ struct PotionShopNodeButtonView: View {
                             )
                     }
                 }
-                // Tap to remove (sends to tray)
-                .onTapGesture {
-                    if !gs.isAnimating && !isDraggingFromHere {
-                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                            gs.unplaceDie(nodeIndex)
-                        }
-                    }
-                }
-                // Drag gesture to move to another node
-                .gesture(
-                    DragGesture(minimumDistance: 5, coordinateSpace: .global)
-                        .onChanged { value in
-                            if !gs.isAnimating {
-                                if !isDraggingFromHere {
-                                    // Start the drag
-                                    isDraggingFromHere = true
-                                    gs.startDraggingFromNode(nodeId: nodeIndex)
-                                }
-                                // Store the drag location (absolute position) for cauldron-level rendering
-                                gs.nodeDragLocation = value.location
-                                // Update hover position
-                                gs.updateDragHoverPosition(value.location)
-                            }
-                        }
-                        .onEnded { value in
-                            if !gs.isAnimating {
-                                // Check if drop is valid BEFORE actually moving the die
-                                let targetNodeId = gs.findNodeAtPosition(value.location)
-                                let canDrop = targetNodeId != nil && 
-                                              targetNodeId != nodeIndex &&
-                                              gs.placements[targetNodeId!] == nil
-                                
-                                if canDrop, let target = targetNodeId {
-                                    // SUCCESS: Move die INSTANTLY (no withAnimation)
-                                    // matchedGeometryEffect will handle the visual slide automatically
-                                    if let die = gs.placements[nodeIndex] {
-                                        gs.placements[nodeIndex] = nil
-                                        gs.placements[target] = die
-                                    }
-                                    
-                                    // Clean up instantly
-                                    gs.nodeDragLocation = nil
-                                    isDraggingFromHere = false
-                                    gs.cancelNodeDrag()
-                                } else {
-                                    // FAILED: Return to source
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                                        gs.nodeDragLocation = nil
-                                        isDraggingFromHere = false
-                                    }
-                                    gs.cancelNodeDrag()
-                                }
-                            } else {
-                                gs.nodeDragLocation = nil
-                                isDraggingFromHere = false
-                                gs.cancelNodeDrag()
-                            }
-                        }
-                )
-            }
-            
-            // Show empty node visual when there's no die placed
-            if placedDie == nil {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(visibleFill)
-                    .frame(
-                        width: PotionShopCauldronLayout.nodeVisible * visualScale,
-                        height: PotionShopCauldronLayout.nodeVisible * visualScale
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(visibleStroke, lineWidth: visibleStrokeWidth)
-                    )
-                    .scaleEffect(isHovered ? 1.15 : 1.0)
-                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
-                    // Tap gesture (original behavior - place selected die)
-                    .onTapGesture {
-                        if !gs.isAnimating {
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                                gs.tapNode(nodeIndex)
-                            }
-                        }
-                    }
+                .allowsHitTesting(false)  // Gestures live on the outer ZStack
             }
         }
+        // ━━━ ALL GESTURES LIVE HERE on the full hit area ━━━━━━━━━
+        // This means anywhere inside the node area is grabbable —
+        // you can tap or drag from anywhere within the frame, not
+        // only inside the small visible die.
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !gs.isAnimating, !isDraggingFromHere else { return }
+            if placedDie != nil {
+                // Tap on a placed die → remove back to tray
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                    gs.unplaceDie(nodeIndex)
+                }
+            } else {
+                // Tap on empty node → place currently-selected die
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                    gs.tapNode(nodeIndex)
+                }
+            }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 5, coordinateSpace: .global)
+                .onChanged { value in
+                    // Drag is only meaningful when a die lives here
+                    guard placedDie != nil, !gs.isAnimating else { return }
+                    if !isDraggingFromHere {
+                        isDraggingFromHere = true
+                        gs.startDraggingFromNode(nodeId: nodeIndex)
+                    }
+                    gs.nodeDragLocation = value.location
+                    gs.updateDragHoverPosition(value.location)
+                }
+                .onEnded { value in
+                    guard placedDie != nil, !gs.isAnimating else {
+                        gs.nodeDragLocation = nil
+                        isDraggingFromHere = false
+                        gs.cancelNodeDrag()
+                        return
+                    }
+
+                    let targetNodeId = gs.findNodeAtPosition(value.location)
+                    let canDrop = targetNodeId != nil &&
+                                  targetNodeId != nodeIndex &&
+                                  gs.placements[targetNodeId!] == nil
+
+                    if canDrop, let target = targetNodeId {
+                        if let die = gs.placements[nodeIndex] {
+                            gs.placements[nodeIndex] = nil
+                            gs.placements[target] = die
+                        }
+                        gs.nodeDragLocation = nil
+                        isDraggingFromHere = false
+                        gs.cancelNodeDrag()
+                    } else {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                            gs.nodeDragLocation = nil
+                            isDraggingFromHere = false
+                        }
+                        gs.cancelNodeDrag()
+                    }
+                }
+        )
         .background(
             GeometryReader { geometry in
                 Color.clear
                     .onAppear {
-                        // Register this node's position in global coordinates
                         let frame = geometry.frame(in: .global)
                         globalFrame = frame
                         gs.nodePositions[nodeIndex] = frame
@@ -530,27 +557,24 @@ struct PotionShopNodeButtonView: View {
         .disabled(gs.isAnimating && placedDie == nil)
     }
 
-    private var visibleFill: Color {
-        if isHovered && canReceiveDrop { 
-            return Color(red: 1.0, green: 0.95, blue: 0.4)  // Fully opaque (removed .opacity(0.9))
+    // ─── NODE BACKGROUND ────────────────────────────────────────
+    // Your hand-drawn node art. If the asset "potion_node" is not
+    // found, falls back to a parchment-colored rounded rectangle
+    // so nothing breaks until your art is added.
+    @ViewBuilder
+    private var nodeBackground: some View {
+        if let nodeImage = PotionShopImageLoader.loadImage(named: "potion_node") {
+            Image(uiImage: nodeImage)
+                .resizable()
+                .scaledToFit()
+        } else {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color(red: 0.95, green: 0.87, blue: 0.65))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color(red: 0.55, green: 0.40, blue: 0.20).opacity(0.7), lineWidth: 1)
+                )
         }
-        if canBePlacedOn { return Color(red: 1.0, green: 0.92, blue: 0.62) }  // Already opaque
-        if atCap { return Color(red: 0.85, green: 0.78, blue: 0.58) }  // Fully opaque (removed .opacity(0.5))
-        return Color(red: 0.95, green: 0.87, blue: 0.65)  // Fully opaque (removed .opacity(0.85))
-    }
-
-    private var visibleStroke: Color {
-        if isHovered && canReceiveDrop {
-            return PotionShopTheme.accent.opacity(1.0)
-        }
-        if canBePlacedOn { return PotionShopTheme.accent }
-        return Color(red: 0.55, green: 0.40, blue: 0.20).opacity(0.7)
-    }
-
-    private var visibleStrokeWidth: CGFloat {
-        if isHovered && canReceiveDrop { return 3 }
-        if canBePlacedOn { return 2 }
-        return 1
     }
 }
 
@@ -952,4 +976,3 @@ struct PotionShopNodeConnectionLines: View {
         }
     }
 }
-

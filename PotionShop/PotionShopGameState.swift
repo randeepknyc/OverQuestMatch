@@ -336,7 +336,7 @@ class PotionShopGameState {
     /// Drop die onto a node.
     func dropDieOnNode(_ nodeId: Int) {
         guard let die = draggedDie else { return }
-        if placements[nodeId] != nil { 
+        if placements[nodeId] != nil {
             // Node occupied - return die to hand
             returnDraggedDie()
             return
@@ -509,6 +509,30 @@ class PotionShopGameState {
         return counts
     }
 
+    // MARK: - Preview reach (for hover glow on affected nodes)
+
+    /// Set of node indices that would be affected if the currently-dragged die
+    /// were dropped on the currently-hovered node. Used to make those nodes
+    /// glow as a placement preview, Die-in-the-Dungeon style.
+    ///
+    /// Returns an empty set when nothing is being dragged, or when no valid
+    /// target is hovered. The hovered node itself is excluded — it has its
+    /// own "drop target" glow.
+    var previewAffectedNodes: Set<Int> {
+        guard let die = draggedDie,
+              let hovered = hoveredNodeIndex
+        else { return [] }
+
+        // Only preview reach for empty targets (no point previewing
+        // a drop that would fail anyway)
+        guard placements[hovered] == nil else { return [] }
+
+        let reach = PotionShopDieRules.affectedNodes(for: die, placedAt: hovered)
+        var result = Set(reach)
+        result.remove(hovered)  // the target gets its own glow
+        return result
+    }
+
     // MARK: - Brew calculation
 
     struct BrewPreview {
@@ -532,7 +556,9 @@ class PotionShopGameState {
 
         for (nodeId, die) in placements {
             let baseValue = die.value + dieValueMod
-            let reach = PotionShopBoard.neighborsWithin(nodeId, hops: baseValue)
+            // Reach now comes from PotionShopDieRules — edit that struct
+            // in PotionShopModels.swift to tune per-die behavior.
+            let reach = PotionShopDieRules.affectedNodes(for: die, placedAt: nodeId)
             var multiplier: Double = 1.0
             for rn in reach {
                 if let adjDie = placements[rn], adjDie.type == .boost {
