@@ -255,6 +255,88 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 - **On placement:** die slides via `matchedGeometryEffect` from tray slot to cauldron node (Phase 6). About 0.4s with a small spring bounce.
 - **On unplacement:** die slides back to tray (same mechanic, reversed).
 
+### 6.8 Drag-and-drop dice placement (May 22, 2026 - FULLY WORKING)
+
+**Status:** ✅ FULLY IMPLEMENTED (including node-to-node drag with NO FADE!)
+
+The game supports **three methods** for placing and moving dice on nodes:
+
+#### **Method 1: Tap-select-then-tap-node (original)**
+1. Tap a die in the tray → yellow border appears (selected)
+2. Tap an empty node → die slides to that node
+3. Tap the placed die → slides back to tray
+
+#### **Method 2: Drag-and-drop from tray to node**
+1. Touch and drag a die from the tray
+2. Die follows your finger with 15% scale increase + colored glow shadow
+3. Empty nodes glow as you drag over them
+4. Release over an empty node → die slides smoothly to node center
+5. Release outside nodes → die springs back to tray
+
+#### **Method 3: Drag-and-drop from node to node (May 22, 2026)** ✨
+1. Touch and drag a die that's already placed on a node
+2. During drag:
+   - **Ghost die** appears at source node (30% opacity)
+   - **Floating die** follows your finger (115% scale + colored glow)
+   - **Source node** stays visible (doesn't disappear)
+   - **Target nodes glow** when you hover over them (cyan reach preview!)
+3. Release over an empty node:
+   - Die **instantly moves** in data model (no animation wrapper)
+   - `matchedGeometryEffect` **smoothly slides** die from source to target
+   - **No fade animation** (instant data update lets SwiftUI animate cleanly)
+4. Release over occupied node or outside:
+   - Die **springs back** to source node
+
+**⚠️ CRITICAL: Node-to-node animation fix (May 22, 2026):**
+The fade animation bug was caused by wrapping the data model change in `withAnimation`. This competed with `matchedGeometryEffect`.
+
+**CORRECT pattern (no fade):**
+```swift
+if canDrop, let target = targetNodeId {
+    // Move die INSTANTLY (no withAnimation wrapper)
+    gs.placements[nodeIndex] = nil
+    gs.placements[target] = die
+    
+    // Clean up instantly
+    gs.nodeDragLocation = nil
+    isDraggingFromHere = false
+}
+```
+
+**WRONG pattern (causes fade):**
+```swift
+if canDrop, let target = targetNodeId {
+    withAnimation {  // ← Don't do this!
+        gs.placements[nodeIndex] = nil
+        gs.placements[target] = die
+    }
+}
+```
+
+**Why this works:**
+- ✅ Data model updates **instantly** (no animation)
+- ✅ `matchedGeometryEffect` sees die at target node only
+- ✅ SwiftUI animates die **sliding to target** (smooth!)
+- ✅ No competing animations = no fade
+
+**Technical implementation:**
+- **Gesture:** `DragGesture(coordinateSpace: .global)` on placed dice
+- **Ghost die system:** Source node shows 30% opacity copy during drag
+- **Floating die:** Cauldron top layer renders dragging die at `zIndex: 1000`
+- **Position tracking:** Nodes register global `CGRect` positions
+- **Hit detection:** `findNodeAtPosition(_:)` checks drop location
+- **Hover state:** `updateDragHoverPosition(_:)` updates cyan glow preview
+- **Animation:** `matchedGeometryEffect(id: die.id, in: diceFlight)` handles slide
+
+**State management:**
+- `draggedDie: PotionShopDie?` - The die being dragged
+- `draggedFromNode: Int?` - Source node for node-to-node moves
+- `nodeDragLocation: CGPoint?` - Current drag position (for floating die)
+- `hoveredNodeIndex: Int?` - Which node is hovered during drag
+- `nodePositions: [Int: CGRect]` - Global positions of all nodes
+
+**See also:** `NODE_TO_NODE_DRAG_SESSION.md` for complete implementation history and troubleshooting.
+
 ---
 
 ## 7. STATE MACHINE — `PotionShopGameState`

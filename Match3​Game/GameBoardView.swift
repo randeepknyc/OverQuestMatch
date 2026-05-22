@@ -226,20 +226,21 @@ struct GameBoardView: View {
     }
     
     private func gridCell(row: Int, col: Int, tileSize: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 8)
+        let xPos = CGFloat(col) * tileSize + tileSize / 2
+        let yPos = CGFloat(row) * tileSize + tileSize / 2 - (tileSize / 2)
+        let cellSize = tileSize * 0.95
+        return RoundedRectangle(cornerRadius: 8)
             .strokeBorder(Color.white.opacity(0.03), lineWidth: 1)
-            .frame(width: tileSize * 0.95, height: tileSize * 0.95)
-            .position(
-                x: CGFloat(col) * tileSize + tileSize / 2,
-                y: CGFloat(row) * tileSize + tileSize / 2 - (tileSize / 2)
-            )
-            .contentShape(Rectangle())  // 🎯 Make entire area tappable
-            .onTapGesture {
-                // 🎯 FIX: Tapping background/empty space clears selection
-                if gameMode == .swap {
-                    viewModel.selectedPosition = nil
-                }
-            }
+            .frame(width: cellSize, height: cellSize)
+            .position(x: xPos, y: yPos)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: handleGridCellTap)
+    }
+
+    private func handleGridCellTap() {
+        if gameMode == .swap {
+            viewModel.selectedPosition = nil
+        }
     }
     
     @ViewBuilder
@@ -367,17 +368,21 @@ struct GemTileView: View {
     @State private var landingBounce: CGFloat = 1.0
     
     var body: some View {
-        mainContent
+        let step1 = mainContent
             .frame(width: size, height: size)
             .scaleEffect(effectiveScale)
             .offset(totalOffset)
             .scaleEffect(spawnScaleEffect)
             .opacity(spawnOpacityEffect)
             .offset(y: spawnOffsetEffect)
+        
+        let step2 = step1
             .animation(.easeInOut(duration: 0.25), value: isSelected)
             .onChange(of: isShaking, onShakingChanged)
             .onChange(of: tile.id, onTileIDChanged)
             .animation(fallAnimation, value: position)
+        
+        return step2
             .onChange(of: position, onPositionChanged)
             .onChange(of: matchCenter, onMatchCenterChanged)
             .onAppear(perform: onAppearAction)

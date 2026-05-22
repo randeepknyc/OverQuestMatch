@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "ednar_calm.jpg",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -9,7 +10,6 @@
       "scale" : "2x"
     },
     {
-      "filename" : "Untitled_Artwork 11.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

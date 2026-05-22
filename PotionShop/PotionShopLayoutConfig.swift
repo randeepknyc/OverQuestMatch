@@ -291,6 +291,26 @@ class PotionShopLayoutConfig {
     var brewZoneHeight: Double = 95.51772773265839
     var showBrewZone: Bool = false
     
+    // MARK: - Badge Graphics (NEW - May 22, 2026)
+    
+    // HP Badge Size (red badge above active customer's head)
+    var hpBadgeSize: Double = 28.0
+    var hpBadgeOffsetX: Double = 0.0
+    var hpBadgeOffsetY: Double = -60.0
+
+    // Attack Badge Size (red badge above customer's head, offset right)
+    var attackBadgeSize: Double = 24.0
+    var attackBadgeOffsetX: Double = 20.0
+    var attackBadgeOffsetY: Double = -50.0
+
+    // Inspect Banner Bottle Size (potion number graphic in banner)
+    var bannerBottleSize: Double = 48.0
+    var bannerBottleOffsetX: Double = 0.0
+    var bannerBottleOffsetY: Double = 0.0
+    var bannerBottleNumberSize: Double = 30.0
+    var bannerBottleNumberOffsetX: Double = 0.0
+    var bannerBottleNumberOffsetY: Double = 0.0
+
     private init() {
         // MARK: - Queue Permutations (Custom 3-Character Spacing)
         // Evening round arrangements to prevent character overlaps
@@ -477,6 +497,20 @@ class PotionShopLayoutConfig {
         brewZoneWidth = 113.10815364122391
         brewZoneHeight = 95.51772773265839
         showBrewZone = false
+        
+        // Badge Graphics (May 22, 2026 defaults)
+        hpBadgeSize = 28.0
+        hpBadgeOffsetX = 0.0
+        hpBadgeOffsetY = -60.0
+        attackBadgeSize = 24.0
+        attackBadgeOffsetX = 20.0
+        attackBadgeOffsetY = -50.0
+        bannerBottleSize = 48.0
+        bannerBottleOffsetX = 0.0
+        bannerBottleOffsetY = 0.0
+        bannerBottleNumberSize = 30.0
+        bannerBottleNumberOffsetX = 0.0
+        bannerBottleNumberOffsetY = 0.0
         
         print("✅ RESTORED LOCKED DEFAULTS (May 13, 2026)")
     }

@@ -604,7 +604,23 @@ struct PotionShopDebugMenu: View {
         brewZoneWidth: \(cfg.brewZoneWidth)
         brewZoneHeight: \(cfg.brewZoneHeight)
         showBrewZone: \(cfg.showBrewZone)
-        
+
+        ───────────────────────────────────────────────────────────────
+        🎨 BADGE GRAPHICS (size + position)
+        ───────────────────────────────────────────────────────────────
+        hpBadgeSize: \(cfg.hpBadgeSize)
+        hpBadgeOffsetX: \(cfg.hpBadgeOffsetX)
+        hpBadgeOffsetY: \(cfg.hpBadgeOffsetY)
+        attackBadgeSize: \(cfg.attackBadgeSize)
+        attackBadgeOffsetX: \(cfg.attackBadgeOffsetX)
+        attackBadgeOffsetY: \(cfg.attackBadgeOffsetY)
+        bannerBottleSize: \(cfg.bannerBottleSize)
+        bannerBottleOffsetX: \(cfg.bannerBottleOffsetX)
+        bannerBottleOffsetY: \(cfg.bannerBottleOffsetY)
+        bannerBottleNumberSize: \(cfg.bannerBottleNumberSize)
+        bannerBottleNumberOffsetX: \(cfg.bannerBottleNumberOffsetX)
+        bannerBottleNumberOffsetY: \(cfg.bannerBottleNumberOffsetY)
+
         """
         
         // ─── QUEUE PERMUTATIONS (3-character spacing) ─────────────

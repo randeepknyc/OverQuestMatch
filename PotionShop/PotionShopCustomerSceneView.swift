@@ -294,29 +294,41 @@ struct PotionShopEdnarView: View {
     }
 
     var body: some View {
+        // Match the customer scene-image scaling system: fixed placeholder + scaleEffect.
+        let baseScale = PotionShopLayoutConfig.shared.customerSceneBaseScale
+        let placeholderW = PotionShopSceneLayout.portraitDiameter
+        let placeholderH = PotionShopSceneLayout.portraitDiameter * 1.5
+        let finalHeight = placeholderH * baseScale * ednarArtScale * ednarArtHeight
+
         VStack(spacing: 0) {
             // Try to load Ednar expression image, fallback to emoji
-            // ACTUAL SIZE SYSTEM (May 12, 2026): Uses real pixel dimensions (same scale as layout config)
             if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
-                let finalWidth = ednarImage.size.width * ednarBaseScale * ednarArtScale * ednarArtWidth
-                let finalHeight = ednarImage.size.height * ednarBaseScale * ednarArtScale * ednarArtHeight
-                
-                Image(uiImage: ednarImage)
-                    .resizable()
-                    .scaledToFit()  // Preserve aspect ratio
-                    .frame(width: finalWidth, height: finalHeight)
-                    .offset(x: ednarArtXOffset, y: ednarArtYOffset)
-                    .allowsHitTesting(false)
-                
+                ZStack {
+                    Color.clear
+                        .frame(width: placeholderW, height: placeholderH)
+
+                    Image(uiImage: ednarImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: placeholderW, height: placeholderH)
+                        .scaleEffect(
+                            x: baseScale * ednarArtScale * ednarArtWidth,
+                            y: baseScale * ednarArtScale * ednarArtHeight,
+                            anchor: .center
+                        )
+                        .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                        .allowsHitTesting(false)
+                }
+
                 // Shadow scales proportionally to image height (20% of height, min 4pt)
                 Capsule()
                     .fill(PotionShopTheme.ink.opacity(0.15))
                     .frame(
-                        width: max(64, finalHeight * 0.20),  // Shadow width = 20% of height
+                        width: max(64, finalHeight * 0.20),
                         height: 4
                     )
                     .blur(radius: 1)
-                    .offset(y: ednarArtYOffset * 0.5)  // Shadow follows Y offset (damped)
+                    .offset(y: ednarArtYOffset * 0.5)
             } else {
                 // Emoji fallback - pixel-accurate sizing
                 let baseEmojiSize: CGFloat = 76  // Match customer base size
@@ -475,31 +487,69 @@ struct PotionShopCustomerInSceneView: View {
 
                 // HP Badge (ABOVE character's head, centered)
                 if isActive {
-                    Text("\(customer.hp)")
-                        .font(Font.gameScore(size: 14 * scale))
-                        .foregroundColor(.white)
-                        .frame(
-                            width: 26 * scale,
-                            height: 26 * scale
-                        )
-                        .background(Circle().fill(PotionShopTheme.composureBad))
-                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                        .offset(x: 0, y: -60 * scale)  // ABOVE head (centered horizontally)
-                        .transition(.scale.combined(with: .opacity))
+                    ZStack {
+                        // Custom HP badge graphic (background)
+                        if let hpBadgeImage = UIImage(named: "hp_badge") {
+                            Image(uiImage: hpBadgeImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(
+                                    width: PotionShopLayoutConfig.shared.hpBadgeSize * scale,
+                                    height: PotionShopLayoutConfig.shared.hpBadgeSize * scale
+                                )
+                        } else {
+                            // Fallback: red circle if image missing
+                            Circle()
+                                .fill(PotionShopTheme.composureBad)
+                                .frame(
+                                    width: PotionShopLayoutConfig.shared.hpBadgeSize * scale,
+                                    height: PotionShopLayoutConfig.shared.hpBadgeSize * scale
+                                )
+                        }
+                        
+                        // HP number (white text on top)
+                        Text("\(customer.hp)")
+                            .font(Font.gameScore(size: 14 * scale))
+                            .foregroundColor(.white)
+                    }
+                    .offset(
+                        x: PotionShopLayoutConfig.shared.hpBadgeOffsetX * scale,
+                        y: PotionShopLayoutConfig.shared.hpBadgeOffsetY * scale
+                    )
+                    .transition(.scale.combined(with: .opacity))
                 }
 
                 // Attack Badge (ABOVE character's head, offset to right)
                 if attack > 0 {
-                    Text("\(attack)")
-                        .font(Font.gameScore(size: 11 * scale))
-                        .foregroundColor(.white)
-                        .frame(
-                            width: 22 * scale,
-                            height: 22 * scale
-                        )
-                        .background(Circle().fill(PotionShopTheme.composureBad))
-                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                        .offset(x: 20 * scale, y: -50 * scale)  // ABOVE head (offset right)
+                    ZStack {
+                        // Custom attack badge graphic (background)
+                        if let attackBadgeImage = UIImage(named: "attack_badge") {
+                            Image(uiImage: attackBadgeImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize * scale
+                                )
+                        } else {
+                            // Fallback: red circle if image missing
+                            Circle()
+                                .fill(PotionShopTheme.composureBad)
+                                .frame(
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize * scale
+                                )
+                        }
+                        
+                        // Attack number (white text on top)
+                        Text("\(attack)")
+                            .font(Font.gameScore(size: 11 * scale))
+                            .foregroundColor(.white)
+                    }
+                    .offset(
+                        x: PotionShopLayoutConfig.shared.attackBadgeOffsetX * scale,
+                        y: PotionShopLayoutConfig.shared.attackBadgeOffsetY * scale
+                    )
                 }
 
                 // PHASE 7: 💢 emoji burst on expiration
@@ -812,14 +862,38 @@ struct PotionShopInspectStripView: View {
                     Spacer()
                     
                     // Potion bottle value (INSIDE banner)
-                    HStack(spacing: 4) {
-                        Text("🧪")
-                            .font(.system(size: 13))
+                    // Option C + D: Fixed size with number shrinking to fit, resizable via layout editor
+                    ZStack {
+                        // Bottle graphic (background)
+                        if let bottleImage = UIImage(named: "potion_bottle_outline") {
+                            Image(uiImage: bottleImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(
+                                    width: PotionShopLayoutConfig.shared.bannerBottleSize,
+                                    height: PotionShopLayoutConfig.shared.bannerBottleSize
+                                )
+                        } else {
+                            // Fallback: emoji bottle if image missing
+                            Text("🧪")
+                                .font(.system(size: PotionShopLayoutConfig.shared.bannerBottleSize * 0.7))
+                        }
+                        
+                        // Number on top (white, shrinks to fit if needed)
                         Text("\(brewTargetForPill)")
-                            .font(Font.gameScore(size: 30))
-                            .foregroundColor(PotionShopTheme.composureBad)
+                            .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
+                            .foregroundColor(.white)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .offset(
+                                x: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetX,
+                                y: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetY
+                            )
                     }
-                    .offset(x: isExpanded ? 0 : -60)
+                    .offset(
+                        x: (isExpanded ? 0 : -60) + PotionShopLayoutConfig.shared.bannerBottleOffsetX,
+                        y: PotionShopLayoutConfig.shared.bannerBottleOffsetY
+                    )
                     .opacity(isExpanded ? 1.0 : 0.0)
                 }
                 .padding(.leading, 50)

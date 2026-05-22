@@ -304,6 +304,7 @@ struct PotionShopLayoutOverlay: View {
         case sections = "📏 Sections"
         case ednar = "🧙 Ednar"
         case customers = "🧍 Customers"  // NEW: Customer scene portraits
+        case badges = "🎨 Badges"  // NEW: HP/Attack badges + bottle graphic
         case permutations = "🎭 Permutations"  // NEW: 3-character queue spacing
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
@@ -864,6 +865,90 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+            }
+        case .badges:
+            // 🎨 BADGE GRAPHICS - HP/Attack badges + bottle graphic
+            VStack(alignment: .leading, spacing: 12) {
+                Text("🎨 Custom Badge Graphics")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                
+                Text("Adjust the size of your custom badge graphics. Draw at high resolution (256×256 or 512×512), then tune the on-screen size here.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.bottom, 6)
+                
+                // HP Badge slider
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("❤️ HP Badge (above active customer)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.red)
+                    sliderRow("HP Badge Size", value: $layoutConfig.hpBadgeSize, range: 10...60, format: "%.0f pt")
+                    sliderRow("HP Badge X", value: $layoutConfig.hpBadgeOffsetX, range: -150...150, format: "%.0f pt")
+                    sliderRow("HP Badge Y", value: $layoutConfig.hpBadgeOffsetY, range: -150...150, format: "%.0f pt")
+                    Text("Asset name: hp_badge.png")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.5))
+                        .italic()
+                }
+
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+
+                // Attack Badge slider
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("⚔️ Attack Badge (above customers)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.orange)
+                    sliderRow("Attack Badge Size", value: $layoutConfig.attackBadgeSize, range: 10...60, format: "%.0f pt")
+                    sliderRow("Attack Badge X", value: $layoutConfig.attackBadgeOffsetX, range: -150...150, format: "%.0f pt")
+                    sliderRow("Attack Badge Y", value: $layoutConfig.attackBadgeOffsetY, range: -150...150, format: "%.0f pt")
+                    Text("Asset name: attack_badge.png")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.5))
+                        .italic()
+                }
+
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                    .padding(.vertical, 4)
+
+                // Bottle Graphic slider
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("🧪 Bottle Graphic (inspect banner)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.cyan)
+                    sliderRow("Bottle Size", value: $layoutConfig.bannerBottleSize, range: 20...80, format: "%.0f pt")
+                    sliderRow("Bottle X", value: $layoutConfig.bannerBottleOffsetX, range: -150...150, format: "%.0f pt")
+                    sliderRow("Bottle Y", value: $layoutConfig.bannerBottleOffsetY, range: -150...150, format: "%.0f pt")
+                    sliderRow("Number Size", value: $layoutConfig.bannerBottleNumberSize, range: 10...60, format: "%.0f pt")
+                    sliderRow("Number X", value: $layoutConfig.bannerBottleNumberOffsetX, range: -50...50, format: "%.0f pt")
+                    sliderRow("Number Y", value: $layoutConfig.bannerBottleNumberOffsetY, range: -50...50, format: "%.0f pt")
+                    Text("Asset name: potion_bottle_outline.png")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.5))
+                        .italic()
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+                
+                // Instructions
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("💡 Pro Tips:")
+                        .font(.caption2.bold())
+                        .foregroundColor(.yellow)
+                    Text("• Draw graphics at 256×256 or 512×512 px @ 300 DPI")
+                    Text("• Export as PNG with transparent background")
+                    Text("• Leave center area clear for numbers")
+                    Text("• Use dark colors so white numbers show clearly")
+                    Text("• Tap a customer profile to open inspect banner")
+                    Text("• Skip to Round 3 to see all badges in action")
+                }
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.7))
             }
         case .permutations:
             // 🎭 QUEUE PERMUTATIONS - Custom 3-character spacing
