@@ -1,7 +1,240 @@
 # NODE-TO-NODE DICE DRAG SESSION
-**Date:** May 20, 2026  
-**Status:** ❌ NOT WORKING - Needs Continuation  
+**Date:** May 20-22, 2026  
+**Status:** ✅ WORKING - Fixed fade animation issue  
 **Goal:** Enable dragging dice from one cauldron node to another node (not just node → tray)
+
+---
+
+## 🎯 FINAL SOLUTION (May 22, 2026)
+
+### **What Was The Problem**
+
+When dragging a die from node to node, there was a **fade animation** instead of a clean slide. This was caused by:
+
+1. **Ghost die at source** (30% opacity) during drag
+2. **Floating die** following finger
+3. **`withAnimation` wrapper** around data model change
+4. **matchedGeometryEffect trying to animate** from source to target
+
+These **four visual representations** were competing:
+- Ghost die (dimmed, at source node)
+- Floating die (full opacity, following finger)
+- Source node die (being removed from data model)
+- Target node die (being added to data model)
+
+SwiftUI saw the die at both source AND target simultaneously, creating a crossfade effect.
+
+### **The Fix**
+
+**Removed the `withAnimation` wrapper** from the data model change. The change now happens **instantly**, and `matchedGeometryEffect` handles the visual animation automatically.
+
+**Before (WRONG - caused fade):**
+```swift
+if canDrop, let target = targetNodeId {
+    isDraggingFromHere = false
+    gs.nodeDragLocation = nil
+    
+    if let die = gs.placements[nodeIndex] {
+        withAnimation(.spring(...)) {  // ← PROBLEM: Animation wrapper
+            gs.placements[nodeIndex] = nil
+            gs.placements[target] = die
+        }
+    }
+}
+```
+
+**After (CORRECT - no fade):**
+```swift
+if canDrop, let target = targetNodeId {
+    // Move die INSTANTLY (no withAnimation)
+    // matchedGeometryEffect handles the visual slide automatically
+    if let die = gs.placements[nodeIndex] {
+        gs.placements[nodeIndex] = nil
+        gs.placements[target] = die
+    }
+    
+    // Clean up instantly
+    gs.nodeDragLocation = nil
+    isDraggingFromHere = false
+    gs.cancelNodeDrag()
+}
+```
+
+**Why This Works:**
+- ✅ Data model updates **instantly** (no animation)
+- ✅ Ghost die disappears **instantly** (no fade)
+- ✅ Floating die disappears **instantly** (no fade)
+- ✅ `matchedGeometryEffect` sees die at target node only
+- ✅ SwiftUI animates die **sliding to target** (smooth!)
+- ✅ No competing animations = no fade
+
+### **Current System**
+
+**During drag:**
+1. Source node shows **ghost die** at 30% opacity (stays visible)
+2. Cauldron top layer shows **floating die** following finger (115% scale + glow)
+3. Target node shows **hover glow** when you're over it
+
+**On successful drop:**
+1. Data model updated **instantly** (no animation)
+2. `isDraggingFromHere = false` (ghost disappears)
+3. `nodeDragLocation = nil` (floating die disappears)
+4. `matchedGeometryEffect` slides die from source to target (smooth!)
+
+**On failed drop:**
+1. Ghost fades back to full die
+2. Floating die animates back with spring
+3. Die stays at source
+
+---
+
+## ✅ WHAT'S WORKING NOW
+
+**All features functional:**
+- ✅ Dice can be dragged from **tray → node** (works)
+- ✅ Dice can be **tapped to remove** (node → tray) (works)
+- ✅ Dice can be dragged from **node → node** (works!)
+- ✅ **No fade animation** - clean slide only
+- ✅ Die follows finger smoothly during drag
+- ✅ Ghost die visible at source during drag
+- ✅ Hover glow on valid empty target nodes
+- ✅ Spring back animation on failed drop
+- ✅ Tap-to-remove still works
+
+---
+
+## 📂 FILES MODIFIED
+
+### **PotionShopCauldronView.swift**
+**Location:** `PotionShopNodeButtonView` → `.gesture(DragGesture...)` → `.onEnded`
+
+**Change:** Removed `withAnimation` wrapper from data model update
+
+**Lines changed:** ~615-635
+
+**Why:** Let `matchedGeometryEffect` handle all animations automatically. No competing animations = no fade.
+
+---
+
+## 🎯 WHAT THE USER WANTED
+
+> "i've been trying to do node to node dice drop and it's almost there! it does a weird fade animation when placed, i need it to just look like it's placed, no fade"
+
+**User's diagnosis was correct:** The fade was caused by animation timing conflicts.
+
+**Solution was simple:** Stop manually animating the data model change. Let SwiftUI's `matchedGeometryEffect` do its job.
+
+---
+
+## 🧪 TESTING CHECKLIST
+
+**Basic Movement:**
+- ✅ Drag die from Node 0 to Node 3
+- ✅ Die follows finger smoothly (not offset/far away)
+- ✅ Source node stays visible (ghost die at 30% opacity)
+- ✅ Target node glows yellow when hovering
+- ✅ Die slides smoothly to new position (no fade!)
+
+**Edge Cases:**
+- ✅ Drag to occupied node → die springs back to source
+- ✅ Drag outside nodes → die springs back to source
+- ✅ Drag to same node → cancels (die stays)
+- ✅ Tap die → removes to tray (still works)
+
+**Visual Polish:**
+- ✅ Die scales up 15% during drag (floating die)
+- ✅ Die has colored glow shadow during drag
+- ✅ Source node excluded from hover (doesn't glow)
+- ✅ Empty target nodes glow yellow
+
+---
+
+## 💡 KEY LESSON LEARNED
+
+**When using `matchedGeometryEffect`:**
+- ❌ **DON'T** wrap data model changes in `withAnimation`
+- ✅ **DO** let `matchedGeometryEffect` handle the animation
+- ✅ **DO** update state instantly
+- ✅ **DO** trust SwiftUI to animate the transition
+
+**The pattern:**
+```swift
+// GOOD - Instant update, smooth animation
+if success {
+    dataModel.update()
+    cleanup()
+}
+
+// BAD - Competing animations, fade
+if success {
+    withAnimation {  // ← Don't do this!
+        dataModel.update()
+    }
+    cleanup()
+}
+```
+
+---
+
+## 🔧 PREVIOUS ATTEMPTS (FOR REFERENCE)
+
+### **Attempt 1: "Pick up and place" (no ghost die)** ❌ FAILED
+- Removed ghost die entirely
+- Only floating die visible during drag
+- **Problem:** Die completely disappeared from source, drag broke
+
+### **Attempt 2: Hide ghost then animate** ❌ FAILED  
+- Set `isDraggingFromHere = false` instantly
+- Then animate data model change with `withAnimation`
+- **Problem:** Created the fade we were trying to fix
+
+### **Attempt 3: Remove animation wrapper** ✅ SUCCESS
+- Data model updates instantly (no `withAnimation`)
+- `matchedGeometryEffect` handles visual slide
+- **Result:** Clean slide, no fade!
+
+---
+
+## 📝 CONVERSATION CONTEXT
+
+**User frustration level:**
+- High (used expletive when drag broke after first fix attempt)
+- Wanted simple solution to fade problem
+- Got impatient with complexity
+
+**What worked:**
+- Quick revert when first fix broke functionality
+- Explaining the problem clearly
+- Providing simple, minimal fix
+- Testing immediately
+
+**What didn't work:**
+- Over-explaining the "pick up" approach
+- Making assumptions about preferred UX
+- Not testing thoroughly before suggesting changes
+
+---
+
+## 🎯 FOR FUTURE REFERENCE
+
+**If node-to-node drag needs changes:**
+1. Read this file first
+2. Understand the ghost die + floating die system
+3. Don't mess with `matchedGeometryEffect` timing
+4. Don't add `withAnimation` to data model changes
+5. Keep it simple
+
+**The working system:**
+- Ghost die (30% opacity) at source during drag
+- Floating die (115% scale + glow) follows finger
+- Instant data model update on drop
+- `matchedGeometryEffect` animates the visual transition
+
+**Don't break what's working!** ✅
+
+---
+
+**Session complete! Node-to-node drag working perfectly with no fade animation.** 🎮✨
 
 ---
 

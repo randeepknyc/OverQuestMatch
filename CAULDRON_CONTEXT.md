@@ -257,16 +257,16 @@ The bag depletes properly (each draw removes from bag, plays go to discard, when
 
 ### 6.8 Drag-and-drop dice placement (May 4, 2026)
 
-**Status:** ✅ FULLY IMPLEMENTED AND WORKING
+**Status:** ✅ FULLY IMPLEMENTED AND WORKING (including node-to-node drag!)
 
-The game supports **two methods** for placing dice on nodes:
+The game supports **three methods** for placing and moving dice on nodes:
 
 #### **Method 1: Tap-select-then-tap-node (original)**
 1. Tap a die in the tray → yellow border appears (selected)
 2. Tap an empty node → die slides to that node
 3. Tap the placed die → slides back to tray
 
-#### **Method 2: Drag-and-drop (new)**
+#### **Method 2: Drag-and-drop from tray to node**
 1. Touch and drag a die from the tray
 2. Die follows your finger with:
    - **15% scale increase** (looks bigger while dragging)
@@ -281,17 +281,63 @@ The game supports **two methods** for placing dice on nodes:
 5. Release outside nodes:
    - Die **springs back** to tray (0.4s response, 0.75 damping)
 
-#### **Removing placed dice (both methods work):**
+#### **Method 3: Drag-and-drop from node to node (NEW - May 22, 2026)** ✨
+1. Touch and drag a die that's already placed on a node
+2. During drag:
+   - **Ghost die** appears at source node (30% opacity)
+   - **Floating die** follows your finger (115% scale + colored glow)
+   - **Source node** stays visible (doesn't disappear)
+   - **Target nodes glow** when you hover over them
+3. Release over an empty node:
+   - Die **instantly moves** in data model (no animation wrapper)
+   - `matchedGeometryEffect` **smoothly slides** die from source to target
+   - **No fade animation** (instant data update lets SwiftUI animate cleanly)
+4. Release over occupied node or outside:
+   - Die **springs back** to source node
+
+**⚠️ CRITICAL: Node-to-node animation fix (May 22, 2026):**
+- **DO NOT** wrap data model changes in `withAnimation` when using `matchedGeometryEffect`
+- Data model updates **instantly** (no animation wrapper)
+- `matchedGeometryEffect` handles the visual slide automatically
+- Adding `withAnimation` causes fade animation (competing animations)
+
+**Code pattern for node-to-node drop:**
+```swift
+// ✅ CORRECT - No fade, smooth slide
+if canDrop, let target = targetNodeId {
+    // Move die INSTANTLY (no withAnimation wrapper)
+    gs.placements[nodeIndex] = nil
+    gs.placements[target] = die
+    
+    // Clean up instantly
+    gs.nodeDragLocation = nil
+    isDraggingFromHere = false
+}
+
+// ❌ WRONG - Causes fade animation
+if canDrop, let target = targetNodeId {
+    withAnimation {  // ← Don't do this!
+        gs.placements[nodeIndex] = nil
+        gs.placements[target] = die
+    }
+}
+```
+
+#### **Removing placed dice (all methods work):**
 - **Tap:** Tap a placed die → slides back to tray
-- **Drag:** Drag a placed die off the node → slides back to tray
+- **Drag from tray:** Original placement method
+- **Drag node-to-node:** Reposition dice without returning to tray
+- **Drag to invalid target:** Springs back to source
 
 #### **Technical implementation:**
-- **Gesture:** `DragGesture(coordinateSpace: .global)` on dice in tray
+- **Gesture:** `DragGesture(coordinateSpace: .global)` on dice in tray AND placed dice
 - **Position tracking:** Nodes register their global `CGRect` positions using `GeometryReader`
-- **Hit detection:** `tryDropDieAtPosition(_:dieIndex:)` checks if drop position intersects any node rect
+- **Hit detection:** `findNodeAtPosition(_:)` checks if drop position intersects any node rect
 - **Hover state:** `updateDragHoverPosition(_:)` updates `hoveredNodeIndex` during drag
-- **Visual offset:** Die uses `.offset(dragOffset)` for manual positioning during drag
-- **Animation:** `matchedGeometryEffect(id: die.id, in: diceFlight)` handles slide-to-node animation
+- **Visual offset:** Tray dice use `.offset(dragOffset)` for manual positioning during drag
+- **Ghost die system:** Placed dice show 30% opacity copy at source during node-to-node drag
+- **Floating die:** Cauldron top layer renders dragging die at `zIndex: 1000` (above all nodes)
+- **Animation:** `matchedGeometryEffect(id: die.id, in: diceFlight)` handles ALL slide animations
 - **Z-index:** Dragging die has `zIndex: 1000` to appear above all content
 - **Clipping fix:** Removed `.clipShape()` from dice tray background to prevent dice from disappearing behind tray border
 
@@ -299,9 +345,11 @@ The game supports **two methods** for placing dice on nodes:
 - ✅ Can't place 4th die (max 3 placements enforced)
 - ✅ Can't drop on occupied node
 - ✅ Can't drag during brew animation (`isAnimating` check)
+- ✅ Can't drag to same node (just cancels)
 - ✅ Multiple dice can be dragged in quick succession
 - ✅ Tap still works without interfering with drag
 - ✅ Die stays visible during entire drag (no clipping behind cauldron/tray)
+- ✅ **Node-to-node drag has no fade animation** (fixed May 22, 2026)
 
 #### **Animation parameters (tunable in code):**
 ```swift
@@ -313,18 +361,30 @@ The game supports **two methods** for placing dice on nodes:
 .scaleEffect(isHovered ? 1.15 : 1.0)
 .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isHovered)
 
-// Drop animation (handled by matchedGeometryEffect)
-withAnimation(.spring(response: 0.35, dampingFraction: 0.72))
+// Ghost die during node-to-node drag
+.opacity(isDraggingFromHere ? 0.3 : 1.0)
 
-// Return to tray animation
-withAnimation(.spring(response: 0.4, dampingFraction: 0.75))
+// Floating die (node-to-node)
+.scaleEffect(1.15)
+.shadow(color: die.type.color.opacity(0.5), radius: 12)
+
+// matchedGeometryEffect handles slide animation automatically
+// NO withAnimation wrapper needed!
 ```
 
 #### **State management:**
 - `nodePositions: [Int: CGRect]` - Global positions of all nodes (updated by nodes)
 - `hoveredNodeIndex: Int?` - Which node is currently hovered during drag
+- `draggedDie: PotionShopDie?` - The die being dragged (tray or node)
+- `draggedFromNode: Int?` - Source node index for node-to-node moves
+- `nodeDragLocation: CGPoint?` - Current drag position (for floating die rendering)
 - `updateDragHoverPosition(_:)` - Updates hover state based on drag position
-- `tryDropDieAtPosition(_:dieIndex:)` - Attempts to place die, returns success/fail
+- `tryDropDieAtPosition(_:dieIndex:)` - Attempts to place die from tray, returns success/fail
+- `findNodeAtPosition(_:)` - Finds which node is at a global position (for node-to-node)
+- `startDraggingFromNode(nodeId:)` - Starts a node-to-node drag operation
+- `cancelNodeDrag()` - Cleans up drag state (die stays at source)
+
+**See also:** `NODE_TO_NODE_DRAG_SESSION.md` for complete implementation history and troubleshooting guide.
 
 ---
 
