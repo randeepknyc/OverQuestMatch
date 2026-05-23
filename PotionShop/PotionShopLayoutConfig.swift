@@ -211,24 +211,45 @@ class PotionShopLayoutConfig {
         return Array(queuePermutations.keys).sorted()
     }
     
+    enum CustomerHeightBucket: String, Codable, CaseIterable {
+        case short
+        case medium
+        case tall
+    }
+
     struct CharacterScale: Codable {
         // Active position (when customer is at queue[0] - front of line)
         var width: Double = 1.0
         var height: Double = 1.0
         var x: Double = 0.0
         var y: Double = 0.0
-        
+
         // Waiting position 1 (when customer is at queue[1] - first waiting spot)
         var waitingWidth: Double = 1.0     // ← CHANGED: Now defaults to match active (was 0.8)
         var waitingHeight: Double = 1.0    // ← CHANGED: Now defaults to match active (was 0.8)
         var waitingX: Double = 0.0
         var waitingY: Double = 0.0
-        
+
         // Waiting position 2 (when customer is at queue[2] - second waiting spot) ← NEW!
         var waiting2Width: Double = 1.0
         var waiting2Height: Double = 1.0
         var waiting2X: Double = 0.0
         var waiting2Y: Double = 0.0
+
+        // Head anchor (May 22, 2026): bucket label + optional per-character override.
+        // Override (if set) wins; otherwise the bucket's global default applies.
+        var heightBucket: CustomerHeightBucket = .medium
+        var headAnchorYOverride: Double? = nil
+
+        // Per-character badge overrides (May 23, 2026). Each is optional;
+        // when set, it wins over the bucket default. Useful when characters
+        // in the same bucket need different X (e.g., wider/thinner body).
+        var hpBadgeSizeOverride: Double? = nil
+        var hpBadgeOffsetXOverride: Double? = nil
+        var hpBadgeOffsetYOverride: Double? = nil
+        var attackBadgeSizeOverride: Double? = nil
+        var attackBadgeOffsetXOverride: Double? = nil
+        var attackBadgeOffsetYOverride: Double? = nil
     }
     
     // Helper to get or create a character scale
@@ -293,23 +314,120 @@ class PotionShopLayoutConfig {
     
     // MARK: - Badge Graphics (NEW - May 22, 2026)
     
-    // HP Badge Size (red badge above active customer's head)
-    var hpBadgeSize: Double = 28.0
-    var hpBadgeOffsetX: Double = 0.0
-    var hpBadgeOffsetY: Double = -60.0
+    // HP Badge — per height bucket (size + offsets relative to head anchor).
+    // Tuned May 23, 2026 (revision 3).
+    var hpBadgeSizeShort: Double = 50.437946021556854
+    var hpBadgeOffsetXShort: Double = -32.819151878356934
+    var hpBadgeOffsetYShort: Double = -8.77659022808075
+    var hpBadgeSizeMedium: Double = 50.51773101091385
+    var hpBadgeOffsetXMedium: Double = -82.0212721824646
+    var hpBadgeOffsetYMedium: Double = 6.3829779624938965
+    var hpBadgeSizeTall: Double = 52.193264067173004
+    var hpBadgeOffsetXTall: Double = -171.8085139989853
+    var hpBadgeOffsetYTall: Double = 13.031923770904541
 
-    // Attack Badge Size (red badge above customer's head, offset right)
-    var attackBadgeSize: Double = 24.0
-    var attackBadgeOffsetX: Double = 20.0
-    var attackBadgeOffsetY: Double = -50.0
+    // Attack Badge — per height bucket.
+    var attackBadgeSizeShort: Double = 34.28368777036667
+    var attackBadgeOffsetXShort: Double = -74.46809113025665
+    var attackBadgeOffsetYShort: Double = 23.404258489608765
+    var attackBadgeSizeMedium: Double = 36.27836883068085
+    var attackBadgeOffsetXMedium: Double = -88.82979154586792
+    var attackBadgeOffsetYMedium: Double = 36.436182260513306
+    var attackBadgeSizeTall: Double = 36.27836763858795
+    var attackBadgeOffsetXTall: Double = -153.723406791687
+    var attackBadgeOffsetYTall: Double = 45.744699239730835
+
+    // Bucket-aware lookups (per-character override wins when set).
+    func hpBadgeSize(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.hpBadgeSizeOverride { return v }
+        switch cs.heightBucket {
+        case .short: return hpBadgeSizeShort
+        case .medium: return hpBadgeSizeMedium
+        case .tall: return hpBadgeSizeTall
+        }
+    }
+    func hpBadgeOffsetX(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.hpBadgeOffsetXOverride { return v }
+        switch cs.heightBucket {
+        case .short: return hpBadgeOffsetXShort
+        case .medium: return hpBadgeOffsetXMedium
+        case .tall: return hpBadgeOffsetXTall
+        }
+    }
+    func hpBadgeOffsetY(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.hpBadgeOffsetYOverride { return v }
+        switch cs.heightBucket {
+        case .short: return hpBadgeOffsetYShort
+        case .medium: return hpBadgeOffsetYMedium
+        case .tall: return hpBadgeOffsetYTall
+        }
+    }
+    func attackBadgeSize(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.attackBadgeSizeOverride { return v }
+        switch cs.heightBucket {
+        case .short: return attackBadgeSizeShort
+        case .medium: return attackBadgeSizeMedium
+        case .tall: return attackBadgeSizeTall
+        }
+    }
+    func attackBadgeOffsetX(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.attackBadgeOffsetXOverride { return v }
+        switch cs.heightBucket {
+        case .short: return attackBadgeOffsetXShort
+        case .medium: return attackBadgeOffsetXMedium
+        case .tall: return attackBadgeOffsetXTall
+        }
+    }
+    func attackBadgeOffsetY(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let v = cs.attackBadgeOffsetYOverride { return v }
+        switch cs.heightBucket {
+        case .short: return attackBadgeOffsetYShort
+        case .medium: return attackBadgeOffsetYMedium
+        case .tall: return attackBadgeOffsetYTall
+        }
+    }
 
     // Inspect Banner Bottle Size (potion number graphic in banner)
-    var bannerBottleSize: Double = 48.0
-    var bannerBottleOffsetX: Double = 0.0
+    var bannerBottleSize: Double = 51.40425443649292
+    var bannerBottleOffsetX: Double = 1.8617033958435059
     var bannerBottleOffsetY: Double = 0.0
     var bannerBottleNumberSize: Double = 30.0
     var bannerBottleNumberOffsetX: Double = 0.0
-    var bannerBottleNumberOffsetY: Double = 0.0
+    var bannerBottleNumberOffsetY: Double = 7.180851697921753
+
+    // MARK: - Head Anchor Defaults (May 22, 2026)
+    // Fraction of the rendered image where each bucket's head sits.
+    // Y: 0.0 = top of image, 1.0 = bottom. X: 0.0 = left edge, 1.0 = right, 0.5 = center.
+    var headAnchorYShort: Double = 0.20
+    var headAnchorYMedium: Double = 0.15
+    var headAnchorYTall: Double = 0.10
+    var headAnchorXShort: Double = 0.37765955924987793
+    var headAnchorXMedium: Double = 0.5372340679168701
+    var headAnchorXTall: Double = 0.5647163391113281
+
+    func headAnchorY(for characterId: String) -> Double {
+        let cs = characterScale(for: characterId)
+        if let override = cs.headAnchorYOverride { return override }
+        switch cs.heightBucket {
+        case .short: return headAnchorYShort
+        case .medium: return headAnchorYMedium
+        case .tall: return headAnchorYTall
+        }
+    }
+
+    func headAnchorX(for characterId: String) -> Double {
+        switch characterScale(for: characterId).heightBucket {
+        case .short: return headAnchorXShort
+        case .medium: return headAnchorXMedium
+        case .tall: return headAnchorXTall
+        }
+    }
 
     private init() {
         // MARK: - Queue Permutations (Custom 3-Character Spacing)
@@ -329,10 +447,10 @@ class PotionShopLayoutConfig {
             yPositions: [0.50, 0.55, 0.55]
         )
         
-        // Arrangement 3: crispin → wendelina → ardo
+        // Arrangement 3: crispin → wendelina → ardo (X[1] 0.69 → 0.72)
         addPermutation(
             for: ["crispin", "wendelina", "ardo"],
-            xPositions: [0.48, 0.69, 0.92],
+            xPositions: [0.48, 0.72, 0.92],
             yPositions: [0.50, 0.55, 0.55]
         )
         
@@ -349,6 +467,117 @@ class PotionShopLayoutConfig {
             xPositions: [0.46, 0.69, 0.92],
             yPositions: [0.50, 0.56, 0.55]
         )
+
+        applyDefaultHeightBuckets()
+    }
+
+    private func applyDefaultHeightBuckets() {
+        let defaults: [(String, CustomerHeightBucket)] = [
+            ("mildred", .medium),
+            ("tomik", .tall),
+            ("pemberton", .short),
+            ("greta", .short),
+            ("wendelina", .medium),
+            ("crispin", .medium),
+            ("ardo", .short),
+            ("grimdrek", .tall),
+        ]
+        for (key, bucket) in defaults {
+            var scale = perCharacterScales[key] ?? CharacterScale()
+            scale.heightBucket = bucket
+            perCharacterScales[key] = scale
+        }
+        applyTunedCharacterScales()
+    }
+
+    /// Seeds per-character scale values tuned through the layout editor (May 23, 2026).
+    /// Called after bucket assignment so these survive a fresh launch.
+    private func applyTunedCharacterScales() {
+        // mildred
+        var mildred = perCharacterScales["mildred"] ?? CharacterScale()
+        mildred.x = -5.6737542152404785
+        mildred.y = 7.801413536071777
+        mildred.waitingWidth = 0.9880319200456142
+        mildred.waitingHeight = 0.9880319200456142
+        mildred.waitingY = -9.219861030578613
+        perCharacterScales["mildred"] = mildred
+
+        // tomik
+        var tomik = perCharacterScales["tomik"] ?? CharacterScale()
+        tomik.x = -34.7517728805542
+        tomik.y = 10.283684730529785
+        tomik.waitingY = -7.446813583374023
+        perCharacterScales["tomik"] = tomik
+
+        // greta
+        var greta = perCharacterScales["greta"] ?? CharacterScale()
+        greta.width = 0.8563829660415649
+        greta.height = 0.8563829660415649
+        greta.x = -46.45390510559082
+        greta.y = 19.5035457611084
+        greta.waitingWidth = 0.8882978670299053
+        greta.waitingHeight = 0.8882978670299053
+        greta.waitingY = 3.9007186889648438
+        perCharacterScales["greta"] = greta
+
+        // wendelina
+        var wendelina = perCharacterScales["wendelina"] ?? CharacterScale()
+        wendelina.x = -43.6170220375061
+        wendelina.y = 3.9007186889648438
+        wendelina.waitingWidth = 1.003989353775978
+        wendelina.waitingHeight = 1.003989353775978
+        wendelina.waitingX = -18.794333934783936
+        wendelina.waitingY = -9.929072856903076
+        wendelina.waiting2Width = 0.9960106536746025
+        wendelina.waiting2Height = 0.9960106536746025
+        wendelina.waiting2X = -4.964542388916016
+        wendelina.waiting2Y = -6.0283660888671875
+        perCharacterScales["wendelina"] = wendelina
+
+        // grimdrek (NEW May 23, 2026)
+        var grimdrek = perCharacterScales["grimdrek"] ?? CharacterScale()
+        grimdrek.x = -70.92198133468628
+        grimdrek.y = 9.219861030578613
+        perCharacterScales["grimdrek"] = grimdrek
+
+        // pemberton
+        var pemberton = perCharacterScales["pemberton"] ?? CharacterScale()
+        pemberton.width = 0.8324467986822128
+        pemberton.height = 0.8324467986822128
+        pemberton.x = -39.361703395843506
+        pemberton.y = 24.11346435546875
+        pemberton.waitingWidth = 0.8643616996705532
+        pemberton.waitingHeight = 0.8643616996705532
+        pemberton.waitingX = -23.049640655517578
+        pemberton.waitingY = 5.3191423416137695
+        perCharacterScales["pemberton"] = pemberton
+
+        // ardo
+        var ardo = perCharacterScales["ardo"] ?? CharacterScale()
+        ardo.width = 0.9840425699949265
+        ardo.height = 0.9840425699949265
+        ardo.x = -39.716315269470215
+        ardo.y = 10.283684730529785
+        ardo.waitingX = -9.574460983276367
+        ardo.waitingY = -5.3191423416137695
+        ardo.waiting2X = -5.319154262542725
+        ardo.waiting2Y = -5.319154262542725
+        perCharacterScales["ardo"] = ardo
+
+        // crispin
+        var crispin = perCharacterScales["crispin"] ?? CharacterScale()
+        crispin.width = 1.0319149382412434
+        crispin.height = 1.0319149382412434
+        crispin.x = -31.914889812469482
+        crispin.waitingWidth = 1.0279255546629429
+        crispin.waitingHeight = 1.0279255546629429
+        crispin.waitingX = -21.631205081939697
+        crispin.waitingY = -12.765955924987793
+        crispin.waiting2Width = 1.0279255546629429
+        crispin.waiting2Height = 1.0279255546629429
+        crispin.waiting2X = -18.794333934783936
+        crispin.waiting2Y = -15.957450866699219
+        perCharacterScales["crispin"] = crispin
     }
     
     // MARK: - 🔒 LOCKED DEFAULTS (May 13, 2026 - Known-Good State)
@@ -498,19 +727,40 @@ class PotionShopLayoutConfig {
         brewZoneHeight = 95.51772773265839
         showBrewZone = false
         
-        // Badge Graphics (May 22, 2026 defaults)
-        hpBadgeSize = 28.0
-        hpBadgeOffsetX = 0.0
-        hpBadgeOffsetY = -60.0
-        attackBadgeSize = 24.0
-        attackBadgeOffsetX = 20.0
-        attackBadgeOffsetY = -50.0
-        bannerBottleSize = 48.0
-        bannerBottleOffsetX = 0.0
+        // HP / Attack Badges — per-bucket (May 23, 2026 revision 3)
+        hpBadgeSizeShort = 50.437946021556854
+        hpBadgeOffsetXShort = -32.819151878356934
+        hpBadgeOffsetYShort = -8.77659022808075
+        hpBadgeSizeMedium = 50.51773101091385
+        hpBadgeOffsetXMedium = -82.0212721824646
+        hpBadgeOffsetYMedium = 6.3829779624938965
+        hpBadgeSizeTall = 52.193264067173004
+        hpBadgeOffsetXTall = -171.8085139989853
+        hpBadgeOffsetYTall = 13.031923770904541
+        attackBadgeSizeShort = 34.28368777036667
+        attackBadgeOffsetXShort = -74.46809113025665
+        attackBadgeOffsetYShort = 23.404258489608765
+        attackBadgeSizeMedium = 36.27836883068085
+        attackBadgeOffsetXMedium = -88.82979154586792
+        attackBadgeOffsetYMedium = 36.436182260513306
+        attackBadgeSizeTall = 36.27836763858795
+        attackBadgeOffsetXTall = -153.723406791687
+        attackBadgeOffsetYTall = 45.744699239730835
+        bannerBottleSize = 51.40425443649292
+        bannerBottleOffsetX = 1.8617033958435059
         bannerBottleOffsetY = 0.0
         bannerBottleNumberSize = 30.0
         bannerBottleNumberOffsetX = 0.0
-        bannerBottleNumberOffsetY = 0.0
+        bannerBottleNumberOffsetY = 7.180851697921753
+
+        // Head Anchor Defaults
+        headAnchorYShort = 0.20
+        headAnchorYMedium = 0.15
+        headAnchorYTall = 0.10
+        headAnchorXShort = 0.37765955924987793
+        headAnchorXMedium = 0.5372340679168701
+        headAnchorXTall = 0.5647163391113281
+        applyDefaultHeightBuckets()
         
         print("✅ RESTORED LOCKED DEFAULTS (May 13, 2026)")
     }

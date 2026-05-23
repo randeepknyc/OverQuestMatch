@@ -606,14 +606,26 @@ struct PotionShopDebugMenu: View {
         showBrewZone: \(cfg.showBrewZone)
 
         ───────────────────────────────────────────────────────────────
-        🎨 BADGE GRAPHICS (size + position)
+        🎨 BADGE GRAPHICS (per height bucket)
         ───────────────────────────────────────────────────────────────
-        hpBadgeSize: \(cfg.hpBadgeSize)
-        hpBadgeOffsetX: \(cfg.hpBadgeOffsetX)
-        hpBadgeOffsetY: \(cfg.hpBadgeOffsetY)
-        attackBadgeSize: \(cfg.attackBadgeSize)
-        attackBadgeOffsetX: \(cfg.attackBadgeOffsetX)
-        attackBadgeOffsetY: \(cfg.attackBadgeOffsetY)
+        hpBadgeSizeShort: \(cfg.hpBadgeSizeShort)
+        hpBadgeOffsetXShort: \(cfg.hpBadgeOffsetXShort)
+        hpBadgeOffsetYShort: \(cfg.hpBadgeOffsetYShort)
+        hpBadgeSizeMedium: \(cfg.hpBadgeSizeMedium)
+        hpBadgeOffsetXMedium: \(cfg.hpBadgeOffsetXMedium)
+        hpBadgeOffsetYMedium: \(cfg.hpBadgeOffsetYMedium)
+        hpBadgeSizeTall: \(cfg.hpBadgeSizeTall)
+        hpBadgeOffsetXTall: \(cfg.hpBadgeOffsetXTall)
+        hpBadgeOffsetYTall: \(cfg.hpBadgeOffsetYTall)
+        attackBadgeSizeShort: \(cfg.attackBadgeSizeShort)
+        attackBadgeOffsetXShort: \(cfg.attackBadgeOffsetXShort)
+        attackBadgeOffsetYShort: \(cfg.attackBadgeOffsetYShort)
+        attackBadgeSizeMedium: \(cfg.attackBadgeSizeMedium)
+        attackBadgeOffsetXMedium: \(cfg.attackBadgeOffsetXMedium)
+        attackBadgeOffsetYMedium: \(cfg.attackBadgeOffsetYMedium)
+        attackBadgeSizeTall: \(cfg.attackBadgeSizeTall)
+        attackBadgeOffsetXTall: \(cfg.attackBadgeOffsetXTall)
+        attackBadgeOffsetYTall: \(cfg.attackBadgeOffsetYTall)
         bannerBottleSize: \(cfg.bannerBottleSize)
         bannerBottleOffsetX: \(cfg.bannerBottleOffsetX)
         bannerBottleOffsetY: \(cfg.bannerBottleOffsetY)
@@ -621,8 +633,49 @@ struct PotionShopDebugMenu: View {
         bannerBottleNumberOffsetX: \(cfg.bannerBottleNumberOffsetX)
         bannerBottleNumberOffsetY: \(cfg.bannerBottleNumberOffsetY)
 
+        ───────────────────────────────────────────────────────────────
+        🧍 HEAD ANCHOR DEFAULTS (per height bucket)
+        ───────────────────────────────────────────────────────────────
+        headAnchorYShort: \(cfg.headAnchorYShort)
+        headAnchorYMedium: \(cfg.headAnchorYMedium)
+        headAnchorYTall: \(cfg.headAnchorYTall)
+        headAnchorXShort: \(cfg.headAnchorXShort)
+        headAnchorXMedium: \(cfg.headAnchorXMedium)
+        headAnchorXTall: \(cfg.headAnchorXTall)
+
         """
-        
+
+        // ─── PER-CHARACTER BADGE OVERRIDES ────────────────────────
+        let charsWithOverrides = ["mildred","tomik","greta","sister_halla","wendelina","grimdrek","hexa_mott","pemberton","ardo","bram","crispin","ironhilde","carmilla","royal_envoy"].filter { key in
+            let cs = cfg.characterScale(for: key)
+            return cs.hpBadgeSizeOverride != nil ||
+                   cs.hpBadgeOffsetXOverride != nil ||
+                   cs.hpBadgeOffsetYOverride != nil ||
+                   cs.attackBadgeSizeOverride != nil ||
+                   cs.attackBadgeOffsetXOverride != nil ||
+                   cs.attackBadgeOffsetYOverride != nil
+        }
+        if !charsWithOverrides.isEmpty {
+            text += """
+
+            ───────────────────────────────────────────────────────────────
+            👤 PER-CHARACTER BADGE OVERRIDES (override > bucket default)
+            ───────────────────────────────────────────────────────────────
+
+            """
+            for key in charsWithOverrides {
+                let cs = cfg.characterScale(for: key)
+                text += "\(key) [bucket: \(cs.heightBucket.rawValue)]\n"
+                if let v = cs.hpBadgeSizeOverride    { text += "  hpBadgeSizeOverride: \(v)\n" }
+                if let v = cs.hpBadgeOffsetXOverride { text += "  hpBadgeOffsetXOverride: \(v)\n" }
+                if let v = cs.hpBadgeOffsetYOverride { text += "  hpBadgeOffsetYOverride: \(v)\n" }
+                if let v = cs.attackBadgeSizeOverride    { text += "  attackBadgeSizeOverride: \(v)\n" }
+                if let v = cs.attackBadgeOffsetXOverride { text += "  attackBadgeOffsetXOverride: \(v)\n" }
+                if let v = cs.attackBadgeOffsetYOverride { text += "  attackBadgeOffsetYOverride: \(v)\n" }
+                text += "\n"
+            }
+        }
+
         // ─── QUEUE PERMUTATIONS (3-character spacing) ─────────────
         if !cfg.queuePermutations.isEmpty {
             text += """

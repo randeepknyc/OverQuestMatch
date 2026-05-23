@@ -30,7 +30,14 @@ struct PotionShopHeaderView: View {
             }
 
             HStack(spacing: 4) {
-                Text("🧪").font(.system(size: 20))
+                if let bottleImage = UIImage(named: "potion_bottle_outline") {
+                    Image(uiImage: bottleImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                } else {
+                    Text("🧪").font(.system(size: 20))
+                }
                 Text("×\(gs.potionsBrewed)")
                     .font(Font.gameScore(size: 22))
                     .foregroundColor(PotionShopTheme.accent)

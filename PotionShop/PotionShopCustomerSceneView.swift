@@ -416,6 +416,11 @@ struct PotionShopCustomerInSceneView: View {
         guard let c = char else { return 0 }
         return isActive ? c.activeAttack : c.waitingAttack
     }
+    // Read HP straight from gs so SwiftUI's observation on the customers array
+    // triggers a re-render here even if the parent's cached `customer` snapshot is stale.
+    private var liveHP: Int {
+        gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp
+    }
 
     private var dim: Bool {
         if queueIndex < PotionShopSceneLayout.queueDims.count {
@@ -460,7 +465,16 @@ struct PotionShopCustomerInSceneView: View {
         let effectiveHeight: Double = isActive ? customerSceneHeight : (queueIndex == 1 ? customerWaitingHeight : customerWaiting2Height)
         let effectiveX: Double = isActive ? customerSceneX : (queueIndex == 1 ? customerWaitingX : customerWaiting2X)
         let effectiveY: Double = isActive ? customerSceneY : (queueIndex == 1 ? customerWaitingY : customerWaiting2Y)
-        
+
+        // Head anchor (May 22, 2026): badge offsets are relative to where the character's head renders,
+        // not the layout center, so different-height characters all get badges near their actual heads.
+        let renderedImageWidth = PotionShopSceneLayout.portraitDiameter * scale * customerSceneBaseScale * effectiveWidth
+        let renderedImageHeight = PotionShopSceneLayout.portraitDiameter * scale * 1.5 * customerSceneBaseScale * effectiveHeight
+        let anchorFractionY = PotionShopLayoutConfig.shared.headAnchorY(for: customer.charKey)
+        let anchorFractionX = PotionShopLayoutConfig.shared.headAnchorX(for: customer.charKey)
+        let headOffsetY = renderedImageHeight * (anchorFractionY - 0.5)
+        let headOffsetX = renderedImageWidth * (anchorFractionX - 0.5)
+
         if let char = char {
             ZStack {
                 // Character image (full body, NO circle!)
@@ -485,39 +499,37 @@ struct PotionShopCustomerInSceneView: View {
                     .offset(x: effectiveX, y: effectiveY)
                 }
 
-                // HP Badge (ABOVE character's head, centered)
-                if isActive {
-                    ZStack {
-                        // Custom HP badge graphic (background)
-                        if let hpBadgeImage = UIImage(named: "hp_badge") {
-                            Image(uiImage: hpBadgeImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(
-                                    width: PotionShopLayoutConfig.shared.hpBadgeSize * scale,
-                                    height: PotionShopLayoutConfig.shared.hpBadgeSize * scale
-                                )
-                        } else {
-                            // Fallback: red circle if image missing
-                            Circle()
-                                .fill(PotionShopTheme.composureBad)
-                                .frame(
-                                    width: PotionShopLayoutConfig.shared.hpBadgeSize * scale,
-                                    height: PotionShopLayoutConfig.shared.hpBadgeSize * scale
-                                )
-                        }
-                        
-                        // HP number (white text on top)
-                        Text("\(customer.hp)")
-                            .font(Font.gameScore(size: 14 * scale))
-                            .foregroundColor(.white)
+                // HP Badge (ABOVE character's head — shows for active AND waiting customers)
+                ZStack {
+                    // Custom HP badge graphic (background)
+                    if let hpBadgeImage = UIImage(named: "hp_badge") {
+                        Image(uiImage: hpBadgeImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale
+                            )
+                    } else {
+                        // Fallback: red circle if image missing
+                        Circle()
+                            .fill(PotionShopTheme.composureBad)
+                            .frame(
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale
+                            )
                     }
-                    .offset(
-                        x: PotionShopLayoutConfig.shared.hpBadgeOffsetX * scale,
-                        y: PotionShopLayoutConfig.shared.hpBadgeOffsetY * scale
-                    )
-                    .transition(.scale.combined(with: .opacity))
+
+                    // HP number (white text on top) — reads from gs so live damage updates show
+                    Text("\(liveHP)")
+                        .font(Font.gameScore(size: 18 * scale))
+                        .foregroundColor(.white)
                 }
+                .offset(
+                    x: headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey) * scale,
+                    y: headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey) * scale
+                )
+                .transition(.scale.combined(with: .opacity))
 
                 // Attack Badge (ABOVE character's head, offset to right)
                 if attack > 0 {
@@ -528,27 +540,27 @@ struct PotionShopCustomerInSceneView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale
                                 )
                         } else {
                             // Fallback: red circle if image missing
                             Circle()
                                 .fill(PotionShopTheme.composureBad)
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale
                                 )
                         }
                         
                         // Attack number (white text on top)
                         Text("\(attack)")
-                            .font(Font.gameScore(size: 11 * scale))
+                            .font(Font.gameScore(size: 15 * scale))
                             .foregroundColor(.white)
                     }
                     .offset(
-                        x: PotionShopLayoutConfig.shared.attackBadgeOffsetX * scale,
-                        y: PotionShopLayoutConfig.shared.attackBadgeOffsetY * scale
+                        x: headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey) * scale,
+                        y: headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey) * scale
                     )
                 }
 
@@ -808,11 +820,8 @@ struct PotionShopInspectStripView: View {
     private var isActive: Bool { gs.queue.first == customer.id }
 
     private var brewTargetForPill: Int {
-        if isActive {
-            return gs.currentBrewTarget
-        } else {
-            return customer.hp
-        }
+        // Always show the inspected customer's HP — updates as HP changes.
+        return customer.hp
     }
 
     private var attackForSubtitle: Int {

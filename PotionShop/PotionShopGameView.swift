@@ -878,33 +878,59 @@ struct PotionShopLayoutOverlay: View {
                     .foregroundColor(.white.opacity(0.7))
                     .padding(.bottom, 6)
                 
-                // HP Badge slider
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("❤️ HP Badge (above active customer)")
+                // HP / Attack Badges — per-bucket tuning (May 23, 2026)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("❤️⚔️ HP + Attack Badges (per height bucket)")
                         .font(.caption2.bold())
                         .foregroundColor(.red)
-                    sliderRow("HP Badge Size", value: $layoutConfig.hpBadgeSize, range: 10...60, format: "%.0f pt")
-                    sliderRow("HP Badge X", value: $layoutConfig.hpBadgeOffsetX, range: -150...150, format: "%.0f pt")
-                    sliderRow("HP Badge Y", value: $layoutConfig.hpBadgeOffsetY, range: -150...150, format: "%.0f pt")
-                    Text("Asset name: hp_badge.png")
-                        .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.5))
-                        .italic()
-                }
+                    Text("Each height bucket has its own size + offsets. Tune one bucket at a time using customers in that bucket.")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.7))
 
-                Divider()
-                    .background(Color.white.opacity(0.3))
-                    .padding(.vertical, 4)
+                    // Short bucket
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("• Short")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        sliderRow("HP Size",  value: $layoutConfig.hpBadgeSizeShort,    range: 10...100, format: "%.0f pt")
+                        sliderRow("HP X",     value: $layoutConfig.hpBadgeOffsetXShort, range: -300...300, format: "%.0f pt")
+                        sliderRow("HP Y",     value: $layoutConfig.hpBadgeOffsetYShort, range: -150...150, format: "%.0f pt")
+                        sliderRow("Atk Size", value: $layoutConfig.attackBadgeSizeShort,    range: 10...100, format: "%.0f pt")
+                        sliderRow("Atk X",    value: $layoutConfig.attackBadgeOffsetXShort, range: -300...300, format: "%.0f pt")
+                        sliderRow("Atk Y",    value: $layoutConfig.attackBadgeOffsetYShort, range: -150...150, format: "%.0f pt")
+                    }
 
-                // Attack Badge slider
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("⚔️ Attack Badge (above customers)")
-                        .font(.caption2.bold())
-                        .foregroundColor(.orange)
-                    sliderRow("Attack Badge Size", value: $layoutConfig.attackBadgeSize, range: 10...60, format: "%.0f pt")
-                    sliderRow("Attack Badge X", value: $layoutConfig.attackBadgeOffsetX, range: -150...150, format: "%.0f pt")
-                    sliderRow("Attack Badge Y", value: $layoutConfig.attackBadgeOffsetY, range: -150...150, format: "%.0f pt")
-                    Text("Asset name: attack_badge.png")
+                    Divider().background(Color.white.opacity(0.2))
+
+                    // Medium bucket
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("• Medium")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        sliderRow("HP Size",  value: $layoutConfig.hpBadgeSizeMedium,    range: 10...100, format: "%.0f pt")
+                        sliderRow("HP X",     value: $layoutConfig.hpBadgeOffsetXMedium, range: -300...300, format: "%.0f pt")
+                        sliderRow("HP Y",     value: $layoutConfig.hpBadgeOffsetYMedium, range: -150...150, format: "%.0f pt")
+                        sliderRow("Atk Size", value: $layoutConfig.attackBadgeSizeMedium,    range: 10...100, format: "%.0f pt")
+                        sliderRow("Atk X",    value: $layoutConfig.attackBadgeOffsetXMedium, range: -300...300, format: "%.0f pt")
+                        sliderRow("Atk Y",    value: $layoutConfig.attackBadgeOffsetYMedium, range: -150...150, format: "%.0f pt")
+                    }
+
+                    Divider().background(Color.white.opacity(0.2))
+
+                    // Tall bucket
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("• Tall")
+                            .font(.caption2.bold())
+                            .foregroundColor(.yellow)
+                        sliderRow("HP Size",  value: $layoutConfig.hpBadgeSizeTall,    range: 10...100, format: "%.0f pt")
+                        sliderRow("HP X",     value: $layoutConfig.hpBadgeOffsetXTall, range: -300...300, format: "%.0f pt")
+                        sliderRow("HP Y",     value: $layoutConfig.hpBadgeOffsetYTall, range: -150...150, format: "%.0f pt")
+                        sliderRow("Atk Size", value: $layoutConfig.attackBadgeSizeTall,    range: 10...100, format: "%.0f pt")
+                        sliderRow("Atk X",    value: $layoutConfig.attackBadgeOffsetXTall, range: -300...300, format: "%.0f pt")
+                        sliderRow("Atk Y",    value: $layoutConfig.attackBadgeOffsetYTall, range: -150...150, format: "%.0f pt")
+                    }
+
+                    Text("Assets: hp_badge.png / attack_badge.png")
                         .font(.system(size: 9))
                         .foregroundColor(.white.opacity(0.5))
                         .italic()
@@ -934,7 +960,153 @@ struct PotionShopLayoutOverlay: View {
                 Divider()
                     .background(Color.white.opacity(0.5))
                     .padding(.vertical, 6)
-                
+
+                // Head Anchor Defaults (May 22, 2026) — bucket-based per-character head positions
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("🧍 Head Anchor Defaults (by bucket)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.green)
+                    Text("Fraction down the rendered image where the head sits. 0.0 = top, 0.5 = center. Badges use this to track each character's head.")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.7))
+                    sliderRow("Short head Y", value: $layoutConfig.headAnchorYShort, range: 0...0.5, format: "%.2f")
+                    sliderRow("Medium head Y", value: $layoutConfig.headAnchorYMedium, range: 0...0.5, format: "%.2f")
+                    sliderRow("Tall head Y", value: $layoutConfig.headAnchorYTall, range: 0...0.5, format: "%.2f")
+                    sliderRow("Short head X", value: $layoutConfig.headAnchorXShort, range: 0...1.0, format: "%.2f")
+                    sliderRow("Medium head X", value: $layoutConfig.headAnchorXMedium, range: 0...1.0, format: "%.2f")
+                    sliderRow("Tall head X", value: $layoutConfig.headAnchorXTall, range: 0...1.0, format: "%.2f")
+                }
+
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+
+                // Per-Character Badge Overrides (May 23, 2026)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("👤 Per-Character Overrides")
+                        .font(.caption2.bold())
+                        .foregroundColor(.purple)
+                    Text("Tune one character's HP/Atk badges independently of their bucket. Sliders show effective value (override if set, else bucket default).")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.7))
+
+                    Picker("Character", selection: $selectedCharacterId) {
+                        Text("Mildred").tag("mildred")
+                        Text("Tomik").tag("tomik")
+                        Text("Greta").tag("greta")
+                        Text("Sister Halla").tag("sister_halla")
+                        Text("Wendelina").tag("wendelina")
+                        Text("Grimdrek").tag("grimdrek")
+                        Text("Hexa Mott").tag("hexa_mott")
+                        Text("Pemberton").tag("pemberton")
+                        Text("Ardo").tag("ardo")
+                        Text("Bram").tag("bram")
+                        Text("Crispin").tag("crispin")
+                        Text("Ironhilde").tag("ironhilde")
+                        Text("Carmilla").tag("carmilla")
+                        Text("Royal Envoy").tag("royal_envoy")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.purple)
+
+                    Text("HP Badge")
+                        .font(.caption2.bold())
+                        .foregroundColor(.red)
+                    sliderRow(
+                        "HP Size",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeSize(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.hpBadgeSizeOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: 10...100, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "HP X",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeOffsetX(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.hpBadgeOffsetXOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -300...300, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "HP Y",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeOffsetY(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.hpBadgeOffsetYOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -150...150, format: "%.0f pt"
+                    )
+
+                    Text("Attack Badge")
+                        .font(.caption2.bold())
+                        .foregroundColor(.orange)
+                    sliderRow(
+                        "Atk Size",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeSize(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.attackBadgeSizeOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: 10...100, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "Atk X",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeOffsetX(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.attackBadgeOffsetXOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -300...300, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "Atk Y",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeOffsetY(for: selectedCharacterId) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.attackBadgeOffsetYOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -150...150, format: "%.0f pt"
+                    )
+
+                    Button("Reset \(selectedCharacterId.capitalized) badge overrides") {
+                        var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                        cs.hpBadgeSizeOverride = nil
+                        cs.hpBadgeOffsetXOverride = nil
+                        cs.hpBadgeOffsetYOverride = nil
+                        cs.attackBadgeSizeOverride = nil
+                        cs.attackBadgeOffsetXOverride = nil
+                        cs.attackBadgeOffsetYOverride = nil
+                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.yellow)
+                }
+
+                Divider()
+                    .background(Color.white.opacity(0.5))
+                    .padding(.vertical, 6)
+
                 // Instructions
                 VStack(alignment: .leading, spacing: 4) {
                     Text("💡 Pro Tips:")
