@@ -455,15 +455,13 @@ enum PotionShopData {
         ),
     ]
 
-    // MARK: ─── DAY 1 ROUNDS ────────────────────────────────────────────
+    // MARK: ─── CURATED DAYS ─────────────────────────────────────────
     //
-    // Day 1 is fully curated for tutorial reliability — every round
-    // uses an explicit customer list so first-time players see the
-    // same intentional pacing.
-    //
-    // Day 2+ will eventually use rule-based generation. For v1 we
-    // ship Day 1 only. Days 2-7 are flagged in CAULDRON_CONTEXT.md
-    // as a planned future addition.
+    // Days are fully curated for now — every round uses an explicit
+    // customer list so the pacing is intentional. Day 2 prioritizes
+    // characters not used in Day 1, then repeats Day 1 characters
+    // where needed. Day 3+ remains future work; see CAULDRON_CONTEXT.md
+    // §4 for the lineup tables.
 
     static let day1: PotionShopDay = PotionShopDay(
         id: "day_1",
@@ -499,11 +497,52 @@ enum PotionShopData {
         )
     )
 
+    // MARK: ─── DAY 2 ROUNDS ────────────────────────────────────────────
+    //
+    // Day 2 introduces the 5 customers that weren't used in Day 1
+    // (Sister Halla, Bram, Hexa Mott, Ironhilde, Carmilla, Royal Envoy)
+    // alongside a few familiar faces from Day 1 (Mildred, Ardo).
+    // Royal Envoy is the Day 2 boss.
+
+    static let day2: PotionShopDay = PotionShopDay(
+        id: "day_2",
+        name: "Day 2",
+        subtitle: "Word Gets Around",
+
+        // Sister Halla (new, pious) + Mildred (Day 1 repeat).
+        // Gentle warmup — eases the player back in for Day 2.
+        morning: PotionShopRound(
+            timeOfDay: .morning,
+            customerIds: ["sister_halla", "mildred"]
+        ),
+
+        // Bram (new, loud STUB) + Lady Carmilla (new, hexer STUB).
+        // Two unused characters; Carmilla brings tier-5 HP early.
+        afternoon: PotionShopRound(
+            timeOfDay: .afternoon,
+            customerIds: ["bram", "carmilla"]
+        ),
+
+        // Hexa Mott + Ironhilde (both new, tier-4) + Ardo (repeat, skittish).
+        // The real fight of Day 2 — two heavy hitters in the line.
+        evening: PotionShopRound(
+            timeOfDay: .evening,
+            customerIds: ["hexa_mott", "ironhilde", "ardo"]
+        ),
+
+        // The Royal Envoy — Day 2 boss (intimidating, HP 34).
+        night: PotionShopRound(
+            timeOfDay: .night,
+            customerIds: ["royal_envoy"]
+        )
+    )
+
     // MARK: ─── ALL DAYS ─────────────────────────────────────────────
     //
-    // For v1 there's just Day 1. Day 2+ will be added later.
+    // Day 1 and Day 2 are wired up. Day 3+ remains future work
+    // (see CAULDRON_CONTEXT.md §4.4).
 
-    static let allDays: [PotionShopDay] = [day1]
+    static let allDays: [PotionShopDay] = [day1, day2]
 
     // MARK: ─── LOOKUPS ──────────────────────────────────────────────
 
@@ -517,9 +556,23 @@ enum PotionShopData {
         traits[id]
     }
 
-    /// Get a day by id (e.g. "day_1"). For v1 this returns Day 1 for
-    /// any input; multi-day support comes later.
+    /// Get a day by id (e.g. "day_1"). Returns nil if not found.
     static func day(_ id: String) -> PotionShopDay? {
         allDays.first { $0.id == id }
+    }
+
+    /// Returns the id of the day after the given one in allDays, or nil
+    /// if the given day is the last (or unknown).
+    static func nextDayId(after currentId: String) -> String? {
+        guard let idx = allDays.firstIndex(where: { $0.id == currentId }) else {
+            return nil
+        }
+        let nextIdx = idx + 1
+        return nextIdx < allDays.count ? allDays[nextIdx].id : nil
+    }
+
+    /// True if the given day id is the last day in allDays.
+    static func isLastDay(_ id: String) -> Bool {
+        allDays.last?.id == id
     }
 }

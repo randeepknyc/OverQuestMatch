@@ -182,24 +182,11 @@ struct PotionShopDebugMenu: View {
                 }
 
                 // ─── Round shortcuts ──────────────────────────────
-                Section("Skip to Round") {
-                    ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
-                        Button {
-                            gs.roundIndex = idx
-                            gs.startRound()
-                            isPresented = false
-                        } label: {
-                            HStack {
-                                Image(systemName: "forward.fill")
-                                    .foregroundColor(PotionShopTheme.accent)
-                                Text("Round \(idx + 1) – \(roundLabel(at: idx))")
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if gs.roundIndex == idx {
-                                    Text("current")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
+                Section("Skip to Day & Round") {
+                    ForEach(PotionShopData.allDays, id: \.id) { day in
+                        DisclosureGroup(day.name) {
+                            ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
+                                roundJumpButton(dayId: day.id, roundIdx: idx)
                             }
                         }
                     }
@@ -323,6 +310,28 @@ struct PotionShopDebugMenu: View {
         case 2: return "Evening"
         case 3: return "Night"
         default: return "?"
+        }
+    }
+
+    private func roundJumpButton(dayId: String, roundIdx: Int) -> some View {
+        Button {
+            gs.dayId = dayId
+            gs.roundIndex = roundIdx
+            gs.startRound()
+            isPresented = false
+        } label: {
+            HStack {
+                Image(systemName: "forward.fill")
+                    .foregroundColor(PotionShopTheme.accent)
+                Text("Round \(roundIdx + 1) – \(roundLabel(at: roundIdx))")
+                    .foregroundColor(.primary)
+                Spacer()
+                if gs.dayId == dayId && gs.roundIndex == roundIdx {
+                    Text("current")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
         }
     }
 

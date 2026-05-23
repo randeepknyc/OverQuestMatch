@@ -30,7 +30,7 @@ struct PotionShopHeaderView: View {
             }
 
             HStack(spacing: 4) {
-                if let bottleImage = UIImage(named: "potion_bottle_outline") {
+                if let bottleImage = UIImage(named: "potion_bottle_header") {
                     Image(uiImage: bottleImage)
                         .resizable()
                         .scaledToFit()

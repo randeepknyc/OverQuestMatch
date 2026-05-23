@@ -167,12 +167,21 @@ struct PotionShopGameView: View {
                 action: { gs.advanceRound() }
             )
         case .dayWon:
-            placeholderOverlay(
-                title: "Day Complete!",
-                subtitle: "Phase 8 will add a proper day-end screen.\nTap to start over.",
-                buttonLabel: "Restart",
-                action: { gs.resetGame() }
-            )
+            if PotionShopData.isLastDay(gs.dayId) {
+                placeholderOverlay(
+                    title: "Success, Day Complete!",
+                    subtitle: "You've finished every available day.\nPotions brewed: \(gs.potionsBrewed)",
+                    buttonLabel: "Restart",
+                    action: { gs.resetGame() }
+                )
+            } else {
+                placeholderOverlay(
+                    title: "Success, Day Complete!",
+                    subtitle: "Potions brewed today: \(gs.potionsBrewed)",
+                    buttonLabel: "Re-open shop tomorrow",
+                    action: { gs.advanceDay() }
+                )
+            }
         case .lost:
             placeholderOverlay(
                 title: "You Collapsed",

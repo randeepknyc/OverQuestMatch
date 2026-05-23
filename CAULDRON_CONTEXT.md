@@ -1,7 +1,7 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 22, 2026 — Node glow + die reach preview system added (see §22)
+> **Last Updated:** May 23, 2026 — Customer HP/Attack badge system, head anchors, per-character overrides (see §23)
 > **Status:** Phase 7 complete. Game is playable end-to-end for Day 1. Art assets pending.
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
@@ -158,10 +158,26 @@ Stubbed traits are declared on their owning characters (Bram = loud; Hexa Mott +
 | Evening   | Wendelina + Crispin + Ardo               | first 3-customer round, mixed pressure |
 | Night     | Grimdrek                                 | boss, volatile (overbrew retaliation)  |
 
-### 4.4 Days 2 and 3 — DESIGNED, NOT BUILT
-- Day 2 is templated as fully random (pull from pool by difficulty + time-of-day tag, randomize boss).
-- Day 3 is templated as hybrid (procedural mornings, hand-picked Evening set-piece, fixed Royal Envoy night).
-- Templates exist on paper; **NOT wired into Swift in v1.** See §17.
+### 4.3b Day 2 round structure (curated — added 2026-05-23)
+
+Day 2 introduces all 5 previously-unused characters (Sister Halla, Bram, Hexa Mott, Ironhilde, Carmilla) plus the Royal Envoy as the boss, with 3 Day 1 repeats (Mildred, Ardo) filling out the lineup. Curated, not random — the "random Day 2" plan in the original design (§4.4 below) was set aside.
+
+| Round     | Customers                                       | Notes                                                              |
+|-----------|-------------------------------------------------|--------------------------------------------------------------------|
+| Morning   | Sister Halla + Mildred                          | Sister Halla (new, pious) eases the player into Day 2              |
+| Afternoon | Bram + Lady Carmilla                            | Two new characters, Carmilla brings tier-5 HP early                |
+| Evening   | Hexa Mott + Ironhilde + Ardo                    | Two new tier-4 heavy hitters + Ardo (skittish, faster patience)   |
+| Night     | The Royal Envoy                                 | Boss — intimidating (+2 brew target while active), HP 34           |
+
+**End-of-Day-1 flow:** Beating Day 1 Night now shows the overlay "Success, Day Complete!" with button "**Re-open shop tomorrow**" → advances to Day 2 Morning (via `gs.advanceDay()`). Beating Day 2 Night shows the same overlay with button "Restart" (since Day 3 doesn't exist yet) → calls `resetGame()`.
+
+Composure carry-over between days uses `PotionShopConfig.composureRestBetweenDays`.
+
+**Boss assignment shift:** §4.4 originally designated Royal Envoy as the Day 3 boss. He's now the Day 2 boss. When Day 3 is eventually built, it'll need a different boss design.
+
+### 4.4 Day 3 — DESIGNED, NOT BUILT
+- Day 3 was originally templated as hybrid (procedural mornings, hand-picked Evening set-piece, fixed Royal Envoy night). With Royal Envoy now in Day 2, Day 3 needs a fresh boss concept.
+- Templates exist on paper; **NOT wired into Swift.** See §17.
 
 ### 4.5 How to add or edit characters/traits later
 Detailed comments at the top of `PotionShopData.swift` explain the format. Short version:
@@ -919,6 +935,150 @@ This adds scale ON TOP of the glow. To replace the glow entirely, also delete th
 
 ### 22.9 Companion doc
 A focused, code-free tuning reference for this whole system lives in **`NODE_SYSTEM_GUIDE.md`** (separate file). Keep that one open while tuning visuals; keep this section as the deeper reference.
+
+---
+
+## 23. CUSTOMER BADGE + HEAD-ANCHOR SYSTEM (May 22–23, 2026)
+
+This section documents the badge graphics + smart positioning system added over two days. It's a fairly intricate set of features, so the layout below mirrors how it's organized in code.
+
+### 23.1 What was built (high-level)
+
+Each customer in the scene now has:
+
+- A **custom HP badge** (red drop-style graphic, `hp_badge.png`) showing live HP — visible for *all* queued customers (active + waiting), not just the front.
+- A **custom Attack badge** (`attack_badge.png`) showing the customer's attack value.
+- Badge positions snap to each character's *head* (not the geometric center), using a head-anchor system tuned per bucket and per character.
+- An **inspect banner** with a `potion_bottle_outline.png` graphic showing the inspected customer's live HP number.
+- A **fully revamped debug overlay** (🎨 Badges tab) to tune all of this visually.
+
+### 23.2 Height buckets
+
+Three buckets describe how characters' heads sit in their images:
+
+- `.short` — head lower in the image (default anchor Y = 0.20)
+- `.medium` — head ~1/6 from top (default anchor Y = 0.15)
+- `.tall` — head near the top (default anchor Y = 0.10)
+
+Plus an X anchor per bucket (defaults are non-center, tuned for the current art):
+
+- short → X 0.378
+- medium → X 0.537
+- tall → X 0.565
+
+These live as `headAnchorYShort/Medium/Tall` and `headAnchorXShort/Medium/Tall` on `PotionShopLayoutConfig`. The helpers `headAnchorY(for:)` and `headAnchorX(for:)` resolve to the right value per character.
+
+**Current bucket assignments** (seeded in `applyDefaultHeightBuckets()`):
+
+| Bucket | Characters |
+|---|---|
+| short | pemberton, greta, ardo |
+| medium | mildred, wendelina, crispin |
+| tall | tomik, grimdrek |
+
+All other characters (sister_halla, hexa_mott, bram, ironhilde, carmilla, royal_envoy) default to `.medium` until tagged.
+
+### 23.3 Per-bucket badge values
+
+Each bucket has its own HP and Attack badge Size / OffsetX / OffsetY (18 values total). These live as e.g. `hpBadgeSizeShort`, `attackBadgeOffsetXTall` on `PotionShopLayoutConfig`. The helpers `hpBadgeSize(for:)`, `hpBadgeOffsetX(for:)`, `hpBadgeOffsetY(for:)` (and `attackBadge*` equivalents) look up the value for a character based on their bucket.
+
+Tuned defaults (May 23, 2026 revision 3) are in `PotionShopLayoutConfig.swift` init and mirrored in `restoreLockedDefaults()`.
+
+### 23.4 Per-character overrides (the "make it more malleable" layer)
+
+`CharacterScale` (in PotionShopLayoutConfig) has 6 optional override fields:
+
+```
+var hpBadgeSizeOverride: Double? = nil
+var hpBadgeOffsetXOverride: Double? = nil
+var hpBadgeOffsetYOverride: Double? = nil
+var attackBadgeSizeOverride: Double? = nil
+var attackBadgeOffsetXOverride: Double? = nil
+var attackBadgeOffsetYOverride: Double? = nil
+```
+
+When set, an override wins over the bucket default. Useful when characters in the same bucket vary in width (e.g. crispin is wider than ardo even though both could be short). Lookup order in the badge helpers: **override → bucket default**.
+
+`CharacterScale` also has `headAnchorYOverride: Double?` for the Y anchor specifically. There is no X anchor override yet (X is bucket-only).
+
+### 23.5 Badge offset math
+
+For each badge:
+
+```
+renderedImageHeight = portraitDiameter * scale * 1.5 * customerSceneBaseScale * effectiveHeight
+renderedImageWidth  = portraitDiameter * scale       * customerSceneBaseScale * effectiveWidth
+headOffsetY = renderedImageHeight * (headAnchorY - 0.5)
+headOffsetX = renderedImageWidth  * (headAnchorX - 0.5)
+
+badge.offset(
+    x: headOffsetX + hpBadgeOffsetX(for: char) * scale,
+    y: headOffsetY + hpBadgeOffsetY(for: char) * scale
+)
+```
+
+Meaning: the badge's stored X/Y are *displacements from the head anchor*, scaled by the queue-position factor. This way tall characters (head higher in image) get badges higher than short ones automatically, and the per-bucket offsets only need to fine-tune from there.
+
+### 23.6 Live HP propagation
+
+The HP badge text reads via `liveHP`, a computed property on `PotionShopCustomerInSceneView`:
+
+```swift
+private var liveHP: Int {
+    gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp
+}
+```
+
+This reads HP straight from `gs.customers` (which is `@Observable`), instead of relying on the cached `customer` snapshot passed in via `ForEach`. Earlier, when only the `customer` snapshot was used, the HP badge wouldn't update during a brew because SwiftUI's ForEach caching prevented the parameter update from reaching the child view. Reading via `gs` directly fixes the propagation. **If a similar "stale value" bug shows up elsewhere, use this same pattern.**
+
+The inspect-banner bottle number works the same way via `brewTargetForPill` → `customer.hp`.
+
+### 23.7 Ednar render now matches customer recipe
+
+`PotionShopEdnarView.body` was rewritten to use the same `Color.clear` placeholder + `.scaleEffect(customerSceneBaseScale × …)` recipe that customer scene images use. The old pixel-dimension formula (`image.size.width * ednarBaseScale * …`) is gone. Result: Ednar's calm picture renders at the same physical size as a default customer scene image, regardless of its PNG dimensions. `ednarBaseScale` is still accepted as a parameter (so the call site doesn't break) but is no longer used in the render formula.
+
+### 23.8 Per-character scale seeding (`applyTunedCharacterScales`)
+
+There's no UserDefaults / file persistence for layout config — it's a singleton that initializes from code defaults each launch. To prevent the user from re-tuning every session, `applyTunedCharacterScales()` (in `PotionShopLayoutConfig.swift`) seeds the dictionary `perCharacterScales` with the tuned width / height / X / Y / waiting_* / waiting2_* values for 8 characters: mildred, tomik, greta, wendelina, grimdrek, pemberton, ardo, crispin. Called from both `init()` and `restoreLockedDefaults()`.
+
+When the user copies layout values from the in-app debug menu and asks for them to be persisted, the workflow is:
+1. Paste the dump back to me.
+2. I update the matching defaults (badge per-bucket, head anchor, queue permutations, bottle, etc.).
+3. For per-character scale changes (mildred_x, grimdrek_x, etc.), I update the corresponding lines in `applyTunedCharacterScales()`.
+
+### 23.9 Debug overlay (🎨 Badges tab)
+
+Layout: `PotionShopGameView.swift`, `PotionShopLayoutOverlay`, `case .badges`. Sections, top to bottom:
+
+1. **HP + Attack Badges (per height bucket)** — three sub-blocks (Short / Medium / Tall), each with HP Size/X/Y + Atk Size/X/Y. X sliders range −300…300. Y and Size range −150…150 (Y) / 10…100 (Size).
+2. **🧪 Bottle Graphic (inspect banner)** — Size / X / Y, plus inner number Size / X / Y.
+3. **🧍 Head Anchor Defaults (by bucket)** — Y and X for each of short/medium/tall.
+4. **👤 Per-Character Overrides** — character picker (shared with the Customers tab) + 6 sliders (HP & Atk Size/X/Y). Sliders display the *effective* value (override if set, else bucket); touching a slider sets the override. A "Reset {Character} badge overrides" button wipes all 6.
+
+### 23.10 Copy Layout Values output
+
+`copyLayoutValuesToClipboard()` in `PotionShopDebugMenu.swift` dumps the following in order:
+
+- 🎨 BADGE GRAPHICS (per height bucket) — 9 HP + 9 Attack + 6 bottle fields
+- 🧍 HEAD ANCHOR DEFAULTS (per height bucket) — 6 anchor fields
+- 👤 PER-CHARACTER BADGE OVERRIDES — only characters with at least one non-nil override are listed; bucket label included
+
+If a future feature adds new tunable values, **also add them to this function** so they survive the copy/paste flow.
+
+### 23.11 Header `🧪` is now `potion_bottle_header.png`
+
+`PotionShopHeaderView.swift:33` renders `Image(uiImage: UIImage(named: "potion_bottle_header"))` at 20×20pt, with the `🧪` emoji as a fallback. Asset lives in `Assets.xcassets/potion_bottle_header.imageset/`. (The `potion_bottle_outline` asset is still used by the inspect banner in `PotionShopCustomerSceneView.swift:877`.)
+
+### 23.12 Patience ring (unchanged but worth knowing)
+
+The green ring around each customer's profile button shows `patience / maxPatience`, where patience ticks down every brew (Phase 5 of `doBrew`). It never goes up. At 0, the customer expires and damages Ednar by `char.expireDamage`. Ring color shifts from green to orange below 40%. This is NOT an HP indicator — HP is on the badge.
+
+### 23.13 Hard-won lessons from this session
+
+- **`do { ZStack { … } }` inside a `@ViewBuilder` compiles but breaks SwiftUI observation propagation.** If you need to remove a conditional wrapper around a view, drop the wrapper entirely — don't replace with `do {}`.
+- **`ForEach(…, id: \.element) { … }` can cache child views by ID** such that struct-parameter updates don't reach the child body. When live data needs to flow into a child view that lives inside a `ForEach`, prefer reading from the observable source (`gs.customers.first(where: …)?.field`) inside the child, not just relying on a passed-in struct snapshot.
+- **Per-character X tuning beats bucket-only for narrow vs wide characters.** Buckets sort by height, but width varies independently. Adding per-character overrides for X (and size, and Y) made tuning much faster.
+- **Never assume an asset is gone.** Earlier in the session, I claimed `hp_badge` and `attack_badge` didn't exist because they weren't on disk where I expected. The user clarified they were there; I had misread. Always verify with the user before suggesting assets are missing — and never delete from `Assets.xcassets` without explicit permission.
 
 ---
 

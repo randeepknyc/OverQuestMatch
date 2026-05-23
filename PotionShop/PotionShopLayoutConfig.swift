@@ -331,7 +331,7 @@ class PotionShopLayoutConfig {
     var attackBadgeOffsetXShort: Double = -74.46809113025665
     var attackBadgeOffsetYShort: Double = 23.404258489608765
     var attackBadgeSizeMedium: Double = 36.27836883068085
-    var attackBadgeOffsetXMedium: Double = -88.82979154586792
+    var attackBadgeOffsetXMedium: Double = -89.89362716674805
     var attackBadgeOffsetYMedium: Double = 36.436182260513306
     var attackBadgeSizeTall: Double = 36.27836763858795
     var attackBadgeOffsetXTall: Double = -153.723406791687
@@ -495,11 +495,12 @@ class PotionShopLayoutConfig {
     private func applyTunedCharacterScales() {
         // mildred
         var mildred = perCharacterScales["mildred"] ?? CharacterScale()
-        mildred.x = -5.6737542152404785
-        mildred.y = 7.801413536071777
+        mildred.x = -26.241135597229004
+        mildred.y = 4.609918594360352
         mildred.waitingWidth = 0.9880319200456142
         mildred.waitingHeight = 0.9880319200456142
         mildred.waitingY = -9.219861030578613
+        mildred.hpBadgeSizeOverride = 52.113476395606995
         perCharacterScales["mildred"] = mildred
 
         // tomik
@@ -507,6 +508,10 @@ class PotionShopLayoutConfig {
         tomik.x = -34.7517728805542
         tomik.y = 10.283684730529785
         tomik.waitingY = -7.446813583374023
+        tomik.hpBadgeOffsetXOverride = -114.36172127723694
+        tomik.hpBadgeOffsetYOverride = 7.446813583374023
+        tomik.attackBadgeOffsetXOverride = -110.10637879371643
+        tomik.attackBadgeOffsetYOverride = 40.69150686264038
         perCharacterScales["tomik"] = tomik
 
         // greta
@@ -518,6 +523,10 @@ class PotionShopLayoutConfig {
         greta.waitingWidth = 0.8882978670299053
         greta.waitingHeight = 0.8882978670299053
         greta.waitingY = 3.9007186889648438
+        greta.hpBadgeOffsetXOverride = -84.94681119918823
+        greta.hpBadgeOffsetYOverride = 67.81915426254272
+        greta.attackBadgeOffsetXOverride = -76.59577131271362
+        greta.attackBadgeOffsetYOverride = 97.60639071464539
         perCharacterScales["greta"] = greta
 
         // wendelina
@@ -550,6 +559,11 @@ class PotionShopLayoutConfig {
         pemberton.waitingHeight = 0.8643616996705532
         pemberton.waitingX = -23.049640655517578
         pemberton.waitingY = 5.3191423416137695
+        pemberton.hpBadgeSizeOverride = 50.278370678424835
+        pemberton.hpBadgeOffsetXOverride = -87.07446455955505
+        pemberton.hpBadgeOffsetYOverride = 23.670226335525513
+        pemberton.attackBadgeOffsetXOverride = -87.76597380638123
+        pemberton.attackBadgeOffsetYOverride = 56.117016077041626
         perCharacterScales["pemberton"] = pemberton
 
         // ardo
@@ -578,6 +592,46 @@ class PotionShopLayoutConfig {
         crispin.waiting2X = -18.794333934783936
         crispin.waiting2Y = -15.957450866699219
         perCharacterScales["crispin"] = crispin
+
+        // sister_halla (Day 2 — added May 23, 2026)
+        var sisterHalla = perCharacterScales["sister_halla"] ?? CharacterScale()
+        sisterHalla.x = -34.39716100692749
+        sisterHalla.y = 3.5460948944091797
+        sisterHalla.waitingY = -9.929072856903076
+        sisterHalla.hpBadgeSizeOverride = 49.480496644973755
+        perCharacterScales["sister_halla"] = sisterHalla
+
+        // hexa_mott (Day 2 — added May 23, 2026)
+        var hexaMott = perCharacterScales["hexa_mott"] ?? CharacterScale()
+        hexaMott.x = -34.042561054229736
+        hexaMott.y = 0.0
+        hexaMott.waitingX = -12.765955924987793
+        hexaMott.waitingY = -13.475179672241211
+        perCharacterScales["hexa_mott"] = hexaMott
+
+        // bram (Day 2 — added May 23, 2026)
+        var bram = perCharacterScales["bram"] ?? CharacterScale()
+        bram.x = -36.8794322013855
+        bram.y = 6.382989883422852
+        perCharacterScales["bram"] = bram
+
+        // ironhilde (Day 2 — added May 23, 2026)
+        var ironhilde = perCharacterScales["ironhilde"] ?? CharacterScale()
+        ironhilde.x = -24.822700023651123
+        ironhilde.y = 1.8678903579711914
+        ironhilde.waitingX = -15.60283899307251
+        ironhilde.waitingY = -13.120567798614502
+        ironhilde.waiting2Width = 0.94015958532691
+        ironhilde.waiting2Height = 0.94015958532691
+        ironhilde.waiting2Y = -8.41836929321289
+        perCharacterScales["ironhilde"] = ironhilde
+
+        // carmilla (Day 2 — added May 23, 2026)
+        var carmilla = perCharacterScales["carmilla"] ?? CharacterScale()
+        carmilla.x = 1.418447494506836
+        carmilla.waitingX = -3.191494941711426
+        carmilla.waitingY = -6.3829779624938965
+        perCharacterScales["carmilla"] = carmilla
     }
     
     // MARK: - 🔒 LOCKED DEFAULTS (May 13, 2026 - Known-Good State)
@@ -741,7 +795,7 @@ class PotionShopLayoutConfig {
         attackBadgeOffsetXShort = -74.46809113025665
         attackBadgeOffsetYShort = 23.404258489608765
         attackBadgeSizeMedium = 36.27836883068085
-        attackBadgeOffsetXMedium = -88.82979154586792
+        attackBadgeOffsetXMedium = -89.89362716674805
         attackBadgeOffsetYMedium = 36.436182260513306
         attackBadgeSizeTall = 36.27836763858795
         attackBadgeOffsetXTall = -153.723406791687

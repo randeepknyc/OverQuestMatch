@@ -237,14 +237,18 @@ class PotionShopGameState {
         }
     }
 
-    /// Move to next day. (For v1 / Day 1 only, this just resets to Day 1.)
+    /// Move to the next day in PotionShopData.allDays. If we're already
+    /// on the last day, this stays put (the dayWon overlay should use
+    /// resetGame() instead for the final-day case).
     func advanceDay() {
         composure = min(
             PotionShopConfig.maxComposure,
             composure + PotionShopConfig.composureRestBetweenDays
         )
+        if let nextId = PotionShopData.nextDayId(after: dayId) {
+            dayId = nextId
+        }
         roundIndex = 0
-        // Future: advance dayId. For v1, we stay on Day 1.
         startRound()
     }
 
