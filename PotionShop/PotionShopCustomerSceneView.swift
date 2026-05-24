@@ -507,16 +507,16 @@ struct PotionShopCustomerInSceneView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
                             )
                     } else {
                         // Fallback: red circle if image missing
                         Circle()
                             .fill(PotionShopTheme.composureBad)
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey) * scale
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
                             )
                     }
 
@@ -526,8 +526,8 @@ struct PotionShopCustomerInSceneView: View {
                         .foregroundColor(.white)
                 }
                 .offset(
-                    x: headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey) * scale,
-                    y: headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey) * scale
+                    x: headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey, isWaiting: !isActive) * scale,
+                    y: headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey, isWaiting: !isActive) * scale
                 )
                 .transition(.scale.combined(with: .opacity))
 
@@ -540,27 +540,27 @@ struct PotionShopCustomerInSceneView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
                                 )
                         } else {
                             // Fallback: red circle if image missing
                             Circle()
                                 .fill(PotionShopTheme.composureBad)
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey) * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
                                 )
                         }
-                        
+
                         // Attack number (white text on top)
                         Text("\(attack)")
                             .font(Font.gameScore(size: 15 * scale))
                             .foregroundColor(.white)
                     }
                     .offset(
-                        x: headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey) * scale,
-                        y: headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey) * scale
+                        x: headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey, isWaiting: !isActive) * scale,
+                        y: headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey, isWaiting: !isActive) * scale
                     )
                 }
 

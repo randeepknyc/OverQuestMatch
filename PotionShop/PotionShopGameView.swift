@@ -1098,6 +1098,87 @@ struct PotionShopLayoutOverlay: View {
                         range: -150...150, format: "%.0f pt"
                     )
 
+                    // ─── WAITING badge overrides (per character, shared across waiting 1 & 2)
+                    Text("⏳ Waiting HP Badge")
+                        .font(.caption2.bold())
+                        .foregroundColor(.red.opacity(0.8))
+                    sliderRow(
+                        "HP Size (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeSize(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingHpBadgeSizeOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: 10...100, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "HP X (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeOffsetX(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingHpBadgeOffsetXOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -300...300, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "HP Y (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.hpBadgeOffsetY(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingHpBadgeOffsetYOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -150...150, format: "%.0f pt"
+                    )
+
+                    Text("⏳ Waiting Attack Badge")
+                        .font(.caption2.bold())
+                        .foregroundColor(.orange.opacity(0.8))
+                    sliderRow(
+                        "Atk Size (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeSize(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingAttackBadgeSizeOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: 10...100, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "Atk X (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeOffsetX(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingAttackBadgeOffsetXOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -300...300, format: "%.0f pt"
+                    )
+                    sliderRow(
+                        "Atk Y (Waiting)",
+                        value: Binding<Double>(
+                            get: { layoutConfig.attackBadgeOffsetY(for: selectedCharacterId, isWaiting: true) },
+                            set: { newValue in
+                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                cs.waitingAttackBadgeOffsetYOverride = newValue
+                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                            }
+                        ),
+                        range: -150...150, format: "%.0f pt"
+                    )
+
                     Button("Reset \(selectedCharacterId.capitalized) badge overrides") {
                         var cs = layoutConfig.characterScale(for: selectedCharacterId)
                         cs.hpBadgeSizeOverride = nil
@@ -1106,6 +1187,12 @@ struct PotionShopLayoutOverlay: View {
                         cs.attackBadgeSizeOverride = nil
                         cs.attackBadgeOffsetXOverride = nil
                         cs.attackBadgeOffsetYOverride = nil
+                        cs.waitingHpBadgeSizeOverride = nil
+                        cs.waitingHpBadgeOffsetXOverride = nil
+                        cs.waitingHpBadgeOffsetYOverride = nil
+                        cs.waitingAttackBadgeSizeOverride = nil
+                        cs.waitingAttackBadgeOffsetXOverride = nil
+                        cs.waitingAttackBadgeOffsetYOverride = nil
                         layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
                     }
                     .font(.caption2)

@@ -250,6 +250,16 @@ class PotionShopLayoutConfig {
         var attackBadgeSizeOverride: Double? = nil
         var attackBadgeOffsetXOverride: Double? = nil
         var attackBadgeOffsetYOverride: Double? = nil
+
+        // Per-character WAITING badge overrides (May 23, 2026 — Option C).
+        // Apply when the character is in queue[1] or queue[2] (any waiting slot,
+        // shared). When nil, the active value (override or bucket) is used.
+        var waitingHpBadgeSizeOverride: Double? = nil
+        var waitingHpBadgeOffsetXOverride: Double? = nil
+        var waitingHpBadgeOffsetYOverride: Double? = nil
+        var waitingAttackBadgeSizeOverride: Double? = nil
+        var waitingAttackBadgeOffsetXOverride: Double? = nil
+        var waitingAttackBadgeOffsetYOverride: Double? = nil
     }
     
     // Helper to get or create a character scale
@@ -338,8 +348,11 @@ class PotionShopLayoutConfig {
     var attackBadgeOffsetYTall: Double = 45.744699239730835
 
     // Bucket-aware lookups (per-character override wins when set).
-    func hpBadgeSize(for characterId: String) -> Double {
+    // When isWaiting=true, the waiting-specific per-char override is checked
+    // first; if it's nil we fall back to the active override / bucket value.
+    func hpBadgeSize(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingHpBadgeSizeOverride { return v }
         if let v = cs.hpBadgeSizeOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeSizeShort
@@ -347,8 +360,9 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeSizeTall
         }
     }
-    func hpBadgeOffsetX(for characterId: String) -> Double {
+    func hpBadgeOffsetX(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingHpBadgeOffsetXOverride { return v }
         if let v = cs.hpBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeOffsetXShort
@@ -356,8 +370,9 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeOffsetXTall
         }
     }
-    func hpBadgeOffsetY(for characterId: String) -> Double {
+    func hpBadgeOffsetY(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingHpBadgeOffsetYOverride { return v }
         if let v = cs.hpBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeOffsetYShort
@@ -365,8 +380,9 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeOffsetYTall
         }
     }
-    func attackBadgeSize(for characterId: String) -> Double {
+    func attackBadgeSize(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingAttackBadgeSizeOverride { return v }
         if let v = cs.attackBadgeSizeOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeSizeShort
@@ -374,8 +390,9 @@ class PotionShopLayoutConfig {
         case .tall: return attackBadgeSizeTall
         }
     }
-    func attackBadgeOffsetX(for characterId: String) -> Double {
+    func attackBadgeOffsetX(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingAttackBadgeOffsetXOverride { return v }
         if let v = cs.attackBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeOffsetXShort
@@ -383,8 +400,9 @@ class PotionShopLayoutConfig {
         case .tall: return attackBadgeOffsetXTall
         }
     }
-    func attackBadgeOffsetY(for characterId: String) -> Double {
+    func attackBadgeOffsetY(for characterId: String, isWaiting: Bool = false) -> Double {
         let cs = characterScale(for: characterId)
+        if isWaiting, let v = cs.waitingAttackBadgeOffsetYOverride { return v }
         if let v = cs.attackBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeOffsetYShort
