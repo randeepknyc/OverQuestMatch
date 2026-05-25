@@ -315,6 +315,7 @@ struct PotionShopLayoutOverlay: View {
         case customers = "🧍 Customers"  // NEW: Customer scene portraits
         case badges = "🎨 Badges"  // NEW: HP/Attack badges + bottle graphic
         case permutations = "🎭 Permutations"  // NEW: 3-character queue spacing
+        case autoLayout = "🎲 Auto-Layout"  // NEW (May 25): Day 3 auto-spacing
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
@@ -873,6 +874,58 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+            }
+        case .autoLayout:
+            // 🎲 AUTO-LAYOUT (Day 3 RNG test) — May 25, 2026
+            VStack(alignment: .leading, spacing: 12) {
+                Text("🎲 Day 3 Auto-Layout")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                Text("Tune how Day 3 customers space themselves. Only affects flex days (Day 3+). Day 1/2 untouched.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+
+                Text("Queue X Range")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                sliderRow("Active X (queue[0])", value: $layoutConfig.autoLayoutStartX, range: 0.1...0.7, format: "%.3f")
+                sliderRow("Back of line X", value: $layoutConfig.autoLayoutEndX, range: 0.5...0.99, format: "%.3f")
+
+                Text("Queue Y")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                sliderRow("Active Y", value: $layoutConfig.autoLayoutYActive, range: 0.2...0.9, format: "%.3f")
+                sliderRow("Waiter Y", value: $layoutConfig.autoLayoutYWaiting, range: 0.2...0.9, format: "%.3f")
+
+                Text("Per-Slot Scale")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                sliderRow("Active scale", value: $layoutConfig.autoLayoutScaleActive, range: 0.4...1.5, format: "%.2f")
+                sliderRow("Waiting 1 scale", value: $layoutConfig.autoLayoutScaleWaiting1, range: 0.4...1.5, format: "%.2f")
+                sliderRow("Waiting 2 scale", value: $layoutConfig.autoLayoutScaleWaiting2, range: 0.4...1.5, format: "%.2f")
+
+                Text("Width Bucket Weights")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                Text("Larger weight = character takes more horizontal room in the queue.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                sliderRow("Skinny weight", value: $layoutConfig.autoLayoutWidthWeightSkinny, range: 0.5...3.0, format: "%.2f")
+                sliderRow("Medium weight", value: $layoutConfig.autoLayoutWidthWeightMedium, range: 0.5...3.0, format: "%.2f")
+                sliderRow("Wide weight", value: $layoutConfig.autoLayoutWidthWeightWide, range: 0.5...3.0, format: "%.2f")
+
+                Text("Per-Height-Bucket Y Adjust")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                Text("Adds to the base Y for each bucket. Use to align floaters higher, tallHats lower, etc.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                sliderRow("SuperShort Y+", value: $layoutConfig.autoLayoutYAdjustSuperShort, range: -0.2...0.2, format: "%+.3f")
+                sliderRow("Short Y+", value: $layoutConfig.autoLayoutYAdjustShort, range: -0.2...0.2, format: "%+.3f")
+                sliderRow("Medium Y+", value: $layoutConfig.autoLayoutYAdjustMedium, range: -0.2...0.2, format: "%+.3f")
+                sliderRow("Tall Y+", value: $layoutConfig.autoLayoutYAdjustTall, range: -0.2...0.2, format: "%+.3f")
+                sliderRow("TallHat Y+", value: $layoutConfig.autoLayoutYAdjustTallHat, range: -0.2...0.2, format: "%+.3f")
+                sliderRow("Floater Y+", value: $layoutConfig.autoLayoutYAdjustFloater, range: -0.2...0.2, format: "%+.3f")
             }
         case .badges:
             // 🎨 BADGE GRAPHICS - HP/Attack badges + bottle graphic

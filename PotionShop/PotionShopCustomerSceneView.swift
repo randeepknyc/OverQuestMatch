@@ -130,47 +130,45 @@ struct PotionShopSceneLayout {
 // scale with the character's visual width. Day 1/2 keep their existing
 // hand-tuned positions; only flex days (Day 3+) go through this path.
 //
-// Active customer (queue[0]) sits leftmost (closest to Ednar); waiters
-// pack progressively right. Each bucket gets a different X step weight.
+// All numeric values live on PotionShopLayoutConfig as instance properties
+// (so they can be tuned live via the Layout Editor sliders).
 
 enum PotionShopAutoQueueLayout {
 
-    /// Relative slot widths per width bucket. Bigger = more horizontal space.
-    static let widthWeight: [PotionShopLayoutConfig.CustomerWidthBucket: CGFloat] = [
-        .skinny: 1.0,
-        .medium: 1.4,
-        .wide:   2.0
-    ]
+    /// Per-bucket width weight lookup (reads from config).
+    static func widthWeight(for bucket: PotionShopLayoutConfig.CustomerWidthBucket,
+                            config: PotionShopLayoutConfig) -> CGFloat {
+        switch bucket {
+        case .skinny: return CGFloat(config.autoLayoutWidthWeightSkinny)
+        case .medium: return CGFloat(config.autoLayoutWidthWeightMedium)
+        case .wide:   return CGFloat(config.autoLayoutWidthWeightWide)
+        }
+    }
 
-    /// Active customer X-fraction (leftmost, near Ednar).
-    static let startXFraction: CGFloat = 0.45
-    /// Back-of-line X-fraction.
-    static let endXFraction: CGFloat = 0.92
-
-    /// Default Y positions per slot.
-    static let yFractionActive: CGFloat = 0.48
-    static let yFractionWaiting: CGFloat = 0.55
-
-    /// Per-bucket Y micro-adjustment — heads of different heights line up better.
-    static let heightYAdjust: [PotionShopLayoutConfig.CustomerHeightBucket: CGFloat] = [
-        .superShort: -0.03,
-        .short:      -0.01,
-        .medium:      0.00,
-        .tall:        0.01,
-        .tallHat:     0.02,
-        .floater:    -0.06
-    ]
+    /// Per-height-bucket Y micro-adjustment.
+    static func heightYAdjust(for bucket: PotionShopLayoutConfig.CustomerHeightBucket,
+                              config: PotionShopLayoutConfig) -> CGFloat {
+        switch bucket {
+        case .superShort: return CGFloat(config.autoLayoutYAdjustSuperShort)
+        case .short:      return CGFloat(config.autoLayoutYAdjustShort)
+        case .medium:     return CGFloat(config.autoLayoutYAdjustMedium)
+        case .tall:       return CGFloat(config.autoLayoutYAdjustTall)
+        case .tallHat:    return CGFloat(config.autoLayoutYAdjustTallHat)
+        case .floater:    return CGFloat(config.autoLayoutYAdjustFloater)
+        }
+    }
 
     /// X positions (fractions of scene width) for the queue.
     static func xFractions(for characterKeys: [String],
                            config: PotionShopLayoutConfig) -> [CGFloat] {
         let count = characterKeys.count
+        let startX = CGFloat(config.autoLayoutStartX)
+        let endX = CGFloat(config.autoLayoutEndX)
         if count == 0 { return [] }
-        if count == 1 { return [startXFraction] }
+        if count == 1 { return [startX] }
 
         let weights: [CGFloat] = characterKeys.map { key in
-            let bucket = config.characterScale(for: key).widthBucket
-            return widthWeight[bucket] ?? widthWeight[.medium]!
+            widthWeight(for: config.characterScale(for: key).widthBucket, config: config)
         }
 
         var cumulative: [CGFloat] = [0]
@@ -179,11 +177,11 @@ enum PotionShopAutoQueueLayout {
         }
         let total = cumulative.last ?? 1
         if total <= 0 {
-            let step = (endXFraction - startXFraction) / CGFloat(max(count - 1, 1))
-            return (0..<count).map { startXFraction + CGFloat($0) * step }
+            let step = (endX - startX) / CGFloat(max(count - 1, 1))
+            return (0..<count).map { startX + CGFloat($0) * step }
         }
-        let range = endXFraction - startXFraction
-        return cumulative.map { startXFraction + ($0 / total) * range }
+        let range = endX - startX
+        return cumulative.map { startX + ($0 / total) * range }
     }
 
     /// Y positions (fractions of scene height) for the queue.
@@ -191,16 +189,22 @@ enum PotionShopAutoQueueLayout {
                            config: PotionShopLayoutConfig) -> [CGFloat] {
         characterKeys.enumerated().map { idx, key in
             let bucket = config.characterScale(for: key).heightBucket
-            let adj = heightYAdjust[bucket] ?? 0
-            let base = (idx == 0) ? yFractionActive : yFractionWaiting
+            let adj = heightYAdjust(for: bucket, config: config)
+            let base = CGFloat(idx == 0 ? config.autoLayoutYActive : config.autoLayoutYWaiting)
             return base + adj
         }
     }
 
-    /// Per-customer scale. Default 1.0 — template canvas already encodes height.
+    /// Per-customer scale (active vs waiting1 vs waiting2 + beyond).
     static func scales(for characterKeys: [String],
                        config: PotionShopLayoutConfig) -> [CGFloat] {
-        Array(repeating: 1.0, count: characterKeys.count)
+        characterKeys.enumerated().map { idx, _ in
+            switch idx {
+            case 0: return CGFloat(config.autoLayoutScaleActive)
+            case 1: return CGFloat(config.autoLayoutScaleWaiting1)
+            default: return CGFloat(config.autoLayoutScaleWaiting2)
+            }
+        }
     }
 }
 

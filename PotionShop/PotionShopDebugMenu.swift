@@ -197,6 +197,18 @@ struct PotionShopDebugMenu: View {
                             ForEach(0..<day.totalRoundCount, id: \.self) { idx in
                                 roundJumpButton(dayId: day.id, roundIdx: idx)
                             }
+                            // Reshuffle the random rounds of this flex day.
+                            Button {
+                                gs.reshuffleFlexDay()
+                                isPresented = false
+                            } label: {
+                                HStack {
+                                    Image(systemName: "shuffle")
+                                        .foregroundColor(PotionShopTheme.accent)
+                                    Text("Reshuffle \(day.name) random rounds")
+                                        .foregroundColor(.primary)
+                                }
+                            }
                         }
                     }
                 }
@@ -660,6 +672,26 @@ struct PotionShopDebugMenu: View {
         headAnchorXShort: \(cfg.headAnchorXShort)
         headAnchorXMedium: \(cfg.headAnchorXMedium)
         headAnchorXTall: \(cfg.headAnchorXTall)
+
+        ───────────────────────────────────────────────────────────────
+        🎲 DAY 3 AUTO-LAYOUT (May 25, 2026)
+        ───────────────────────────────────────────────────────────────
+        autoLayoutStartX: \(cfg.autoLayoutStartX)
+        autoLayoutEndX: \(cfg.autoLayoutEndX)
+        autoLayoutYActive: \(cfg.autoLayoutYActive)
+        autoLayoutYWaiting: \(cfg.autoLayoutYWaiting)
+        autoLayoutScaleActive: \(cfg.autoLayoutScaleActive)
+        autoLayoutScaleWaiting1: \(cfg.autoLayoutScaleWaiting1)
+        autoLayoutScaleWaiting2: \(cfg.autoLayoutScaleWaiting2)
+        autoLayoutWidthWeightSkinny: \(cfg.autoLayoutWidthWeightSkinny)
+        autoLayoutWidthWeightMedium: \(cfg.autoLayoutWidthWeightMedium)
+        autoLayoutWidthWeightWide: \(cfg.autoLayoutWidthWeightWide)
+        autoLayoutYAdjustSuperShort: \(cfg.autoLayoutYAdjustSuperShort)
+        autoLayoutYAdjustShort: \(cfg.autoLayoutYAdjustShort)
+        autoLayoutYAdjustMedium: \(cfg.autoLayoutYAdjustMedium)
+        autoLayoutYAdjustTall: \(cfg.autoLayoutYAdjustTall)
+        autoLayoutYAdjustTallHat: \(cfg.autoLayoutYAdjustTallHat)
+        autoLayoutYAdjustFloater: \(cfg.autoLayoutYAdjustFloater)
 
         """
 

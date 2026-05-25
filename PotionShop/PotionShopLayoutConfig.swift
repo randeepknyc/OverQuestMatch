@@ -477,6 +477,40 @@ class PotionShopLayoutConfig {
     var headAnchorYTallHat: Double = 0.188       // head center y=288 / 1536
     var headAnchorYFloater: Double = 0.333       // head center y=512 / 1536
 
+    // MARK: - Auto-Layout Values (May 25, 2026 — Day 3 only)
+    //
+    // These drive PotionShopAutoQueueLayout for flex days (Day 3+). Tunable
+    // via the Layout Editor → "🎲 Auto-Layout (Day 3)" section. Changing
+    // these does NOT affect Day 1/2 (they use hand-tuned permutations).
+
+    /// X-fraction where the active customer sits (closest to Ednar).
+    var autoLayoutStartX: Double = 0.45
+    /// X-fraction where the back-of-line customer sits.
+    var autoLayoutEndX: Double = 0.82
+    /// Y-fraction for the active customer.
+    var autoLayoutYActive: Double = 0.48
+    /// Y-fraction for waiters (queue[1+]). Same as active = feet line up.
+    var autoLayoutYWaiting: Double = 0.48
+    /// Scale of the active customer (queue[0]).
+    var autoLayoutScaleActive: Double = 1.0
+    /// Scale of waiting1 (queue[1]). Smaller = depth perspective.
+    var autoLayoutScaleWaiting1: Double = 0.85
+    /// Scale of waiting2 (queue[2]).
+    var autoLayoutScaleWaiting2: Double = 0.75
+
+    /// Relative slot widths per width bucket.
+    var autoLayoutWidthWeightSkinny: Double = 1.0
+    var autoLayoutWidthWeightMedium: Double = 1.4
+    var autoLayoutWidthWeightWide: Double = 2.0
+
+    /// Per-height-bucket Y micro-adjustment (added to the base Y).
+    var autoLayoutYAdjustSuperShort: Double = 0.0
+    var autoLayoutYAdjustShort: Double = 0.0
+    var autoLayoutYAdjustMedium: Double = 0.0
+    var autoLayoutYAdjustTall: Double = 0.0
+    var autoLayoutYAdjustTallHat: Double = 0.0
+    var autoLayoutYAdjustFloater: Double = -0.05  // floaters sit slightly higher
+
     func headAnchorY(for characterId: String) -> Double {
         let cs = characterScale(for: characterId)
         if let override = cs.headAnchorYOverride { return override }

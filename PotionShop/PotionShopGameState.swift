@@ -87,7 +87,16 @@ class PotionShopGameState {
 
     // MARK: - Game progression
 
-    var dayId: String = "day_1"
+    /// When dayId changes, clear any cached flex-day random rounds so the
+    /// next entry into a flex day reshuffles. This makes jumping in/out of
+    /// Day 3 via the debug menu produce new RNG draws.
+    var dayId: String = "day_1" {
+        didSet {
+            if dayId != oldValue {
+                flexDayGeneratedRounds = []
+            }
+        }
+    }
     /// 0 = morning, 1 = afternoon, 2 = evening, 3 = night
     var roundIndex: Int = 0
     var phase: PotionShopPhase = .playing
@@ -261,6 +270,18 @@ class PotionShopGameState {
         placements.removeAll()
         selectedHandIndex = nil
         phase = .playing
+    }
+
+    /// Force a reshuffle of the current flex day. Use from the debug menu
+    /// to test new random combos without quitting the app. If currently
+    /// inside a flex day, also restarts the current round so the user sees
+    /// the new draw immediately (if they're on a random round).
+    func reshuffleFlexDay() {
+        flexDayGeneratedRounds = []
+        if isFlexDay {
+            generateFlexDayRounds()
+            startRound()
+        }
     }
 
     /// Generate the random rounds for the current flex day. Rounds 1+ from
