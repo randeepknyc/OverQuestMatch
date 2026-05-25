@@ -68,14 +68,19 @@ struct PotionShopSceneLayout {
     static let portraitDiameter: CGFloat = 76
     static let profileDiameter:  CGFloat = 56
 
-    /// Get X positions for queue, checking for custom permutation first
-    static func queueXFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+    /// Get X positions for queue, checking for custom permutation first.
+    /// When `useAutoLayout` is true (Day 3+ flex days), the auto-layout
+    /// system computes X positions from each character's widthBucket.
+    static func queueXFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false) -> [CGFloat] {
+        if useAutoLayout, let config = config {
+            return PotionShopAutoQueueLayout.xFractions(for: characterKeys, config: config)
+        }
         // Check for custom permutation in config
         if let config = config, count == 3 {
             let permutation = config.queuePositions(for: characterKeys)
             return permutation.xPositions.map { CGFloat($0) }
         }
-        
+
         // Fall back to defaults
         switch count {
         case 1:  return queueXFractions1
@@ -84,21 +89,27 @@ struct PotionShopSceneLayout {
         default: return queueXFractions3
         }
     }
-    
-    /// Get Y positions for queue, checking for custom permutation first
-    static func queueYFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+
+    /// Get Y positions for queue, checking for custom permutation first.
+    static func queueYFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false) -> [CGFloat] {
+        if useAutoLayout, let config = config {
+            return PotionShopAutoQueueLayout.yFractions(for: characterKeys, config: config)
+        }
         // Check for custom permutation in config
         if let config = config, count == 3 {
             let permutation = config.queuePositions(for: characterKeys)
             return permutation.yPositions.map { CGFloat($0) }
         }
-        
+
         // Fall back to defaults
         return queueYFractions
     }
-    
-    /// Get scales for queue, checking for custom permutation first
-    static func queueScales(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?) -> [CGFloat] {
+
+    /// Get scales for queue, checking for custom permutation first.
+    static func queueScales(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false) -> [CGFloat] {
+        if useAutoLayout, let config = config {
+            return PotionShopAutoQueueLayout.scales(for: characterKeys, config: config)
+        }
         // Check for custom permutation in config
         if let config = config, count == 3 {
             let permutation = config.queuePositions(for: characterKeys)
@@ -106,9 +117,90 @@ struct PotionShopSceneLayout {
                 return overrides.map { CGFloat($0) }
             }
         }
-        
+
         // Fall back to defaults
         return queueScales
+    }
+}
+
+// MARK: - Auto Queue Layout (May 25, 2026 — for Day 3 RNG test)
+//
+// Replaces hand-tuned `queuePermutations` for flex days. Reads each
+// customer's widthBucket and computes left-to-right X positions that
+// scale with the character's visual width. Day 1/2 keep their existing
+// hand-tuned positions; only flex days (Day 3+) go through this path.
+//
+// Active customer (queue[0]) sits leftmost (closest to Ednar); waiters
+// pack progressively right. Each bucket gets a different X step weight.
+
+enum PotionShopAutoQueueLayout {
+
+    /// Relative slot widths per width bucket. Bigger = more horizontal space.
+    static let widthWeight: [PotionShopLayoutConfig.CustomerWidthBucket: CGFloat] = [
+        .skinny: 1.0,
+        .medium: 1.4,
+        .wide:   2.0
+    ]
+
+    /// Active customer X-fraction (leftmost, near Ednar).
+    static let startXFraction: CGFloat = 0.45
+    /// Back-of-line X-fraction.
+    static let endXFraction: CGFloat = 0.92
+
+    /// Default Y positions per slot.
+    static let yFractionActive: CGFloat = 0.48
+    static let yFractionWaiting: CGFloat = 0.55
+
+    /// Per-bucket Y micro-adjustment — heads of different heights line up better.
+    static let heightYAdjust: [PotionShopLayoutConfig.CustomerHeightBucket: CGFloat] = [
+        .superShort: -0.03,
+        .short:      -0.01,
+        .medium:      0.00,
+        .tall:        0.01,
+        .tallHat:     0.02,
+        .floater:    -0.06
+    ]
+
+    /// X positions (fractions of scene width) for the queue.
+    static func xFractions(for characterKeys: [String],
+                           config: PotionShopLayoutConfig) -> [CGFloat] {
+        let count = characterKeys.count
+        if count == 0 { return [] }
+        if count == 1 { return [startXFraction] }
+
+        let weights: [CGFloat] = characterKeys.map { key in
+            let bucket = config.characterScale(for: key).widthBucket
+            return widthWeight[bucket] ?? widthWeight[.medium]!
+        }
+
+        var cumulative: [CGFloat] = [0]
+        for w in weights.dropLast() {
+            cumulative.append(cumulative.last! + w)
+        }
+        let total = cumulative.last ?? 1
+        if total <= 0 {
+            let step = (endXFraction - startXFraction) / CGFloat(max(count - 1, 1))
+            return (0..<count).map { startXFraction + CGFloat($0) * step }
+        }
+        let range = endXFraction - startXFraction
+        return cumulative.map { startXFraction + ($0 / total) * range }
+    }
+
+    /// Y positions (fractions of scene height) for the queue.
+    static func yFractions(for characterKeys: [String],
+                           config: PotionShopLayoutConfig) -> [CGFloat] {
+        characterKeys.enumerated().map { idx, key in
+            let bucket = config.characterScale(for: key).heightBucket
+            let adj = heightYAdjust[bucket] ?? 0
+            let base = (idx == 0) ? yFractionActive : yFractionWaiting
+            return base + adj
+        }
+    }
+
+    /// Per-customer scale. Default 1.0 — template canvas already encodes height.
+    static func scales(for characterKeys: [String],
+                       config: PotionShopLayoutConfig) -> [CGFloat] {
+        Array(repeating: 1.0, count: characterKeys.count)
     }
 }
 
@@ -429,16 +521,16 @@ struct PotionShopCustomerInSceneView: View {
         return true
     }
     private var scale: CGFloat {
-        // Use permutation-aware scale lookup
-        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
+        // Use permutation-aware scale lookup (auto-layout on Day 3+).
+        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
         if queueIndex < scales.count {
             return scales[queueIndex]
         }
         return 0.7
     }
     private var xPos: CGFloat {
-        // Use permutation-aware X position lookup
-        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
+        // Use permutation-aware X position lookup (auto-layout on Day 3+).
+        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
         let frac: CGFloat
         if queueIndex < fractions.count {
             frac = fractions[queueIndex]
@@ -448,8 +540,8 @@ struct PotionShopCustomerInSceneView: View {
         return sceneSize.width * frac
     }
     private var yPos: CGFloat {
-        // Use permutation-aware Y position lookup
-        let fractions = PotionShopSceneLayout.queueYFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig)
+        // Use permutation-aware Y position lookup (auto-layout on Day 3+).
+        let fractions = PotionShopSceneLayout.queueYFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
         let frac: CGFloat
         if queueIndex < fractions.count {
             frac = fractions[queueIndex]
@@ -482,6 +574,13 @@ struct PotionShopCustomerInSceneView: View {
         let headOffsetY = renderedImageHeight * (anchorFractionY - 0.5)
         let headOffsetX = renderedImageWidth * (anchorFractionX - 0.5)
 
+        // White-silhouette test (May 25, 2026): Day 1 Evening waiters render with
+        // a solid-white silhouette underneath + a faded character on top, so the
+        // scene background doesn't show through the body. Active customer always
+        // renders normally. Scoped to Wendelina + Crispin + Ardo for now.
+        let useWhiteSilhouette = !isActive &&
+            ["wendelina", "crispin", "ardo"].contains(customer.charKey)
+
         if let char = char {
             ZStack {
                 // Character image (full body, NO circle!)
@@ -492,18 +591,49 @@ struct PotionShopCustomerInSceneView: View {
                             width: PotionShopSceneLayout.portraitDiameter * scale,
                             height: PotionShopSceneLayout.portraitDiameter * scale * 1.5  // 2:3 aspect ratio
                         )
-                    
-                    PotionShopImageLoader.sceneImageOrFallback(
-                        sceneAsset: char.scenePortrait,
-                        profileAsset: char.portrait,
-                        fallbackEmoji: char.iconFallback,
-                        size: PotionShopSceneLayout.portraitDiameter * scale
-                    )
-                    // Apply base scale FIRST (makes 1536×1024 visible), then per-character scale
-                    .scaleEffect(x: customerSceneBaseScale * effectiveWidth, 
-                                y: customerSceneBaseScale * effectiveHeight, 
-                                anchor: .center)
-                    .offset(x: effectiveX, y: effectiveY)
+
+                    if useWhiteSilhouette {
+                        // Underlay: opaque white silhouette of the character.
+                        // `.colorMultiply(.white).brightness(1.0)` pushes every visible
+                        // pixel to pure white while preserving the alpha channel.
+                        PotionShopImageLoader.sceneImageOrFallback(
+                            sceneAsset: char.scenePortrait,
+                            profileAsset: char.portrait,
+                            fallbackEmoji: char.iconFallback,
+                            size: PotionShopSceneLayout.portraitDiameter * scale
+                        )
+                        .scaleEffect(x: customerSceneBaseScale * effectiveWidth,
+                                    y: customerSceneBaseScale * effectiveHeight,
+                                    anchor: .center)
+                        .offset(x: effectiveX, y: effectiveY)
+                        .colorMultiply(.white)
+                        .brightness(1.0)
+
+                        // Overlay: original character art at reduced opacity.
+                        PotionShopImageLoader.sceneImageOrFallback(
+                            sceneAsset: char.scenePortrait,
+                            profileAsset: char.portrait,
+                            fallbackEmoji: char.iconFallback,
+                            size: PotionShopSceneLayout.portraitDiameter * scale
+                        )
+                        .scaleEffect(x: customerSceneBaseScale * effectiveWidth,
+                                    y: customerSceneBaseScale * effectiveHeight,
+                                    anchor: .center)
+                        .offset(x: effectiveX, y: effectiveY)
+                        .opacity(0.55)
+                    } else {
+                        PotionShopImageLoader.sceneImageOrFallback(
+                            sceneAsset: char.scenePortrait,
+                            profileAsset: char.portrait,
+                            fallbackEmoji: char.iconFallback,
+                            size: PotionShopSceneLayout.portraitDiameter * scale
+                        )
+                        // Apply base scale FIRST (makes 1536×1024 visible), then per-character scale
+                        .scaleEffect(x: customerSceneBaseScale * effectiveWidth,
+                                    y: customerSceneBaseScale * effectiveHeight,
+                                    anchor: .center)
+                        .offset(x: effectiveX, y: effectiveY)
+                    }
                 }
 
                 // Badge queue slot (May 24, 2026): 0 = active (queue[0]),
@@ -584,7 +714,9 @@ struct PotionShopCustomerInSceneView: View {
                         .offset(x: 20, y: -30 + emojiOffset)
                 }
             }
-            .opacity(dim ? 0.55 : 1.0)
+            // Skip global dim when silhouette mode is active (silhouette
+            // handles its own fade and we want badges/emoji at full opacity).
+            .opacity((dim && !useWhiteSilhouette) ? 0.55 : 1.0)
             .opacity(expireOpacity)
             .scaleEffect(scale * settleBoost)
             .position(x: xPos + shakeOffset + expireSlideX, y: yPos)

@@ -1,7 +1,7 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 25, 2026 — character-art-template floor shifted to y=1500 (was y=1440) after verifying existing 14 characters have feet ~y=1480–1500; floater floor y=1260 (was y=1200); spec doc updated. See §24. May 24 (evening): badge body-follow (Option A), waiting2 overrides (Option B), `queueSlot: Int` API. See §23.17.
+> **Last Updated:** May 25, 2026 (evening) — Day 3 (flex-day RNG test) built with 13 guide_* characters, auto-spacing queue layout for any width/height combo, new bucket cases (superShort/tallHat/floater + WidthBucket enum). Day 1/2 untouched. See §25. Earlier May 25: art template floor shifted to y=1500. See §24. May 24 (eve): badge body-follow + waiting2 overrides. See §23.17.
 > **Status:** Phase 7 complete + partial Phase 8. Game is playable end-to-end for Day 1 → Day 2. Art assets pending.
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
@@ -1214,6 +1214,71 @@ Currently the spec only exists as a markdown doc + intent. **Not yet implemented
 ### 24.5 Migration plan (not started)
 
 Existing 14 characters are NOT in the template format. They'll keep their hand-tuned overrides until re-drawn against the template, at which point their overrides can be cleared. New characters (#15 onward) should be drawn template-first and added with only `id / name / tier / heightBucket / widthBucket / HP / attack / trait / dialogue` — no layout tuning.
+
+---
+
+## 25. DAY 3 — FLEX-DAY RNG TEST (May 25, 2026)
+
+Day 3 is the **first test of the auto-layout queue system**. It exists separately from Day 1/2 so the existing hand-tuned layouts stay safe. If the auto-layout works well here, the plan is to migrate everything to it.
+
+### 25.1 What Day 3 is
+
+- **13 new "guide_*" characters** drawn against the safe-zone art template (see §24).
+  - Heights span 6 buckets: `tallHat, tall, medium, short, superShort, floater`.
+  - Widths span 3 buckets: `skinny, medium, wide`.
+  - Each is just `guide_<name>` (octo, girl, skull, slug, fishguy, bull, traveler, demon, frog, pig, faun, fox, woman). Placeholder names and dialogue.
+- **5 rounds, no Morning/Afternoon/Evening/Night labels** — just "Round 1" through "Round 5":
+  - **Round 1 (fixed):** woman + traveler (2 chars, gentle intro)
+  - **Round 2 (fixed):** octo + girl + skull (3 chars, variety)
+  - **Rounds 3-5 (random):** 3/3/2 chars drawn without repeats from the 8-char random pool (slug, fishguy, bull, demon, frog, pig, faun, fox).
+- **RNG reseeds every app launch.** Once Day 3 is entered, the random rounds are generated and stay stable for the rest of the session. New app launch → new shuffle.
+
+### 25.2 Files added/changed
+
+- **`PotionShopModels.swift`** — unchanged in this phase.
+- **`PotionShopLayoutConfig.swift`** —
+  - Extended `CustomerHeightBucket` enum with `superShort`, `tallHat`, `floater` cases.
+  - New `CustomerWidthBucket` enum (`skinny / medium / wide`).
+  - Added `widthBucket` + `headAnchorXOverride` fields to `CharacterScale`.
+  - New head-anchor properties for the 3 template-only buckets.
+  - All 6 badge-lookup switches updated to handle the new cases (mapped: superShort→short bucket, floater→medium, tallHat→tall for sizing).
+  - New `applyGuideCharacter(id:height:width:)` helper called for all 13 guides during init.
+- **`PotionShopData.swift`** —
+  - Added 13 `PotionShopCharacter` entries (placeholder combat stats by height bucket).
+  - Added `PotionShopFlexDay` struct (separate from legacy `PotionShopDay` to support variable round counts).
+  - Added `day3: PotionShopFlexDay` with the fixed + random rounds spec.
+  - `nextDayId(after:)` and `isLastDay(_:)` updated to chain day_2 → day_3.
+  - `roundCount(forDayId:)` helper handles both legacy and flex days.
+- **`PotionShopGameState.swift`** —
+  - `flexDayGeneratedRounds: [PotionShopRound]` property holds the runtime-generated random rounds.
+  - `isFlexDay` getter checks current dayId against `PotionShopData.isFlexDay(_:)`.
+  - `startRound()` routes flex-day starts through `generateFlexDayRounds()` + a shared `spawnCustomers(from:)` helper.
+  - `advanceRound()` uses `PotionShopData.roundCount(forDayId:)` instead of the hardcoded 4.
+  - `advanceDay()` and `resetGame()` clear `flexDayGeneratedRounds` so they regenerate (with a fresh RNG draw) when the next Day 3 starts.
+  - `currentRoundLabel` returns "Round N" for flex days instead of morning/afternoon/etc.
+- **`PotionShopCustomerSceneView.swift`** —
+  - Added `PotionShopAutoQueueLayout` enum (inlined in the same file to avoid Xcode project-membership issues).
+  - The 3 static helpers (`queueXFractions`, `queueYFractions`, `queueScales`) take a new `useAutoLayout: Bool = false` parameter. When true, they call `PotionShopAutoQueueLayout.{x,y,scales}For:config:` instead of reading hand-tuned permutations.
+  - The 3 computed properties (`scale`, `xPos`, `yPos`) on `PotionShopCustomerInSceneView` pass `useAutoLayout: gs.isFlexDay`.
+- **`PotionShopDebugMenu.swift`** — "Skip to Day & Round" section now lists both `allDays` (Day 1/2, 4 rounds each) AND `allFlexDays` (Day 3, 5 rounds).
+
+### 25.3 Auto-layout algorithm
+
+For each customer the layout reads `widthBucket` and assigns a relative weight: `skinny=1.0, medium=1.4, wide=2.0`. It accumulates the weights into a cumulative array, then maps that range linearly to `x ∈ [0.45, 0.92]` of the scene width — so the active customer always sits at 0.45 and the back of the queue at 0.92, with everyone in between proportionally spaced. Wide chars take more room, skinny take less.
+
+For Y, active = 0.48, waiters = 0.55, with per-bucket micro-adjustments so heads of different heights end up roughly horizontal across the screen (floaters sit higher; tall hats sit slightly lower to compensate for headroom).
+
+Scale = 1.0 for every slot (the template canvas already encodes character size).
+
+### 25.4 If it works → migrate Day 1/2
+
+Once the auto-layout is verified visually for Day 3, the plan is:
+1. Re-tag existing 14 characters with `widthBucket` (currently all default to `.medium`).
+2. Switch all rounds to `useAutoLayout: true`.
+3. Delete the hand-tuned `queuePermutations` dictionary entries — they're no longer needed once auto-layout produces equivalent or better spacing.
+4. Stop generating per-character X/Y/scale values in `applyTunedCharacterScales` and let auto-layout handle it.
+
+Migration is deferred until Day 3 is visually validated.
 
 ---
 

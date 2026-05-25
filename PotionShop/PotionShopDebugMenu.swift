@@ -183,9 +183,18 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Round shortcuts ──────────────────────────────
                 Section("Skip to Day & Round") {
+                    // Legacy 4-round days (Day 1, Day 2)
                     ForEach(PotionShopData.allDays, id: \.id) { day in
                         DisclosureGroup(day.name) {
                             ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
+                                roundJumpButton(dayId: day.id, roundIdx: idx)
+                            }
+                        }
+                    }
+                    // Flex days (Day 3+) — round count varies per day
+                    ForEach(PotionShopData.allFlexDays, id: \.id) { day in
+                        DisclosureGroup(day.name) {
+                            ForEach(0..<day.totalRoundCount, id: \.self) { idx in
                                 roundJumpButton(dayId: day.id, roundIdx: idx)
                             }
                         }

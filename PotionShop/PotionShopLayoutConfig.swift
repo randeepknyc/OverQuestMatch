@@ -215,6 +215,21 @@ class PotionShopLayoutConfig {
         case short
         case medium
         case tall
+        // Template buckets (May 25, 2026) — for Day 3 auto-layout characters.
+        // Existing 14 characters keep using .short/.medium/.tall (with their
+        // legacy head-anchor fractions). Day 3 guide_* characters use these.
+        case superShort   // head box y 768–992 (gnomes, children)
+        case tallHat      // head box y 96–480 (wizards, witches with pointy hats)
+        case floater      // head box y 384–640, feet at y=1260 not 1440 (ghosts)
+    }
+
+    // Width bucket (May 25, 2026) — used by Day 3 auto-layout to size each
+    // customer's horizontal "slot" in the queue. Existing 14 characters
+    // default to .medium and don't use this; Day 3 guide_* characters set it.
+    enum CustomerWidthBucket: String, Codable, CaseIterable {
+        case skinny       // narrow build (slim mages, old men)
+        case medium       // average humans
+        case wide         // bulky figures (ogres, sumo, full plate)
     }
 
     struct CharacterScale: Codable {
@@ -240,6 +255,14 @@ class PotionShopLayoutConfig {
         // Override (if set) wins; otherwise the bucket's global default applies.
         var heightBucket: CustomerHeightBucket = .medium
         var headAnchorYOverride: Double? = nil
+        // Per-character X anchor override (May 25, 2026). Mostly used by
+        // template chars that are centered (0.5); existing 14 chars don't set it.
+        var headAnchorXOverride: Double? = nil
+
+        // Width bucket (May 25, 2026): used by Day 3 auto-layout to compute
+        // each customer's horizontal slot width. Defaults to .medium so old
+        // characters work as before; Day 3 guide_* chars set this explicitly.
+        var widthBucket: CustomerWidthBucket = .medium
 
         // Per-character badge overrides (May 23, 2026). Each is optional;
         // when set, it wins over the bucket default. Useful when characters
@@ -368,9 +391,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingHpBadgeSizeOverride { return v }
         if let v = cs.hpBadgeSizeOverride { return v }
         switch cs.heightBucket {
-        case .short: return hpBadgeSizeShort
-        case .medium: return hpBadgeSizeMedium
-        case .tall: return hpBadgeSizeTall
+        case .short, .superShort: return hpBadgeSizeShort
+        case .medium, .floater: return hpBadgeSizeMedium
+        case .tall, .tallHat: return hpBadgeSizeTall
         }
     }
     func hpBadgeOffsetX(for characterId: String, queueSlot: Int = 0) -> Double {
@@ -379,9 +402,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingHpBadgeOffsetXOverride { return v }
         if let v = cs.hpBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
-        case .short: return hpBadgeOffsetXShort
-        case .medium: return hpBadgeOffsetXMedium
-        case .tall: return hpBadgeOffsetXTall
+        case .short, .superShort: return hpBadgeOffsetXShort
+        case .medium, .floater: return hpBadgeOffsetXMedium
+        case .tall, .tallHat: return hpBadgeOffsetXTall
         }
     }
     func hpBadgeOffsetY(for characterId: String, queueSlot: Int = 0) -> Double {
@@ -390,9 +413,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingHpBadgeOffsetYOverride { return v }
         if let v = cs.hpBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
-        case .short: return hpBadgeOffsetYShort
-        case .medium: return hpBadgeOffsetYMedium
-        case .tall: return hpBadgeOffsetYTall
+        case .short, .superShort: return hpBadgeOffsetYShort
+        case .medium, .floater: return hpBadgeOffsetYMedium
+        case .tall, .tallHat: return hpBadgeOffsetYTall
         }
     }
     func attackBadgeSize(for characterId: String, queueSlot: Int = 0) -> Double {
@@ -401,9 +424,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingAttackBadgeSizeOverride { return v }
         if let v = cs.attackBadgeSizeOverride { return v }
         switch cs.heightBucket {
-        case .short: return attackBadgeSizeShort
-        case .medium: return attackBadgeSizeMedium
-        case .tall: return attackBadgeSizeTall
+        case .short, .superShort: return attackBadgeSizeShort
+        case .medium, .floater: return attackBadgeSizeMedium
+        case .tall, .tallHat: return attackBadgeSizeTall
         }
     }
     func attackBadgeOffsetX(for characterId: String, queueSlot: Int = 0) -> Double {
@@ -412,9 +435,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingAttackBadgeOffsetXOverride { return v }
         if let v = cs.attackBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
-        case .short: return attackBadgeOffsetXShort
-        case .medium: return attackBadgeOffsetXMedium
-        case .tall: return attackBadgeOffsetXTall
+        case .short, .superShort: return attackBadgeOffsetXShort
+        case .medium, .floater: return attackBadgeOffsetXMedium
+        case .tall, .tallHat: return attackBadgeOffsetXTall
         }
     }
     func attackBadgeOffsetY(for characterId: String, queueSlot: Int = 0) -> Double {
@@ -423,9 +446,9 @@ class PotionShopLayoutConfig {
         if queueSlot >= 1, let v = cs.waitingAttackBadgeOffsetYOverride { return v }
         if let v = cs.attackBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
-        case .short: return attackBadgeOffsetYShort
-        case .medium: return attackBadgeOffsetYMedium
-        case .tall: return attackBadgeOffsetYTall
+        case .short, .superShort: return attackBadgeOffsetYShort
+        case .medium, .floater: return attackBadgeOffsetYMedium
+        case .tall, .tallHat: return attackBadgeOffsetYTall
         }
     }
 
@@ -447,6 +470,13 @@ class PotionShopLayoutConfig {
     var headAnchorXMedium: Double = 0.5372340679168701
     var headAnchorXTall: Double = 0.5647163391113281
 
+    // Template head anchors (May 25, 2026) — for Day 3 guide_* characters
+    // drawn against the new 1024×1536 safe-zone template. Head center Y is
+    // (headBoxY + headBoxH/2) / 1536. X is always 0.5 (centered).
+    var headAnchorYSuperShort: Double = 0.573    // head center y=880 / 1536
+    var headAnchorYTallHat: Double = 0.188       // head center y=288 / 1536
+    var headAnchorYFloater: Double = 0.333       // head center y=512 / 1536
+
     func headAnchorY(for characterId: String) -> Double {
         let cs = characterScale(for: characterId)
         if let override = cs.headAnchorYOverride { return override }
@@ -454,14 +484,22 @@ class PotionShopLayoutConfig {
         case .short: return headAnchorYShort
         case .medium: return headAnchorYMedium
         case .tall: return headAnchorYTall
+        case .superShort: return headAnchorYSuperShort
+        case .tallHat: return headAnchorYTallHat
+        case .floater: return headAnchorYFloater
         }
     }
 
     func headAnchorX(for characterId: String) -> Double {
-        switch characterScale(for: characterId).heightBucket {
+        let cs = characterScale(for: characterId)
+        // Per-character X override (May 25, 2026) — used by template chars.
+        if let override = cs.headAnchorXOverride { return override }
+        switch cs.heightBucket {
         case .short: return headAnchorXShort
         case .medium: return headAnchorXMedium
         case .tall: return headAnchorXTall
+        // Template buckets are always centered horizontally.
+        case .superShort, .tallHat, .floater: return 0.5
         }
     }
 
@@ -797,6 +835,52 @@ class PotionShopLayoutConfig {
         var royalEnvoy = perCharacterScales["royal_envoy"] ?? CharacterScale()
         royalEnvoy.x = -68.43972206115723
         perCharacterScales["royal_envoy"] = royalEnvoy
+
+        // ─── DAY 3 GUIDE CHARACTERS (May 25, 2026) ───────────────────
+        // All 13 guide_* chars use the new template buckets. They share
+        // headAnchorX = 0.5 (centered) and bucket-specific headAnchorY.
+        // Width buckets are set explicitly per character for auto-layout.
+
+        applyGuideCharacter(id: "guide_octo",     height: .short,      width: .wide)
+        applyGuideCharacter(id: "guide_girl",     height: .medium,     width: .skinny)
+        applyGuideCharacter(id: "guide_skull",    height: .tall,       width: .skinny)
+        applyGuideCharacter(id: "guide_slug",     height: .short,      width: .medium)
+        applyGuideCharacter(id: "guide_fishguy",  height: .tallHat,    width: .medium)
+        applyGuideCharacter(id: "guide_bull",     height: .tall,       width: .wide)
+        applyGuideCharacter(id: "guide_traveler", height: .medium,     width: .medium)
+        applyGuideCharacter(id: "guide_demon",    height: .floater,    width: .medium)
+        applyGuideCharacter(id: "guide_frog",     height: .medium,     width: .wide)
+        applyGuideCharacter(id: "guide_pig",      height: .medium,     width: .wide)
+        applyGuideCharacter(id: "guide_faun",     height: .medium,     width: .wide)
+        applyGuideCharacter(id: "guide_fox",      height: .tall,       width: .medium)
+        applyGuideCharacter(id: "guide_woman",    height: .medium,     width: .medium)
+    }
+
+    /// Configures a Day 3 guide character with template-correct head anchor.
+    /// All guide chars are centered horizontally (X=0.5). Y anchor depends on
+    /// the height bucket (uses the template defaults for new buckets, or an
+    /// explicit override for legacy buckets — since legacy bucket defaults
+    /// were tuned to Day 1/2 art, not the new template).
+    private func applyGuideCharacter(id: String,
+                                     height: CustomerHeightBucket,
+                                     width: CustomerWidthBucket) {
+        var cs = perCharacterScales[id] ?? CharacterScale()
+        cs.heightBucket = height
+        cs.widthBucket = width
+        cs.headAnchorXOverride = 0.5  // template chars are centered
+        // For legacy buckets used by template chars, override the Y anchor
+        // to the template's value (legacy bucket defaults are for old art).
+        switch height {
+        case .short:
+            cs.headAnchorYOverride = 0.448  // template short: head center y=688/1536
+        case .medium:
+            cs.headAnchorYOverride = 0.333  // template medium: head center y=512/1536
+        case .tall:
+            cs.headAnchorYOverride = 0.208  // template tall: head center y=320/1536
+        case .superShort, .tallHat, .floater:
+            cs.headAnchorYOverride = nil    // new buckets already have right Y
+        }
+        perCharacterScales[id] = cs
     }
     
     // MARK: - 🔒 LOCKED DEFAULTS (May 13, 2026 - Known-Good State)

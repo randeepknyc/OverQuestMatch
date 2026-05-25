@@ -75,7 +75,7 @@ Same hex color, different opacities — produces concentric darker rectangles fo
 
 | # | Layer name | X | Y | W | H | Color | Opacity |
 |---|---|---:|---:|---:|---:|---|---:|
-| 5 | 7_BodyBand_wide | 192 | 96 | 640 | 1404 | #8FD97A | 20% |
+| 5 | 7_BodyBand_wide | 96 | 96 | 832 | 1404 | #8FD97A | 20% |
 | 6 | 7c_BodyBand_medium | 272 | 96 | 480 | 1404 | #8FD97A | 30% |
 | 7 | 7b_BodyBand_skinny | 352 | 96 | 320 | 1404 | #8FD97A | 40% |
 
@@ -277,7 +277,7 @@ Each row describes which characters belong in that bucket. "Head box" = the colo
 |---|---|---|---|
 | `skinny` | Innermost green rectangle, ~320 px wide (x 352–672) | Slim figures with narrow shoulders, slight builds | Old man with cane, child, slim mage in flowing robes, gaunt undead, thin animal-folk |
 | `medium` | Middle green rectangle, ~480 px wide (x 272–752) | Most adult humans | Default for new characters unless they're clearly slim or wide. Current game: **most existing characters** would be tagged `medium` |
-| `wide` | Full outer green band, ~640 px wide (x 192–832) | Bulky figures — shoulders, armor, fat, fur, props that flare outward | Ogres, sumo wrestlers, knights in full plate, fat merchants, bears, beefy bodyguards |
+| `wide` | Full outer green band, ~832 px wide (x 96–928, edge-to-edge of the L/R red strips) | Bulky figures — shoulders, armor, fat, fur, props that flare outward | Ogres, sumo wrestlers, knights in full plate, fat merchants, bears, beefy bodyguards |
 
 **Decision flow:**
 - Look at the drawn character on the template. Which of the 3 nested green rectangles does the BODY (shoulders + torso) actually fill?
@@ -353,7 +353,7 @@ Floor line:       y = 1500  (feet touch this)
 Floater floor:    y = 1260
 
 Outer safe area:  x 96–928, y 96–1500
-Body band wide:   x 192–832  (W=640)  →  bucket "wide"
+Body band wide:   x  96–928  (W=832)  →  bucket "wide"  (fills full L-R safe area)
 Body band medium: x 272–752  (W=480)  →  bucket "medium"
 Body band skinny: x 352–672  (W=320)  →  bucket "skinny"
 Centerline:       x = 512

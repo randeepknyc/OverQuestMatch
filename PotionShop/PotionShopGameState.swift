@@ -155,6 +155,19 @@ class PotionShopGameState {
     var composureFlashCounter: Int = 0
     var composureFlashKind: PotionShopComposureFlash = .damage
 
+    // MARK: - Day 3 (flex-day RNG) state — May 25, 2026
+
+    /// Generated rounds for the current flex day (Day 3+). Built when the
+    /// player first enters a flex day. Rounds 1+ from the FIXED list are
+    /// deterministic; the remaining rounds get random character draws from
+    /// the day's random pool. Reseeded every time the player enters Day 3.
+    var flexDayGeneratedRounds: [PotionShopRound] = []
+
+    /// True if the current dayId refers to a flex day (Day 3+).
+    var isFlexDay: Bool {
+        PotionShopData.isFlexDay(dayId)
+    }
+
     // MARK: - Init
 
     init() {
@@ -173,7 +186,11 @@ class PotionShopGameState {
     }
 
     var currentRoundLabel: String {
-        currentRoundTimeOfDay.rawValue.capitalized
+        // Flex days (Day 3+) use generic "Round N" labels.
+        if isFlexDay {
+            return "Round \(roundIndex + 1)"
+        }
+        return currentRoundTimeOfDay.rawValue.capitalized
     }
 
     // MARK: - Round / day flow
@@ -181,6 +198,26 @@ class PotionShopGameState {
     /// Spawn customers and deal a hand. Called at the start of each round
     /// and any time the user resets.
     func startRound() {
+        // ─── Flex day (Day 3+) path ─────────────────────────────────
+        if isFlexDay {
+            // Lazily generate the random rounds the first time we enter
+            // this flex day (or if the count is wrong / pool stale).
+            if flexDayGeneratedRounds.isEmpty {
+                generateFlexDayRounds()
+            }
+            let round: PotionShopRound
+            if roundIndex < flexDayGeneratedRounds.count {
+                round = flexDayGeneratedRounds[roundIndex]
+            } else {
+                // Out of bounds — shouldn't happen, fall back to last round.
+                round = flexDayGeneratedRounds.last
+                    ?? PotionShopRound(timeOfDay: .morning, customerIds: [])
+            }
+            spawnCustomers(from: round)
+            return
+        }
+
+        // ─── Legacy day (Day 1/2) path ──────────────────────────────
         guard let day = PotionShopData.day(dayId) else {
             print("❌ PotionShop: Can't find day \(dayId)")
             return
@@ -193,7 +230,12 @@ class PotionShopGameState {
         case 2: round = day.evening
         default: round = day.night
         }
+        spawnCustomers(from: round)
+    }
 
+    /// Shared helper used by both legacy and flex paths to spawn customers
+    /// and deal a fresh hand of dice.
+    private func spawnCustomers(from round: PotionShopRound) {
         customers = round.customerIds.compactMap { id -> PotionShopCustomer? in
             guard let char = PotionShopData.character(id) else {
                 print("⚠️ PotionShop: Unknown character id \(id)")
@@ -221,6 +263,30 @@ class PotionShopGameState {
         phase = .playing
     }
 
+    /// Generate the random rounds for the current flex day. Rounds 1+ from
+    /// the day's fixedRounds list stay deterministic; remaining rounds get
+    /// random draws from the pool (no character repeats within day).
+    /// Called automatically on first startRound() of a flex day.
+    func generateFlexDayRounds() {
+        guard let flex = PotionShopData.flexDay(dayId) else {
+            flexDayGeneratedRounds = []
+            return
+        }
+        var rounds: [PotionShopRound] = flex.fixedRounds
+        // Shuffle the random pool with system RNG (reseeds every app launch).
+        var pool = flex.randomPool.shuffled()
+        for (idx, size) in flex.randomRoundSizes.enumerated() {
+            let take = min(size, pool.count)
+            let chars = Array(pool.prefix(take))
+            pool.removeFirst(take)
+            // Pick a round timeOfDay label by round index (cosmetic only —
+            // currentRoundLabel uses "Round N" format for flex days).
+            let tod: PotionShopTimeOfDay = [.evening, .night, .evening][idx % 3]
+            rounds.append(PotionShopRound(timeOfDay: tod, customerIds: chars))
+        }
+        flexDayGeneratedRounds = rounds
+    }
+
     /// Move to next round of the current day. Called when round is won.
     func advanceRound() {
         // Apply between-round composure rest
@@ -229,7 +295,11 @@ class PotionShopGameState {
             composure + PotionShopConfig.composureRestBetweenRounds
         )
         roundIndex += 1
-        if roundIndex >= PotionShopConfig.roundsPerDay {
+        // Flex days use their own round count; legacy days use config constant.
+        let totalRounds = isFlexDay
+            ? PotionShopData.roundCount(forDayId: dayId)
+            : PotionShopConfig.roundsPerDay
+        if roundIndex >= totalRounds {
             // Day complete
             phase = .dayWon
         } else {
@@ -249,6 +319,9 @@ class PotionShopGameState {
             dayId = nextId
         }
         roundIndex = 0
+        // Clear any stale flex-day rounds so they regenerate (with a fresh
+        // RNG draw) when the new day starts.
+        flexDayGeneratedRounds = []
         startRound()
     }
 
@@ -259,6 +332,7 @@ class PotionShopGameState {
         composure = PotionShopConfig.startingComposure
         shield = 0
         potionsBrewed = 0
+        flexDayGeneratedRounds = []
         startRound()
     }
 
