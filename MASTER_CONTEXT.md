@@ -19,9 +19,10 @@
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
 3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system
 4. **Ednar's Potion Cauldron** - ✅ PLAYABLE (Day 1 only) - Turn-based dice-placement potion brewing game, in `PotionShop/`
-5. **Cooking Game** - 📋 Planned
-6. **Potion Solitaire** - 📋 Planned
-7. **Map Navigation System** - 📋 Planned
+5. **Enna's Tavern Card Game** - ✅ PLAYABLE - Reigns-style swipe card narrative game with 3 progressively unlocking acts and 12 meters, in `EnnaCardGame/` (see `EnnaCardGame_CONTEXT.md`)
+6. **Cooking Game** - 📋 Planned
+7. **Potion Solitaire** - 📋 Planned
+8. **Map Navigation System** - 📋 Planned
 
 **Note:** Legacy `CauldronGame/` folder deprecated and removed from game selector (May 13, 2026). The working game is in `PotionShop/`.
 
@@ -159,6 +160,12 @@ OverQuestMatch3/ (ROOT)
 │  ├─ PotionShopDebugMenu.swift
 │  └─ PotionShopBrewAnimator.swift
 │
+├─ EnnaCardGame/ ✅ (Enna's Tavern — Reigns-style swipe card narrative game, fully playable)
+│  ├─ CardGameModels.swift (data types: MeterType, Card, MeterEffect, CardCondition, ThresholdEvent)
+│  ├─ CardDatabase.swift ✨ (CONTENT FILE — cards, starting meter values, threshold events, act unlocks)
+│  ├─ CardGameViewModel.swift (@Observable game logic — meter tracking, card draw, thresholds, acts)
+│  └─ CardGameView.swift (all UI — swipe card, meter panel, overlays, ending screen)
+│
 ├─ Navigation/ ✅ (Game selector + map placeholder for testing)
 │  ├─ MapScreenView.swift (real map with "Continue to Games" button)
 │  ├─ GameSelectorView.swift (debug game picker for device testing)
@@ -252,6 +259,7 @@ private let currentGame: GameType = .match3
 - `.physicsChain` - Physics Chain Game (✅ WORKING)
 - `.shopOfOddities` - Shop of Oddities Card Game (✅ COMPLETE & PLAYABLE)
 - `.ednarsPotionShop` - Ednar's Potion Cauldron (✅ PLAYABLE — Day 1)
+- `.ennaCardGame` - Enna's Tavern Swipe Card Game (✅ PLAYABLE)
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)
@@ -848,6 +856,7 @@ Each game has its own image sets:
 - `SESSION_CHECKPOINT.md` - Ednar's Cauldron design decisions
 - `EdnarsCauldron_Reference.jsx` - Ednar's Cauldron architecture reference
 - `PHASE_1_COMPLETE.md` - Cauldron Phase 1 verification guide
+- `EnnaCardGame_CONTEXT.md` - Enna's Tavern swipe card game documentation (meters, cards, thresholds, content-edit guide)
 
 **Project Organization:**
 - `STRUCTURE_CONTEXT.md` - Reorganization tracker and guide
@@ -912,6 +921,7 @@ For game-specific details, see:
 - Physics Chain Game: `PHYSICS_CONTEXT.md`
 - Shop of Oddities: `ShopOfOddities_CONTEXT.md`
 - Ednar's Cauldron: `REPLACEMENT_PLAN.md`, `SESSION_CHECKPOINT.md`, `EdnarsCauldron_Reference.jsx`
+- Enna's Tavern Card Game: `EnnaCardGame_CONTEXT.md`
 ---
 
 ## 📝 RECENT SESSION LOG

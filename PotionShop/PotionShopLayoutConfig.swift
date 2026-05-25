@@ -252,14 +252,24 @@ class PotionShopLayoutConfig {
         var attackBadgeOffsetYOverride: Double? = nil
 
         // Per-character WAITING badge overrides (May 23, 2026 — Option C).
-        // Apply when the character is in queue[1] or queue[2] (any waiting slot,
-        // shared). When nil, the active value (override or bucket) is used.
+        // Apply when the character is in queue[1] (waiting slot 1). They also
+        // act as the fallback for queue[2] when no waiting2 override is set.
         var waitingHpBadgeSizeOverride: Double? = nil
         var waitingHpBadgeOffsetXOverride: Double? = nil
         var waitingHpBadgeOffsetYOverride: Double? = nil
         var waitingAttackBadgeSizeOverride: Double? = nil
         var waitingAttackBadgeOffsetXOverride: Double? = nil
         var waitingAttackBadgeOffsetYOverride: Double? = nil
+
+        // Per-character WAITING-2 badge overrides (May 24, 2026).
+        // Apply ONLY when the character is in queue[2]. When nil, the value
+        // falls back to the waiting (queue[1]) override, then active, then bucket.
+        var waiting2HpBadgeSizeOverride: Double? = nil
+        var waiting2HpBadgeOffsetXOverride: Double? = nil
+        var waiting2HpBadgeOffsetYOverride: Double? = nil
+        var waiting2AttackBadgeSizeOverride: Double? = nil
+        var waiting2AttackBadgeOffsetXOverride: Double? = nil
+        var waiting2AttackBadgeOffsetYOverride: Double? = nil
     }
     
     // Helper to get or create a character scale
@@ -338,21 +348,24 @@ class PotionShopLayoutConfig {
 
     // Attack Badge — per height bucket.
     var attackBadgeSizeShort: Double = 34.28368777036667
-    var attackBadgeOffsetXShort: Double = -74.46809113025665
+    var attackBadgeOffsetXShort: Double = -32.97874331474304
     var attackBadgeOffsetYShort: Double = 23.404258489608765
     var attackBadgeSizeMedium: Double = 36.27836883068085
-    var attackBadgeOffsetXMedium: Double = -89.89362716674805
+    var attackBadgeOffsetXMedium: Double = -76.06383562088013
     var attackBadgeOffsetYMedium: Double = 36.436182260513306
     var attackBadgeSizeTall: Double = 36.27836763858795
     var attackBadgeOffsetXTall: Double = -153.723406791687
     var attackBadgeOffsetYTall: Double = 45.744699239730835
 
     // Bucket-aware lookups (per-character override wins when set).
-    // When isWaiting=true, the waiting-specific per-char override is checked
-    // first; if it's nil we fall back to the active override / bucket value.
-    func hpBadgeSize(for characterId: String, isWaiting: Bool = false) -> Double {
+    // queueSlot: 0 = active (queue[0]), 1 = waiting (queue[1]), 2 = waiting2 (queue[2]).
+    // Precedence for slot 2: waiting2 override -> waiting override -> active override -> bucket.
+    // Precedence for slot 1: waiting override -> active override -> bucket.
+    // Precedence for slot 0: active override -> bucket.
+    func hpBadgeSize(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingHpBadgeSizeOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2HpBadgeSizeOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingHpBadgeSizeOverride { return v }
         if let v = cs.hpBadgeSizeOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeSizeShort
@@ -360,9 +373,10 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeSizeTall
         }
     }
-    func hpBadgeOffsetX(for characterId: String, isWaiting: Bool = false) -> Double {
+    func hpBadgeOffsetX(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingHpBadgeOffsetXOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2HpBadgeOffsetXOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingHpBadgeOffsetXOverride { return v }
         if let v = cs.hpBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeOffsetXShort
@@ -370,9 +384,10 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeOffsetXTall
         }
     }
-    func hpBadgeOffsetY(for characterId: String, isWaiting: Bool = false) -> Double {
+    func hpBadgeOffsetY(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingHpBadgeOffsetYOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2HpBadgeOffsetYOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingHpBadgeOffsetYOverride { return v }
         if let v = cs.hpBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
         case .short: return hpBadgeOffsetYShort
@@ -380,9 +395,10 @@ class PotionShopLayoutConfig {
         case .tall: return hpBadgeOffsetYTall
         }
     }
-    func attackBadgeSize(for characterId: String, isWaiting: Bool = false) -> Double {
+    func attackBadgeSize(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingAttackBadgeSizeOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2AttackBadgeSizeOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingAttackBadgeSizeOverride { return v }
         if let v = cs.attackBadgeSizeOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeSizeShort
@@ -390,9 +406,10 @@ class PotionShopLayoutConfig {
         case .tall: return attackBadgeSizeTall
         }
     }
-    func attackBadgeOffsetX(for characterId: String, isWaiting: Bool = false) -> Double {
+    func attackBadgeOffsetX(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingAttackBadgeOffsetXOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2AttackBadgeOffsetXOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingAttackBadgeOffsetXOverride { return v }
         if let v = cs.attackBadgeOffsetXOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeOffsetXShort
@@ -400,9 +417,10 @@ class PotionShopLayoutConfig {
         case .tall: return attackBadgeOffsetXTall
         }
     }
-    func attackBadgeOffsetY(for characterId: String, isWaiting: Bool = false) -> Double {
+    func attackBadgeOffsetY(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
-        if isWaiting, let v = cs.waitingAttackBadgeOffsetYOverride { return v }
+        if queueSlot >= 2, let v = cs.waiting2AttackBadgeOffsetYOverride { return v }
+        if queueSlot >= 1, let v = cs.waitingAttackBadgeOffsetYOverride { return v }
         if let v = cs.attackBadgeOffsetYOverride { return v }
         switch cs.heightBucket {
         case .short: return attackBadgeOffsetYShort
@@ -412,12 +430,12 @@ class PotionShopLayoutConfig {
     }
 
     // Inspect Banner Bottle Size (potion number graphic in banner)
-    var bannerBottleSize: Double = 51.40425443649292
+    var bannerBottleSize: Double = 54.38297629356384
     var bannerBottleOffsetX: Double = 1.8617033958435059
     var bannerBottleOffsetY: Double = 0.0
     var bannerBottleNumberSize: Double = 30.0
-    var bannerBottleNumberOffsetX: Double = 0.0
-    var bannerBottleNumberOffsetY: Double = 7.180851697921753
+    var bannerBottleNumberOffsetX: Double = 1.3297855854034424
+    var bannerBottleNumberOffsetY: Double = 8.865249156951904
 
     // MARK: - Head Anchor Defaults (May 22, 2026)
     // Fraction of the rendered image where each bucket's head sits.
@@ -454,36 +472,59 @@ class PotionShopLayoutConfig {
         // Arrangement 1: ardo → wendelina → crispin
         addPermutation(
             for: ["ardo", "wendelina", "crispin"],
-            xPositions: [0.46, 0.59, 0.87],
-            yPositions: [0.48, 0.55, 0.55]
+            xPositions: [0.47, 0.59, 0.87],
+            yPositions: [0.48, 0.56, 0.57]
         )
-        
+
         // Arrangement 2: crispin → ardo → wendelina
         addPermutation(
             for: ["crispin", "ardo", "wendelina"],
+            xPositions: [0.49, 0.74, 0.88],
+            yPositions: [0.50, 0.55, 0.55]
+        )
+
+        // Arrangement 3: crispin → wendelina → ardo
+        addPermutation(
+            for: ["crispin", "wendelina", "ardo"],
             xPositions: [0.48, 0.70, 0.88],
             yPositions: [0.50, 0.55, 0.55]
         )
-        
-        // Arrangement 3: crispin → wendelina → ardo (X[1] 0.69 → 0.72)
-        addPermutation(
-            for: ["crispin", "wendelina", "ardo"],
-            xPositions: [0.48, 0.72, 0.92],
-            yPositions: [0.50, 0.55, 0.55]
-        )
-        
+
         // Arrangement 4: wendelina → ardo → crispin
         addPermutation(
             for: ["wendelina", "ardo", "crispin"],
-            xPositions: [0.47, 0.61, 0.87],
+            xPositions: [0.44, 0.66, 0.87],
             yPositions: [0.50, 0.55, 0.57]
         )
-        
+
         // Arrangement 5: wendelina → crispin → ardo
         addPermutation(
             for: ["wendelina", "crispin", "ardo"],
-            xPositions: [0.46, 0.69, 0.92],
+            xPositions: [0.44, 0.66, 0.88],
             yPositions: [0.50, 0.56, 0.55]
+        )
+
+        // ── Day 2 Evening (hexa_mott + ironhilde + ardo) arrangements ──
+
+        // Arrangement 6: hexa_mott → ironhilde → ardo
+        addPermutation(
+            for: ["hexa_mott", "ironhilde", "ardo"],
+            xPositions: [0.48, 0.70, 0.88],
+            yPositions: [0.48, 0.55, 0.55]
+        )
+
+        // Arrangement 7: ironhilde → ardo → hexa_mott
+        addPermutation(
+            for: ["ironhilde", "ardo", "hexa_mott"],
+            xPositions: [0.48, 0.72, 0.88],
+            yPositions: [0.48, 0.55, 0.55]
+        )
+
+        // Arrangement 8: ironhilde → hexa_mott → ardo
+        addPermutation(
+            for: ["ironhilde", "hexa_mott", "ardo"],
+            xPositions: [0.48, 0.75, 0.88],
+            yPositions: [0.48, 0.55, 0.55]
         )
 
         applyDefaultHeightBuckets()
@@ -508,7 +549,8 @@ class PotionShopLayoutConfig {
         applyTunedCharacterScales()
     }
 
-    /// Seeds per-character scale values tuned through the layout editor (May 23, 2026).
+    /// Seeds per-character scale values tuned through the layout editor.
+    /// Updated May 24, 2026 from Copy Layout Values export (post body-follow fix).
     /// Called after bucket assignment so these survive a fresh launch.
     private func applyTunedCharacterScales() {
         // mildred
@@ -518,7 +560,14 @@ class PotionShopLayoutConfig {
         mildred.waitingWidth = 0.9880319200456142
         mildred.waitingHeight = 0.9880319200456142
         mildred.waitingY = -9.219861030578613
-        mildred.hpBadgeSizeOverride = 52.113476395606995
+        mildred.hpBadgeSizeOverride = 54.82624113559723
+        mildred.hpBadgeOffsetXOverride = -64.99999165534973
+        mildred.hpBadgeOffsetYOverride = 10.904252529144287
+        mildred.attackBadgeOffsetXOverride = -61.17022633552551
+        mildred.attackBadgeOffsetYOverride = 53.98938059806824
+        mildred.waitingHpBadgeOffsetXOverride = -68.72339844703674
+        mildred.waitingAttackBadgeOffsetXOverride = -67.55320429801941
+        mildred.waitingAttackBadgeOffsetYOverride = 43.88299584388733
         perCharacterScales["mildred"] = mildred
 
         // tomik
@@ -526,130 +575,228 @@ class PotionShopLayoutConfig {
         tomik.x = -34.7517728805542
         tomik.y = 10.283684730529785
         tomik.waitingY = -7.446813583374023
-        tomik.hpBadgeOffsetXOverride = -114.36172127723694
-        tomik.hpBadgeOffsetYOverride = 7.446813583374023
-        tomik.attackBadgeOffsetXOverride = -110.10637879371643
-        tomik.attackBadgeOffsetYOverride = 40.69150686264038
+        tomik.hpBadgeOffsetXOverride = -76.59577131271362
+        tomik.hpBadgeOffsetYOverride = 0.0
+        tomik.attackBadgeSizeOverride = 35.40070980787277
+        tomik.attackBadgeOffsetXOverride = -77.65957117080688
+        tomik.attackBadgeOffsetYOverride = 37.76596784591675
+        tomik.waitingHpBadgeSizeOverride = 54.10815745592117
+        tomik.waitingHpBadgeOffsetXOverride = -83.51066708564758
+        tomik.waitingHpBadgeOffsetYOverride = 1.8617033958435059
+        tomik.waitingAttackBadgeOffsetXOverride = -84.57444906234741
+        tomik.waitingAttackBadgeOffsetYOverride = 39.09575343132019
         perCharacterScales["tomik"] = tomik
 
         // greta
         var greta = perCharacterScales["greta"] ?? CharacterScale()
         greta.width = 0.8563829660415649
         greta.height = 0.8563829660415649
-        greta.x = -46.45390510559082
+        greta.x = -24.822700023651123
         greta.y = 19.5035457611084
         greta.waitingWidth = 0.8882978670299053
         greta.waitingHeight = 0.8882978670299053
         greta.waitingY = 3.9007186889648438
-        greta.hpBadgeOffsetXOverride = -84.94681119918823
+        greta.hpBadgeOffsetXOverride = -60.47873497009277
         greta.hpBadgeOffsetYOverride = 67.81915426254272
-        greta.attackBadgeOffsetXOverride = -76.59577131271362
-        greta.attackBadgeOffsetYOverride = 97.60639071464539
+        greta.attackBadgeOffsetXOverride = -59.574490785598755
+        greta.attackBadgeOffsetYOverride = 95.21276950836182
+        greta.waitingHpBadgeOffsetXOverride = -38.1382942199707
+        greta.waitingHpBadgeOffsetYOverride = 55.05319833755493
+        greta.waitingAttackBadgeOffsetXOverride = -34.57449674606323
+        greta.waitingAttackBadgeOffsetYOverride = 89.6276593208313
         perCharacterScales["greta"] = greta
 
         // wendelina
         var wendelina = perCharacterScales["wendelina"] ?? CharacterScale()
-        wendelina.x = -43.6170220375061
+        wendelina.x = -32.97872543334961
         wendelina.y = 3.9007186889648438
         wendelina.waitingWidth = 1.003989353775978
         wendelina.waitingHeight = 1.003989353775978
-        wendelina.waitingX = -18.794333934783936
+        wendelina.waitingX = -16.666674613952637
         wendelina.waitingY = -9.929072856903076
         wendelina.waiting2Width = 0.9960106536746025
         wendelina.waiting2Height = 0.9960106536746025
         wendelina.waiting2X = -4.964542388916016
         wendelina.waiting2Y = -6.0283660888671875
+        wendelina.hpBadgeOffsetXOverride = -46.914875507354736
+        wendelina.hpBadgeOffsetYOverride = 22.606390714645386
+        wendelina.attackBadgeOffsetXOverride = -47.34043478965759
+        wendelina.attackBadgeOffsetYOverride = 57.4468195438385
+        wendelina.waitingHpBadgeSizeOverride = 50.83687901496887
+        wendelina.waitingHpBadgeOffsetXOverride = -35.21275520324707
+        wendelina.waitingHpBadgeOffsetYOverride = 10.90427041053772
+        wendelina.waitingAttackBadgeOffsetXOverride = -40.957456827163696
+        wendelina.waitingAttackBadgeOffsetYOverride = 43.351078033447266
         perCharacterScales["wendelina"] = wendelina
 
-        // grimdrek (NEW May 23, 2026)
+        // grimdrek
         var grimdrek = perCharacterScales["grimdrek"] ?? CharacterScale()
         grimdrek.x = -70.92198133468628
         grimdrek.y = 9.219861030578613
+        grimdrek.hpBadgeOffsetXOverride = -89.89360928535461
+        grimdrek.attackBadgeOffsetXOverride = -87.23403811454773
+        grimdrek.attackBadgeOffsetYOverride = 51.063841581344604
         perCharacterScales["grimdrek"] = grimdrek
 
         // pemberton
         var pemberton = perCharacterScales["pemberton"] ?? CharacterScale()
         pemberton.width = 0.8324467986822128
         pemberton.height = 0.8324467986822128
-        pemberton.x = -39.361703395843506
+        pemberton.x = -22.340428829193115
         pemberton.y = 24.11346435546875
         pemberton.waitingWidth = 0.8643616996705532
         pemberton.waitingHeight = 0.8643616996705532
         pemberton.waitingX = -23.049640655517578
         pemberton.waitingY = 5.3191423416137695
-        pemberton.hpBadgeSizeOverride = 50.278370678424835
-        pemberton.hpBadgeOffsetXOverride = -87.07446455955505
-        pemberton.hpBadgeOffsetYOverride = 23.670226335525513
-        pemberton.attackBadgeOffsetXOverride = -87.76597380638123
-        pemberton.attackBadgeOffsetYOverride = 56.117016077041626
+        pemberton.hpBadgeSizeOverride = 50.83688169717789
+        pemberton.hpBadgeOffsetXOverride = -73.24467301368713
+        pemberton.hpBadgeOffsetYOverride = 30.585122108459473
+        pemberton.attackBadgeOffsetXOverride = -65.95745086669922
+        pemberton.attackBadgeOffsetYOverride = 69.6808397769928
+        pemberton.waitingHpBadgeOffsetXOverride = -67.3936128616333
+        pemberton.waitingHpBadgeOffsetYOverride = 23.13830852508545
+        pemberton.waitingAttackBadgeOffsetXOverride = -63.8297975063324
+        pemberton.waitingAttackBadgeOffsetYOverride = 55.85104823112488
         perCharacterScales["pemberton"] = pemberton
 
-        // ardo
+        // ardo (waiting2 badge overrides added May 24, 2026)
         var ardo = perCharacterScales["ardo"] ?? CharacterScale()
         ardo.width = 0.9840425699949265
         ardo.height = 0.9840425699949265
-        ardo.x = -39.716315269470215
-        ardo.y = 10.283684730529785
-        ardo.waitingX = -9.574460983276367
+        ardo.x = -40.42553901672363
+        ardo.y = 8.86523723602295
+        ardo.waitingX = -33.33332538604736
         ardo.waitingY = -5.3191423416137695
-        ardo.waiting2X = -5.319154262542725
+        ardo.waiting2X = 10.283684730529785
         ardo.waiting2Y = -5.319154262542725
+        ardo.hpBadgeOffsetXOverride = -38.1382942199707
+        ardo.attackBadgeOffsetXOverride = -35.10639667510986
+        ardo.attackBadgeOffsetYOverride = 28.191500902175903
+        ardo.waitingHpBadgeOffsetXOverride = -30.691534280776978
+        ardo.waitingHpBadgeOffsetYOverride = -26.59572958946228
+        ardo.waitingAttackBadgeSizeOverride = 34.28368777036667
+        ardo.waitingAttackBadgeOffsetXOverride = -29.25533652305603
+        ardo.waitingAttackBadgeOffsetYOverride = 4.521292448043823
+        ardo.waiting2HpBadgeOffsetXOverride = -32.287269830703735
+        ardo.waiting2AttackBadgeOffsetXOverride = -35.63831448554993
+        ardo.waiting2AttackBadgeOffsetYOverride = 8.776617050170898
         perCharacterScales["ardo"] = ardo
+
+        // bram
+        var bram = perCharacterScales["bram"] ?? CharacterScale()
+        bram.x = -36.8794322013855
+        bram.y = 6.382989883422852
+        bram.waitingX = -17.02127456665039
+        bram.hpBadgeSizeOverride = 47.863384783267975
+        bram.hpBadgeOffsetXOverride = -38.936179876327515
+        bram.hpBadgeOffsetYOverride = 1.3297855854034424
+        bram.attackBadgeOffsetXOverride = -50.00000596046448
+        bram.attackBadgeOffsetYOverride = 38.56383562088013
+        bram.waitingHpBadgeOffsetXOverride = -49.574482440948486
+        bram.waitingHpBadgeOffsetYOverride = 7.712763547897339
+        bram.waitingAttackBadgeOffsetYOverride = 41.22340679168701
+        perCharacterScales["bram"] = bram
 
         // crispin
         var crispin = perCharacterScales["crispin"] ?? CharacterScale()
         crispin.width = 1.0319149382412434
         crispin.height = 1.0319149382412434
-        crispin.x = -31.914889812469482
+        crispin.x = -34.04254913330078
         crispin.waitingWidth = 1.0279255546629429
         crispin.waitingHeight = 1.0279255546629429
         crispin.waitingX = -21.631205081939697
         crispin.waitingY = -12.765955924987793
         crispin.waiting2Width = 1.0279255546629429
         crispin.waiting2Height = 1.0279255546629429
-        crispin.waiting2X = -18.794333934783936
-        crispin.waiting2Y = -15.957450866699219
+        crispin.waiting2X = -16.666674613952637
+        crispin.waiting2Y = -16.312062740325928
+        crispin.hpBadgeSizeOverride = 54.82624113559723
+        crispin.hpBadgeOffsetXOverride = -68.19149851799011
+        crispin.hpBadgeOffsetYOverride = 4.521274566650391
+        crispin.attackBadgeOffsetXOverride = -61.702126264572144
+        crispin.attackBadgeOffsetYOverride = 38.82978558540344
+        crispin.waitingHpBadgeOffsetXOverride = -61.80850267410278
+        crispin.waitingHpBadgeOffsetYOverride = 5.053192377090454
+        crispin.waitingAttackBadgeOffsetXOverride = -58.510637283325195
+        crispin.waitingAttackBadgeOffsetYOverride = 41.755324602127075
         perCharacterScales["crispin"] = crispin
 
-        // sister_halla (Day 2 — added May 23, 2026)
+        // sister_halla (Day 2)
         var sisterHalla = perCharacterScales["sister_halla"] ?? CharacterScale()
         sisterHalla.x = -34.39716100692749
         sisterHalla.y = 3.5460948944091797
         sisterHalla.waitingY = -9.929072856903076
         sisterHalla.hpBadgeSizeOverride = 49.480496644973755
+        sisterHalla.hpBadgeOffsetXOverride = -60.744667053222656
+        sisterHalla.hpBadgeOffsetYOverride = 24.202126264572144
+        sisterHalla.attackBadgeOffsetXOverride = -59.57447290420532
+        sisterHalla.attackBadgeOffsetYOverride = 59.57447290420532
+        sisterHalla.waitingHpBadgeOffsetXOverride = -62.87233829498291
+        sisterHalla.waitingAttackBadgeOffsetXOverride = -62.7659797668457
         perCharacterScales["sister_halla"] = sisterHalla
 
-        // hexa_mott (Day 2 — added May 23, 2026)
+        // hexa_mott (Day 2)
         var hexaMott = perCharacterScales["hexa_mott"] ?? CharacterScale()
-        hexaMott.x = -34.042561054229736
-        hexaMott.y = 0.0
-        hexaMott.waitingX = -12.765955924987793
-        hexaMott.waitingY = -13.475179672241211
+        hexaMott.x = -46.09929323196411
+        hexaMott.y = 5.3191423416137695
+        hexaMott.waitingX = -39.0070915222168
+        hexaMott.waitingY = -13.120567798614502
+        hexaMott.waiting2Y = -10.992908477783203
+        hexaMott.hpBadgeSizeOverride = 49.320921301841736
+        hexaMott.hpBadgeOffsetXOverride = -56.89948797225952
+        hexaMott.hpBadgeOffsetYOverride = -7.446804642677307
+        hexaMott.attackBadgeOffsetXOverride = -58.510637283325195
+        hexaMott.attackBadgeOffsetYOverride = 26.329797506332397
+        hexaMott.waitingHpBadgeOffsetXOverride = -59.559059143066406
+        hexaMott.waitingHpBadgeOffsetYOverride = -11.968079209327698
+        hexaMott.waitingAttackBadgeOffsetXOverride = -57.4468195438385
+        hexaMott.waitingAttackBadgeOffsetYOverride = 23.936176300048828
         perCharacterScales["hexa_mott"] = hexaMott
 
-        // bram (Day 2 — added May 23, 2026)
-        var bram = perCharacterScales["bram"] ?? CharacterScale()
-        bram.x = -36.8794322013855
-        bram.y = 6.382989883422852
-        perCharacterScales["bram"] = bram
-
-        // ironhilde (Day 2 — added May 23, 2026)
+        // ironhilde (Day 2)
         var ironhilde = perCharacterScales["ironhilde"] ?? CharacterScale()
-        ironhilde.x = -24.822700023651123
-        ironhilde.y = 1.8678903579711914
-        ironhilde.waitingX = -15.60283899307251
-        ironhilde.waitingY = -13.120567798614502
+        ironhilde.width = 0.8962766006588936
+        ironhilde.height = 0.8962766006588936
+        ironhilde.x = -21.631205081939697
+        ironhilde.y = 18.179941177368164
+        ironhilde.waitingWidth = 0.8962766006588936
+        ironhilde.waitingHeight = 0.8962766006588936
+        ironhilde.waitingX = -10.638296604156494
+        ironhilde.waitingY = 0.0
         ironhilde.waiting2Width = 0.94015958532691
         ironhilde.waiting2Height = 0.94015958532691
-        ironhilde.waiting2Y = -8.41836929321289
+        ironhilde.waiting2X = -10.992908477783203
+        ironhilde.waiting2Y = -5.581486225128174
+        ironhilde.hpBadgeOffsetXOverride = -72.44680523872375
+        ironhilde.hpBadgeOffsetYOverride = -2.6595711708068848
+        ironhilde.attackBadgeOffsetXOverride = -65.95745086669922
+        ironhilde.waitingHpBadgeOffsetXOverride = -67.65956282615662
+        ironhilde.waitingHpBadgeOffsetYOverride = -3.9893656969070435
+        ironhilde.waitingAttackBadgeSizeOverride = 35.560282468795776
+        ironhilde.waitingAttackBadgeOffsetXOverride = -64.36171531677246
+        ironhilde.waitingAttackBadgeOffsetYOverride = 31.914907693862915
         perCharacterScales["ironhilde"] = ironhilde
 
-        // carmilla (Day 2 — added May 23, 2026)
+        // carmilla (Day 2)
         var carmilla = perCharacterScales["carmilla"] ?? CharacterScale()
-        carmilla.x = 1.418447494506836
+        carmilla.x = -28.368782997131348
+        carmilla.y = 6.382989883422852
         carmilla.waitingX = -3.191494941711426
         carmilla.waitingY = -6.3829779624938965
+        carmilla.hpBadgeOffsetXOverride = -73.51064085960388
+        carmilla.hpBadgeOffsetYOverride = 35.37234663963318
+        carmilla.attackBadgeOffsetXOverride = -73.9361822605133
+        carmilla.attackBadgeOffsetYOverride = 73.9361822605133
+        carmilla.waitingHpBadgeOffsetXOverride = -77.23402976989746
+        carmilla.waitingHpBadgeOffsetYOverride = 23.13830852508545
+        carmilla.waitingAttackBadgeOffsetXOverride = -76.59575343132019
+        carmilla.waitingAttackBadgeOffsetYOverride = 59.84044075012207
         perCharacterScales["carmilla"] = carmilla
+
+        // royal_envoy (Day 2 boss — position tuned May 24, 2026)
+        var royalEnvoy = perCharacterScales["royal_envoy"] ?? CharacterScale()
+        royalEnvoy.x = -68.43972206115723
+        perCharacterScales["royal_envoy"] = royalEnvoy
     }
     
     // MARK: - 🔒 LOCKED DEFAULTS (May 13, 2026 - Known-Good State)
@@ -810,20 +957,20 @@ class PotionShopLayoutConfig {
         hpBadgeOffsetXTall = -171.8085139989853
         hpBadgeOffsetYTall = 13.031923770904541
         attackBadgeSizeShort = 34.28368777036667
-        attackBadgeOffsetXShort = -74.46809113025665
+        attackBadgeOffsetXShort = -32.97874331474304
         attackBadgeOffsetYShort = 23.404258489608765
         attackBadgeSizeMedium = 36.27836883068085
-        attackBadgeOffsetXMedium = -89.89362716674805
+        attackBadgeOffsetXMedium = -76.06383562088013
         attackBadgeOffsetYMedium = 36.436182260513306
         attackBadgeSizeTall = 36.27836763858795
         attackBadgeOffsetXTall = -153.723406791687
         attackBadgeOffsetYTall = 45.744699239730835
-        bannerBottleSize = 51.40425443649292
+        bannerBottleSize = 54.38297629356384
         bannerBottleOffsetX = 1.8617033958435059
         bannerBottleOffsetY = 0.0
         bannerBottleNumberSize = 30.0
-        bannerBottleNumberOffsetX = 0.0
-        bannerBottleNumberOffsetY = 7.180851697921753
+        bannerBottleNumberOffsetX = 1.3297855854034424
+        bannerBottleNumberOffsetY = 8.865249156951904
 
         // Head Anchor Defaults
         headAnchorYShort = 0.20

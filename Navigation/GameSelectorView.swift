@@ -73,6 +73,13 @@ struct GameSelectorView: View {
                             description: "Brew potions for the town",
                             game: .ednarsPotionShop
                         )
+                        
+                        gameButton(
+                            title: "Enna's Tavern",
+                            icon: "🍺",
+                            description: "A Reigns-style story card game",
+                            game: .ennaCardGame
+                        )
                     }
                     .padding(.horizontal, 20)
                     
@@ -165,6 +172,8 @@ struct GameSelectorView: View {
             PlaceholderView(gameName: "Potion Solitaire")
         case .mapNavigation:
             PlaceholderView(gameName: "Map Navigation")
+        case .ennaCardGame:
+            CardGameView()
         }
     }
 }

@@ -92,6 +92,10 @@
 		7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */; };
 		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F60232C2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */; };
+		7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163252FC4068700DBF8B7 /* CardDatabase.swift */; };
+		7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163272FC4068700DBF8B7 /* CardGameView.swift */; };
+		7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */; };
+		7F71632C2FC4068700DBF8B7 /* CardGameModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163262FC4068700DBF8B7 /* CardGameModels.swift */; };
 		7F7907B32F8A2E5F00412002 /* cardrotation_anim.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */; };
 		7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908492F99DF6A00412002 /* CauldronModels.swift */; };
 		7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908482F99DF6A00412002 /* CauldronGameView.swift */; };
@@ -244,6 +248,10 @@
 		7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTEXT_REORGANIZATION_SUMMARY.md; sourceTree = "<group>"; };
 		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NODE_TO_NODE_DRAG_SESSION.md; sourceTree = "<group>"; };
+		7F7163252FC4068700DBF8B7 /* CardDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDatabase.swift; sourceTree = "<group>"; };
+		7F7163262FC4068700DBF8B7 /* CardGameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameModels.swift; sourceTree = "<group>"; };
+		7F7163272FC4068700DBF8B7 /* CardGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameView.swift; sourceTree = "<group>"; };
+		7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameViewModel.swift; sourceTree = "<group>"; };
 		7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = cardrotation_anim.md; sourceTree = "<group>"; };
 		7F7908482F99DF6A00412002 /* CauldronGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronGameView.swift; sourceTree = "<group>"; };
 		7F7908492F99DF6A00412002 /* CauldronModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CauldronModels.swift; sourceTree = "<group>"; };
@@ -461,6 +469,17 @@
 			path = ArchiveDocs_DONOTREAD;
 			sourceTree = "<group>";
 		};
+		7F7163242FC405D700DBF8B7 /* EnnaCardGame */ = {
+			isa = PBXGroup;
+			children = (
+				7F7163252FC4068700DBF8B7 /* CardDatabase.swift */,
+				7F7163262FC4068700DBF8B7 /* CardGameModels.swift */,
+				7F7163272FC4068700DBF8B7 /* CardGameView.swift */,
+				7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */,
+			);
+			path = EnnaCardGame;
+			sourceTree = "<group>";
+		};
 		7F7908472F99DF5200412002 /* CauldronGame */ = {
 			isa = PBXGroup;
 			children = (
@@ -550,6 +569,7 @@
 		7FB075112F5D219B00BD0591 = {
 			isa = PBXGroup;
 			children = (
+				7F7163242FC405D700DBF8B7 /* EnnaCardGame */,
 				7F7908602FA725F900412002 /* PotionShop */,
 				7F7908472F99DF5200412002 /* CauldronGame */,
 				7F2ADE432F819B5B0078EF4E /* ShopOfOddities */,
@@ -817,6 +837,10 @@
 				7F7908882FA95F1600412002 /* PotionShopLayoutConfig.swift in Sources */,
 				7F5574932F786B4000081E01 /* PhysicsGameConfig.swift in Sources */,
 				7F0094EF2F6E375B00E10AEB /* BonusTileConfig.swift in Sources */,
+				7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */,
+				7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */,
+				7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */,
+				7F71632C2FC4068700DBF8B7 /* CardGameModels.swift in Sources */,
 				7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */,
 				7F79084B2F99DF6A00412002 /* CauldronModels.swift in Sources */,
 				7F79084C2F99DF6A00412002 /* CauldronGameView.swift in Sources */,

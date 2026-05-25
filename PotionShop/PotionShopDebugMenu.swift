@@ -668,7 +668,13 @@ struct PotionShopDebugMenu: View {
                    cs.waitingHpBadgeOffsetYOverride != nil ||
                    cs.waitingAttackBadgeSizeOverride != nil ||
                    cs.waitingAttackBadgeOffsetXOverride != nil ||
-                   cs.waitingAttackBadgeOffsetYOverride != nil
+                   cs.waitingAttackBadgeOffsetYOverride != nil ||
+                   cs.waiting2HpBadgeSizeOverride != nil ||
+                   cs.waiting2HpBadgeOffsetXOverride != nil ||
+                   cs.waiting2HpBadgeOffsetYOverride != nil ||
+                   cs.waiting2AttackBadgeSizeOverride != nil ||
+                   cs.waiting2AttackBadgeOffsetXOverride != nil ||
+                   cs.waiting2AttackBadgeOffsetYOverride != nil
         }
         if !charsWithOverrides.isEmpty {
             text += """
@@ -693,6 +699,12 @@ struct PotionShopDebugMenu: View {
                 if let v = cs.waitingAttackBadgeSizeOverride    { text += "  waitingAttackBadgeSizeOverride: \(v)\n" }
                 if let v = cs.waitingAttackBadgeOffsetXOverride { text += "  waitingAttackBadgeOffsetXOverride: \(v)\n" }
                 if let v = cs.waitingAttackBadgeOffsetYOverride { text += "  waitingAttackBadgeOffsetYOverride: \(v)\n" }
+                if let v = cs.waiting2HpBadgeSizeOverride    { text += "  waiting2HpBadgeSizeOverride: \(v)\n" }
+                if let v = cs.waiting2HpBadgeOffsetXOverride { text += "  waiting2HpBadgeOffsetXOverride: \(v)\n" }
+                if let v = cs.waiting2HpBadgeOffsetYOverride { text += "  waiting2HpBadgeOffsetYOverride: \(v)\n" }
+                if let v = cs.waiting2AttackBadgeSizeOverride    { text += "  waiting2AttackBadgeSizeOverride: \(v)\n" }
+                if let v = cs.waiting2AttackBadgeOffsetXOverride { text += "  waiting2AttackBadgeOffsetXOverride: \(v)\n" }
+                if let v = cs.waiting2AttackBadgeOffsetYOverride { text += "  waiting2AttackBadgeOffsetYOverride: \(v)\n" }
                 text += "\n"
             }
         }

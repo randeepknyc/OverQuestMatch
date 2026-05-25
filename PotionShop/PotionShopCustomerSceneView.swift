@@ -466,10 +466,17 @@ struct PotionShopCustomerInSceneView: View {
         let effectiveX: Double = isActive ? customerSceneX : (queueIndex == 1 ? customerWaitingX : customerWaiting2X)
         let effectiveY: Double = isActive ? customerSceneY : (queueIndex == 1 ? customerWaitingY : customerWaiting2Y)
 
+        // Fix A (May 24, 2026): badge head-anchor uses unified waiting1 dimensions when the
+        // character is in ANY waiting slot, so a "Share"-mode waiting badge override produces
+        // visually identical placement in waiting1 and waiting2. Body still renders at its
+        // slot-specific size (effectiveWidth/Height above) — only the badge anchor uses these.
+        let badgeAnchorWidth: Double = isActive ? customerSceneWidth : customerWaitingWidth
+        let badgeAnchorHeight: Double = isActive ? customerSceneHeight : customerWaitingHeight
+
         // Head anchor (May 22, 2026): badge offsets are relative to where the character's head renders,
         // not the layout center, so different-height characters all get badges near their actual heads.
-        let renderedImageWidth = PotionShopSceneLayout.portraitDiameter * scale * customerSceneBaseScale * effectiveWidth
-        let renderedImageHeight = PotionShopSceneLayout.portraitDiameter * scale * 1.5 * customerSceneBaseScale * effectiveHeight
+        let renderedImageWidth = PotionShopSceneLayout.portraitDiameter * scale * customerSceneBaseScale * badgeAnchorWidth
+        let renderedImageHeight = PotionShopSceneLayout.portraitDiameter * scale * 1.5 * customerSceneBaseScale * badgeAnchorHeight
         let anchorFractionY = PotionShopLayoutConfig.shared.headAnchorY(for: customer.charKey)
         let anchorFractionX = PotionShopLayoutConfig.shared.headAnchorX(for: customer.charKey)
         let headOffsetY = renderedImageHeight * (anchorFractionY - 0.5)
@@ -499,6 +506,10 @@ struct PotionShopCustomerInSceneView: View {
                     .offset(x: effectiveX, y: effectiveY)
                 }
 
+                // Badge queue slot (May 24, 2026): 0 = active (queue[0]),
+                // 1 = waiting1 (queue[1]), 2 = waiting2 (queue[2]). Clamped for safety.
+                let badgeQueueSlot: Int = isActive ? 0 : min(max(queueIndex, 1), 2)
+
                 // HP Badge (ABOVE character's head — shows for active AND waiting customers)
                 ZStack {
                     // Custom HP badge graphic (background)
@@ -507,16 +518,16 @@ struct PotionShopCustomerInSceneView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                             )
                     } else {
                         // Fallback: red circle if image missing
                         Circle()
                             .fill(PotionShopTheme.composureBad)
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
+                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                             )
                     }
 
@@ -525,9 +536,10 @@ struct PotionShopCustomerInSceneView: View {
                         .font(Font.gameScore(size: 18 * scale))
                         .foregroundColor(.white)
                 }
+                // Include effectiveX/Y so the badge tracks the body within the slot.
                 .offset(
-                    x: headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey, isWaiting: !isActive) * scale,
-                    y: headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey, isWaiting: !isActive) * scale
+                    x: effectiveX + headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                    y: effectiveY + headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                 )
                 .transition(.scale.combined(with: .opacity))
 
@@ -540,16 +552,16 @@ struct PotionShopCustomerInSceneView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                                 )
                         } else {
                             // Fallback: red circle if image missing
                             Circle()
                                 .fill(PotionShopTheme.composureBad)
                                 .frame(
-                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale,
-                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, isWaiting: !isActive) * scale
+                                    width: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                                    height: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                                 )
                         }
 
@@ -559,8 +571,8 @@ struct PotionShopCustomerInSceneView: View {
                             .foregroundColor(.white)
                     }
                     .offset(
-                        x: headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey, isWaiting: !isActive) * scale,
-                        y: headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey, isWaiting: !isActive) * scale
+                        x: effectiveX + headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
+                        y: effectiveY + headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                     )
                 }
 

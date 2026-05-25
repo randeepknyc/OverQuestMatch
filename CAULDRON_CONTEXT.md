@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 23, 2026 — Customer HP/Attack badge system, head anchors, per-character overrides (see §23)
-> **Status:** Phase 7 complete. Game is playable end-to-end for Day 1. Art assets pending.
+> **Last Updated:** May 25, 2026 — character-art-template floor shifted to y=1500 (was y=1440) after verifying existing 14 characters have feet ~y=1480–1500; floater floor y=1260 (was y=1200); spec doc updated. See §24. May 24 (evening): badge body-follow (Option A), waiting2 overrides (Option B), `queueSlot: Int` API. See §23.17.
+> **Status:** Phase 7 complete + partial Phase 8. Game is playable end-to-end for Day 1 → Day 2. Art assets pending.
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -31,7 +31,7 @@ A turn-based dice-placement potion-brewing game. The player is Ednar (the witch 
 
 A "Day" has four rounds: **Morning → Afternoon → Evening → Night**. Night is the boss fight. Composure carries between rounds (currently +5 partial rest between rounds — tunable; see §8.3).
 
-**v1 ships Day 1 only.** Day 2, Day 3, randomized days, and a "streak-based win" mode are planned but explicitly deferred. See §17.
+**v1 ships Day 1 and Day 2.** Day 3, randomized days, and a "streak-based win" mode are planned but explicitly deferred. See §17.
 
 ---
 
@@ -519,17 +519,16 @@ Concrete trace with 3 customers — Wendelina (W), Crispin (C), Ardo (A) — ini
 
 Triggered by **gear icon top-right of header**. Opens as a sheet.
 
-| Action          | What it does                                                 |
-|-----------------|--------------------------------------------------------------|
-| End Game        | Dismisses the game, returns to Game Selector                 |
-| Skip to Round 1 | Jump to Day 1 / Morning (resets composure, fresh customers)  |
-| Skip to Round 2 | Jump to Day 1 / Afternoon                                    |
-| Skip to Round 3 | Jump to Day 1 / Evening (3 customers — best for testing)     |
-| Skip to Round 4 | Jump to Day 1 / Night (boss)                                 |
-| Reset Round     | Re-spawn current round from scratch                          |
-| Heal to Full    | composure → 30, shield → 0                                   |
-| Win Round       | Defeat all current customers instantly (test round-end overlay) |
-| Lose Game       | composure → 0 (test lose overlay)                            |
+| Action                  | What it does                                                 |
+|-------------------------|--------------------------------------------------------------|
+| End Game                | Dismisses the game, returns to Game Selector                 |
+| Skip to Day & Round     | Collapsible **Day 1** / **Day 2** disclosure groups (auto-iterates `PotionShopData.allDays`, so a future Day 3 will appear automatically). Each day expands to Round 1–4 buttons that jump straight to that day + round and reset composure/customers. |
+| Layout Editor (Overlay) | Opens the live layout overlay; the dim background uses `.allowsHitTesting(false)` so the game underneath stays interactive. Close via X button at top of panel. |
+| Reset Round             | Re-spawn current round from scratch                          |
+| Reset Game              | Back to Day 1 Morning                                        |
+| Heal to Full            | composure → 30, shield → 0                                   |
+| Win Round               | Defeat all current customers instantly (test round-end overlay) |
+| Lose Game               | composure → 0 (test lose overlay)                            |
 
 Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` toggle for App Store builds (deferred — see §17).
 
@@ -553,27 +552,36 @@ Always available in v1. Will be moved behind a `GameConfig.enableDebugMenu` togg
 | 6d    | Patience ring on inspect portrait    | ✅     | Reflects `patience/maxPatience` like profile buttons   |
 | 6e    | Inspect card slide-outward animation | ✅     | Portrait→left, body→right from center-collapsed start |
 | 7     | Animated 7-phase brew sequence       | ✅     | Full floating numbers, shake, flash, expiration slide-out, input lockout, animator constants file |
+| 8a    | Day-advancement flow                 | ✅     | `advanceDay()` actually advances `dayId`; `.dayWon` overlay shows "Success, Day Complete!" with "Re-open shop tomorrow" button (or "Restart" if it's the last day). Helpers `PotionShopData.nextDayId(after:)` and `isLastDay(_:)` |
+| 8b    | Day 2 wired up (May 23, 2026)        | ✅     | Day 2 added as curated round structure — see §4.3b. Boss = Royal Envoy. `PotionShopData.allDays = [day1, day2]`. Debug menu auto-iterates allDays. |
+| 8c    | Per-character waiting badge overrides | ✅    | 6 new optional `waiting*` fields on `CharacterScale`; all 6 badge lookups take `isWaiting: Bool = false`; Customers tab in Layout Editor has waiting sliders; clipboard export includes them. See §23.14. |
+| 8d    | Badge head-anchor Fix A (May 24)      | ✅    | When a character is in any waiting slot, the head-anchor calc uses unified `customerWaiting*` dims (not slot-specific). Body keeps its slot-specific scale; only the badge anchor is unified. Makes "Share" mode visually consistent across waiting1/waiting2. See §23.16. |
+| 8e    | Layout overlay click-through         | ✅     | `Color.black.opacity(0.2)` background now has `.allowsHitTesting(false)`; the spacer above the floating panel also. Game underneath is interactable while tuning. Close via X button. |
 
 ---
 
 ## 14. WHAT'S PENDING (NEXT STEPS)
 
-### 14.1 Phase 8 — Round-end / Day-end / Lose overlays (PRIORITY NEXT)
-Currently when a round ends the game shows a black overlay with "Round Complete" and a "Continue" button — placeholder from Phase 4. Need:
-- **Round complete overlay:** which customers were defeated, composure remaining, "Continue to [next round]" button
-- **Day complete overlay:** "Day 1 Complete" with full summary, "Return to Selector" button (or "Play Again")
-- **Lose overlay:** "You Collapsed" message, "Try Again" (restart current round) and "End Game" buttons
-- **Boss-defeat flourish** on Night round when Grimdrek goes down (light effect, not over-engineered)
+### 14.1 Phase 8 — Round-end / Day-end / Lose overlays (PARTIAL — day-advancement done, polish remaining)
+The **day-advancement flow** is now wired (May 23–24, 2026): beating Day 1 Night shows "Success, Day Complete!" with "Re-open shop tomorrow" button → advances to Day 2. Beating Day 2 Night shows the same title with "Restart" button. See §4.3b for the flow.
+
+What's STILL needed for full Phase 8:
+- **Richer Round complete overlay:** which customers were defeated, composure remaining (current is just "Round Complete / Continue")
+- **Richer Day complete overlay:** full summary panel instead of the placeholder
+- **Lose overlay:** "You Collapsed" message currently uses placeholder. Needs "Try Again" (restart current round) and "End Game" buttons; the current single button restarts the whole game
+- **Boss-defeat flourish** on Night rounds (light effect, not over-engineered)
 
 ### 14.2 Phase 9 — Trait stub implementation
 - **Loud (Bram):** while Bram is in the queue (and not active), reduce the player's "focus" by 1. **NOTE:** "focus" is not yet a defined mechanic in this codebase — needs design clarification before coding. Possible interpretations: -1 to all dice in hand while loud is waiting, or a separate visible "focus" stat. ASK the user before implementing.
 - **Hexer (Hexa Mott, Carmilla):** each turn the customer waits, one random die in the player's current hand rerolls to its lowest face. Mechanic is well-defined; needs to fire during a turn-end phase, probably between phase 5 (patience ticks) and phase 6 (expirations).
 
-### 14.3 Phase 10 — Day 2 + Day 3 (procedural rounds)
-The data file has Day 2 and Day 3 templates designed (random pulls + hybrid). Wiring them in requires:
+### 14.3 Phase 10 — Day 3 (procedural rounds)
+Day 2 is **done** (curated, not procedural — see §4.3b). Day 3 is still future work. Note Royal Envoy was originally the Day 3 boss in the design doc but has been moved to Day 2; Day 3 needs a new boss concept.
+
+If Day 3 ends up procedural, wiring it in requires:
 - A round-builder function that takes `min/max difficulty + must_include_tag + required_trait + exclude_ids` and returns a customer list
-- Day-transition flow (Day 1 complete → Day 2 starts)
-- "Day N" indicator in the header
+- "Day N" indicator in the header (currently shows "Day 1" / "Day 2" via `gs.dayId`)
+- Day-advancement already works via `gs.advanceDay()` — no flow changes needed, just data
 
 ### 14.4 Phase 11 — Streak-based win condition
 The user's eventual win mode: **after Day 3, days are randomized, and "winning" is a streak count of how many days the player can survive without losing.** Adds: streak counter, save state for personal-best, "you survived N days" end screen.
@@ -604,7 +612,7 @@ These are items the user explicitly flagged as "I might change this" or "let's r
 | 10 | Customer expiration drama                         | Currently a small shake + slide-off + 💢 burst. User said "fine for now, I may want it more dramatic" |
 | 11 | Tap-to-expand inspect alternative                  | Earlier discussion: long-press, "i" icon, or other gesture instead of single-tap (currently single-tap promotes AND inspects) |
 | 12 | Persistent inspect strip option                    | Earlier mockup had "always visible" inspect strip option; locked decision was "tap-only." User said "may change my mind to A later" — keep this discoverable. |
-| 13 | Day 2+ multi-day progression / unlocks            | Tier system in code is dormant; will activate when Day 2+ ships                 |
+| 13 | Day 3+ multi-day progression / unlocks            | Day 1 and Day 2 wired. Tier system in code is dormant; will activate when Day 3+ ships |
 | 14 | Bag/discard visualization                         | Currently invisible; future v2 add                                              |
 | 15 | Drag-and-drop dice                                 | Currently tap-die-then-tap-node. Drag is a v2 polish item.                       |
 | 16 | Reach preview on iOS                              | Hover preview works on desktop only; needs a tap-and-hold or auto-on-select for iOS |
@@ -1079,6 +1087,133 @@ The green ring around each customer's profile button shows `patience / maxPatien
 - **`ForEach(…, id: \.element) { … }` can cache child views by ID** such that struct-parameter updates don't reach the child body. When live data needs to flow into a child view that lives inside a `ForEach`, prefer reading from the observable source (`gs.customers.first(where: …)?.field`) inside the child, not just relying on a passed-in struct snapshot.
 - **Per-character X tuning beats bucket-only for narrow vs wide characters.** Buckets sort by height, but width varies independently. Adding per-character overrides for X (and size, and Y) made tuning much faster.
 - **Never assume an asset is gone.** Earlier in the session, I claimed `hp_badge` and `attack_badge` didn't exist because they weren't on disk where I expected. The user clarified they were there; I had misread. Always verify with the user before suggesting assets are missing — and never delete from `Assets.xcassets` without explicit permission.
+
+### 23.14 Per-character WAITING badge overrides (May 23, 2026)
+
+Badges (HP + Attack) can now be tuned **independently for the waiting state** versus the active state. Six new optional fields on `CharacterScale`:
+
+```swift
+var waitingHpBadgeSizeOverride: Double? = nil
+var waitingHpBadgeOffsetXOverride: Double? = nil
+var waitingHpBadgeOffsetYOverride: Double? = nil
+var waitingAttackBadgeSizeOverride: Double? = nil
+var waitingAttackBadgeOffsetXOverride: Double? = nil
+var waitingAttackBadgeOffsetYOverride: Double? = nil
+```
+
+**Lookup hierarchy:** The 6 badge lookup functions (`hpBadgeSize/OffsetX/OffsetY`, `attackBadgeSize/OffsetX/OffsetY`) now take an `isWaiting: Bool = false` parameter:
+
+1. If `isWaiting` AND the corresponding `waiting*Override` is set → use it
+2. Else if the active `*Override` is set → use it
+3. Else → bucket default (Short/Medium/Tall)
+
+**Share, not Separate:** Waiting1 and waiting2 share the same override (one set of waiting values per character covers both waiting slots). The choice was deliberate — see §23.16 for why the body's per-slot scales conspire to make "Share" look natural with Fix A in place.
+
+**Renderer integration:** In `PotionShopCustomerSceneView`, all 6 badge calls now pass `isWaiting: !isActive`. `isActive` is defined as `gs.queue.first == customer.id`.
+
+**Live editor controls:** In the Layout Editor (live overlay) → Customers tab, there's now a "⏳ Waiting HP Badge" and "⏳ Waiting Attack Badge" sub-section beneath the active sliders. The Reset button clears all 12 (6 active + 6 waiting) overrides for the selected character.
+
+**Clipboard export:** `copyLayoutValuesToClipboard()` now also writes the 6 waiting overrides under the per-character section if any are set.
+
+### 23.15 Layout overlay click-through (May 23, 2026)
+
+`PotionShopLayoutOverlay` (the live layout editor in `PotionShopGameView.swift`) previously blocked all taps with a full-screen `Color.black.opacity(0.2)` background + `.onTapGesture { isPresented = false }`. That has been replaced with:
+
+- `Color.black.opacity(0.2)` + `.allowsHitTesting(false)` — dim is visible, doesn't capture taps
+- The empty `Spacer()` above the floating control panel also has `.allowsHitTesting(false)`
+- The floating panel itself (sliders, section picker, buttons) still captures taps normally
+- **Tap-anywhere-to-close behavior is gone.** Use the **X button** at the top-right of the floating panel to close.
+
+This lets the user interact with the actual game (tap profiles to swap, place dice, brew) while the layout editor is open — perfect for tuning against real visual states.
+
+### 23.16 Badge head-anchor Fix A (May 24, 2026)
+
+**Problem:** Even with the "Share" mode for waiting badge overrides (§23.14), characters appeared to have their badges shift between waiting1 and waiting2 in 3-customer rounds. The cause: the badge head-anchor computation was driven by the slot-specific body dimensions (`effectiveWidth/Height` switched between `customerWaitingWidth/Height` and `customerWaiting2Width/Height`). When a character's waiting1 and waiting2 body scales differ (e.g. Ironhilde at 0.896 vs 0.94), the rendered image dimensions differ → head anchor moves → badge follows the head to a different absolute position.
+
+**Fix A:** Decouple the badge anchor from the slot-specific body dimensions. In `PotionShopCustomerSceneView`:
+
+```swift
+// Body uses slot-specific (unchanged)
+let effectiveWidth/Height/X/Y = isActive ? customerScene* : (queueIndex == 1 ? customerWaiting* : customerWaiting2*)
+
+// NEW: badge anchor uses unified waiting1 dims for any waiting slot
+let badgeAnchorWidth: Double = isActive ? customerSceneWidth : customerWaitingWidth
+let badgeAnchorHeight: Double = isActive ? customerSceneHeight : customerWaitingHeight
+
+let renderedImageWidth  = portraitDiameter * scale * customerSceneBaseScale * badgeAnchorWidth
+let renderedImageHeight = portraitDiameter * scale * 1.5 * customerSceneBaseScale * badgeAnchorHeight
+```
+
+Result: a "Share" waiting badge override now produces visually identical placement in waiting1 AND waiting2. Body still scales per-slot (depth perspective preserved); only the badge's head anchor is unified.
+
+**Tradeoff:** If a character has dramatically different `waiting2Width/Height` vs `waitingWidth/Height`, the badge may sit slightly off the actual head in waiting2 (since the head's true position depends on the body's actual rendered size, but the badge anchor uses the unified value). In practice the differences are small. If a specific character looks off, the fix is to nudge `waiting2Width/Height` closer to `waitingWidth/Height` rather than reintroduce slot-aware badge anchors.
+
+### 23.17 Badge body-follow + per-slot waiting2 overrides (May 24, 2026 evening)
+
+**Problem:** Even after Fix A (§23.16), when the user adjusted per-character badge positions in Day 1 Round 3 (Evening: Wendelina + Crispin + Ardo, 3 customers) and then reshuffled the queue, badges visibly drifted away from each character's head.
+
+**Two root causes:**
+
+1. **Badge offsets ignored `effectiveX/Y`.** The character body in `PotionShopCustomerSceneView` is offset by `effectiveX/effectiveY` per slot (active → `customerSceneX/Y`; waiting1 → `customerWaitingX/Y`; waiting2 → `customerWaiting2X/Y`), but the badge `.offset(...)` only used `headOffsetX/Y + badgeOffsetX/Y * scale`. So when a character moved between slots, the body shifted but the badges stayed.
+2. **Waiting1 and Waiting2 shared one override set.** A single `waitingHpBadgeOffsetXOverride` (etc.) applied to BOTH waiting slots. If a character's `waitingX` ≠ `customerWaiting2X`, the badge could only look right in one slot.
+
+**Fix (Option C = A + B):**
+
+- **Option A — badges follow body.** In `PotionShopCustomerSceneView`, HP and Attack badge `.offset(...)` now include `effectiveX` and `effectiveY`. Badges automatically track the body wherever it sits within a slot.
+- **Option B — separate waiting2 overrides.** Added 6 new fields to `CharacterScale`: `waiting2HpBadgeSizeOverride`, `waiting2HpBadgeOffsetXOverride`, `waiting2HpBadgeOffsetYOverride`, `waiting2AttackBadgeSizeOverride`, `waiting2AttackBadgeOffsetXOverride`, `waiting2AttackBadgeOffsetYOverride`. They override queue[2] only and fall back to waiting1 → active → bucket if nil.
+
+**API change:** Badge lookup functions in `PotionShopLayoutConfig` changed from `isWaiting: Bool = false` to `queueSlot: Int = 0` (0=active, 1=waiting1, 2=waiting2). Precedence: slot 2 → `waiting2*` → `waiting*` → active override → bucket. All callsites updated in `PotionShopCustomerSceneView`, `PotionShopGameView`, `PotionShopDebugMenu`.
+
+**Layout editor:** Added "⏳ Waiting 2 HP Badge" and "⏳ Waiting 2 Attack Badge" slider sections in `PotionShopGameView` so the user can tune queue[2] independently. The Per-Character Reset button now clears all 18 override fields (6 active + 6 waiting1 + 6 waiting2).
+
+**Copy Layout Values:** `PotionShopDebugMenu` exports the 6 new `waiting2*` fields in the per-character section.
+
+**Baked defaults (May 24, 2026 evening):** Two rounds of user-tuned values were pulled in via the Copy Layout Values export → applied to `applyTunedCharacterScales()` in `PotionShopLayoutConfig`. Notable changes: Bram now has full active+waiting badge overrides; Carmilla gained active badge overrides; Ironhilde gained 8 badge overrides; Royal Envoy gained `x = -68.44`; sister_halla / grimdrek / hexa_mott / wendelina / crispin / mildred all re-tuned post-Option-A shift; Ardo gained 3 `waiting2*` overrides (the first character to use the new Option B fields). Queue permutations for the 5 Day-1-Evening 3-character arrangements updated to new X/Y values.
+
+**Result:** Customers can be reshuffled freely; badges follow each character's body and head regardless of slot. If queue[1] and queue[2] need different badge placements (rare — only when `customerWaitingX/Y` differs significantly from `customerWaiting2X/Y`), the Waiting 2 sliders can be tuned independently.
+
+---
+
+## 24. CHARACTER ART TEMPLATE — SCALING TO 50–75 CHARACTERS (May 24, 2026)
+
+The current character system requires per-character layout tuning (X/Y/scale + badge offsets per slot per height bucket per width). That works for 14 hand-tuned characters but won't scale. To support a future random-matchmaking mode with 50–75 characters, a new art workflow was designed.
+
+**Spec file:** `PotionShop/CHARACTER_ART_TEMPLATE_SPEC.md` — the authoritative source for the art workflow.
+
+### 24.1 Core idea
+
+Every new character is drawn inside a **shared 1024×1536 portrait template** with safe-zone rectangles for each height bucket. Conforming to the template means the character drops into the game with **zero per-character layout tuning** — no `customerSceneX`, no badge overrides, no permutation entries.
+
+### 24.2 The template
+
+Built once in Photoshop (pixel-precise Shape Tool + Properties panel), exported as a transparent PNG, imported into Procreate as a locked Reference layer for every drawing session. The PSD contains 15 colored shape layers:
+
+- **Group A (4 rectangles):** do-not-draw red margins on all 4 canvas edges (96 px wide).
+- **Group B (3 rectangles, nested):** body bands — wide (640 px), medium (480 px), skinny (320 px) — for the 3 width buckets.
+- **Group C (6 rectangles):** head boxes per height bucket — `tallHat`, `tall`, `medium`, `short`, `superShort`, `floater`. Each pinned to a fixed Y range so the head always lands in a predictable spot.
+- **Group D (2 strips):** floor lines — yellow at y=1500 (feet touch this), pink at y=1260 (floater feet touch this). *(Floor line shifted from y=1440 to y=1500 on May 25 to match existing 14 characters' art, which were drawn with feet at ~y=1480–1500. Bottom do-not-draw zone shrank to 36 px to compensate.)*
+
+### 24.3 Two-axis tagging
+
+Each character is tagged with two buckets:
+
+- **Height** (6 options): `tall` / `medium` / `short` / `superShort` / `tallHat` / `floater`
+- **Width** (3 options): `skinny` / `medium` / `wide`
+
+Total possible combos: 18. The artist self-tags during/after drawing based on which head box and which body-band inset they filled.
+
+### 24.4 What still needs to be built in code
+
+Currently the spec only exists as a markdown doc + intent. **Not yet implemented in Swift:**
+
+- Add `widthBucket` enum to `CharacterScale` (or character data definition).
+- Expand `CustomerHeightBucket` enum to include `superShort`, `tallHat`, `floater` (currently has only `short`/`medium`/`tall`).
+- Auto-spacing algorithm for the queue that reads each character's `widthBucket` and `heightBucket` and computes X positions algorithmically — replaces the hand-tuned `queuePermutations` dictionary for templated characters.
+- Tier-based RNG matchmaking (Morning/Afternoon/Evening/Night drawing from tier 1-5 pools) for the future random-day mode.
+
+### 24.5 Migration plan (not started)
+
+Existing 14 characters are NOT in the template format. They'll keep their hand-tuned overrides until re-drawn against the template, at which point their overrides can be cleared. New characters (#15 onward) should be drawn template-first and added with only `id / name / tier / heightBucket / widthBucket / HP / attack / trait / dialogue` — no layout tuning.
 
 ---
 
