@@ -54,13 +54,6 @@ struct GameSelectorView: View {
                         )
                         
                         gameButton(
-                            title: "Physics Chain Game",
-                            icon: "🫧",
-                            description: "Tsum-Tsum style bubble chaining",
-                            game: .physicsChain
-                        )
-                        
-                        gameButton(
                             title: "Shop of Oddities",
                             icon: "🔧",
                             description: "Card-based repair solitaire",
@@ -101,7 +94,31 @@ struct GameSelectorView: View {
         }
         .fullScreenCover(item: $selectedGame) { gameType in
             gameView(for: gameType)
+                .onDisappear {
+                    // Purge memory caches when returning to the selector
+                    // (May 28, 2026). Prevents image-cache accumulation
+                    // across games which previously caused crashes when
+                    // traversing Match3 → Shop → PotionShop in sequence.
+                    purgeInterGameCaches()
+                }
         }
+    }
+
+    /// Flushes the image caches across all games. Called when the user
+    /// navigates back to the selector via the fullScreenCover dismissal.
+    /// Cheap to call (no work for caches that are already empty).
+    private func purgeInterGameCaches() {
+        // Drop the PotionShop downsample thumbnails
+        PotionShopImageLoader.purgeDownsampleCache()
+        // Drop any URLCache entries (some games may load remote URLs later)
+        URLCache.shared.removeAllCachedResponses()
+        // Tell UIKit to drop its UIImage(named:) decoded-bitmap cache by
+        // posting the memory-warning notification ourselves. This is the
+        // standard recipe — UIKit listens for this and aggressively evicts.
+        NotificationCenter.default.post(
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
     }
     
     // MARK: - Game Button

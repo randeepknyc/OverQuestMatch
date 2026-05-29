@@ -585,6 +585,14 @@ struct PotionShopCustomerInSceneView: View {
         let useWhiteSilhouette = !isActive &&
             ["wendelina", "crispin", "ardo"].contains(customer.charKey)
 
+        // Editor-selection state (May 26, 2026): when the layout editor is
+        // open AND this customer is the currently-selected one, draw a thin
+        // yellow ring around the character body so the user can see which
+        // customer they're tuning.
+        let editorOpen = PotionShopLayoutConfig.shared.layoutEditorIsOpen
+        let isEditorSelected = editorOpen &&
+            PotionShopLayoutConfig.shared.selectedCharacterId == customer.charKey
+
         if let char = char {
             ZStack {
                 // Character image (full body, NO circle!)
@@ -637,6 +645,29 @@ struct PotionShopCustomerInSceneView: View {
                                     y: customerSceneBaseScale * effectiveHeight,
                                     anchor: .center)
                         .offset(x: effectiveX, y: effectiveY)
+                    }
+
+                    // Selected-character indicator (May 26, 2026): yellow ring
+                    // around the character body when the layout editor is open
+                    // and this customer is selected. Width/height are clamped
+                    // to a positive minimum so SwiftUI never sees a 0-size frame.
+                    if isEditorSelected {
+                        let ringW = max(20.0, PotionShopSceneLayout.portraitDiameter * scale * customerSceneBaseScale * effectiveWidth)
+                        let ringH = max(30.0, PotionShopSceneLayout.portraitDiameter * scale * 1.5 * customerSceneBaseScale * effectiveHeight)
+                        Rectangle()
+                            .stroke(Color.yellow, lineWidth: 3)
+                            .frame(width: ringW, height: ringH)
+                            .offset(x: effectiveX, y: effectiveY)
+                            .allowsHitTesting(false)
+                    }
+                }
+                // Tap-to-select (May 26, 2026): scoped to the inner character
+                // ZStack ONLY (not the whole outer ZStack including badges/emoji)
+                // so adjacent customers' tap rectangles don't overlap.
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
+                        PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
                     }
                 }
 

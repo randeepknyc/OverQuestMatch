@@ -181,6 +181,17 @@ class PotionShopGameState {
 
     init() {
         startRound()
+        // Memory pressure observer (May 26, 2026): when iOS warns us, drop
+        // the downsampled image cache so we have headroom to keep running
+        // instead of getting killed.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("⚠️ PotionShop: memory warning — purging image cache.")
+            PotionShopImageLoader.purgeDownsampleCache()
+        }
     }
 
     // MARK: - Round name helpers
@@ -214,15 +225,28 @@ class PotionShopGameState {
             if flexDayGeneratedRounds.isEmpty {
                 generateFlexDayRounds()
             }
-            let round: PotionShopRound
-            if roundIndex < flexDayGeneratedRounds.count {
-                round = flexDayGeneratedRounds[roundIndex]
-            } else {
-                // Out of bounds — shouldn't happen, fall back to last round.
-                round = flexDayGeneratedRounds.last
-                    ?? PotionShopRound(timeOfDay: .morning, customerIds: [])
+            // Defensive: if generation failed (unknown dayId, empty pool),
+            // bail safely with no customers rather than crash.
+            guard !flexDayGeneratedRounds.isEmpty else {
+                print("⚠️ PotionShop: flex day '\(dayId)' produced 0 rounds — bailing safely.")
+                customers = []
+                queue = []
+                inspectedId = nil
+                bag = buildStartingBag()
+                discardPile.removeAll()
+                drawFromBag()
+                placements.removeAll()
+                selectedHandIndex = nil
+                phase = .playing
+                return
             }
-            spawnCustomers(from: round)
+            // Clamp roundIndex into bounds so out-of-range jumps don't crash.
+            let safeIdx = max(0, min(roundIndex, flexDayGeneratedRounds.count - 1))
+            if safeIdx != roundIndex {
+                print("⚠️ PotionShop: roundIndex \(roundIndex) clamped to \(safeIdx) for flex day '\(dayId)'.")
+                roundIndex = safeIdx
+            }
+            spawnCustomers(from: flexDayGeneratedRounds[safeIdx])
             return
         }
 

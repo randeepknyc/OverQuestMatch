@@ -511,6 +511,27 @@ class PotionShopLayoutConfig {
     var autoLayoutYAdjustTallHat: Double = 0.0
     var autoLayoutYAdjustFloater: Double = -0.05  // floaters sit slightly higher
 
+    // MARK: - Layout Editor state (May 25, 2026)
+    //
+    // Shared state for the Layout Editor UI so the customer-scene tap can
+    // sync with the editor's character picker. Tapping a customer in the
+    // scene while the editor is OPEN sets selectedCharacterId to that char,
+    // making the per-character override sliders jump to that customer.
+
+    /// Which character the per-character override sliders are bound to.
+    var selectedCharacterId: String = "mildred"
+
+    /// True while the Layout Editor overlay is showing. Gates tap-to-select
+    /// so normal gameplay isn't affected. Set to false when overlay closes.
+    var layoutEditorIsOpen: Bool = false
+
+    /// Master toggle for image downsampling (May 26, 2026). When true,
+    /// PotionShopImageLoader.sceneImageOrFallback downsamples character
+    /// PNGs at load time via ImageIO — ~10× less RAM per image, visually
+    /// identical at displayed size. Toggle off via debug menu to A/B
+    /// compare or revert if visuals look wrong.
+    var imageDownsamplingEnabled: Bool = true
+
     func headAnchorY(for characterId: String) -> Double {
         let cs = characterScale(for: characterId)
         if let override = cs.headAnchorYOverride { return override }

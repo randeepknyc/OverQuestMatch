@@ -19,6 +19,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct PotionShopDebugMenu: View {
     @Bindable var gs: PotionShopGameState
@@ -27,12 +28,51 @@ struct PotionShopDebugMenu: View {
     /// Closure that exits the game (back to GameSelector). Provided
     /// by the parent view since dismiss happens at the parent level.
     let onEndGame: () -> Void
-    
+
     @State private var showLayoutEditor = false
+
+    // Live RAM tracking (May 29, 2026). The row updates every 0.5s, and
+    // when you tap "Purge ALL caches" we capture a before-snapshot so you
+    // can see the delta. Solves "purge button looks like it does nothing".
+    @State private var ramUsedMB: Int = 0
+    @State private var ramBeforePurgeMB: Int? = nil
+    private let ramRefreshTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationStack {
             List {
+                // ─── Round shortcuts (TOP — May 25, 2026) ─────────
+                Section("Skip to Day & Round") {
+                    // Legacy 4-round days (Day 1, Day 2)
+                    ForEach(PotionShopData.allDays, id: \.id) { day in
+                        DisclosureGroup(day.name) {
+                            ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
+                                roundJumpButton(dayId: day.id, roundIdx: idx)
+                            }
+                        }
+                    }
+                    // Flex days (Day 3+) — round count varies per day
+                    ForEach(PotionShopData.allFlexDays, id: \.id) { day in
+                        DisclosureGroup(day.name) {
+                            ForEach(0..<day.totalRoundCount, id: \.self) { idx in
+                                roundJumpButton(dayId: day.id, roundIdx: idx)
+                            }
+                            // Reshuffle the random rounds of this flex day.
+                            Button {
+                                gs.reshuffleFlexDay()
+                                isPresented = false
+                            } label: {
+                                HStack {
+                                    Image(systemName: "shuffle")
+                                        .foregroundColor(PotionShopTheme.accent)
+                                    Text("Reshuffle \(day.name) random rounds")
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // ─── State summary ─────────────────────────────────
                 Section("Current State") {
                     debugRow("Day", gs.dayId)
@@ -42,6 +82,58 @@ struct PotionShopDebugMenu: View {
                     debugRow("Shield", "\(gs.shield)")
                     debugRow("Potions Brewed", "\(gs.potionsBrewed)")
                     debugRow("Customers", "\(gs.queue.count) in queue / \(gs.customers.count) total")
+                    debugRow("RAM Used", ramRowText())
+                }
+
+                // ─── Memory & Image Cache (May 26, 2026) ────────────
+                Section("Memory") {
+                    Toggle("Downsample images (saves ~10× RAM)",
+                           isOn: Binding(
+                               get: { PotionShopLayoutConfig.shared.imageDownsamplingEnabled },
+                               set: { PotionShopLayoutConfig.shared.imageDownsamplingEnabled = $0 }
+                           ))
+
+                    Button {
+                        ramBeforePurgeMB = currentMemoryUsageMB()
+                        PotionShopImageLoader.purgeDownsampleCache()
+                        // Re-read after a beat so the delta is meaningful
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            ramUsedMB = currentMemoryUsageMB()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(PotionShopTheme.accent)
+                            Text("Purge downsample cache (PotionShop only)").foregroundColor(.primary)
+                        }
+                    }
+
+                    Button {
+                        // Full purge — same recipe the selector uses when
+                        // returning home. Tests the cross-game cleanup logic.
+                        ramBeforePurgeMB = currentMemoryUsageMB()
+                        PotionShopImageLoader.purgeDownsampleCache()
+                        URLCache.shared.removeAllCachedResponses()
+                        NotificationCenter.default.post(
+                            name: UIApplication.didReceiveMemoryWarningNotification,
+                            object: nil)
+                        // Re-read after a beat so the delta is visible
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            ramUsedMB = currentMemoryUsageMB()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.3.trianglepath")
+                                .foregroundColor(PotionShopTheme.accent)
+                            Text("Purge ALL caches (full memory flush)").foregroundColor(.primary)
+                        }
+                    }
+                }
+                .onReceive(ramRefreshTimer) { _ in
+                    ramUsedMB = currentMemoryUsageMB()
+                }
+                .onAppear {
+                    ramUsedMB = currentMemoryUsageMB()
                 }
                 
                 // ─── Layout Editor ────────────────────────────────
@@ -178,38 +270,6 @@ struct PotionShopDebugMenu: View {
                         Text("No custom permutations defined yet")
                     } else {
                         Text("Active: \(permutations.joined(separator: ", "))")
-                    }
-                }
-
-                // ─── Round shortcuts ──────────────────────────────
-                Section("Skip to Day & Round") {
-                    // Legacy 4-round days (Day 1, Day 2)
-                    ForEach(PotionShopData.allDays, id: \.id) { day in
-                        DisclosureGroup(day.name) {
-                            ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
-                                roundJumpButton(dayId: day.id, roundIdx: idx)
-                            }
-                        }
-                    }
-                    // Flex days (Day 3+) — round count varies per day
-                    ForEach(PotionShopData.allFlexDays, id: \.id) { day in
-                        DisclosureGroup(day.name) {
-                            ForEach(0..<day.totalRoundCount, id: \.self) { idx in
-                                roundJumpButton(dayId: day.id, roundIdx: idx)
-                            }
-                            // Reshuffle the random rounds of this flex day.
-                            Button {
-                                gs.reshuffleFlexDay()
-                                isPresented = false
-                            } label: {
-                                HStack {
-                                    Image(systemName: "shuffle")
-                                        .foregroundColor(PotionShopTheme.accent)
-                                    Text("Reshuffle \(day.name) random rounds")
-                                        .foregroundColor(.primary)
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -363,6 +423,38 @@ struct PotionShopDebugMenu: View {
         case .dayWon:   return "dayWon"
         case .lost:     return "lost"
         }
+    }
+
+    /// Formats the live RAM row, including a delta vs the pre-purge snapshot
+    /// when one exists. Result looks like: "287 MB  (▼ 41 MB from purge)".
+    private func ramRowText() -> String {
+        var line = "\(ramUsedMB) MB"
+        if let before = ramBeforePurgeMB {
+            let delta = before - ramUsedMB
+            if delta > 0 {
+                line += "  (▼ \(delta) MB from purge)"
+            } else if delta < 0 {
+                line += "  (▲ \(-delta) MB since purge)"
+            } else {
+                line += "  (no change from purge)"
+            }
+        }
+        return line
+    }
+
+    /// Approximate live RAM use of the app process, in MB. Uses mach_task_basic_info.
+    /// Reports resident memory ("physFootprint" is closer to what iOS kills on but
+    /// requires more API; resident memory is a useful proxy).
+    private func currentMemoryUsageMB() -> Int {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info>.size) / 4
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return -1 }
+        return Int(info.phys_footprint / (1024 * 1024))
     }
     
     /// Copies all current layout values from PotionShopLayoutConfig.shared to clipboard

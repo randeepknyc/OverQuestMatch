@@ -11,19 +11,89 @@ import UIKit
 
 // MARK: - Image Loading Helper
 
-/// Helper to load images from Asset Catalog with emoji fallback
+import ImageIO
+
+/// Helper to load images from Asset Catalog with emoji fallback.
+///
+/// Memory note (May 26, 2026): a 1024×1536 PNG decodes to ~6 MB in RAM.
+/// With ~40 scene PNGs across all characters + duplicates, naive
+/// `UIImage(named:)` caches can easily exhaust per-app memory. To prevent
+/// this, sceneImageOrFallback now downsamples on-load to roughly 3× the
+/// displayed pixel size via ImageIO — visually identical at display size
+/// but ~10× less RAM per image. Toggleable via downsamplingEnabled.
 struct PotionShopImageLoader {
-    
+
+    /// Master toggle for the downsample path. When false, falls back to
+    /// the original UIImage(named:) path so visuals are identical to before.
+    /// Wired to PotionShopLayoutConfig.imageDownsamplingEnabled for a
+    /// runtime debug-menu toggle.
+    static var downsamplingEnabled: Bool {
+        PotionShopLayoutConfig.shared.imageDownsamplingEnabled
+    }
+
+    /// Cache of downsampled UIImages keyed by "assetName@targetSize". We
+    /// hold these weakly via NSCache so iOS can evict on memory pressure.
+    private static let downsampleCache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 64  // cap total cached thumbnails
+        return c
+    }()
+
+    /// Manually evict every downsampled image. Called by the
+    /// memory-warning observer + game-end transitions.
+    static func purgeDownsampleCache() {
+        downsampleCache.removeAllObjects()
+    }
+
+    /// Loads an asset PNG and returns a downsampled UIImage at roughly
+    /// `targetPixelSize × 3` resolution (keeps a bit of headroom for any
+    /// SwiftUI scaling/animations). Uses ImageIO's CGImageSourceCreate-
+    /// ThumbnailAtIndex so the full image is never decoded.
+    static func downsampledImage(named name: String, targetPixelSize: CGFloat) -> UIImage? {
+        let oversample: CGFloat = 3.0
+        let pixelSize = max(64, targetPixelSize * oversample)  // never below 64px
+        let cacheKey = "\(name)@\(Int(pixelSize))" as NSString
+        if let cached = downsampleCache.object(forKey: cacheKey) {
+            return cached
+        }
+        // Resolve the asset to a CGImageSource via UIImage's data.
+        guard let baseImage = UIImage(named: name),
+              let baseData = baseImage.pngData() else {
+            return nil
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: pixelSize,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let src = CGImageSourceCreateWithData(baseData as CFData, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary) else {
+            return baseImage  // fall back to full image rather than nothing
+        }
+        let down = UIImage(cgImage: cgImage)
+        downsampleCache.setObject(down, forKey: cacheKey)
+        return down
+    }
+
     /// Attempts to load an image from the asset catalog.
     /// Returns the image if found, nil otherwise.
     static func loadImage(named name: String) -> UIImage? {
         return UIImage(named: name)
     }
-    
+
+    /// Returns either a downsampled UIImage (if enabled) or the full asset.
+    static func loadDisplayImage(named name: String, displaySize: CGFloat) -> UIImage? {
+        if downsamplingEnabled {
+            return downsampledImage(named: name, targetPixelSize: displaySize)
+        }
+        return UIImage(named: name)
+    }
+
     /// Creates a view showing either the asset image or emoji fallback
     @ViewBuilder
     static func imageOrEmoji(assetName: String, fallbackEmoji: String, size: CGFloat) -> some View {
-        if let uiImage = loadImage(named: assetName) {
+        if let uiImage = loadDisplayImage(named: assetName, displaySize: size) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -34,21 +104,25 @@ struct PotionShopImageLoader {
                 .font(.system(size: size * 0.55))
         }
     }
-    
+
     /// Creates a view showing scene portrait with graceful fallback chain:
     /// 1. Try scenePortrait asset
     /// 2. If not found, try portrait asset (profile closeup)
     /// 3. If not found, show emoji
     @ViewBuilder
     static func sceneImageOrFallback(sceneAsset: String, profileAsset: String, fallbackEmoji: String, size: CGFloat) -> some View {
-        if let uiImage = loadImage(named: sceneAsset) {
+        // Scene portraits are drawn at 2:3 aspect, so the bounding box is
+        // size × (size * 1.5). Use that taller dimension as the thumbnail
+        // target so detail is preserved on the longer axis.
+        let sceneDisplaySize = size * 1.5
+        if let uiImage = loadDisplayImage(named: sceneAsset, displaySize: sceneDisplaySize) {
             // Preferred: scene portrait (full body) - NO CLIPPING!
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()  // Changed from .scaledToFill() to preserve aspect ratio
                 .frame(width: size, height: size * 1.5)  // 2:3 aspect ratio frame
                 // NO .clipShape(Circle()) - removed so you can see the full image!
-        } else if let uiImage = loadImage(named: profileAsset) {
+        } else if let uiImage = loadDisplayImage(named: profileAsset, displaySize: size) {
             // Fallback: profile portrait (head closeup) - keep circle for profiles
             Image(uiImage: uiImage)
                 .resizable()

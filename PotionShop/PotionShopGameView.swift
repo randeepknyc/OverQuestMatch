@@ -139,6 +139,11 @@ struct PotionShopGameView: View {
                 }
             }
         }
+        // Track when the layout editor is open so customer scene taps can
+        // route to character-select instead of being ignored.
+        .onChange(of: showLayoutOverlay) { _, newValue in
+            PotionShopLayoutConfig.shared.layoutEditorIsOpen = newValue
+        }
         .sheet(isPresented: $showDebugMenu) {
             PotionShopDebugMenu(
                 gs: gs,
@@ -307,7 +312,9 @@ struct PotionShopLayoutOverlay: View {
     // UI State
     @State private var activeSection: LayoutSection? = nil
     @State private var selectedNodeIndex: Int = 0  // For fine-tune section
-    @State private var selectedCharacterId: String = "mildred"  // For customers section
+    // selectedCharacterId moved to PotionShopLayoutConfig (May 25, 2026)
+    // so the customer-scene tap can sync with the editor. Use
+    // `layoutConfig.selectedCharacterId` everywhere it was used before.
     
     enum LayoutSection: String, CaseIterable {
         case sections = "📏 Sections"
@@ -442,7 +449,7 @@ struct PotionShopLayoutOverlay: View {
                     Text("Select Character")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
-                    Picker("Character", selection: $selectedCharacterId) {
+                    Picker("Character", selection: $layoutConfig.selectedCharacterId) {
                         Text("Mildred").tag("mildred")
                         Text("Tomik").tag("tomik")
                         Text("Greta").tag("greta")
@@ -478,18 +485,18 @@ struct PotionShopLayoutOverlay: View {
                             .font(.caption2.bold())
                             .foregroundColor(.yellow)
                         Spacer()
-                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).width))
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).width))
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundColor(.yellow)
                     }
                     Slider(
                         value: Binding<Double>(
-                            get: { layoutConfig.characterScale(for: selectedCharacterId).width },
+                            get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).width },
                             set: { newValue in
-                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 scale.width = newValue
                                 scale.height = newValue  // ← Apply same value to height!
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                             }
                         ),
                         in: 0.5...5.0
@@ -509,41 +516,41 @@ struct PotionShopLayoutOverlay: View {
                 // Per-character sliders (now uses selectedCharacterId)
                 VStack(alignment: .leading, spacing: 10) {
                     let widthBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).width },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).width },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.width = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Width", value: widthBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let heightBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).height },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).height },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.height = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Height", value: heightBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let xBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).x },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).x },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.x = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("X", value: xBinding, range: -200...200, format: "%.0f pt")
                     
                     let yBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).y },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).y },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.y = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Y", value: yBinding, range: -200...200, format: "%.0f pt")
@@ -565,18 +572,18 @@ struct PotionShopLayoutOverlay: View {
                             .font(.caption2.bold())
                             .foregroundColor(.yellow)
                         Spacer()
-                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).waitingWidth))
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingWidth))
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundColor(.yellow)
                     }
                     Slider(
                         value: Binding<Double>(
-                            get: { layoutConfig.characterScale(for: selectedCharacterId).waitingWidth },
+                            get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingWidth },
                             set: { newValue in
-                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 scale.waitingWidth = newValue
                                 scale.waitingHeight = newValue  // ← Apply same value to waiting height!
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                             }
                         ),
                         in: 0.5...5.0
@@ -596,41 +603,41 @@ struct PotionShopLayoutOverlay: View {
                 // Waiting position individual sliders
                 VStack(alignment: .leading, spacing: 10) {
                     let waitingWidthBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingWidth },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingWidth },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waitingWidth = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Width", value: waitingWidthBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waitingHeightBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingHeight },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingHeight },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waitingHeight = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Height", value: waitingHeightBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waitingXBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingX },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingX },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waitingX = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("X", value: waitingXBinding, range: -200...200, format: "%.0f pt")
                     
                     let waitingYBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waitingY },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waitingY },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waitingY = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Y", value: waitingYBinding, range: -200...200, format: "%.0f pt")
@@ -652,18 +659,18 @@ struct PotionShopLayoutOverlay: View {
                             .font(.caption2.bold())
                             .foregroundColor(.yellow)
                         Spacer()
-                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: selectedCharacterId).waiting2Width))
+                        Text(String(format: "%.2f×", layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2Width))
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundColor(.yellow)
                     }
                     Slider(
                         value: Binding<Double>(
-                            get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Width },
+                            get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2Width },
                             set: { newValue in
-                                var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                                var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 scale.waiting2Width = newValue
                                 scale.waiting2Height = newValue  // ← Apply same value to waiting2 height!
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                             }
                         ),
                         in: 0.5...5.0
@@ -683,41 +690,41 @@ struct PotionShopLayoutOverlay: View {
                 // Waiting position 2 individual sliders
                 VStack(alignment: .leading, spacing: 10) {
                     let waiting2WidthBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Width },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2Width },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waiting2Width = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Width", value: waiting2WidthBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waiting2HeightBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Height },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2Height },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waiting2Height = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Height", value: waiting2HeightBinding, range: 0.5...5.0, format: "%.2f×")
                     
                     let waiting2XBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2X },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2X },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waiting2X = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("X", value: waiting2XBinding, range: -200...200, format: "%.0f pt")
                     
                     let waiting2YBinding = Binding<Double>(
-                        get: { layoutConfig.characterScale(for: selectedCharacterId).waiting2Y },
+                        get: { layoutConfig.characterScale(for: layoutConfig.selectedCharacterId).waiting2Y },
                         set: { newValue in
-                            var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                            var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                             scale.waiting2Y = newValue
-                            layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                            layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                         }
                     )
                     sliderRow("Y", value: waiting2YBinding, range: -200...200, format: "%.0f pt")
@@ -731,9 +738,9 @@ struct PotionShopLayoutOverlay: View {
                 HStack(spacing: 12) {
                     // Link W/H button
                     Button("Link W/H") {
-                        var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                        var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                         scale.waiting2Height = scale.waiting2Width
-                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                     }
                     .font(.caption2.bold())
                     .foregroundColor(.black)
@@ -744,10 +751,10 @@ struct PotionShopLayoutOverlay: View {
                     
                     // Reset Position button
                     Button("Reset Position") {
-                        var scale = layoutConfig.characterScale(for: selectedCharacterId)
+                        var scale = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                         scale.waiting2X = 0
                         scale.waiting2Y = 0
-                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: scale)
+                        layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: scale)
                     }
                     .font(.caption2.bold())
                     .foregroundColor(.white)
@@ -758,8 +765,8 @@ struct PotionShopLayoutOverlay: View {
                 }
                 
                 // Reset button (now uses selected character)
-                Button("Reset \(selectedCharacterId.capitalized)") {
-                    layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: PotionShopLayoutConfig.CharacterScale())
+                Button("Reset \(layoutConfig.selectedCharacterId.capitalized)") {
+                    layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: PotionShopLayoutConfig.CharacterScale())
                 }
                 .font(.caption)
                 .foregroundColor(.white)
@@ -1051,7 +1058,7 @@ struct PotionShopLayoutOverlay: View {
                         .font(.system(size: 10))
                         .foregroundColor(.white.opacity(0.7))
 
-                    Picker("Character", selection: $selectedCharacterId) {
+                    Picker("Character", selection: $layoutConfig.selectedCharacterId) {
                         Text("Mildred").tag("mildred")
                         Text("Tomik").tag("tomik")
                         Text("Greta").tag("greta")
@@ -1076,11 +1083,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Size",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeSize(for: selectedCharacterId) },
+                            get: { layoutConfig.hpBadgeSize(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.hpBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1088,11 +1095,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP X",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetX(for: selectedCharacterId) },
+                            get: { layoutConfig.hpBadgeOffsetX(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.hpBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1100,11 +1107,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Y",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetY(for: selectedCharacterId) },
+                            get: { layoutConfig.hpBadgeOffsetY(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.hpBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
@@ -1116,11 +1123,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Size",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeSize(for: selectedCharacterId) },
+                            get: { layoutConfig.attackBadgeSize(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.attackBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1128,11 +1135,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk X",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetX(for: selectedCharacterId) },
+                            get: { layoutConfig.attackBadgeOffsetX(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.attackBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1140,11 +1147,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Y",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetY(for: selectedCharacterId) },
+                            get: { layoutConfig.attackBadgeOffsetY(for: layoutConfig.selectedCharacterId) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.attackBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
@@ -1157,11 +1164,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Size (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeSize(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.hpBadgeSize(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingHpBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1169,11 +1176,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP X (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetX(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.hpBadgeOffsetX(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingHpBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1181,11 +1188,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Y (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetY(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.hpBadgeOffsetY(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingHpBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
@@ -1197,11 +1204,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Size (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeSize(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.attackBadgeSize(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingAttackBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1209,11 +1216,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk X (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetX(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.attackBadgeOffsetX(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingAttackBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1221,11 +1228,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Y (Waiting 1)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetY(for: selectedCharacterId, queueSlot: 1) },
+                            get: { layoutConfig.attackBadgeOffsetY(for: layoutConfig.selectedCharacterId, queueSlot: 1) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waitingAttackBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
@@ -1239,11 +1246,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Size (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeSize(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.hpBadgeSize(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2HpBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1251,11 +1258,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP X (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetX(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.hpBadgeOffsetX(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2HpBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1263,11 +1270,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "HP Y (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.hpBadgeOffsetY(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.hpBadgeOffsetY(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2HpBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
@@ -1279,11 +1286,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Size (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeSize(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.attackBadgeSize(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2AttackBadgeSizeOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: 10...100, format: "%.0f pt"
@@ -1291,11 +1298,11 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk X (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetX(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.attackBadgeOffsetX(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2AttackBadgeOffsetXOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -300...300, format: "%.0f pt"
@@ -1303,18 +1310,18 @@ struct PotionShopLayoutOverlay: View {
                     sliderRow(
                         "Atk Y (Waiting 2)",
                         value: Binding<Double>(
-                            get: { layoutConfig.attackBadgeOffsetY(for: selectedCharacterId, queueSlot: 2) },
+                            get: { layoutConfig.attackBadgeOffsetY(for: layoutConfig.selectedCharacterId, queueSlot: 2) },
                             set: { newValue in
-                                var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                                var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                                 cs.waiting2AttackBadgeOffsetYOverride = newValue
-                                layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                                layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                             }
                         ),
                         range: -150...150, format: "%.0f pt"
                     )
 
-                    Button("Reset \(selectedCharacterId.capitalized) badge overrides") {
-                        var cs = layoutConfig.characterScale(for: selectedCharacterId)
+                    Button("Reset \(layoutConfig.selectedCharacterId.capitalized) badge overrides") {
+                        var cs = layoutConfig.characterScale(for: layoutConfig.selectedCharacterId)
                         cs.hpBadgeSizeOverride = nil
                         cs.hpBadgeOffsetXOverride = nil
                         cs.hpBadgeOffsetYOverride = nil
@@ -1333,7 +1340,7 @@ struct PotionShopLayoutOverlay: View {
                         cs.waiting2AttackBadgeSizeOverride = nil
                         cs.waiting2AttackBadgeOffsetXOverride = nil
                         cs.waiting2AttackBadgeOffsetYOverride = nil
-                        layoutConfig.updateCharacterScale(for: selectedCharacterId, scale: cs)
+                        layoutConfig.updateCharacterScale(for: layoutConfig.selectedCharacterId, scale: cs)
                     }
                     .font(.caption2)
                     .foregroundColor(.yellow)
