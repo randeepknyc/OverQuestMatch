@@ -234,9 +234,12 @@ struct PotionShopCustomerSceneView: View {
             ZStack(alignment: .topLeading) {
                 // LAYER 1: BACKGROUND (always first = bottom layer)
                 backgroundLayer(geo: geo)
-                
-                // LAYER 2: Floor line
-                floorLine
+
+                // LAYER 2: Floor line (Day 1/2 only — Day 3 hides it
+                // so the new template's safe-zone floor is the visual edge).
+                if !gs.isFlexDay {
+                    floorLine
+                }
 
                 // LAYER 3: Ednar
                 PotionShopEdnarView(
