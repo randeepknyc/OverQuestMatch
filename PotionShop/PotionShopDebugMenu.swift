@@ -674,7 +674,42 @@ struct PotionShopDebugMenu: View {
         royal_envoy_waiting2_height: \(cfg.characterScale(for: "royal_envoy").waiting2Height)
         royal_envoy_waiting2_x: \(cfg.characterScale(for: "royal_envoy").waiting2X)
         royal_envoy_waiting2_y: \(cfg.characterScale(for: "royal_envoy").waiting2Y)
-        
+
+        """
+
+        // ─── DAY 3 GUIDE CHARACTERS (May 30, 2026) ─────────────────
+        // Only include guides whose positions/scales have been tuned away
+        // from defaults — keeps the export concise.
+        text += "\n───────────────────────────────────────────────────────────────\n"
+        text += "🧍 DAY 3 GUIDE CHARACTERS (positions + scales)\n"
+        text += "───────────────────────────────────────────────────────────────\n"
+        let guideIds = ["guide_octo","guide_girl","guide_skull","guide_slug","guide_fishguy",
+                        "guide_bull","guide_traveler","guide_demon","guide_frog","guide_pig",
+                        "guide_faun","guide_fox","guide_woman"]
+        for id in guideIds {
+            let cs = cfg.characterScale(for: id)
+            // Skip if every position field is still default (untouched chars
+            // produce dozens of lines of noise otherwise).
+            let allDefault = cs.width == 1.0 && cs.height == 1.0 && cs.x == 0 && cs.y == 0 &&
+                cs.waitingWidth == 1.0 && cs.waitingHeight == 1.0 && cs.waitingX == 0 && cs.waitingY == 0 &&
+                cs.waiting2Width == 1.0 && cs.waiting2Height == 1.0 && cs.waiting2X == 0 && cs.waiting2Y == 0
+            if allDefault { continue }
+            text += "\n\(id)_width: \(cs.width)\n"
+            text += "\(id)_height: \(cs.height)\n"
+            text += "\(id)_x: \(cs.x)\n"
+            text += "\(id)_y: \(cs.y)\n"
+            text += "\(id)_waiting_width: \(cs.waitingWidth)\n"
+            text += "\(id)_waiting_height: \(cs.waitingHeight)\n"
+            text += "\(id)_waiting_x: \(cs.waitingX)\n"
+            text += "\(id)_waiting_y: \(cs.waitingY)\n"
+            text += "\(id)_waiting2_width: \(cs.waiting2Width)\n"
+            text += "\(id)_waiting2_height: \(cs.waiting2Height)\n"
+            text += "\(id)_waiting2_x: \(cs.waiting2X)\n"
+            text += "\(id)_waiting2_y: \(cs.waiting2Y)\n"
+        }
+
+        text += """
+
         ───────────────────────────────────────────────────────────────
         🍲 CAULDRON ART (freeform scaling + positioning)
         ───────────────────────────────────────────────────────────────
@@ -788,7 +823,19 @@ struct PotionShopDebugMenu: View {
         """
 
         // ─── PER-CHARACTER BADGE OVERRIDES ────────────────────────
-        let charsWithOverrides = ["mildred","tomik","greta","sister_halla","wendelina","grimdrek","hexa_mott","pemberton","ardo","bram","crispin","ironhilde","carmilla","royal_envoy"].filter { key in
+        // Includes Day 3 guide_* chars (added May 30, 2026) so per-character
+        // tuning of Day 3 characters can be exported and baked in.
+        let allCharacterIds = [
+            // Day 1/2 legacy
+            "mildred","tomik","greta","sister_halla","wendelina","grimdrek",
+            "hexa_mott","pemberton","ardo","bram","crispin","ironhilde",
+            "carmilla","royal_envoy",
+            // Day 3 guides
+            "guide_octo","guide_girl","guide_skull","guide_slug","guide_fishguy",
+            "guide_bull","guide_traveler","guide_demon","guide_frog","guide_pig",
+            "guide_faun","guide_fox","guide_woman"
+        ]
+        let charsWithOverrides = allCharacterIds.filter { key in
             let cs = cfg.characterScale(for: key)
             return cs.hpBadgeSizeOverride != nil ||
                    cs.hpBadgeOffsetXOverride != nil ||

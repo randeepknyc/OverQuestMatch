@@ -218,7 +218,11 @@ struct PotionShopCustomerSceneView: View {
     var ednarArtHeight: Double = 1.0 // FREEFORM - Height scale
     var ednarArtXOffset: Double = 0  // FREEFORM - X position
     var ednarArtYOffset: Double = 0  // FREEFORM - Y position
-    var layoutConfig: PotionShopLayoutConfig? = nil  // ← NEW: Optional layout config for customer scaling
+    // @Bindable so SwiftUI's Observable tracking propagates layout-editor
+    // changes (auto-layout sliders, per-character X/Y, etc.) into this view
+    // and its children. Without @Bindable the customer view doesn't see
+    // updates and characters appear frozen in Day 3 (May 30, 2026 fix).
+    @Bindable var layoutConfig: PotionShopLayoutConfig = PotionShopLayoutConfig.shared
 
     @Namespace private var queueAnimation
     @State private var activeArrivalCounter: Int = 0
@@ -260,7 +264,7 @@ struct PotionShopCustomerSceneView: View {
                     if let cust = gs.customers.first(where: { $0.id == custId }) {
                         // Get per-character scaling values from layout config
                         let charKey = cust.charKey
-                        let scale = layoutConfig?.characterScale(for: charKey) ?? PotionShopLayoutConfig.CharacterScale()
+                        let scale = layoutConfig.characterScale(for: charKey)
                         
                         PotionShopCustomerInSceneView(
                             gs: gs,
@@ -273,7 +277,7 @@ struct PotionShopCustomerSceneView: View {
                             characterKeys: characterKeys,  // ← NEW: Pass character keys for permutation lookup
                             layoutConfig: layoutConfig,     // ← NEW: Pass layout config
                             // Base scale (makes 1536×1024 images visible)
-                            customerSceneBaseScale: layoutConfig?.customerSceneBaseScale ?? 2.0,
+                            customerSceneBaseScale: layoutConfig.customerSceneBaseScale,
                             // Active position values
                             customerSceneWidth: scale.width,
                             customerSceneHeight: scale.height,
@@ -336,14 +340,23 @@ struct PotionShopCustomerSceneView: View {
             )
             
             // LAYER 2: Background image (above gradient)
-            if let backgroundImage = UIImage(named: "customerbg") {
-                let _ = print("✅ LOADED: customerbg")
+            // Day 3 uses bgtest1 temporarily so you can preview the new
+            // drawn layout in-game (May 30, 2026). Day 1/2 keeps customerbg.
+            // Revert by changing the bgName below back to "customerbg" only.
+            let bgName: String = gs.isFlexDay ? "bgtest1" : "customerbg"
+            if let backgroundImage = UIImage(named: bgName) {
+                let _ = print("✅ LOADED: \(bgName)")
                 Image(uiImage: backgroundImage)
                     .resizable()
-                    .scaledToFit()
-                    .frame(width: geo.size.width, height: geo.size.height)
+                    // .scaledToFill so the image covers the whole scene
+                    // area edge-to-edge. .clipped() trims any overflow if
+                    // the image's aspect ratio doesn't perfectly match.
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height,
+                           alignment: .center)
+                    .clipped()
             } else {
-                let _ = print("❌ customerbg NOT FOUND - Using gradient only")
+                let _ = print("❌ \(bgName) NOT FOUND - Using gradient only")
             }
         }
     }
@@ -475,7 +488,9 @@ struct PotionShopCustomerInSceneView: View {
     
     // NEW: Character keys for permutation lookup
     let characterKeys: [String]
-    let layoutConfig: PotionShopLayoutConfig?
+    // @Bindable so layout-editor changes (sliders) propagate updates here
+    // and the character actually moves (May 30, 2026 fix).
+    @Bindable var layoutConfig: PotionShopLayoutConfig
     
     // Customer scaling parameters (May 12, 2026 - 3-POSITION SYSTEM)
     // Base scale applied to ALL images (makes 1536×1024 images visible)

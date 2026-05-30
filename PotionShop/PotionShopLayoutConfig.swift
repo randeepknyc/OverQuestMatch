@@ -909,6 +909,41 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "guide_faun",     height: .medium,     width: .wide)
         applyGuideCharacter(id: "guide_fox",      height: .tall,       width: .medium)
         applyGuideCharacter(id: "guide_woman",    height: .medium,     width: .medium)
+
+        // Day 3 Evening tuned positions (May 24, 2026)
+        var slug = perCharacterScales["guide_slug"] ?? CharacterScale()
+        slug.waitingY = 24.11346435546875
+        slug.waiting2X = -1.063835620880127
+        slug.waiting2Y = 20.212769508361816
+        perCharacterScales["guide_slug"] = slug
+
+        var fishguy = perCharacterScales["guide_fishguy"] ?? CharacterScale()
+        fishguy.width = 0.9242021180689335
+        fishguy.height = 0.9242021180689335
+        fishguy.x = 3.9006948471069336
+        fishguy.y = 8.156037330627441
+        fishguy.waitingX = 13.829803466796875
+        fishguy.waitingY = 10.283684730529785
+        fishguy.waiting2Width = 1.08737051486969
+        fishguy.waiting2Height = 1.0
+        fishguy.waiting2X = -15.60283899307251
+        fishguy.waiting2Y = -108.51063132286072
+        perCharacterScales["guide_fishguy"] = fishguy
+
+        var bull = perCharacterScales["guide_bull"] ?? CharacterScale()
+        bull.width = 0.992021270096302
+        bull.height = 0.992021270096302
+        bull.x = 7.8014373779296875
+        bull.y = 0.0
+        bull.waitingWidth = 1.2313830107450485
+        bull.waitingHeight = 1.2313830107450485
+        bull.waitingX = 17.02127456665039
+        bull.waitingY = -9.219849109649658
+        bull.waiting2Width = 1.203457459807396
+        bull.waiting2Height = 1.203457459807396
+        bull.waiting2X = 8.156037330627441
+        bull.waiting2Y = -1.063835620880127
+        perCharacterScales["guide_bull"] = bull
     }
 
     /// Configures a Day 3 guide character with template-correct head anchor.
