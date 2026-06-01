@@ -915,10 +915,12 @@ struct PotionShopLayoutOverlay: View {
             }
         case .autoLayout:
             // 🎲 AUTO-LAYOUT (Day 3 RNG test) — Trimmed Jun 1, 2026 to show
-            // only feet-anchor-mode sliders. The old non-feet-anchor sliders
-            // (Queue X Range, Queue Y, Per-Slot Scale, Width Bucket Weights,
-            // Per-Height-Bucket Y Adjust) still exist as properties for any
-            // Day 3 round that doesn't use feet-anchor, just no editor UI.
+            // only feet-anchor-mode sliders. June 1, 2026: when a customer is
+            // tapped (selectedSlotIndex set), show focused per-slot sliders
+            // instead of the full 18-cell grid.
+            if let slotIdx = layoutConfig.selectedSlotIndex {
+                focusedAutoLayoutEditor(slotIdx: slotIdx)
+            } else {
             VStack(alignment: .leading, spacing: 12) {
                 Text("🎲 Day 3 Auto-Layout (feet-anchor mode)")
                     .font(.caption2.bold())
@@ -926,6 +928,9 @@ struct PotionShopLayoutOverlay: View {
                 Text("Active only on rounds with useFeetAnchor=true (Day 3 R2 today). Feet snap to the floor-Y per slot; size comes from the bucket × slot matrix.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.7))
+                Text("Tip: tap a customer in the scene to focus the sliders for that slot.")
+                    .font(.system(size: 10).italic())
+                    .foregroundColor(.cyan.opacity(0.8))
 
                 // Feet-anchor mode (May 30, 2026) — Day 3 Round 2 only.
                 Text("👣 Feet-Anchor (Day 3 R2 only)")
@@ -1030,6 +1035,7 @@ struct PotionShopLayoutOverlay: View {
                     }
                 }
             }
+            }  // end: focused vs full grid
         case .badges:
             // 🎨 BADGE GRAPHICS - HP/Attack badges + bottle graphic
             VStack(alignment: .leading, spacing: 12) {
@@ -1766,6 +1772,152 @@ struct PotionShopLayoutOverlay: View {
         }
     }
     
+    // Focused per-slot editor (June 1, 2026): when a customer is tapped in
+    // the scene, the autoLayout section collapses to just the sliders that
+    // affect their slot + their bucket cell, plus a swap picker for that
+    // slot. Hit "Show all sliders" to return to the full grid view.
+    @ViewBuilder
+    private func focusedAutoLayoutEditor(slotIdx: Int) -> some View {
+        let slotName: String = slotIdx == 0 ? "Active" : (slotIdx == 1 ? "Waiting 1" : "Waiting 2")
+        let selectedKey = layoutConfig.selectedCharacterId
+        let cs = layoutConfig.characterScale(for: selectedKey)
+        let bucket = cs.heightBucket
+        let widthBucket = cs.widthBucket
+        let bucketName = String(describing: bucket)
+        let widthName = String(describing: widthBucket)
+        let charDisplayName = selectedKey
+            .replacingOccurrences(of: "guide_", with: "")
+            .replacingOccurrences(of: "gmarker_", with: "")
+
+        VStack(alignment: .leading, spacing: 12) {
+            // Header card
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("🎯 Focused: \(charDisplayName.uppercased())")
+                        .font(.caption.bold())
+                        .foregroundColor(.cyan)
+                    Spacer()
+                    Button {
+                        layoutConfig.selectedSlotIndex = nil
+                    } label: {
+                        Text("Show all sliders ›")
+                            .font(.caption2)
+                            .foregroundColor(.yellow)
+                    }
+                }
+                Text("Slot: \(slotName)  ·  Height bucket: \(bucketName)  ·  Width bucket: \(widthName)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.85))
+                Text("Tell me to change \(charDisplayName)'s buckets if these are wrong.")
+                    .font(.system(size: 10).italic())
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .padding(8)
+            .background(Color.cyan.opacity(0.15))
+            .cornerRadius(8)
+
+            // Swap picker for this slot
+            HStack {
+                Text("Swap in slot:")
+                    .font(.system(size: 11).bold())
+                    .foregroundColor(.green.opacity(0.8))
+                Picker("", selection: Binding(
+                    get: {
+                        guard slotIdx < gs.queue.count,
+                              let c = gs.customers.first(where: { $0.id == gs.queue[slotIdx] }) else {
+                            return ""
+                        }
+                        return c.charKey
+                    },
+                    set: { newKey in
+                        gs.swapCharacterAt(slotIndex: slotIdx, toCharKey: newKey)
+                        layoutConfig.selectedCharacterId = newKey
+                    }
+                )) {
+                    ForEach(allGuideCharIds, id: \.self) { id in
+                        Text(id
+                            .replacingOccurrences(of: "guide_", with: "")
+                            .replacingOccurrences(of: "gmarker_", with: "g·")
+                        ).tag(id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .accentColor(.cyan)
+            }
+
+            // Position sliders (slot-specific)
+            Text("Position (this slot)")
+                .font(.caption2.bold())
+                .foregroundColor(.green)
+            sliderRow("Floor Y", value: floorYBinding(slotIdx),  range: 0.5...1.0,  format: "%.3f")
+            sliderRow("Slot X", value: slotXBinding(slotIdx),    range: 0.1...0.99, format: "%.3f")
+            sliderRow("Fine-tune X", value: slotFineXBinding(slotIdx), range: -200...200, format: "%.1f")
+            sliderRow("Fine-tune Y", value: slotFineYBinding(slotIdx), range: -200...200, format: "%.1f")
+
+            // Size cell for this (slot, bucket)
+            Text("Size (\(slotName) · \(bucketName))")
+                .font(.caption2.bold())
+                .foregroundColor(.green)
+            sliderRow("Size", value: bucketSizeBinding(slotIdx: slotIdx, bucket: bucket), range: 0.3...2.0, format: "%.3f")
+        }
+    }
+
+    // Bindings for the focused editor — each returns a Binding<Double> that
+    // reads/writes the appropriate layoutConfig property based on slot/bucket.
+    private func floorYBinding(_ slot: Int) -> Binding<Double> {
+        switch slot {
+        case 0:  return $layoutConfig.autoLayoutFeetYActive
+        case 1:  return $layoutConfig.autoLayoutFeetYWaiting1
+        default: return $layoutConfig.autoLayoutFeetYWaiting2
+        }
+    }
+    private func slotXBinding(_ slot: Int) -> Binding<Double> {
+        switch slot {
+        case 0:  return $layoutConfig.autoLayoutSlotXFractionActive
+        case 1:  return $layoutConfig.autoLayoutSlotXFractionWaiting1
+        default: return $layoutConfig.autoLayoutSlotXFractionWaiting2
+        }
+    }
+    private func slotFineXBinding(_ slot: Int) -> Binding<Double> {
+        switch slot {
+        case 0:  return $layoutConfig.autoLayoutActiveX
+        case 1:  return $layoutConfig.autoLayoutWaiting1X
+        default: return $layoutConfig.autoLayoutWaiting2X
+        }
+    }
+    private func slotFineYBinding(_ slot: Int) -> Binding<Double> {
+        switch slot {
+        case 0:  return $layoutConfig.autoLayoutActiveY
+        case 1:  return $layoutConfig.autoLayoutWaiting1Y
+        default: return $layoutConfig.autoLayoutWaiting2Y
+        }
+    }
+    private func bucketSizeBinding(slotIdx: Int, bucket: PotionShopLayoutConfig.CustomerHeightBucket) -> Binding<Double> {
+        switch (slotIdx, bucket) {
+        case (0, .superShort): return $layoutConfig.autoLayoutSizeActiveSuperShort
+        case (0, .short):      return $layoutConfig.autoLayoutSizeActiveShort
+        case (0, .medium):     return $layoutConfig.autoLayoutSizeActiveMedium
+        case (0, .tall):       return $layoutConfig.autoLayoutSizeActiveTall
+        case (0, .tallHat):    return $layoutConfig.autoLayoutSizeActiveTallHat
+        case (0, .floater):    return $layoutConfig.autoLayoutSizeActiveFloater
+        case (1, .superShort): return $layoutConfig.autoLayoutSizeWaiting1SuperShort
+        case (1, .short):      return $layoutConfig.autoLayoutSizeWaiting1Short
+        case (1, .medium):     return $layoutConfig.autoLayoutSizeWaiting1Medium
+        case (1, .tall):       return $layoutConfig.autoLayoutSizeWaiting1Tall
+        case (1, .tallHat):    return $layoutConfig.autoLayoutSizeWaiting1TallHat
+        case (1, .floater):    return $layoutConfig.autoLayoutSizeWaiting1Floater
+        default:
+            switch bucket {
+            case .superShort: return $layoutConfig.autoLayoutSizeWaiting2SuperShort
+            case .short:      return $layoutConfig.autoLayoutSizeWaiting2Short
+            case .medium:     return $layoutConfig.autoLayoutSizeWaiting2Medium
+            case .tall:       return $layoutConfig.autoLayoutSizeWaiting2Tall
+            case .tallHat:    return $layoutConfig.autoLayoutSizeWaiting2TallHat
+            case .floater:    return $layoutConfig.autoLayoutSizeWaiting2Floater
+            }
+        }
+    }
+
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {

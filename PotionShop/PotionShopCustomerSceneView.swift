@@ -796,6 +796,7 @@ struct PotionShopCustomerInSceneView: View {
                 .onTapGesture {
                     if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
                         PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
+                        PotionShopLayoutConfig.shared.selectedSlotIndex = min(queueIndex, 2)
                     }
                 }
 

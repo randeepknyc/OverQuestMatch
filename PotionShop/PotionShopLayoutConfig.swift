@@ -647,6 +647,11 @@ class PotionShopLayoutConfig {
     /// Which character the per-character override sliders are bound to.
     var selectedCharacterId: String = "mildred"
 
+    /// Which queue slot (0=active, 1=waiting1, 2=waiting2) the tapped char
+    /// is currently in. nil = no char selected → editor shows full grid view.
+    /// Set when the user taps a customer in the scene with the editor open.
+    var selectedSlotIndex: Int? = nil
+
     /// True while the Layout Editor overlay is showing. Gates tap-to-select
     /// so normal gameplay isn't affected. Set to false when overlay closes.
     var layoutEditorIsOpen: Bool = false
