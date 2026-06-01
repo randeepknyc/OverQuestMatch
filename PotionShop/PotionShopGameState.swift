@@ -213,6 +213,26 @@ class PotionShopGameState {
         return currentRoundTimeOfDay.rawValue.capitalized
     }
 
+    /// True if the current round opted into feet-anchored auto-layout (Day 3
+    /// Round 2 as of May 30, 2026). Used by PotionShopCustomerInSceneView to
+    /// position characters' feet on per-slot floor lines.
+    var currentRoundUsesFeetAnchor: Bool {
+        if isFlexDay {
+            guard roundIndex >= 0,
+                  roundIndex < flexDayGeneratedRounds.count else { return false }
+            return flexDayGeneratedRounds[roundIndex].useFeetAnchor
+        }
+        guard let day = PotionShopData.day(dayId) else { return false }
+        let round: PotionShopRound
+        switch roundIndex {
+        case 0: round = day.morning
+        case 1: round = day.afternoon
+        case 2: round = day.evening
+        default: round = day.night
+        }
+        return round.useFeetAnchor
+    }
+
     // MARK: - Round / day flow
 
     /// Spawn customers and deal a hand. Called at the start of each round

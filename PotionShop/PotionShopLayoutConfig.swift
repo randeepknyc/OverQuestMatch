@@ -511,6 +511,68 @@ class PotionShopLayoutConfig {
     var autoLayoutYAdjustTallHat: Double = 0.0
     var autoLayoutYAdjustFloater: Double = -0.05  // floaters sit slightly higher
 
+    // MARK: - Feet-Anchor Mode (May 30, 2026 — Day 3 Round 2 only)
+    //
+    // When a round has useFeetAnchor=true, characters are positioned so their
+    // FEET (bottom of image) land on a fixed floor-Y per slot. Per-character
+    // waitingY/waiting2Y offsets are skipped in this mode. Per-bucket scale
+    // multipliers below let you size all chars of a bucket consistently.
+
+    /// Floor Y-fraction for active slot (queue[0]). Bottom of image lands here.
+    var autoLayoutFeetYActive: Double = 0.9387517869472504
+    /// Floor Y-fraction for waiting1 slot (queue[1]).
+    var autoLayoutFeetYWaiting1: Double = 0.8680922091007233
+    /// Floor Y-fraction for waiting2 slot (queue[2]).
+    var autoLayoutFeetYWaiting2: Double = 0.8643156290054321
+
+    /// Per-height-bucket scale multiplier (multiplied with per-slot scale).
+    /// Only applied in feet-anchor mode.
+    var autoLayoutBucketScaleSuperShort: Double = 1.0
+    var autoLayoutBucketScaleShort: Double = 1.0039893984794617
+    var autoLayoutBucketScaleMedium: Double = 1.0718085169792175
+    var autoLayoutBucketScaleTall: Double = 1.0
+    var autoLayoutBucketScaleTallHat: Double = 1.0
+    var autoLayoutBucketScaleFloater: Double = 1.0
+
+    // MARK: - Per-Slot Templates (feet-anchor mode, May 30, 2026)
+    //
+    // Global width/height/x/y defaults for each queue slot in feet-anchor
+    // mode. Any character standing in active/waiting1/waiting2 inherits
+    // these as a base. Per-character width/height MULTIPLY on top; per-
+    // character X/Y ADD on top (as offsets). Lets you set "where everyone
+    // stands" per slot with optional per-character fine-tuning.
+    //
+    // Defaults seeded May 30, 2026 from tuned R2 values for octo/girl/skull.
+
+    var autoLayoutActiveWidth: Double = 1.0
+    var autoLayoutActiveHeight: Double = 1.0
+    var autoLayoutActiveX: Double = 1.418
+    var autoLayoutActiveY: Double = -3.546
+
+    var autoLayoutWaiting1Width: Double = 1.0
+    var autoLayoutWaiting1Height: Double = 1.0
+    var autoLayoutWaiting1X: Double = -5.674
+    var autoLayoutWaiting1Y: Double = 12.411
+
+    var autoLayoutWaiting2Width: Double = 1.0
+    var autoLayoutWaiting2Height: Double = 1.0
+    var autoLayoutWaiting2X: Double = 14.539
+    var autoLayoutWaiting2Y: Double = 29.078
+
+    /// Uniform scale per slot in feet-anchor mode. Multiplies BOTH width and
+    /// height of every character in that slot (shortcut vs tweaking W and H
+    /// separately). 1.0 = no extra scaling.
+    var autoLayoutSlotScaleActive: Double = 0.8583333253860472
+    var autoLayoutSlotScaleWaiting1: Double = 1.1100177347660065
+    var autoLayoutSlotScaleWaiting2: Double = 1.3903369009494781
+
+    /// Fixed X-fraction of scene width for each slot in feet-anchor mode.
+    /// Overrides the widthBucket-driven xFractions math so X is slot-locked
+    /// regardless of which character is in the slot.
+    var autoLayoutSlotXFractionActive: Double = 0.45
+    var autoLayoutSlotXFractionWaiting1: Double = 0.6641932153701782
+    var autoLayoutSlotXFractionWaiting2: Double = 0.8073758578300476
+
     // MARK: - Layout Editor state (May 25, 2026)
     //
     // Shared state for the Layout Editor UI so the customer-scene tap can
@@ -944,6 +1006,7 @@ class PotionShopLayoutConfig {
         bull.waiting2X = 8.156037330627441
         bull.waiting2Y = -1.063835620880127
         perCharacterScales["guide_bull"] = bull
+
     }
 
     /// Configures a Day 3 guide character with template-correct head anchor.

@@ -732,8 +732,11 @@ enum PotionShopData {
             PotionShopRound(timeOfDay: .morning,
                             customerIds: ["guide_woman", "guide_traveler"]),
             // Round 2 (fixed, 3 chars) — variety: short+wide, medium+skinny, tall+skinny
+            // useFeetAnchor: true → characters' feet snap to per-slot floor lines
+            // (autoLayoutFeetYActive/Waiting1/Waiting2) for an A/B floor-anchor test.
             PotionShopRound(timeOfDay: .morning,
-                            customerIds: ["guide_octo", "guide_girl", "guide_skull"])
+                            customerIds: ["guide_octo", "guide_girl", "guide_skull"],
+                            useFeetAnchor: true)
         ],
         // Remaining 8 characters get split across random rounds 3-5
         randomPool: [

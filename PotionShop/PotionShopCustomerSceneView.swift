@@ -71,9 +71,9 @@ struct PotionShopSceneLayout {
     /// Get X positions for queue, checking for custom permutation first.
     /// When `useAutoLayout` is true (Day 3+ flex days), the auto-layout
     /// system computes X positions from each character's widthBucket.
-    static func queueXFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false) -> [CGFloat] {
+    static func queueXFractions(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false, feetAnchor: Bool = false) -> [CGFloat] {
         if useAutoLayout, let config = config {
-            return PotionShopAutoQueueLayout.xFractions(for: characterKeys, config: config)
+            return PotionShopAutoQueueLayout.xFractions(for: characterKeys, config: config, feetAnchor: feetAnchor)
         }
         // Check for custom permutation in config
         if let config = config, count == 3 {
@@ -106,9 +106,9 @@ struct PotionShopSceneLayout {
     }
 
     /// Get scales for queue, checking for custom permutation first.
-    static func queueScales(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false) -> [CGFloat] {
+    static func queueScales(for count: Int, characterKeys: [String], config: PotionShopLayoutConfig?, useAutoLayout: Bool = false, feetAnchor: Bool = false) -> [CGFloat] {
         if useAutoLayout, let config = config {
-            return PotionShopAutoQueueLayout.scales(for: characterKeys, config: config)
+            return PotionShopAutoQueueLayout.scales(for: characterKeys, config: config, feetAnchor: feetAnchor)
         }
         // Check for custom permutation in config
         if let config = config, count == 3 {
@@ -158,13 +158,50 @@ enum PotionShopAutoQueueLayout {
         }
     }
 
+    /// Per-height-bucket scale multiplier (feet-anchor mode only).
+    static func bucketScale(for bucket: PotionShopLayoutConfig.CustomerHeightBucket,
+                            config: PotionShopLayoutConfig) -> CGFloat {
+        switch bucket {
+        case .superShort: return CGFloat(config.autoLayoutBucketScaleSuperShort)
+        case .short:      return CGFloat(config.autoLayoutBucketScaleShort)
+        case .medium:     return CGFloat(config.autoLayoutBucketScaleMedium)
+        case .tall:       return CGFloat(config.autoLayoutBucketScaleTall)
+        case .tallHat:    return CGFloat(config.autoLayoutBucketScaleTallHat)
+        case .floater:    return CGFloat(config.autoLayoutBucketScaleFloater)
+        }
+    }
+
+    /// Floor Y-fraction for the given queue slot (feet-anchor mode).
+    static func feetYFraction(for queueIndex: Int,
+                              config: PotionShopLayoutConfig) -> CGFloat {
+        switch queueIndex {
+        case 0:  return CGFloat(config.autoLayoutFeetYActive)
+        case 1:  return CGFloat(config.autoLayoutFeetYWaiting1)
+        default: return CGFloat(config.autoLayoutFeetYWaiting2)
+        }
+    }
+
     /// X positions (fractions of scene width) for the queue.
+    /// When `feetAnchor` is true, returns fixed per-slot X fractions so the
+    /// X is character-independent (no widthBucket math).
     static func xFractions(for characterKeys: [String],
-                           config: PotionShopLayoutConfig) -> [CGFloat] {
+                           config: PotionShopLayoutConfig,
+                           feetAnchor: Bool = false) -> [CGFloat] {
         let count = characterKeys.count
+        if count == 0 { return [] }
+
+        if feetAnchor {
+            return (0..<count).map { idx in
+                switch idx {
+                case 0:  return CGFloat(config.autoLayoutSlotXFractionActive)
+                case 1:  return CGFloat(config.autoLayoutSlotXFractionWaiting1)
+                default: return CGFloat(config.autoLayoutSlotXFractionWaiting2)
+                }
+            }
+        }
+
         let startX = CGFloat(config.autoLayoutStartX)
         let endX = CGFloat(config.autoLayoutEndX)
-        if count == 0 { return [] }
         if count == 1 { return [startX] }
 
         let weights: [CGFloat] = characterKeys.map { key in
@@ -196,14 +233,22 @@ enum PotionShopAutoQueueLayout {
     }
 
     /// Per-customer scale (active vs waiting1 vs waiting2 + beyond).
+    /// When `feetAnchor` is true, multiplies in the per-height-bucket scale.
     static func scales(for characterKeys: [String],
-                       config: PotionShopLayoutConfig) -> [CGFloat] {
-        characterKeys.enumerated().map { idx, _ in
+                       config: PotionShopLayoutConfig,
+                       feetAnchor: Bool = false) -> [CGFloat] {
+        characterKeys.enumerated().map { idx, key in
+            let slotScale: CGFloat
             switch idx {
-            case 0: return CGFloat(config.autoLayoutScaleActive)
-            case 1: return CGFloat(config.autoLayoutScaleWaiting1)
-            default: return CGFloat(config.autoLayoutScaleWaiting2)
+            case 0:  slotScale = CGFloat(config.autoLayoutScaleActive)
+            case 1:  slotScale = CGFloat(config.autoLayoutScaleWaiting1)
+            default: slotScale = CGFloat(config.autoLayoutScaleWaiting2)
             }
+            if feetAnchor {
+                let bucket = config.characterScale(for: key).heightBucket
+                return slotScale * bucketScale(for: bucket, config: config)
+            }
+            return slotScale
         }
     }
 }
@@ -544,7 +589,7 @@ struct PotionShopCustomerInSceneView: View {
     }
     private var scale: CGFloat {
         // Use permutation-aware scale lookup (auto-layout on Day 3+).
-        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
+        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay, feetAnchor: gs.currentRoundUsesFeetAnchor)
         if queueIndex < scales.count {
             return scales[queueIndex]
         }
@@ -552,7 +597,7 @@ struct PotionShopCustomerInSceneView: View {
     }
     private var xPos: CGFloat {
         // Use permutation-aware X position lookup (auto-layout on Day 3+).
-        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
+        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay, feetAnchor: gs.currentRoundUsesFeetAnchor)
         let frac: CGFloat
         if queueIndex < fractions.count {
             frac = fractions[queueIndex]
@@ -562,6 +607,20 @@ struct PotionShopCustomerInSceneView: View {
         return sceneSize.width * frac
     }
     private var yPos: CGFloat {
+        // Feet-anchor mode (Day 3 Round 2): position the CENTER of the
+        // character so the bottom of the rendered image lands on the per-slot
+        // floor-Y. Per-character waitingY/waiting2Y offsets are skipped (the
+        // floor handles vertical placement).
+        if gs.currentRoundUsesFeetAnchor {
+            let floorFrac = PotionShopAutoQueueLayout.feetYFraction(for: queueIndex, config: layoutConfig)
+            let renderedHeight = PotionShopSceneLayout.portraitDiameter
+                * scale
+                * 1.5
+                * CGFloat(customerSceneBaseScale)
+                * CGFloat(effectiveHeightForSlot)
+            return sceneSize.height * floorFrac - renderedHeight / 2
+        }
+
         // Use permutation-aware Y position lookup (auto-layout on Day 3+).
         let fractions = PotionShopSceneLayout.queueYFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay)
         let frac: CGFloat
@@ -573,12 +632,61 @@ struct PotionShopCustomerInSceneView: View {
         return sceneSize.height * frac
     }
 
+    /// The total height multiplier for the current queue slot. Mirrors the
+    /// effectiveHeight logic in `body` so `yPos` (feet-anchor) and rendering
+    /// agree. In feet-anchor mode this includes the slot template multiplier.
+    private var effectiveHeightForSlot: Double {
+        let perChar: Double
+        if queueIndex == 0 { perChar = customerSceneHeight }
+        else if queueIndex == 1 { perChar = customerWaitingHeight }
+        else { perChar = customerWaiting2Height }
+        let tpl = slotTemplateForCurrentSlot
+        return perChar * tpl.h * tpl.scale
+    }
+
+    /// Per-slot W/H/X/Y/scale template (feet-anchor mode). Outside feet-anchor
+    /// returns identity (W=1, H=1, X=0, Y=0, scale=1) so per-character values
+    /// pass through unchanged.
+    private var slotTemplateForCurrentSlot: (w: Double, h: Double, x: Double, y: Double, scale: Double) {
+        guard gs.currentRoundUsesFeetAnchor else { return (1.0, 1.0, 0.0, 0.0, 1.0) }
+        if queueIndex == 0 {
+            return (layoutConfig.autoLayoutActiveWidth,
+                    layoutConfig.autoLayoutActiveHeight,
+                    layoutConfig.autoLayoutActiveX,
+                    layoutConfig.autoLayoutActiveY,
+                    layoutConfig.autoLayoutSlotScaleActive)
+        } else if queueIndex == 1 {
+            return (layoutConfig.autoLayoutWaiting1Width,
+                    layoutConfig.autoLayoutWaiting1Height,
+                    layoutConfig.autoLayoutWaiting1X,
+                    layoutConfig.autoLayoutWaiting1Y,
+                    layoutConfig.autoLayoutSlotScaleWaiting1)
+        } else {
+            return (layoutConfig.autoLayoutWaiting2Width,
+                    layoutConfig.autoLayoutWaiting2Height,
+                    layoutConfig.autoLayoutWaiting2X,
+                    layoutConfig.autoLayoutWaiting2Y,
+                    layoutConfig.autoLayoutSlotScaleWaiting2)
+        }
+    }
+
     var body: some View {
         // Determine which scale to use based on position in queue (3-way choice)
-        let effectiveWidth: Double = isActive ? customerSceneWidth : (queueIndex == 1 ? customerWaitingWidth : customerWaiting2Width)
-        let effectiveHeight: Double = isActive ? customerSceneHeight : (queueIndex == 1 ? customerWaitingHeight : customerWaiting2Height)
-        let effectiveX: Double = isActive ? customerSceneX : (queueIndex == 1 ? customerWaitingX : customerWaiting2X)
-        let effectiveY: Double = isActive ? customerSceneY : (queueIndex == 1 ? customerWaitingY : customerWaiting2Y)
+        let perCharWidth: Double = isActive ? customerSceneWidth : (queueIndex == 1 ? customerWaitingWidth : customerWaiting2Width)
+        let perCharHeight: Double = isActive ? customerSceneHeight : (queueIndex == 1 ? customerWaitingHeight : customerWaiting2Height)
+        let perCharX: Double = isActive ? customerSceneX : (queueIndex == 1 ? customerWaitingX : customerWaiting2X)
+        let perCharY: Double = isActive ? customerSceneY : (queueIndex == 1 ? customerWaitingY : customerWaiting2Y)
+
+        // Feet-anchor mode (Day 3 R2): slot template fully owns X/Y so every
+        // character that steps into a slot stands at the same spot. Width &
+        // height still compose (slot × per-character) so individual chars
+        // can be slightly wider/taller. Outside feet-anchor the slot template
+        // is identity (1.0 / 0) so per-character values pass through.
+        let slotTemplate = slotTemplateForCurrentSlot
+        let effectiveWidth: Double = perCharWidth * slotTemplate.w * slotTemplate.scale
+        let effectiveHeight: Double = perCharHeight * slotTemplate.h * slotTemplate.scale
+        let effectiveX: Double = gs.currentRoundUsesFeetAnchor ? slotTemplate.x : perCharX
+        let effectiveY: Double = gs.currentRoundUsesFeetAnchor ? slotTemplate.y : perCharY
 
         // Fix A (May 24, 2026): badge head-anchor uses unified waiting1 dimensions when the
         // character is in ANY waiting slot, so a "Share"-mode waiting badge override produces

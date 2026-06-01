@@ -254,6 +254,10 @@ struct PotionShopCharacter: Identifiable {
 struct PotionShopRound {
     let timeOfDay: PotionShopTimeOfDay
     let customerIds: [String]   // in order they appear in queue (queue[0] = first up)
+    /// When true, the auto-layout positions characters so their FEET (bottom
+    /// of image) land on the per-slot floor-Y from PotionShopLayoutConfig.
+    /// Defaults false — only Day 3 Round 2 currently opts in.
+    var useFeetAnchor: Bool = false
 }
 
 struct PotionShopDay {

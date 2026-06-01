@@ -820,6 +820,43 @@ struct PotionShopDebugMenu: View {
         autoLayoutYAdjustTallHat: \(cfg.autoLayoutYAdjustTallHat)
         autoLayoutYAdjustFloater: \(cfg.autoLayoutYAdjustFloater)
 
+        ───────────────────────────────────────────────────────────────
+        👣 FEET-ANCHOR MODE (May 30, 2026 — Day 3 R2 only)
+        ───────────────────────────────────────────────────────────────
+        autoLayoutFeetYActive: \(cfg.autoLayoutFeetYActive)
+        autoLayoutFeetYWaiting1: \(cfg.autoLayoutFeetYWaiting1)
+        autoLayoutFeetYWaiting2: \(cfg.autoLayoutFeetYWaiting2)
+        autoLayoutBucketScaleSuperShort: \(cfg.autoLayoutBucketScaleSuperShort)
+        autoLayoutBucketScaleShort: \(cfg.autoLayoutBucketScaleShort)
+        autoLayoutBucketScaleMedium: \(cfg.autoLayoutBucketScaleMedium)
+        autoLayoutBucketScaleTall: \(cfg.autoLayoutBucketScaleTall)
+        autoLayoutBucketScaleTallHat: \(cfg.autoLayoutBucketScaleTallHat)
+        autoLayoutBucketScaleFloater: \(cfg.autoLayoutBucketScaleFloater)
+
+        Slot X Fractions (feet-anchor X-locked per slot):
+        autoLayoutSlotXFractionActive: \(cfg.autoLayoutSlotXFractionActive)
+        autoLayoutSlotXFractionWaiting1: \(cfg.autoLayoutSlotXFractionWaiting1)
+        autoLayoutSlotXFractionWaiting2: \(cfg.autoLayoutSlotXFractionWaiting2)
+
+        Slot Uniform Scale (single multiplier on W & H per slot):
+        autoLayoutSlotScaleActive: \(cfg.autoLayoutSlotScaleActive)
+        autoLayoutSlotScaleWaiting1: \(cfg.autoLayoutSlotScaleWaiting1)
+        autoLayoutSlotScaleWaiting2: \(cfg.autoLayoutSlotScaleWaiting2)
+
+        Slot Templates (feet-anchor base values per queue slot):
+        autoLayoutActiveWidth: \(cfg.autoLayoutActiveWidth)
+        autoLayoutActiveHeight: \(cfg.autoLayoutActiveHeight)
+        autoLayoutActiveX: \(cfg.autoLayoutActiveX)
+        autoLayoutActiveY: \(cfg.autoLayoutActiveY)
+        autoLayoutWaiting1Width: \(cfg.autoLayoutWaiting1Width)
+        autoLayoutWaiting1Height: \(cfg.autoLayoutWaiting1Height)
+        autoLayoutWaiting1X: \(cfg.autoLayoutWaiting1X)
+        autoLayoutWaiting1Y: \(cfg.autoLayoutWaiting1Y)
+        autoLayoutWaiting2Width: \(cfg.autoLayoutWaiting2Width)
+        autoLayoutWaiting2Height: \(cfg.autoLayoutWaiting2Height)
+        autoLayoutWaiting2X: \(cfg.autoLayoutWaiting2X)
+        autoLayoutWaiting2Y: \(cfg.autoLayoutWaiting2Y)
+
         """
 
         // ─── PER-CHARACTER BADGE OVERRIDES ────────────────────────
