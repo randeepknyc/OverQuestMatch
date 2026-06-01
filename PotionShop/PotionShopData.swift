@@ -628,6 +628,166 @@ enum PotionShopData {
             defeatDialogue: "Lovely, dearie. Just lovely.",
             trait: nil
         ),
+
+        // ─── gmarker_* characters (June 1, 2026) ──────────────────────
+        // Same lineup as guide_*, but pointing at the gmarker_ assets
+        // (left-foot-tip aligned to template anchor). Used by Day 3 R2a.
+        "gmarker_octo": PotionShopCharacter(
+            id: "gmarker_octo", name: "Octo", title: "Tentacled Customer",
+            portrait: "gmarker_octo", scenePortrait: "gmarker_octo",
+            iconFallback: "🐙",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Potion, Please", orderDialogue: "Bloop. Need a brew.",
+            hp: 12, patience: 6, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "Tentacles wriggle impatiently.",
+            expireDialogue: "Bloop! Leaving now.",
+            defeatDialogue: "Bloop! Splendid.",
+            trait: nil
+        ),
+        "gmarker_girl": PotionShopCharacter(
+            id: "gmarker_girl", name: "Petal", title: "Cheerful Apprentice",
+            portrait: "gmarker_girl", scenePortrait: "gmarker_girl",
+            iconFallback: "🌸",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Bright Brew", orderDialogue: "Hi! Just a quick potion?",
+            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "She fidgets with her hair-flowers.",
+            expireDialogue: "Maybe next time then!",
+            defeatDialogue: "Yay! Thank you!",
+            trait: nil
+        ),
+        "gmarker_skull": PotionShopCharacter(
+            id: "gmarker_skull", name: "Bones", title: "Restless Skeleton",
+            portrait: "gmarker_skull", scenePortrait: "gmarker_skull",
+            iconFallback: "💀",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Spectral Tonic", orderDialogue: "...need... brew...",
+            hp: 20, patience: 10, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 6,
+            tickDialogue: "Blue flames flicker around the skull.",
+            expireDialogue: "...too slow... drifting away...",
+            defeatDialogue: "...thank you, brewer...",
+            trait: nil
+        ),
+        "gmarker_slug": PotionShopCharacter(
+            id: "gmarker_slug", name: "Slimey", title: "Slug-Folk Patron",
+            portrait: "gmarker_slug", scenePortrait: "gmarker_slug",
+            iconFallback: "🐌",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "Something Slow", orderDialogue: "Take... your time...",
+            hp: 12, patience: 6, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "Slimey leaves a faint trail.",
+            expireDialogue: "Oh well... slither off...",
+            defeatDialogue: "Delicious...",
+            trait: nil
+        ),
+        "gmarker_fishguy": PotionShopCharacter(
+            id: "gmarker_fishguy", name: "Finn", title: "Witch-Hat Fisher",
+            portrait: "gmarker_fishguy", scenePortrait: "gmarker_fishguy",
+            iconFallback: "🎣",
+            difficulty: 4, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Briny Brew", orderDialogue: "Hurry it up, surface-walker.",
+            hp: 22, patience: 11, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 7,
+            tickDialogue: "Finn glares from under his pointy hat.",
+            expireDialogue: "Bah! Cursed slow brewer.",
+            defeatDialogue: "Adequate. Goodbye.",
+            trait: nil
+        ),
+        "gmarker_bull": PotionShopCharacter(
+            id: "gmarker_bull", name: "Hammer", title: "Minotaur Smith",
+            portrait: "gmarker_bull", scenePortrait: "gmarker_bull",
+            iconFallback: "🐂",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Smithy's Draught", orderDialogue: "Mhmph. Potion. Strong.",
+            hp: 20, patience: 10, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 6,
+            tickDialogue: "He hefts his hammer thoughtfully.",
+            expireDialogue: "*snorts and stomps out*",
+            defeatDialogue: "Good. Stronger now.",
+            trait: nil
+        ),
+        "gmarker_frog": PotionShopCharacter(
+            id: "gmarker_frog", name: "Ribbit", title: "Frog Gentleman",
+            portrait: "gmarker_frog", scenePortrait: "gmarker_frog",
+            iconFallback: "🐸",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Damp Tonic", orderDialogue: "Ribbit! Potion, good sir!",
+            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Ribbit's throat-sac inflates impatiently.",
+            expireDialogue: "Ribbit! Bah! *hops out*",
+            defeatDialogue: "Ribbit! Splendid!",
+            trait: nil
+        ),
+        "gmarker_fox": PotionShopCharacter(
+            id: "gmarker_fox", name: "Vix", title: "Vulpine Ranger",
+            portrait: "gmarker_fox", scenePortrait: "gmarker_fox",
+            iconFallback: "🦊",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Hunter's Brew", orderDialogue: "Make it sharp, brewer.",
+            hp: 20, patience: 10, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 6,
+            tickDialogue: "Vix's tail flicks.",
+            expireDialogue: "Bah. I hunt elsewhere.",
+            defeatDialogue: "Sharp work. My thanks.",
+            trait: nil
+        ),
+        "gmarker_traveler": PotionShopCharacter(
+            id: "gmarker_traveler", name: "Wanderer", title: "Road-Worn Traveler",
+            portrait: "gmarker_traveler", scenePortrait: "gmarker_traveler",
+            iconFallback: "🎒",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Traveler's Tea", orderDialogue: "Long road ahead. A pick-me-up?",
+            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Adjusts the pack on their shoulder.",
+            expireDialogue: "Time presses on. Farewell.",
+            defeatDialogue: "Many thanks. Safe travels to you, too.",
+            trait: nil
+        ),
+        "gmarker_demon": PotionShopCharacter(
+            id: "gmarker_demon", name: "Wisp", title: "Floating Imp",
+            portrait: "gmarker_demon", scenePortrait: "gmarker_demon",
+            iconFallback: "👹",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Wicked Brew", orderDialogue: "Hsss... give me potion...",
+            hp: 14, patience: 7, activeAttack: 2, waitingAttack: 2,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Wisp hovers, glowing with malice.",
+            expireDialogue: "Hssss! Cursed! *vanishes*",
+            defeatDialogue: "...acceptable, mortal.",
+            trait: nil
+        ),
+        "gmarker_goatguy": PotionShopCharacter(
+            id: "gmarker_goatguy", name: "Goatfellow", title: "Faun Pilgrim",
+            portrait: "gmarker_goatguy", scenePortrait: "gmarker_goatguy",
+            iconFallback: "🐐",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Forest Draught", orderDialogue: "Goatfellow seeks a brew.",
+            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Goatfellow leans on his staff.",
+            expireDialogue: "The wood calls. Farewell.",
+            defeatDialogue: "Blessings of the green.",
+            trait: nil
+        ),
+        "gmarker_oldlady": PotionShopCharacter(
+            id: "gmarker_oldlady", name: "Gran", title: "Headscarfed Elder",
+            portrait: "gmarker_oldlady", scenePortrait: "gmarker_oldlady",
+            iconFallback: "👵",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Mild Brew", orderDialogue: "Now then, dearie, a potion if you would.",
+            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Gran sighs and adjusts her handbag.",
+            expireDialogue: "Hmph! I'll write to the council.",
+            defeatDialogue: "Lovely, dearie. Just lovely.",
+            trait: nil
+        ),
     ]
 
     // MARK: ─── CURATED DAYS ─────────────────────────────────────────
@@ -736,6 +896,13 @@ enum PotionShopData {
             // (autoLayoutFeetYActive/Waiting1/Waiting2) for an A/B floor-anchor test.
             PotionShopRound(timeOfDay: .morning,
                             customerIds: ["guide_octo", "guide_girl", "guide_skull"],
+                            useFeetAnchor: true),
+            // Round 2a (added June 1, 2026) — same lineup as R2 but using
+            // gmarker_* assets (left-foot-tip aligned to template anchor).
+            // 1:1 layout-editor values via feet-anchor mode, identical bucket
+            // assignments. Lets you A/B the original vs the aligned PNGs.
+            PotionShopRound(timeOfDay: .morning,
+                            customerIds: ["gmarker_octo", "gmarker_girl", "gmarker_skull"],
                             useFeetAnchor: true)
         ],
         // Remaining 8 characters get split across random rounds 3-5

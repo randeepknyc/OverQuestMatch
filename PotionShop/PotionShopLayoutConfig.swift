@@ -35,10 +35,10 @@ class PotionShopLayoutConfig {
     // All images drawn at same canvas size (1536×1024) and displayed uniformly
     // Scale multipliers at 1.0 = no distortion, images appear at natural proportions
     var ednarBaseScale: Double = 0.15  // Base scale to make 1536×1024 images visible
-    var ednarWidth: Double = 1.0
-    var ednarHeight: Double = 1.0
-    var ednarX: Double = 0.0
-    var ednarY: Double = 0.0
+    var ednarWidth: Double = 1.0598404221236706
+    var ednarHeight: Double = 1.0638297721743584
+    var ednarX: Double = 37.943267822265625
+    var ednarY: Double = -17.02127456665039
     
     // Customer Scene Portraits (full-body standing characters)
     // BASE SCALE: Multiplier applied to ALL scene images before per-character scaling
@@ -519,11 +519,11 @@ class PotionShopLayoutConfig {
     // multipliers below let you size all chars of a bucket consistently.
 
     /// Floor Y-fraction for active slot (queue[0]). Bottom of image lands here.
-    var autoLayoutFeetYActive: Double = 0.9387517869472504
+    var autoLayoutFeetYActive: Double = 0.8656134903430939
     /// Floor Y-fraction for waiting1 slot (queue[1]).
-    var autoLayoutFeetYWaiting1: Double = 0.8680922091007233
+    var autoLayoutFeetYWaiting1: Double = 0.7696879506111145
     /// Floor Y-fraction for waiting2 slot (queue[2]).
-    var autoLayoutFeetYWaiting2: Double = 0.8643156290054321
+    var autoLayoutFeetYWaiting2: Double = 0.8780567944049835
 
     /// Per-height-bucket scale multiplier (multiplied with per-slot scale).
     /// Only applied in feet-anchor mode.
@@ -546,32 +546,96 @@ class PotionShopLayoutConfig {
 
     var autoLayoutActiveWidth: Double = 1.0
     var autoLayoutActiveHeight: Double = 1.0
-    var autoLayoutActiveX: Double = 1.418
-    var autoLayoutActiveY: Double = -3.546
+    var autoLayoutActiveX: Double = 3.191041946411133
+    var autoLayoutActiveY: Double = 21.27668857574463
 
     var autoLayoutWaiting1Width: Double = 1.0
     var autoLayoutWaiting1Height: Double = 1.0
-    var autoLayoutWaiting1X: Double = -5.674
-    var autoLayoutWaiting1Y: Double = 12.411
+    var autoLayoutWaiting1X: Double = -11.440432071685791
+    var autoLayoutWaiting1Y: Double = 33.687591552734375
 
     var autoLayoutWaiting2Width: Double = 1.0
     var autoLayoutWaiting2Height: Double = 1.0
-    var autoLayoutWaiting2X: Double = 14.539
-    var autoLayoutWaiting2Y: Double = 29.078
+    var autoLayoutWaiting2X: Double = 2.482271194458008
+    var autoLayoutWaiting2Y: Double = 2.4822235107421875
 
     /// Uniform scale per slot in feet-anchor mode. Multiplies BOTH width and
     /// height of every character in that slot (shortcut vs tweaking W and H
     /// separately). 1.0 = no extra scaling.
-    var autoLayoutSlotScaleActive: Double = 0.8583333253860472
-    var autoLayoutSlotScaleWaiting1: Double = 1.1100177347660065
-    var autoLayoutSlotScaleWaiting2: Double = 1.3903369009494781
+    /// DEPRECATED (May 31, 2026): feet-anchor mode now uses the bucket-per-slot
+    /// matrix below. Kept for non-feet-anchor compatibility but not applied.
+    var autoLayoutSlotScaleActive: Double = 1.0
+    var autoLayoutSlotScaleWaiting1: Double = 1.0
+    var autoLayoutSlotScaleWaiting2: Double = 1.0
+
+    // MARK: - Bucket-per-Slot Size Matrix (May 31, 2026 — feet-anchor mode)
+    //
+    // 6 height buckets × 3 slots = 18 size values. Each cell is the final
+    // scale applied to characters of that bucket in that slot. Replaces the
+    // tangled stack of per-slot scale, slot uniform, slot W/H, and bucket
+    // scale layers. Perspective in stylized 2D isn't pure math — each cell
+    // can be tuned independently for what the eye reads as "right."
+    //
+    // Defaults seed depth perspective: active 1.0, waiting1 0.85, waiting2 0.75.
+
+    // Active slot
+    var autoLayoutSizeActiveSuperShort: Double = 1.0
+    var autoLayoutSizeActiveShort: Double = 0.9065602868795395
+    var autoLayoutSizeActiveMedium: Double = 1.0
+    var autoLayoutSizeActiveTall: Double = 1.0
+    var autoLayoutSizeActiveTallHat: Double = 1.0
+    var autoLayoutSizeActiveFloater: Double = 1.0
+
+    // Waiting 1 slot
+    var autoLayoutSizeWaiting1SuperShort: Double = 0.85
+    var autoLayoutSizeWaiting1Short: Double = 0.85
+    var autoLayoutSizeWaiting1Medium: Double = 0.9389184892177582
+    var autoLayoutSizeWaiting1Tall: Double = 0.9253546357154845
+    var autoLayoutSizeWaiting1TallHat: Double = 0.85
+    var autoLayoutSizeWaiting1Floater: Double = 0.85
+
+    // Waiting 2 slot
+    var autoLayoutSizeWaiting2SuperShort: Double = 0.75
+    var autoLayoutSizeWaiting2Short: Double = 0.771099328994751
+    var autoLayoutSizeWaiting2Medium: Double = 0.8916667073965072
+    var autoLayoutSizeWaiting2Tall: Double = 0.8630319505929946
+    var autoLayoutSizeWaiting2TallHat: Double = 0.75
+    var autoLayoutSizeWaiting2Floater: Double = 0.75
+
+    /// Look up the matrix cell for the given (slotIndex, heightBucket) pair.
+    /// slotIndex: 0=active, 1=waiting1, 2=waiting2.
+    func bucketSize(slotIndex: Int, bucket: CustomerHeightBucket) -> Double {
+        switch (slotIndex, bucket) {
+        case (0, .superShort): return autoLayoutSizeActiveSuperShort
+        case (0, .short):      return autoLayoutSizeActiveShort
+        case (0, .medium):     return autoLayoutSizeActiveMedium
+        case (0, .tall):       return autoLayoutSizeActiveTall
+        case (0, .tallHat):    return autoLayoutSizeActiveTallHat
+        case (0, .floater):    return autoLayoutSizeActiveFloater
+        case (1, .superShort): return autoLayoutSizeWaiting1SuperShort
+        case (1, .short):      return autoLayoutSizeWaiting1Short
+        case (1, .medium):     return autoLayoutSizeWaiting1Medium
+        case (1, .tall):       return autoLayoutSizeWaiting1Tall
+        case (1, .tallHat):    return autoLayoutSizeWaiting1TallHat
+        case (1, .floater):    return autoLayoutSizeWaiting1Floater
+        default:
+            switch bucket {
+            case .superShort: return autoLayoutSizeWaiting2SuperShort
+            case .short:      return autoLayoutSizeWaiting2Short
+            case .medium:     return autoLayoutSizeWaiting2Medium
+            case .tall:       return autoLayoutSizeWaiting2Tall
+            case .tallHat:    return autoLayoutSizeWaiting2TallHat
+            case .floater:    return autoLayoutSizeWaiting2Floater
+            }
+        }
+    }
 
     /// Fixed X-fraction of scene width for each slot in feet-anchor mode.
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
     var autoLayoutSlotXFractionActive: Double = 0.45
-    var autoLayoutSlotXFractionWaiting1: Double = 0.6641932153701782
-    var autoLayoutSlotXFractionWaiting2: Double = 0.8073758578300476
+    var autoLayoutSlotXFractionWaiting1: Double = 0.6925974673032761
+    var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
     // MARK: - Layout Editor state (May 25, 2026)
     //
@@ -961,6 +1025,21 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "guide_octo",     height: .short,      width: .wide)
         applyGuideCharacter(id: "guide_girl",     height: .medium,     width: .skinny)
         applyGuideCharacter(id: "guide_skull",    height: .tall,       width: .skinny)
+        // gmarker_* — same buckets as guide_*, used by Day 3 R3 + test-swap
+        // (June 1, 2026). fishguy = .tallHat (template label SUPERTALL).
+        // slug = .superShort (per user spec).
+        applyGuideCharacter(id: "gmarker_octo",     height: .short,      width: .wide)
+        applyGuideCharacter(id: "gmarker_girl",     height: .medium,     width: .skinny)
+        applyGuideCharacter(id: "gmarker_skull",    height: .tall,       width: .skinny)
+        applyGuideCharacter(id: "gmarker_slug",     height: .superShort, width: .medium)
+        applyGuideCharacter(id: "gmarker_fishguy",  height: .tallHat,    width: .medium)
+        applyGuideCharacter(id: "gmarker_bull",     height: .tall,       width: .wide)
+        applyGuideCharacter(id: "gmarker_frog",     height: .medium,     width: .wide)
+        applyGuideCharacter(id: "gmarker_fox",      height: .tall,       width: .medium)
+        applyGuideCharacter(id: "gmarker_traveler", height: .medium,     width: .medium)
+        applyGuideCharacter(id: "gmarker_demon",    height: .floater,    width: .medium)
+        applyGuideCharacter(id: "gmarker_goatguy",  height: .medium,     width: .wide)
+        applyGuideCharacter(id: "gmarker_oldlady",  height: .medium,     width: .medium)
         applyGuideCharacter(id: "guide_slug",     height: .short,      width: .medium)
         applyGuideCharacter(id: "guide_fishguy",  height: .tallHat,    width: .medium)
         applyGuideCharacter(id: "guide_bull",     height: .tall,       width: .wide)

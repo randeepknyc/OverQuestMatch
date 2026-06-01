@@ -73,6 +73,56 @@ struct PotionShopDebugMenu: View {
                     }
                 }
 
+                // ─── Layout Editor (moved here June 1, 2026 for quicker access) ─
+                Section("Layout Tools") {
+                    Button {
+                        isPresented = false  // Close debug menu
+                        showLayoutOverlay = true  // Show overlay
+                    } label: {
+                        HStack {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundColor(.cyan)
+                            Text("Layout Editor (Live Overlay)")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Button {
+                        copyLayoutValuesToClipboard()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard")
+                                .foregroundColor(.cyan)
+                            Text("📋 Copy Layout Values")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "checkmark.circle")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .opacity(0.7)
+                        }
+                    }
+
+                    Button(role: .destructive) {
+                        PotionShopLayoutConfig.shared.restoreLockedDefaults()
+                    } label: {
+                        HStack {
+                            Image(systemName: "lock.rotation")
+                                .foregroundColor(.orange)
+                            Text("🔒 Restore Locked Defaults")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("May 13")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // ─── State summary ─────────────────────────────────
                 Section("Current State") {
                     debugRow("Day", gs.dayId)
@@ -134,56 +184,6 @@ struct PotionShopDebugMenu: View {
                 }
                 .onAppear {
                     ramUsedMB = currentMemoryUsageMB()
-                }
-                
-                // ─── Layout Editor ────────────────────────────────
-                Section("Layout Tools") {
-                    Button {
-                        isPresented = false  // Close debug menu
-                        showLayoutOverlay = true  // Show overlay
-                    } label: {
-                        HStack {
-                            Image(systemName: "slider.horizontal.3")
-                                .foregroundColor(.cyan)
-                            Text("Layout Editor (Live Overlay)")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    Button {
-                        copyLayoutValuesToClipboard()
-                    } label: {
-                        HStack {
-                            Image(systemName: "doc.on.clipboard")
-                                .foregroundColor(.cyan)
-                            Text("📋 Copy Layout Values")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "checkmark.circle")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                                .opacity(0.7)
-                        }
-                    }
-                    
-                    Button(role: .destructive) {
-                        PotionShopLayoutConfig.shared.restoreLockedDefaults()
-                    } label: {
-                        HStack {
-                            Image(systemName: "lock.rotation")
-                                .foregroundColor(.orange)
-                            Text("🔒 Restore Locked Defaults")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text("May 13")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
                 }
                 
                 // ─── Queue Permutations (NEW - Prevent Overlaps) ──
@@ -826,36 +826,38 @@ struct PotionShopDebugMenu: View {
         autoLayoutFeetYActive: \(cfg.autoLayoutFeetYActive)
         autoLayoutFeetYWaiting1: \(cfg.autoLayoutFeetYWaiting1)
         autoLayoutFeetYWaiting2: \(cfg.autoLayoutFeetYWaiting2)
-        autoLayoutBucketScaleSuperShort: \(cfg.autoLayoutBucketScaleSuperShort)
-        autoLayoutBucketScaleShort: \(cfg.autoLayoutBucketScaleShort)
-        autoLayoutBucketScaleMedium: \(cfg.autoLayoutBucketScaleMedium)
-        autoLayoutBucketScaleTall: \(cfg.autoLayoutBucketScaleTall)
-        autoLayoutBucketScaleTallHat: \(cfg.autoLayoutBucketScaleTallHat)
-        autoLayoutBucketScaleFloater: \(cfg.autoLayoutBucketScaleFloater)
-
         Slot X Fractions (feet-anchor X-locked per slot):
         autoLayoutSlotXFractionActive: \(cfg.autoLayoutSlotXFractionActive)
         autoLayoutSlotXFractionWaiting1: \(cfg.autoLayoutSlotXFractionWaiting1)
         autoLayoutSlotXFractionWaiting2: \(cfg.autoLayoutSlotXFractionWaiting2)
 
-        Slot Uniform Scale (single multiplier on W & H per slot):
-        autoLayoutSlotScaleActive: \(cfg.autoLayoutSlotScaleActive)
-        autoLayoutSlotScaleWaiting1: \(cfg.autoLayoutSlotScaleWaiting1)
-        autoLayoutSlotScaleWaiting2: \(cfg.autoLayoutSlotScaleWaiting2)
-
-        Slot Templates (feet-anchor base values per queue slot):
-        autoLayoutActiveWidth: \(cfg.autoLayoutActiveWidth)
-        autoLayoutActiveHeight: \(cfg.autoLayoutActiveHeight)
+        Slot Fine-Tune X/Y (offset on top of slot X / floor Y):
         autoLayoutActiveX: \(cfg.autoLayoutActiveX)
         autoLayoutActiveY: \(cfg.autoLayoutActiveY)
-        autoLayoutWaiting1Width: \(cfg.autoLayoutWaiting1Width)
-        autoLayoutWaiting1Height: \(cfg.autoLayoutWaiting1Height)
         autoLayoutWaiting1X: \(cfg.autoLayoutWaiting1X)
         autoLayoutWaiting1Y: \(cfg.autoLayoutWaiting1Y)
-        autoLayoutWaiting2Width: \(cfg.autoLayoutWaiting2Width)
-        autoLayoutWaiting2Height: \(cfg.autoLayoutWaiting2Height)
         autoLayoutWaiting2X: \(cfg.autoLayoutWaiting2X)
         autoLayoutWaiting2Y: \(cfg.autoLayoutWaiting2Y)
+
+        Bucket × Slot Size Matrix (18 values — replaces old scale stack):
+        autoLayoutSizeActiveSuperShort: \(cfg.autoLayoutSizeActiveSuperShort)
+        autoLayoutSizeActiveShort: \(cfg.autoLayoutSizeActiveShort)
+        autoLayoutSizeActiveMedium: \(cfg.autoLayoutSizeActiveMedium)
+        autoLayoutSizeActiveTall: \(cfg.autoLayoutSizeActiveTall)
+        autoLayoutSizeActiveTallHat: \(cfg.autoLayoutSizeActiveTallHat)
+        autoLayoutSizeActiveFloater: \(cfg.autoLayoutSizeActiveFloater)
+        autoLayoutSizeWaiting1SuperShort: \(cfg.autoLayoutSizeWaiting1SuperShort)
+        autoLayoutSizeWaiting1Short: \(cfg.autoLayoutSizeWaiting1Short)
+        autoLayoutSizeWaiting1Medium: \(cfg.autoLayoutSizeWaiting1Medium)
+        autoLayoutSizeWaiting1Tall: \(cfg.autoLayoutSizeWaiting1Tall)
+        autoLayoutSizeWaiting1TallHat: \(cfg.autoLayoutSizeWaiting1TallHat)
+        autoLayoutSizeWaiting1Floater: \(cfg.autoLayoutSizeWaiting1Floater)
+        autoLayoutSizeWaiting2SuperShort: \(cfg.autoLayoutSizeWaiting2SuperShort)
+        autoLayoutSizeWaiting2Short: \(cfg.autoLayoutSizeWaiting2Short)
+        autoLayoutSizeWaiting2Medium: \(cfg.autoLayoutSizeWaiting2Medium)
+        autoLayoutSizeWaiting2Tall: \(cfg.autoLayoutSizeWaiting2Tall)
+        autoLayoutSizeWaiting2TallHat: \(cfg.autoLayoutSizeWaiting2TallHat)
+        autoLayoutSizeWaiting2Floater: \(cfg.autoLayoutSizeWaiting2Floater)
 
         """
 

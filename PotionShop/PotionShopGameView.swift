@@ -301,6 +301,19 @@ struct PotionShopDraggedDieOverlay: View {
 // Semi-transparent overlay that floats over the game view for live layout editing.
 // Only the active section's controls are visible at a time.
 
+/// All Day 3 guide character ids — used by the feet-anchor test-swap pickers
+/// in the layout editor to quickly drop different buckets into each slot.
+private let allGuideCharIds: [String] = [
+    "guide_octo", "guide_girl", "guide_skull",
+    "guide_slug", "guide_fishguy", "guide_bull",
+    "guide_traveler", "guide_demon", "guide_frog",
+    "guide_pig", "guide_faun", "guide_fox", "guide_woman",
+    "gmarker_octo", "gmarker_girl", "gmarker_skull",
+    "gmarker_slug", "gmarker_fishguy", "gmarker_bull",
+    "gmarker_frog", "gmarker_fox", "gmarker_traveler",
+    "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady"
+]
+
 struct PotionShopLayoutOverlay: View {
     @Binding var isPresented: Bool
     @Bindable var gs: PotionShopGameState
@@ -385,7 +398,9 @@ struct PotionShopLayoutOverlay: View {
                     }
                     .background(Color.black.opacity(0.7))
                     
-                    // Active section controls
+                    // Active section controls — height tuned (Jun 1, 2026) so
+                    // the top of the editor sits just BELOW the customer profile
+                    // banner (doesn't cover the active customer's profile).
                     if let section = activeSection {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 12) {
@@ -393,7 +408,7 @@ struct PotionShopLayoutOverlay: View {
                             }
                             .padding()
                         }
-                        .frame(maxHeight: 200)
+                        .frame(maxHeight: 380)
                         .background(Color.black.opacity(0.8))
                     }
                 }
@@ -899,56 +914,18 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
             }
         case .autoLayout:
-            // 🎲 AUTO-LAYOUT (Day 3 RNG test) — May 25, 2026
+            // 🎲 AUTO-LAYOUT (Day 3 RNG test) — Trimmed Jun 1, 2026 to show
+            // only feet-anchor-mode sliders. The old non-feet-anchor sliders
+            // (Queue X Range, Queue Y, Per-Slot Scale, Width Bucket Weights,
+            // Per-Height-Bucket Y Adjust) still exist as properties for any
+            // Day 3 round that doesn't use feet-anchor, just no editor UI.
             VStack(alignment: .leading, spacing: 12) {
-                Text("🎲 Day 3 Auto-Layout")
+                Text("🎲 Day 3 Auto-Layout (feet-anchor mode)")
                     .font(.caption2.bold())
                     .foregroundColor(.cyan)
-                Text("Tune how Day 3 customers space themselves. Only affects flex days (Day 3+). Day 1/2 untouched.")
+                Text("Active only on rounds with useFeetAnchor=true (Day 3 R2 today). Feet snap to the floor-Y per slot; size comes from the bucket × slot matrix.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.7))
-
-                Text("Queue X Range")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                sliderRow("Active X (queue[0])", value: $layoutConfig.autoLayoutStartX, range: 0.1...0.7, format: "%.3f")
-                sliderRow("Back of line X", value: $layoutConfig.autoLayoutEndX, range: 0.5...0.99, format: "%.3f")
-
-                Text("Queue Y")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                sliderRow("Active Y", value: $layoutConfig.autoLayoutYActive, range: 0.2...0.9, format: "%.3f")
-                sliderRow("Waiter Y", value: $layoutConfig.autoLayoutYWaiting, range: 0.2...0.9, format: "%.3f")
-
-                Text("Per-Slot Scale")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                sliderRow("Active scale", value: $layoutConfig.autoLayoutScaleActive, range: 0.4...1.5, format: "%.2f")
-                sliderRow("Waiting 1 scale", value: $layoutConfig.autoLayoutScaleWaiting1, range: 0.4...1.5, format: "%.2f")
-                sliderRow("Waiting 2 scale", value: $layoutConfig.autoLayoutScaleWaiting2, range: 0.4...1.5, format: "%.2f")
-
-                Text("Width Bucket Weights")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                Text("Larger weight = character takes more horizontal room in the queue.")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                sliderRow("Skinny weight", value: $layoutConfig.autoLayoutWidthWeightSkinny, range: 0.5...3.0, format: "%.2f")
-                sliderRow("Medium weight", value: $layoutConfig.autoLayoutWidthWeightMedium, range: 0.5...3.0, format: "%.2f")
-                sliderRow("Wide weight", value: $layoutConfig.autoLayoutWidthWeightWide, range: 0.5...3.0, format: "%.2f")
-
-                Text("Per-Height-Bucket Y Adjust")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                Text("Adds to the base Y for each bucket. Use to align floaters higher, tallHats lower, etc.")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                sliderRow("SuperShort Y+", value: $layoutConfig.autoLayoutYAdjustSuperShort, range: -0.2...0.2, format: "%+.3f")
-                sliderRow("Short Y+", value: $layoutConfig.autoLayoutYAdjustShort, range: -0.2...0.2, format: "%+.3f")
-                sliderRow("Medium Y+", value: $layoutConfig.autoLayoutYAdjustMedium, range: -0.2...0.2, format: "%+.3f")
-                sliderRow("Tall Y+", value: $layoutConfig.autoLayoutYAdjustTall, range: -0.2...0.2, format: "%+.3f")
-                sliderRow("TallHat Y+", value: $layoutConfig.autoLayoutYAdjustTallHat, range: -0.2...0.2, format: "%+.3f")
-                sliderRow("Floater Y+", value: $layoutConfig.autoLayoutYAdjustFloater, range: -0.2...0.2, format: "%+.3f")
 
                 // Feet-anchor mode (May 30, 2026) — Day 3 Round 2 only.
                 Text("👣 Feet-Anchor (Day 3 R2 only)")
@@ -961,19 +938,6 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Floor Y — Waiting 1", value: $layoutConfig.autoLayoutFeetYWaiting1, range: 0.5...1.0, format: "%.3f")
                 sliderRow("Floor Y — Waiting 2", value: $layoutConfig.autoLayoutFeetYWaiting2, range: 0.5...1.0, format: "%.3f")
 
-                Text("Per-Bucket Scale (feet-anchor mode)")
-                    .font(.caption2.bold())
-                    .foregroundColor(.green)
-                Text("Multiplies the per-slot scale. Use to make all 'short' chars taller/shorter, etc.")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                sliderRow("SuperShort scale", value: $layoutConfig.autoLayoutBucketScaleSuperShort, range: 0.5...2.0, format: "%.2f")
-                sliderRow("Short scale", value: $layoutConfig.autoLayoutBucketScaleShort, range: 0.5...2.0, format: "%.2f")
-                sliderRow("Medium scale", value: $layoutConfig.autoLayoutBucketScaleMedium, range: 0.5...2.0, format: "%.2f")
-                sliderRow("Tall scale", value: $layoutConfig.autoLayoutBucketScaleTall, range: 0.5...2.0, format: "%.2f")
-                sliderRow("TallHat scale", value: $layoutConfig.autoLayoutBucketScaleTallHat, range: 0.5...2.0, format: "%.2f")
-                sliderRow("Floater scale", value: $layoutConfig.autoLayoutBucketScaleFloater, range: 0.5...2.0, format: "%.2f")
-
                 Text("Slot X Fractions (feet-anchor mode)")
                     .font(.caption2.bold())
                     .foregroundColor(.green)
@@ -984,46 +948,87 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Slot X — Waiting 1", value: $layoutConfig.autoLayoutSlotXFractionWaiting1, range: 0.1...0.99, format: "%.3f")
                 sliderRow("Slot X — Waiting 2", value: $layoutConfig.autoLayoutSlotXFractionWaiting2, range: 0.1...0.99, format: "%.3f")
 
-                Text("Slot Uniform Scale (feet-anchor mode)")
+                Text("Slot Fine-Tune X/Y (offset on top of slot X / floor Y)")
                     .font(.caption2.bold())
                     .foregroundColor(.green)
-                Text("Single slider per slot that scales BOTH width and height together. Shortcut for sizing all characters in a slot consistently.")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                sliderRow("Active scale", value: $layoutConfig.autoLayoutSlotScaleActive, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting1 scale", value: $layoutConfig.autoLayoutSlotScaleWaiting1, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting2 scale", value: $layoutConfig.autoLayoutSlotScaleWaiting2, range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active X", value: $layoutConfig.autoLayoutActiveX, range: -200...200, format: "%.1f")
+                sliderRow("Active Y", value: $layoutConfig.autoLayoutActiveY, range: -200...200, format: "%.1f")
+                sliderRow("Waiting1 X", value: $layoutConfig.autoLayoutWaiting1X, range: -200...200, format: "%.1f")
+                sliderRow("Waiting1 Y", value: $layoutConfig.autoLayoutWaiting1Y, range: -200...200, format: "%.1f")
+                sliderRow("Waiting2 X", value: $layoutConfig.autoLayoutWaiting2X, range: -200...200, format: "%.1f")
+                sliderRow("Waiting2 Y", value: $layoutConfig.autoLayoutWaiting2Y, range: -200...200, format: "%.1f")
 
-                Text("Slot Templates (feet-anchor mode)")
+                // 6×3 BUCKET-PER-SLOT SIZE MATRIX (May 31, 2026)
+                Text("📐 Bucket × Slot Size Matrix")
                     .font(.caption2.bold())
                     .foregroundColor(.green)
-                Text("W/H multiply on top of slot uniform scale (defaults to 1.0). X/Y are fine-tune offsets in points on top of the slot X fraction / floor Y.")
+                Text("18 values: size for each height bucket in each slot. Replaces the old per-slot/slot uniform/slot W-H/bucket-scale stack.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.7))
 
                 Text("• Active slot")
                     .font(.system(size: 11).bold())
                     .foregroundColor(.green.opacity(0.8))
-                sliderRow("Active W", value: $layoutConfig.autoLayoutActiveWidth, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Active H", value: $layoutConfig.autoLayoutActiveHeight, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Active X", value: $layoutConfig.autoLayoutActiveX, range: -200...200, format: "%.1f")
-                sliderRow("Active Y", value: $layoutConfig.autoLayoutActiveY, range: -200...200, format: "%.1f")
+                sliderRow("Active · SuperShort", value: $layoutConfig.autoLayoutSizeActiveSuperShort, range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active · Short",      value: $layoutConfig.autoLayoutSizeActiveShort,      range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active · Medium",     value: $layoutConfig.autoLayoutSizeActiveMedium,     range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active · Tall",       value: $layoutConfig.autoLayoutSizeActiveTall,       range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active · TallHat",    value: $layoutConfig.autoLayoutSizeActiveTallHat,    range: 0.3...2.0, format: "%.3f")
+                sliderRow("Active · Floater",    value: $layoutConfig.autoLayoutSizeActiveFloater,    range: 0.3...2.0, format: "%.3f")
 
                 Text("• Waiting 1 slot")
                     .font(.system(size: 11).bold())
                     .foregroundColor(.green.opacity(0.8))
-                sliderRow("Waiting1 W", value: $layoutConfig.autoLayoutWaiting1Width, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting1 H", value: $layoutConfig.autoLayoutWaiting1Height, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting1 X", value: $layoutConfig.autoLayoutWaiting1X, range: -200...200, format: "%.1f")
-                sliderRow("Waiting1 Y", value: $layoutConfig.autoLayoutWaiting1Y, range: -200...200, format: "%.1f")
+                sliderRow("Waiting1 · SuperShort", value: $layoutConfig.autoLayoutSizeWaiting1SuperShort, range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting1 · Short",      value: $layoutConfig.autoLayoutSizeWaiting1Short,      range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting1 · Medium",     value: $layoutConfig.autoLayoutSizeWaiting1Medium,     range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting1 · Tall",       value: $layoutConfig.autoLayoutSizeWaiting1Tall,       range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting1 · TallHat",    value: $layoutConfig.autoLayoutSizeWaiting1TallHat,    range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting1 · Floater",    value: $layoutConfig.autoLayoutSizeWaiting1Floater,    range: 0.3...2.0, format: "%.3f")
 
                 Text("• Waiting 2 slot")
                     .font(.system(size: 11).bold())
                     .foregroundColor(.green.opacity(0.8))
-                sliderRow("Waiting2 W", value: $layoutConfig.autoLayoutWaiting2Width, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting2 H", value: $layoutConfig.autoLayoutWaiting2Height, range: 0.3...2.0, format: "%.3f")
-                sliderRow("Waiting2 X", value: $layoutConfig.autoLayoutWaiting2X, range: -200...200, format: "%.1f")
-                sliderRow("Waiting2 Y", value: $layoutConfig.autoLayoutWaiting2Y, range: -200...200, format: "%.1f")
+                sliderRow("Waiting2 · SuperShort", value: $layoutConfig.autoLayoutSizeWaiting2SuperShort, range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting2 · Short",      value: $layoutConfig.autoLayoutSizeWaiting2Short,      range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting2 · Medium",     value: $layoutConfig.autoLayoutSizeWaiting2Medium,     range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting2 · Tall",       value: $layoutConfig.autoLayoutSizeWaiting2Tall,       range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting2 · TallHat",    value: $layoutConfig.autoLayoutSizeWaiting2TallHat,    range: 0.3...2.0, format: "%.3f")
+                sliderRow("Waiting2 · Floater",    value: $layoutConfig.autoLayoutSizeWaiting2Floater,    range: 0.3...2.0, format: "%.3f")
+
+                // CHARACTER-SWAP PICKERS — test other buckets without changing rounds
+                Text("🔄 Test Swap (Day 3 R2 only — debug)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.green)
+                Text("Replace the character in each slot to test other buckets. Resets when the round restarts.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                ForEach(0..<3, id: \.self) { slotIdx in
+                    HStack {
+                        Text(slotIdx == 0 ? "Active" : (slotIdx == 1 ? "Waiting 1" : "Waiting 2"))
+                            .font(.system(size: 11).bold())
+                            .foregroundColor(.green.opacity(0.8))
+                            .frame(width: 75, alignment: .leading)
+                        Picker("", selection: Binding(
+                            get: {
+                                guard slotIdx < gs.queue.count,
+                                      let c = gs.customers.first(where: { $0.id == gs.queue[slotIdx] }) else {
+                                    return ""
+                                }
+                                return c.charKey
+                            },
+                            set: { newKey in
+                                gs.swapCharacterAt(slotIndex: slotIdx, toCharKey: newKey)
+                            }
+                        )) {
+                            ForEach(allGuideCharIds, id: \.self) { id in
+                                Text(id.replacingOccurrences(of: "guide_", with: "")).tag(id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .accentColor(.cyan)
+                    }
+                }
             }
         case .badges:
             // 🎨 BADGE GRAPHICS - HP/Attack badges + bottle graphic

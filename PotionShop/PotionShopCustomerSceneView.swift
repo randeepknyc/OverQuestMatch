@@ -233,22 +233,22 @@ enum PotionShopAutoQueueLayout {
     }
 
     /// Per-customer scale (active vs waiting1 vs waiting2 + beyond).
-    /// When `feetAnchor` is true, multiplies in the per-height-bucket scale.
+    /// In feet-anchor mode the per-bucket-per-slot MATRIX is the single source
+    /// of size truth (replaces per-slot scale × slot uniform × bucket scale).
     static func scales(for characterKeys: [String],
                        config: PotionShopLayoutConfig,
                        feetAnchor: Bool = false) -> [CGFloat] {
         characterKeys.enumerated().map { idx, key in
-            let slotScale: CGFloat
-            switch idx {
-            case 0:  slotScale = CGFloat(config.autoLayoutScaleActive)
-            case 1:  slotScale = CGFloat(config.autoLayoutScaleWaiting1)
-            default: slotScale = CGFloat(config.autoLayoutScaleWaiting2)
-            }
             if feetAnchor {
                 let bucket = config.characterScale(for: key).heightBucket
-                return slotScale * bucketScale(for: bucket, config: config)
+                let slotIndex = min(idx, 2)
+                return CGFloat(config.bucketSize(slotIndex: slotIndex, bucket: bucket))
             }
-            return slotScale
+            switch idx {
+            case 0:  return CGFloat(config.autoLayoutScaleActive)
+            case 1:  return CGFloat(config.autoLayoutScaleWaiting1)
+            default: return CGFloat(config.autoLayoutScaleWaiting2)
+            }
         }
     }
 }
@@ -290,7 +290,8 @@ struct PotionShopCustomerSceneView: View {
                     floorLine
                 }
 
-                // LAYER 3: Ednar
+                // LAYER 3: Ednar — zIndex(100) so she overlaps any customer
+                // who drifts into her column (June 1, 2026).
                 PotionShopEdnarView(
                     gs: gs,
                     ednarBaseScale: ednarBaseScale,
@@ -304,6 +305,7 @@ struct PotionShopCustomerSceneView: View {
                         x: geo.size.width * PotionShopSceneLayout.ednarX,
                         y: geo.size.height * PotionShopSceneLayout.ednarYFraction
                     )
+                    .zIndex(100)
 
                 ForEach(Array(gs.queue.enumerated()), id: \.element) { idx, custId in
                     if let cust = gs.customers.first(where: { $0.id == custId }) {
@@ -647,26 +649,26 @@ struct PotionShopCustomerInSceneView: View {
     /// Per-slot W/H/X/Y/scale template (feet-anchor mode). Outside feet-anchor
     /// returns identity (W=1, H=1, X=0, Y=0, scale=1) so per-character values
     /// pass through unchanged.
+    /// May 31, 2026: W/H/scale no longer contribute in feet-anchor mode — the
+    /// bucket-per-slot matrix (in PotionShopAutoQueueLayout.scales) is the
+    /// single source of size truth. We still return X/Y for per-slot position.
     private var slotTemplateForCurrentSlot: (w: Double, h: Double, x: Double, y: Double, scale: Double) {
         guard gs.currentRoundUsesFeetAnchor else { return (1.0, 1.0, 0.0, 0.0, 1.0) }
         if queueIndex == 0 {
-            return (layoutConfig.autoLayoutActiveWidth,
-                    layoutConfig.autoLayoutActiveHeight,
+            return (1.0, 1.0,
                     layoutConfig.autoLayoutActiveX,
                     layoutConfig.autoLayoutActiveY,
-                    layoutConfig.autoLayoutSlotScaleActive)
+                    1.0)
         } else if queueIndex == 1 {
-            return (layoutConfig.autoLayoutWaiting1Width,
-                    layoutConfig.autoLayoutWaiting1Height,
+            return (1.0, 1.0,
                     layoutConfig.autoLayoutWaiting1X,
                     layoutConfig.autoLayoutWaiting1Y,
-                    layoutConfig.autoLayoutSlotScaleWaiting1)
+                    1.0)
         } else {
-            return (layoutConfig.autoLayoutWaiting2Width,
-                    layoutConfig.autoLayoutWaiting2Height,
+            return (1.0, 1.0,
                     layoutConfig.autoLayoutWaiting2X,
                     layoutConfig.autoLayoutWaiting2Y,
-                    layoutConfig.autoLayoutSlotScaleWaiting2)
+                    1.0)
         }
     }
 
@@ -801,6 +803,10 @@ struct PotionShopCustomerInSceneView: View {
                 // 1 = waiting1 (queue[1]), 2 = waiting2 (queue[2]). Clamped for safety.
                 let badgeQueueSlot: Int = isActive ? 0 : min(max(queueIndex, 1), 2)
 
+                // Hide HP + Attack badges in feet-anchor mode (Day 3 R2 only —
+                // June 1, 2026). They'll get repositioned later for that mode.
+                if !gs.currentRoundUsesFeetAnchor {
+
                 // HP Badge (ABOVE character's head — shows for active AND waiting customers)
                 ZStack {
                     // Custom HP badge graphic (background)
@@ -866,6 +872,8 @@ struct PotionShopCustomerInSceneView: View {
                         y: effectiveY + headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                     )
                 }
+
+                } // end: !gs.currentRoundUsesFeetAnchor — HP + Attack badges
 
                 // PHASE 7: 💢 emoji burst on expiration
                 if PotionShopBrewAnimator.expirationShowEmoji {

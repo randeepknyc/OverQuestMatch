@@ -328,6 +328,29 @@ class PotionShopGameState {
         }
     }
 
+    /// Layout-editor helper (May 31, 2026): replace the character occupying
+    /// the given queue slot with a different one. Used to quickly test how
+    /// every height bucket reads in each slot for feet-anchor tuning. State
+    /// is in-memory only; advancing/restarting the round restores the round
+    /// definition.
+    func swapCharacterAt(slotIndex: Int, toCharKey newKey: String) {
+        guard slotIndex >= 0, slotIndex < queue.count,
+              let char = PotionShopData.character(newKey) else { return }
+        let oldId = queue[slotIndex]
+        let newCustomer = PotionShopCustomer(
+            id: UUID(),
+            charKey: newKey,
+            hp: char.hp,
+            maxHp: char.hp,
+            patience: char.patience,
+            maxPatience: char.patience,
+            status: .waiting
+        )
+        customers.removeAll { $0.id == oldId }
+        customers.append(newCustomer)
+        queue[slotIndex] = newCustomer.id
+    }
+
     /// Generate the random rounds for the current flex day. Rounds 1+ from
     /// the day's fixedRounds list stay deterministic; remaining rounds get
     /// random draws from the pool (no character repeats within day).
