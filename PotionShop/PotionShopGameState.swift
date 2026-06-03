@@ -346,9 +346,19 @@ class PotionShopGameState {
             maxPatience: char.patience,
             status: .waiting
         )
-        customers.removeAll { $0.id == oldId }
-        customers.append(newCustomer)
+        // Replace IN PLACE so the customers array order matches what the
+        // profile-button row expects (June 1, 2026). Previously we removed
+        // then appended, which moved the swapped char to the end and made
+        // the profile picture button visually disappear from its slot.
+        if let oldIdx = customers.firstIndex(where: { $0.id == oldId }) {
+            customers[oldIdx] = newCustomer
+        } else {
+            customers.append(newCustomer)
+        }
         queue[slotIndex] = newCustomer.id
+        // Clear inspect/selection state tied to the old UUID so the row's
+        // button state is fresh.
+        if inspectedId == oldId { inspectedId = nil }
     }
 
     /// Generate the random rounds for the current flex day. Rounds 1+ from

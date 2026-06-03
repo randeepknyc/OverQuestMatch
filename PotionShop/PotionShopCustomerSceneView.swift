@@ -240,9 +240,13 @@ enum PotionShopAutoQueueLayout {
                        feetAnchor: Bool = false) -> [CGFloat] {
         characterKeys.enumerated().map { idx, key in
             if feetAnchor {
-                let bucket = config.characterScale(for: key).heightBucket
+                let cs = config.characterScale(for: key)
                 let slotIndex = min(idx, 2)
-                return CGFloat(config.bucketSize(slotIndex: slotIndex, bucket: bucket))
+                // June 1, 2026: use per-cell (slot × height × width) override
+                // if set, else fall back to 6×3 height-only matrix.
+                return CGFloat(config.resolvedBucketSize(slot: slotIndex,
+                                                         height: cs.heightBucket,
+                                                         width: cs.widthBucket))
             }
             switch idx {
             case 0:  return CGFloat(config.autoLayoutScaleActive)
@@ -649,27 +653,28 @@ struct PotionShopCustomerInSceneView: View {
     /// Per-slot W/H/X/Y/scale template (feet-anchor mode). Outside feet-anchor
     /// returns identity (W=1, H=1, X=0, Y=0, scale=1) so per-character values
     /// pass through unchanged.
-    /// May 31, 2026: W/H/scale no longer contribute in feet-anchor mode — the
-    /// bucket-per-slot matrix (in PotionShopAutoQueueLayout.scales) is the
-    /// single source of size truth. We still return X/Y for per-slot position.
+    /// June 1, 2026: per-cell X/Y overrides (for the character's height +
+    /// width bucket combo in this slot) ADD on top of the slot fine-tune X/Y.
     private var slotTemplateForCurrentSlot: (w: Double, h: Double, x: Double, y: Double, scale: Double) {
         guard gs.currentRoundUsesFeetAnchor else { return (1.0, 1.0, 0.0, 0.0, 1.0) }
-        if queueIndex == 0 {
-            return (1.0, 1.0,
-                    layoutConfig.autoLayoutActiveX,
-                    layoutConfig.autoLayoutActiveY,
-                    1.0)
-        } else if queueIndex == 1 {
-            return (1.0, 1.0,
-                    layoutConfig.autoLayoutWaiting1X,
-                    layoutConfig.autoLayoutWaiting1Y,
-                    1.0)
-        } else {
-            return (1.0, 1.0,
-                    layoutConfig.autoLayoutWaiting2X,
-                    layoutConfig.autoLayoutWaiting2Y,
-                    1.0)
+        let slotIdx = min(queueIndex, 2)
+        let cs = layoutConfig.characterScale(for: customer.charKey)
+        let cellX = layoutConfig.resolvedCellX(slot: slotIdx, height: cs.heightBucket, width: cs.widthBucket)
+        let cellY = layoutConfig.resolvedCellY(slot: slotIdx, height: cs.heightBucket, width: cs.widthBucket)
+        let slotX: Double
+        let slotY: Double
+        switch slotIdx {
+        case 0:
+            slotX = layoutConfig.autoLayoutActiveX
+            slotY = layoutConfig.autoLayoutActiveY
+        case 1:
+            slotX = layoutConfig.autoLayoutWaiting1X
+            slotY = layoutConfig.autoLayoutWaiting1Y
+        default:
+            slotX = layoutConfig.autoLayoutWaiting2X
+            slotY = layoutConfig.autoLayoutWaiting2Y
         }
+        return (1.0, 1.0, slotX + cellX, slotY + cellY, 1.0)
     }
 
     var body: some View {

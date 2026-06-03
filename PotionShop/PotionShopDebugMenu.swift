@@ -425,6 +425,22 @@ struct PotionShopDebugMenu: View {
         }
     }
 
+    /// Formats the per-cell bucket overrides for the layout-values export.
+    /// Each line: "  [slot · height · width] size=... x=... y=..." (only the
+    /// fields that are set).
+    private func formatBucketCellOverrides(_ overrides: [PotionShopLayoutConfig.BucketCellKey: PotionShopLayoutConfig.BucketCell]) -> String {
+        if overrides.isEmpty { return "(none set yet)" }
+        var lines: [String] = []
+        for (key, cell) in overrides {
+            var line = "  [\(key.slot) · \(key.heightRaw) · \(key.widthRaw)]"
+            if let s = cell.size { line += " size=\(s)" }
+            if let x = cell.x    { line += " x=\(x)" }
+            if let y = cell.y    { line += " y=\(y)" }
+            lines.append(line)
+        }
+        return lines.sorted().joined(separator: "\n")
+    }
+
     /// Formats the live RAM row, including a delta vs the pre-purge snapshot
     /// when one exists. Result looks like: "287 MB  (▼ 41 MB from purge)".
     private func ramRowText() -> String {
@@ -858,6 +874,9 @@ struct PotionShopDebugMenu: View {
         autoLayoutSizeWaiting2Tall: \(cfg.autoLayoutSizeWaiting2Tall)
         autoLayoutSizeWaiting2TallHat: \(cfg.autoLayoutSizeWaiting2TallHat)
         autoLayoutSizeWaiting2Floater: \(cfg.autoLayoutSizeWaiting2Floater)
+
+        Per-cell overrides (slot × height × width, sparse — June 1, 2026):
+        \(formatBucketCellOverrides(cfg.bucketCellOverrides))
 
         """
 

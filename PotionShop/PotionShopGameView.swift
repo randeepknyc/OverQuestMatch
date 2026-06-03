@@ -1854,12 +1854,43 @@ struct PotionShopLayoutOverlay: View {
             sliderRow("Fine-tune X", value: slotFineXBinding(slotIdx), range: -200...200, format: "%.1f")
             sliderRow("Fine-tune Y", value: slotFineYBinding(slotIdx), range: -200...200, format: "%.1f")
 
-            // Size cell for this (slot, bucket)
-            Text("Size (\(slotName) · \(bucketName))")
+            // Per-cell (slot × height × width) overrides — June 1, 2026.
+            Text("Cell (\(slotName) · \(bucketName) · \(widthName))")
                 .font(.caption2.bold())
                 .foregroundColor(.green)
-            sliderRow("Size", value: bucketSizeBinding(slotIdx: slotIdx, bucket: bucket), range: 0.3...2.0, format: "%.3f")
+            Text("Override for THIS height+width combo at this slot. Default = use the height-only matrix below.")
+                .font(.system(size: 10))
+                .foregroundColor(.white.opacity(0.7))
+            sliderRow("Cell size", value: cellSizeBinding(slot: slotIdx, height: bucket, width: widthBucket), range: 0.3...2.0, format: "%.3f")
+            sliderRow("Cell X",    value: cellXBinding(slot: slotIdx, height: bucket, width: widthBucket),    range: -200...200, format: "%.1f")
+            sliderRow("Cell Y",    value: cellYBinding(slot: slotIdx, height: bucket, width: widthBucket),    range: -200...200, format: "%.1f")
+
+            // Height-only fallback size (legacy 6×3 matrix)
+            Text("Height-only fallback (\(slotName) · \(bucketName))")
+                .font(.caption2.bold())
+                .foregroundColor(.green.opacity(0.8))
+            sliderRow("Matrix size", value: bucketSizeBinding(slotIdx: slotIdx, bucket: bucket), range: 0.3...2.0, format: "%.3f")
         }
+    }
+
+    // Per-cell bindings — read/write into layoutConfig.bucketCellOverrides.
+    private func cellSizeBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedBucketSize(slot: slot, height: height, width: width) },
+            set: { layoutConfig.setBucketCellSize(slot: slot, height: height, width: width, size: $0) }
+        )
+    }
+    private func cellXBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedCellX(slot: slot, height: height, width: width) },
+            set: { layoutConfig.setBucketCellX(slot: slot, height: height, width: width, x: $0) }
+        )
+    }
+    private func cellYBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedCellY(slot: slot, height: height, width: width) },
+            set: { layoutConfig.setBucketCellY(slot: slot, height: height, width: width, y: $0) }
+        )
     }
 
     // Bindings for the focused editor — each returns a Binding<Double> that

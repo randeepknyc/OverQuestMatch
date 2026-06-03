@@ -519,9 +519,9 @@ class PotionShopLayoutConfig {
     // multipliers below let you size all chars of a bucket consistently.
 
     /// Floor Y-fraction for active slot (queue[0]). Bottom of image lands here.
-    var autoLayoutFeetYActive: Double = 0.8656134903430939
+    var autoLayoutFeetYActive: Double = 0.902404248714447
     /// Floor Y-fraction for waiting1 slot (queue[1]).
-    var autoLayoutFeetYWaiting1: Double = 0.7696879506111145
+    var autoLayoutFeetYWaiting1: Double = 0.8055922091007233
     /// Floor Y-fraction for waiting2 slot (queue[2]).
     var autoLayoutFeetYWaiting2: Double = 0.8780567944049835
 
@@ -546,8 +546,8 @@ class PotionShopLayoutConfig {
 
     var autoLayoutActiveWidth: Double = 1.0
     var autoLayoutActiveHeight: Double = 1.0
-    var autoLayoutActiveX: Double = 3.191041946411133
-    var autoLayoutActiveY: Double = 21.27668857574463
+    var autoLayoutActiveX: Double = -5.3195953369140625
+    var autoLayoutActiveY: Double = 14.893698692321777
 
     var autoLayoutWaiting1Width: Double = 1.0
     var autoLayoutWaiting1Height: Double = 1.0
@@ -577,6 +577,76 @@ class PotionShopLayoutConfig {
     // can be tuned independently for what the eye reads as "right."
     //
     // Defaults seed depth perspective: active 1.0, waiting1 0.85, waiting2 0.75.
+
+    // MARK: - Per-cell (slot × height × width) overrides (June 1, 2026)
+    //
+    // 54 possible cells = 3 slots × 6 heights × 3 widths. Each can hold an
+    // optional size/x/y override. When all are nil, falls back to the 18-cell
+    // matrix below (size) and slot fine-tune X/Y. Lets you tune e.g.
+    // (waiting1, medium, skinny) independently from (waiting1, medium, wide).
+
+    struct BucketCellKey: Hashable, Codable {
+        var slot: Int  // 0=active, 1=waiting1, 2=waiting2
+        var heightRaw: String
+        var widthRaw: String
+    }
+    struct BucketCell: Codable, Equatable {
+        var size: Double?
+        var x: Double?
+        var y: Double?
+    }
+
+    /// Sparse per-cell overrides. Most keys absent → matrix + slot fine-tune
+    /// applies. Mutating triggers Observable update via property write.
+    var bucketCellOverrides: [BucketCellKey: BucketCell] = [:]
+
+    func bucketCellKey(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketCellKey {
+        BucketCellKey(slot: slot, heightRaw: String(describing: height), widthRaw: String(describing: width))
+    }
+
+    /// Read the override cell for a (slot, height, width). Returns
+    /// BucketCell with all-nil fields if none was set.
+    func bucketCell(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketCell {
+        bucketCellOverrides[bucketCellKey(slot: slot, height: height, width: width)] ?? BucketCell()
+    }
+
+    /// Set one field of a cell override (size, x, or y).
+    func setBucketCellSize(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, size: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketCellOverrides[key] ?? BucketCell()
+        cell.size = size
+        bucketCellOverrides[key] = cell
+    }
+    func setBucketCellX(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, x: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketCellOverrides[key] ?? BucketCell()
+        cell.x = x
+        bucketCellOverrides[key] = cell
+    }
+    func setBucketCellY(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, y: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketCellOverrides[key] ?? BucketCell()
+        cell.y = y
+        bucketCellOverrides[key] = cell
+    }
+
+    /// Resolved size for the given (slot, height, width) — cell override if
+    /// set, otherwise the legacy 6×3 matrix value.
+    func resolvedBucketSize(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> Double {
+        if let s = bucketCell(slot: slot, height: height, width: width).size {
+            return s
+        }
+        return bucketSize(slotIndex: slot, bucket: height)
+    }
+
+    /// Resolved X offset for the cell (defaults to 0 if no override).
+    func resolvedCellX(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> Double {
+        bucketCell(slot: slot, height: height, width: width).x ?? 0
+    }
+    /// Resolved Y offset for the cell (defaults to 0 if no override).
+    func resolvedCellY(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> Double {
+        bucketCell(slot: slot, height: height, width: width).y ?? 0
+    }
 
     // Active slot
     var autoLayoutSizeActiveSuperShort: Double = 1.0
@@ -633,7 +703,7 @@ class PotionShopLayoutConfig {
     /// Fixed X-fraction of scene width for each slot in feet-anchor mode.
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
-    var autoLayoutSlotXFractionActive: Double = 0.45
+    var autoLayoutSlotXFractionActive: Double = 0.5052305036783219
     var autoLayoutSlotXFractionWaiting1: Double = 0.6925974673032761
     var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
@@ -1091,6 +1161,37 @@ class PotionShopLayoutConfig {
         bull.waiting2Y = -1.063835620880127
         perCharacterScales["guide_bull"] = bull
 
+        // ─── Per-cell overrides (June 2, 2026) ─────────────────────
+        // 11 tuned (slot × height × width) cells for Day 3 R3 feet-anchor.
+        // slot 0 = active, 1 = waiting1, 2 = waiting2.
+        bake(slot: 0, height: .medium,  width: .medium, size: nil,                x: -8.510637283325195,   y: nil)
+        bake(slot: 0, height: .medium,  width: .skinny, size: 1.0512411206960677, x: -2.4822592735290527, y: -9.574472904205322)
+        bake(slot: 0, height: .medium,  width: .wide,   size: nil,                x: -16.66666269302368,   y: nil)
+        bake(slot: 0, height: .tall,    width: .skinny, size: 1.0030142098665238, x: nil,                  y: -4.964542388916016)
+        bake(slot: 1, height: .medium,  width: .skinny, size: 0.9705674469470977, x: 2.127671241760254,    y: -9.574472904205322)
+        bake(slot: 1, height: .medium,  width: .wide,   size: nil,                x: 10.638284683227539,   y: -7.446813583374023)
+        bake(slot: 1, height: .short,   width: .wide,   size: nil,                x: nil,                  y: 4.255318641662598)
+        bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
+        bake(slot: 1, height: .tall,    width: .wide,   size: nil,                x: -16.312050819396973,  y: -4.609930515289307)
+        bake(slot: 1, height: .tallHat, width: .medium, size: nil,                x: 5.673766136169434,    y: 8.156037330627441)
+        bake(slot: 2, height: .medium,  width: .skinny, size: 0.8886525064706803, x: nil,                  y: nil)
+        bake(slot: 2, height: .tall,    width: .skinny, size: 0.8841312557458878, x: -7.446813583374023,   y: 3.5460948944091797)
+        bake(slot: 2, height: .tallHat, width: .medium, size: nil,                x: nil,                  y: 7.801413536071777)
+    }
+
+    /// Helper used by applyTunedCharacterScales() to seed a per-cell override.
+    /// Nil fields stay unset → fall back to the height-only matrix / 0 offset.
+    private func bake(slot: Int,
+                      height: CustomerHeightBucket,
+                      width: CustomerWidthBucket,
+                      size: Double?,
+                      x: Double?,
+                      y: Double?) {
+        var cell = bucketCell(slot: slot, height: height, width: width)
+        if let s = size { cell.size = s }
+        if let xv = x { cell.x = xv }
+        if let yv = y { cell.y = yv }
+        bucketCellOverrides[bucketCellKey(slot: slot, height: height, width: width)] = cell
     }
 
     /// Configures a Day 3 guide character with template-correct head anchor.
