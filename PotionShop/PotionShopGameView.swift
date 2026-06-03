@@ -1870,7 +1870,39 @@ struct PotionShopLayoutOverlay: View {
                 .font(.caption2.bold())
                 .foregroundColor(.green.opacity(0.8))
             sliderRow("Matrix size", value: bucketSizeBinding(slotIdx: slotIdx, bucket: bucket), range: 0.3...2.0, format: "%.3f")
+
+            // HP badge cell (June 3, 2026) — keyed by (height × width) only,
+            // since HP badge is head-anchored and inherits per-slot scale at render time.
+            Text("HP Badge (\(bucketName) · \(widthName))")
+                .font(.caption2.bold())
+                .foregroundColor(.red)
+            Text("Override for THIS H×W combo (shared across slots). Default = legacy per-bucket HP values.")
+                .font(.system(size: 10))
+                .foregroundColor(.white.opacity(0.7))
+            sliderRow("HP size", value: hpBadgeSizeBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: 10...100, format: "%.0f pt")
+            sliderRow("HP X",    value: hpBadgeXBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: -300...300, format: "%.0f pt")
+            sliderRow("HP Y",    value: hpBadgeYBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: -200...200, format: "%.0f pt")
         }
+    }
+
+    // Per-cell HP badge bindings — read/write into bucketHpBadgeOverrides (HxW only).
+    private func hpBadgeSizeBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedHpBadgeSize(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
+            set: { layoutConfig.setHpBadgeCellSize(height: height, width: width, size: $0) }
+        )
+    }
+    private func hpBadgeXBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedHpBadgeX(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
+            set: { layoutConfig.setHpBadgeCellX(height: height, width: width, x: $0) }
+        )
+    }
+    private func hpBadgeYBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.resolvedHpBadgeY(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
+            set: { layoutConfig.setHpBadgeCellY(height: height, width: width, y: $0) }
+        )
     }
 
     // Per-cell bindings — read/write into layoutConfig.bucketCellOverrides.

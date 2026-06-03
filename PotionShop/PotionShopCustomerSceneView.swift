@@ -809,9 +809,25 @@ struct PotionShopCustomerInSceneView: View {
                 // 1 = waiting1 (queue[1]), 2 = waiting2 (queue[2]). Clamped for safety.
                 let badgeQueueSlot: Int = isActive ? 0 : min(max(queueIndex, 1), 2)
 
-                // Hide HP + Attack badges in feet-anchor mode (Day 3 R2 only —
-                // June 1, 2026). They'll get repositioned later for that mode.
-                if !gs.currentRoundUsesFeetAnchor {
+                // HP badge visibility (June 3, 2026): visible in all rounds —
+                // Day 1/2 use legacy per-bucket values, Day 3 R2/R3 use the
+                // per-cell HP matrix. Attack badge stays hidden in any
+                // feet-anchor round.
+                if true {
+
+                // June 3, 2026: in feet-anchor mode, look up HP badge values
+                // from the per-cell (height × width) HP matrix. Falls back to
+                // legacy per-bucket values when the cell isn't set.
+                let csHpBadge = layoutConfig.characterScale(for: customer.charKey)
+                let hpSize: Double = gs.currentRoundUsesFeetAnchor
+                    ? layoutConfig.resolvedHpBadgeSize(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
+                    : layoutConfig.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot)
+                let hpOffX: Double = gs.currentRoundUsesFeetAnchor
+                    ? layoutConfig.resolvedHpBadgeX(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
+                    : layoutConfig.hpBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot)
+                let hpOffY: Double = gs.currentRoundUsesFeetAnchor
+                    ? layoutConfig.resolvedHpBadgeY(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
+                    : layoutConfig.hpBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot)
 
                 // HP Badge (ABOVE character's head — shows for active AND waiting customers)
                 ZStack {
@@ -821,16 +837,16 @@ struct PotionShopCustomerInSceneView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
+                                width: hpSize * scale,
+                                height: hpSize * scale
                             )
                     } else {
                         // Fallback: red circle if image missing
                         Circle()
                             .fill(PotionShopTheme.composureBad)
                             .frame(
-                                width: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
-                                height: PotionShopLayoutConfig.shared.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
+                                width: hpSize * scale,
+                                height: hpSize * scale
                             )
                     }
 
@@ -841,13 +857,16 @@ struct PotionShopCustomerInSceneView: View {
                 }
                 // Include effectiveX/Y so the badge tracks the body within the slot.
                 .offset(
-                    x: effectiveX + headOffsetX + PotionShopLayoutConfig.shared.hpBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
-                    y: effectiveY + headOffsetY + PotionShopLayoutConfig.shared.hpBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
+                    x: effectiveX + headOffsetX + hpOffX * scale,
+                    y: effectiveY + headOffsetY + hpOffY * scale
                 )
                 .transition(.scale.combined(with: .opacity))
 
+                } // end HP badge conditional
+
                 // Attack Badge (ABOVE character's head, offset to right)
-                if attack > 0 {
+                // Hidden in any feet-anchor round (R2 + R3) for now.
+                if !gs.currentRoundUsesFeetAnchor, attack > 0 {
                     ZStack {
                         // Custom attack badge graphic (background)
                         if let attackBadgeImage = UIImage(named: "attack_badge") {
@@ -877,9 +896,7 @@ struct PotionShopCustomerInSceneView: View {
                         x: effectiveX + headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
                         y: effectiveY + headOffsetY + PotionShopLayoutConfig.shared.attackBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot) * scale
                     )
-                }
-
-                } // end: !gs.currentRoundUsesFeetAnchor — HP + Attack badges
+                } // end Attack badge conditional
 
                 // PHASE 7: 💢 emoji burst on expiration
                 if PotionShopBrewAnimator.expirationShowEmoji {

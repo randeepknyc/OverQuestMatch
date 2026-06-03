@@ -891,16 +891,22 @@ enum PotionShopData {
             // Round 1 (fixed, 2 chars) — gentle intro, two mediums
             PotionShopRound(timeOfDay: .morning,
                             customerIds: ["guide_woman", "guide_traveler"]),
-            // Round 2 (fixed, 3 chars) — variety: short+wide, medium+skinny, tall+skinny
-            // useFeetAnchor: true → characters' feet snap to per-slot floor lines
-            // (autoLayoutFeetYActive/Waiting1/Waiting2) for an A/B floor-anchor test.
+            // Round 2 (3 chars, RANDOMIZED gmarker pool — June 3, 2026)
+            // customerIds is a placeholder for COUNT only; randomFromPool
+            // gets a fresh random pick from the 12 gmarker chars each load.
+            // Feet-anchor mode + same layout values as R3.
             PotionShopRound(timeOfDay: .morning,
-                            customerIds: ["guide_octo", "guide_girl", "guide_skull"],
-                            useFeetAnchor: true),
-            // Round 2a (added June 1, 2026) — same lineup as R2 but using
-            // gmarker_* assets (left-foot-tip aligned to template anchor).
-            // 1:1 layout-editor values via feet-anchor mode, identical bucket
-            // assignments. Lets you A/B the original vs the aligned PNGs.
+                            customerIds: ["_", "_", "_"],
+                            useFeetAnchor: true,
+                            randomFromPool: [
+                                "gmarker_octo", "gmarker_girl", "gmarker_skull",
+                                "gmarker_slug", "gmarker_fishguy", "gmarker_bull",
+                                "gmarker_frog", "gmarker_fox", "gmarker_traveler",
+                                "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady",
+                            ]),
+            // Round 3 (added June 1, 2026) — same fixed lineup as the old R2
+            // but using gmarker_* assets. Acts as the A/B baseline against the
+            // randomized R2 above.
             PotionShopRound(timeOfDay: .morning,
                             customerIds: ["gmarker_octo", "gmarker_girl", "gmarker_skull"],
                             useFeetAnchor: true)

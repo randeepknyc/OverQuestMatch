@@ -258,6 +258,11 @@ struct PotionShopRound {
     /// of image) land on the per-slot floor-Y from PotionShopLayoutConfig.
     /// Defaults false — only Day 3 Round 2 currently opts in.
     var useFeetAnchor: Bool = false
+    /// Optional random-draw pool (June 3, 2026). When set, the customerIds
+    /// field is treated as a placeholder for COUNT only — the actual chars
+    /// are drawn randomly from this pool every time the round spawns.
+    /// Lets fixed-position rounds (e.g. Day 3 R2) feel different each load.
+    var randomFromPool: [String]? = nil
 }
 
 struct PotionShopDay {

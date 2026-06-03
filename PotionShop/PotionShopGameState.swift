@@ -233,6 +233,18 @@ class PotionShopGameState {
         return round.useFeetAnchor
     }
 
+    /// True if the current round draws from a random pool (Day 3 R2 today —
+    /// June 3, 2026). Used to selectively re-enable the HP badge inside
+    /// feet-anchor mode while keeping the attack badge hidden.
+    var currentRoundIsRandomized: Bool {
+        if isFlexDay {
+            guard roundIndex >= 0,
+                  roundIndex < flexDayGeneratedRounds.count else { return false }
+            return flexDayGeneratedRounds[roundIndex].randomFromPool != nil
+        }
+        return false
+    }
+
     // MARK: - Round / day flow
 
     /// Spawn customers and deal a hand. Called at the start of each round
@@ -289,7 +301,15 @@ class PotionShopGameState {
     /// Shared helper used by both legacy and flex paths to spawn customers
     /// and deal a fresh hand of dice.
     private func spawnCustomers(from round: PotionShopRound) {
-        customers = round.customerIds.compactMap { id -> PotionShopCustomer? in
+        // June 3, 2026: if the round has randomFromPool set, draw N=count chars
+        // from the pool fresh each time. Otherwise use the literal customerIds.
+        let resolvedIds: [String]
+        if let pool = round.randomFromPool, !pool.isEmpty {
+            resolvedIds = Array(pool.shuffled().prefix(round.customerIds.count))
+        } else {
+            resolvedIds = round.customerIds
+        }
+        customers = resolvedIds.compactMap { id -> PotionShopCustomer? in
             guard let char = PotionShopData.character(id) else {
                 print("⚠️ PotionShop: Unknown character id \(id)")
                 return nil
