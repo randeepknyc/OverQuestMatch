@@ -17,6 +17,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import SceneKit
 
 // MARK: - View extension for conditional modifiers
 
@@ -839,42 +840,54 @@ struct PotionShopDieButtonView: View {
         let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
         let scaledFontSize = 18 * dieScale
         
-        // Try to load die face image, fallback to colored square
+        // Day 2 Round 2 uses a vertical reel-spin animation (Kalma-style).
+        // All other rounds use the original static face render.
         Group {
-            if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
-                ZStack {
-                    Image(uiImage: dieImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: scaledSize, height: scaledSize)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
-                        )
-                    
-                    // Die value overlaid on center
-                    Text("\(die.value)")
-                        .font(Font.gameScore(size: scaledFontSize))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
-                }
-            } else {
-                // Placeholder colored square with text
-                VStack(spacing: 1) {
-                    Text(die.type.abbr)
-                        .font(Font.gameUI(size: 9 * dieScale))
-                    Text("\(die.value)")
-                        .font(Font.gameScore(size: 14 * dieScale))
-                }
-                .foregroundColor(.white)
-                .frame(width: scaledSize, height: scaledSize)
-                .background(die.type.color)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
+            if gs.currentRoundUsesKalmaDice {
+                KalmaDieFaceView(
+                    die: die,
+                    isSelected: isSelected,
+                    size: scaledSize,
+                    fontSize: scaledFontSize,
+                    dieScale: dieScale
                 )
+            } else {
+                // Try to load die face image, fallback to colored square
+                if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
+                    ZStack {
+                        Image(uiImage: dieImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: scaledSize, height: scaledSize)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
+                            )
+
+                        // Die value overlaid on center
+                        Text("\(die.value)")
+                            .font(Font.gameScore(size: scaledFontSize))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+                    }
+                } else {
+                    // Placeholder colored square with text
+                    VStack(spacing: 1) {
+                        Text(die.type.abbr)
+                            .font(Font.gameUI(size: 9 * dieScale))
+                        Text("\(die.value)")
+                            .font(Font.gameScore(size: 14 * dieScale))
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: scaledSize, height: scaledSize)
+                    .background(die.type.color)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5), lineWidth: isSelected ? 3 : 1.5)
+                    )
+                }
             }
         }
         .matchedGeometryEffect(
@@ -931,6 +944,169 @@ struct PotionShopDieButtonView: View {
         .disabled(gs.isAnimating)
     }
 }
+
+// MARK: - Kalma Dice (Day 2 Round 2 only)
+//
+// REAL 3D cube (SceneKit) spinning around the X axis like a slot-machine reel.
+// Multiple revolutions, motion blur on the camera during the fast phase, then
+// decelerates and lands so `die.value` is up. Settles with a scale bounce.
+//
+// Faces are pre-rendered to match the existing 2D dice aesthetic: each face
+// is the die-type color with the value number stamped in white. The cube
+// keeps its 3D volume throughout the rotation (never goes flat).
+
+struct KalmaDieFaceView: View {
+    let die: PotionShopDie
+    let isSelected: Bool
+    let size: CGFloat
+    let fontSize: CGFloat
+    let dieScale: Double
+
+    var body: some View {
+        KalmaDieSceneView(
+            targetFace: die.value,
+            dieColor: UIColor(die.type.color)
+        )
+        .frame(width: size, height: size)
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5),
+                        lineWidth: isSelected ? 3 : 1.5)
+        )
+        // Force scene rebuild → re-trigger spin on value change.
+        .id(die.value)
+    }
+}
+
+/// SwiftUI wrapper around SCNView.
+struct KalmaDieSceneView: UIViewRepresentable {
+    let targetFace: Int
+    let dieColor: UIColor
+
+    func makeUIView(context: Context) -> SCNView {
+        let view = SCNView()
+        view.backgroundColor = .clear
+        view.isOpaque = false
+        view.allowsCameraControl = false
+        view.autoenablesDefaultLighting = false
+        view.antialiasingMode = .multisampling4X
+        view.scene = buildScene()
+        return view
+    }
+
+    func updateUIView(_ uiView: SCNView, context: Context) { }
+
+    private func buildScene() -> SCNScene {
+        let scene = SCNScene()
+
+        // Camera with motion blur
+        let camera = SCNCamera()
+        camera.fieldOfView = 32
+        camera.motionBlurIntensity = 1.0
+        let cameraNode = SCNNode()
+        cameraNode.camera = camera
+        cameraNode.position = SCNVector3(0, 0, 3.4)
+        scene.rootNode.addChildNode(cameraNode)
+
+        // Lighting: bright omni from above-right + ambient fill so the cube
+        // edges read clearly during rotation
+        let key = SCNLight()
+        key.type = .omni
+        key.intensity = 1100
+        let keyNode = SCNNode()
+        keyNode.light = key
+        keyNode.position = SCNVector3(2, 4, 4)
+        scene.rootNode.addChildNode(keyNode)
+
+        let ambient = SCNLight()
+        ambient.type = .ambient
+        ambient.intensity = 600
+        let ambientNode = SCNNode()
+        ambientNode.light = ambient
+        scene.rootNode.addChildNode(ambientNode)
+
+        // Cube with rounded edges so it reads as a die, not a generic block
+        let box = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.12)
+
+        // Material order: [front (+Z), right (+X), back (-Z), left (-X), top (+Y), bottom (-Y)]
+        // We put `targetFace` at the FRONT slot so a pure multiple-of-360° X-axis
+        // spin lands the target value facing the camera with zero settle math.
+        // Remaining values fill the other 5 slots — they only flash during the spin.
+        var remaining = [1, 2, 3, 4, 5, 6].filter { $0 != targetFace }
+        let faceOrder = [targetFace] + remaining   // [front, right, back, left, top, bottom]
+        box.materials = faceOrder.map { face in
+            let mat = SCNMaterial()
+            mat.diffuse.contents = renderFaceTexture(value: face)
+            mat.locksAmbientWithDiffuse = true
+            return mat
+        }
+
+        let dieNode = SCNNode(geometry: box)
+        scene.rootNode.addChildNode(dieNode)
+
+        runSlotSpin(on: dieNode)
+        return scene
+    }
+
+    /// Each face texture: colored die background + large white number.
+    /// Matches the existing 2D dice aesthetic so the cube reads as "the same die."
+    private func renderFaceTexture(value: Int) -> UIImage {
+        let s: CGFloat = 256
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: s, height: s))
+        return renderer.image { ctx in
+            let cg = ctx.cgContext
+
+            // Colored background fill
+            dieColor.setFill()
+            cg.fill(CGRect(x: 0, y: 0, width: s, height: s))
+
+            // Subtle inner border for definition
+            cg.setStrokeColor(UIColor.white.withAlphaComponent(0.6).cgColor)
+            cg.setLineWidth(6)
+            cg.stroke(CGRect(x: 8, y: 8, width: s - 16, height: s - 16))
+
+            // Large white number stamp
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 160, weight: .heavy),
+                .foregroundColor: UIColor.white,
+                .strokeColor: UIColor.black.withAlphaComponent(0.55),
+                .strokeWidth: -4.0
+            ]
+            let str = NSAttributedString(string: "\(value)", attributes: attrs)
+            let textSize = str.size()
+            let rect = CGRect(
+                x: (s - textSize.width) / 2,
+                y: (s - textSize.height) / 2,
+                width: textSize.width,
+                height: textSize.height
+            )
+            str.draw(in: rect)
+        }
+    }
+
+    /// Slot-machine spin: X-axis only, exact multiple of 360° so the cube ends
+    /// in the same orientation it started (front face → camera). Since `targetFace`
+    /// is assigned to the front material slot, it lands visible. Scale bounce at end.
+    private func runSlotSpin(on node: SCNNode) {
+        let spin = SCNAction.rotateBy(
+            x: CGFloat.pi * 10,    // 5 full vertical revolutions (multiple of 360°)
+            y: 0,
+            z: 0,
+            duration: 0.85
+        )
+        spin.timingMode = .easeOut
+
+        let bounceUp = SCNAction.scale(to: 1.10, duration: 0.07)
+        bounceUp.timingMode = .easeOut
+        let bounceDown = SCNAction.scale(to: 0.96, duration: 0.07)
+        bounceDown.timingMode = .easeInEaseOut
+        let rest = SCNAction.scale(to: 1.0, duration: 0.06)
+        rest.timingMode = .easeOut
+
+        node.runAction(SCNAction.sequence([spin, bounceUp, bounceDown, rest]))
+    }
+}
+
 // MARK: - Node Connection Lines
 //
 // Draws lines connecting nodes based on PotionShopBoard.edges topology.

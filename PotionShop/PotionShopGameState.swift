@@ -233,6 +233,14 @@ class PotionShopGameState {
         return round.useFeetAnchor
     }
 
+    /// True ONLY for Day 2 Round 2 (June 8, 2026). When set, dice in the
+    /// tray render with a vertical reel-spin animation (Kalma-style) instead
+    /// of the standard static face. Scoped so other rounds are untouched.
+    /// Round 2 in non-flex days = roundIndex 1 (afternoon).
+    var currentRoundUsesKalmaDice: Bool {
+        !isFlexDay && dayId == "day_2" && roundIndex == 1
+    }
+
     /// True if the current round draws from a random pool (Day 3 R2 today —
     /// June 3, 2026). Used to selectively re-enable the HP badge inside
     /// feet-anchor mode while keeping the attack badge hidden.

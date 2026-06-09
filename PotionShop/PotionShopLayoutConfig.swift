@@ -814,7 +814,7 @@ class PotionShopLayoutConfig {
     /// Fixed X-fraction of scene width for each slot in feet-anchor mode.
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
-    var autoLayoutSlotXFractionActive: Double = 0.5052305036783219
+    var autoLayoutSlotXFractionActive: Double = 0.5004964616894723
     var autoLayoutSlotXFractionWaiting1: Double = 0.6925974673032761
     var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
@@ -1316,8 +1316,11 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 1, height: .medium,    width: .skinny, size: nil,                x: -11.808496713638306,  y: -33.33332538604736)
         bakeHpSlot(slot: 1, height: .medium,    width: .wide,   size: nil,                x: -38.93616199493408,   y: nil)
         bakeHpSlot(slot: 1, height: .short,     width: .wide,   size: nil,                x: -14.734035730361938,  y: -72.2517728805542)
+        bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: nil,               x: -22.180867195129395,  y: -42.10991859436035)
         bakeHpSlot(slot: 2, height: .floater,   width: .medium, size: 61.12943232059479,  x: -43.19148659706116,   y: -52.127647399902344)
+        bakeHpSlot(slot: 2, height: .medium,    width: .skinny, size: nil,                x: -26.17020606994629,   y: -33.33332538604736)
         bakeHpSlot(slot: 2, height: .short,     width: .wide,   size: 53.070925772190094, x: -32.819151878356934,  y: -66.22340679168701)
+        bakeHpSlot(slot: 2, height: .superShort, width: .medium, size: nil,               x: -15.797889232635498,  y: -39.98225927352905)
         bakeHpSlot(slot: 2, height: .tall,      width: .medium, size: nil,                x: -30.851072072982788,  y: 5.939722061157227)
         bakeHpSlot(slot: 2, height: .tall,      width: .wide,   size: nil,                x: -45.7446813583374,    y: nil)
         bakeHpSlot(slot: 2, height: .tallHat,   width: .medium, size: 61.767733693122864, x: 43.08511018753052,    y: 31.11701011657715)
