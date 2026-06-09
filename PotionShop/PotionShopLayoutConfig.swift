@@ -667,6 +667,12 @@ class PotionShopLayoutConfig {
 
     var bucketHpBadgeOverrides: [BucketKeyHW: BucketHpBadgeCell] = [:]
 
+    /// Per-slot HP badge overrides (June 3, 2026 — added on top of HxW base).
+    /// Takes precedence over `bucketHpBadgeOverrides` field-by-field when set.
+    /// Use this when a specific (slot, height, width) needs a different
+    /// position/size than the shared HxW base.
+    var bucketHpBadgeSlotOverrides: [BucketCellKey: BucketHpBadgeCell] = [:]
+
     func bucketHpBadgeKey(height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketKeyHW {
         BucketKeyHW(heightRaw: String(describing: height), widthRaw: String(describing: width))
     }
@@ -675,6 +681,12 @@ class PotionShopLayoutConfig {
         bucketHpBadgeOverrides[bucketHpBadgeKey(height: height, width: width)] ?? BucketHpBadgeCell()
     }
 
+    /// Read the per-slot HP badge override cell. Returns all-nil cell if none set.
+    func bucketHpBadgeSlotCell(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketHpBadgeCell {
+        bucketHpBadgeSlotOverrides[bucketCellKey(slot: slot, height: height, width: width)] ?? BucketHpBadgeCell()
+    }
+
+    // Shared HxW setters
     func setHpBadgeCellSize(height: CustomerHeightBucket, width: CustomerWidthBucket, size: Double) {
         let key = bucketHpBadgeKey(height: height, width: width)
         var cell = bucketHpBadgeOverrides[key] ?? BucketHpBadgeCell()
@@ -694,21 +706,53 @@ class PotionShopLayoutConfig {
         bucketHpBadgeOverrides[key] = cell
     }
 
-    /// Resolved HP badge SIZE for the (height, width) cell. Falls back to
-    /// legacy per-bucket hpBadgeSize (using slot for the legacy lookup only).
+    // Per-slot setters — writes to bucketHpBadgeSlotOverrides which takes
+    // precedence over the HxW base at resolve time.
+    func setHpBadgeSlotCellSize(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, size: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketHpBadgeSlotOverrides[key] ?? BucketHpBadgeCell()
+        cell.size = size
+        bucketHpBadgeSlotOverrides[key] = cell
+    }
+    func setHpBadgeSlotCellX(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, x: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketHpBadgeSlotOverrides[key] ?? BucketHpBadgeCell()
+        cell.x = x
+        bucketHpBadgeSlotOverrides[key] = cell
+    }
+    func setHpBadgeSlotCellY(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, y: Double) {
+        let key = bucketCellKey(slot: slot, height: height, width: width)
+        var cell = bucketHpBadgeSlotOverrides[key] ?? BucketHpBadgeCell()
+        cell.y = y
+        bucketHpBadgeSlotOverrides[key] = cell
+    }
+
+    /// Resolved HP badge SIZE. Lookup order:
+    ///   1. per-slot override (bucketHpBadgeSlotOverrides[slot · H · W])
+    ///   2. shared HxW override (bucketHpBadgeOverrides[H · W])
+    ///   3. legacy per-bucket hpBadgeSize value
     func resolvedHpBadgeSize(height: CustomerHeightBucket, width: CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Double {
+        if let s = bucketHpBadgeSlotCell(slot: slotForLegacy, height: height, width: width).size {
+            return s
+        }
         if let s = bucketHpBadgeCell(height: height, width: width).size {
             return s
         }
         return hpBadgeSize(for: characterId, queueSlot: slotForLegacy)
     }
     func resolvedHpBadgeX(height: CustomerHeightBucket, width: CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Double {
+        if let x = bucketHpBadgeSlotCell(slot: slotForLegacy, height: height, width: width).x {
+            return x
+        }
         if let x = bucketHpBadgeCell(height: height, width: width).x {
             return x
         }
         return hpBadgeOffsetX(for: characterId, queueSlot: slotForLegacy)
     }
     func resolvedHpBadgeY(height: CustomerHeightBucket, width: CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Double {
+        if let y = bucketHpBadgeSlotCell(slot: slotForLegacy, height: height, width: width).y {
+            return y
+        }
         if let y = bucketHpBadgeCell(height: height, width: width).y {
             return y
         }
@@ -788,6 +832,12 @@ class PotionShopLayoutConfig {
     /// is currently in. nil = no char selected → editor shows full grid view.
     /// Set when the user taps a customer in the scene with the editor open.
     var selectedSlotIndex: Int? = nil
+
+    /// Editor toggle: when ON, HP badge sliders write to the slot-specific
+    /// override dict (takes precedence over HxW shared). When OFF, sliders
+    /// write to the shared HxW dict (affects all 3 slots). Transient editor
+    /// state — does not persist across launches.
+    var editHpBadgePerSlot: Bool = false
 
     /// True while the Layout Editor overlay is showing. Gates tap-to-select
     /// so normal gameplay isn't affected. Set to false when overlay closes.
@@ -1251,10 +1301,26 @@ class PotionShopLayoutConfig {
         bakeHp(height: .superShort, width: .medium, size: nil,                 x: -59.94681715965271,   y: -32.180845737457275)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
-        bakeHp(height: .medium,     width: .wide,   size: nil,                 x: -13.93616795539856,   y: -18.794310092926025)
+        bakeHp(height: .medium,     width: .medium, size: nil,                 x: -49.574464559555054,  y: -18.794310092926025)
+        bakeHp(height: .medium,     width: .wide,   size: nil,                 x: -44.78724002838135,   y: -18.794310092926025)
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
+        bakeHp(height: .tall,       width: .medium, size: nil,                 x: -25.000011920928955,  y: 6.6489458084106445)
         bakeHp(height: .tall,       width: .wide,   size: 52.193264067173004,  x: -63.297879695892334,  y: -16.046106815338135)
         bakeHp(height: .tallHat,    width: .medium, size: 59.852840304374695,  x: 18.085098266601562,   y: 7.003545761108398)
+        bakeHp(height: .floater,    width: .medium, size: nil,                 x: -41.063833236694336,  y: -45.39005756378174)
+
+        // ─── HP badge per-SLOT overrides (June 3-4, 2026) ──────────
+        // Slot-specific deltas — win over shared HxW field-by-field at resolve time.
+        bakeHpSlot(slot: 0, height: .medium,    width: .wide,   size: nil,                x: -39.46809768676758,   y: nil)
+        bakeHpSlot(slot: 0, height: .tallHat,   width: .medium, size: nil,                x: -40.42553901672363,   y: 25.08864402770996)
+        bakeHpSlot(slot: 1, height: .medium,    width: .skinny, size: nil,                x: -11.808496713638306,  y: -33.33332538604736)
+        bakeHpSlot(slot: 1, height: .medium,    width: .wide,   size: nil,                x: -38.93616199493408,   y: nil)
+        bakeHpSlot(slot: 1, height: .short,     width: .wide,   size: nil,                x: -14.734035730361938,  y: -72.2517728805542)
+        bakeHpSlot(slot: 2, height: .floater,   width: .medium, size: 61.12943232059479,  x: -43.19148659706116,   y: -52.127647399902344)
+        bakeHpSlot(slot: 2, height: .short,     width: .wide,   size: 53.070925772190094, x: -32.819151878356934,  y: -66.22340679168701)
+        bakeHpSlot(slot: 2, height: .tall,      width: .medium, size: nil,                x: -30.851072072982788,  y: 5.939722061157227)
+        bakeHpSlot(slot: 2, height: .tall,      width: .wide,   size: nil,                x: -45.7446813583374,    y: nil)
+        bakeHpSlot(slot: 2, height: .tallHat,   width: .medium, size: 61.767733693122864, x: 43.08511018753052,    y: 31.11701011657715)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to
@@ -1269,6 +1335,21 @@ class PotionShopLayoutConfig {
         if let xv = x { cell.x = xv }
         if let yv = y { cell.y = yv }
         bucketHpBadgeOverrides[bucketHpBadgeKey(height: height, width: width)] = cell
+    }
+
+    /// Per-slot HP badge override seeder. Nil fields stay unset → inherit
+    /// from the shared HxW dict, then from the legacy per-bucket value.
+    private func bakeHpSlot(slot: Int,
+                            height: CustomerHeightBucket,
+                            width: CustomerWidthBucket,
+                            size: Double?,
+                            x: Double?,
+                            y: Double?) {
+        var cell = bucketHpBadgeSlotCell(slot: slot, height: height, width: width)
+        if let s = size { cell.size = s }
+        if let xv = x { cell.x = xv }
+        if let yv = y { cell.y = yv }
+        bucketHpBadgeSlotOverrides[bucketCellKey(slot: slot, height: height, width: width)] = cell
     }
 
     /// Helper used by applyTunedCharacterScales() to seed a per-cell override.

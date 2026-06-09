@@ -456,6 +456,21 @@ struct PotionShopDebugMenu: View {
         return lines.sorted().joined(separator: "\n")
     }
 
+    /// HP badge per-SLOT overrides (slot × height × width). These win over
+    /// the shared HxW dict field-by-field at resolve time.
+    private func formatHpBadgeSlotOverrides(_ overrides: [PotionShopLayoutConfig.BucketCellKey: PotionShopLayoutConfig.BucketHpBadgeCell]) -> String {
+        if overrides.isEmpty { return "(none set yet)" }
+        var lines: [String] = []
+        for (key, cell) in overrides {
+            var line = "  [\(key.slot) · \(key.heightRaw) · \(key.widthRaw)]"
+            if let s = cell.size { line += " size=\(s)" }
+            if let x = cell.x    { line += " x=\(x)" }
+            if let y = cell.y    { line += " y=\(y)" }
+            lines.append(line)
+        }
+        return lines.sorted().joined(separator: "\n")
+    }
+
     /// Formats the live RAM row, including a delta vs the pre-purge snapshot
     /// when one exists. Result looks like: "287 MB  (▼ 41 MB from purge)".
     private func ramRowText() -> String {
@@ -895,6 +910,9 @@ struct PotionShopDebugMenu: View {
 
         HP badge per-cell overrides (height × width, sparse — June 3, 2026):
         \(formatHpBadgeOverrides(cfg.bucketHpBadgeOverrides))
+
+        HP badge per-slot overrides (slot × height × width, sparse — wins over HxW):
+        \(formatHpBadgeSlotOverrides(cfg.bucketHpBadgeSlotOverrides))
 
         """
 

@@ -1871,37 +1871,73 @@ struct PotionShopLayoutOverlay: View {
                 .foregroundColor(.green.opacity(0.8))
             sliderRow("Matrix size", value: bucketSizeBinding(slotIdx: slotIdx, bucket: bucket), range: 0.3...2.0, format: "%.3f")
 
-            // HP badge cell (June 3, 2026) — keyed by (height × width) only,
-            // since HP badge is head-anchored and inherits per-slot scale at render time.
-            Text("HP Badge (\(bucketName) · \(widthName))")
+            // HP badge cell (June 3, 2026) — keyed by (height × width) base,
+            // with optional per-slot override layered on top. Toggle below
+            // controls which dict the sliders write into.
+            let hpHeaderSuffix = layoutConfig.editHpBadgePerSlot
+                ? "(slot \(slotIdx) override)"
+                : "(shared HxW)"
+            Text("HP Badge \(hpHeaderSuffix) — \(bucketName) · \(widthName)")
                 .font(.caption2.bold())
                 .foregroundColor(.red)
-            Text("Override for THIS H×W combo (shared across slots). Default = legacy per-bucket HP values.")
+            Toggle(isOn: Binding(
+                get: { layoutConfig.editHpBadgePerSlot },
+                set: { layoutConfig.editHpBadgePerSlot = $0 }
+            )) {
+                Text("Override for slot \(slotIdx) only")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .tint(.red)
+            Text(layoutConfig.editHpBadgePerSlot
+                 ? "Sliders write to (slot \(slotIdx) · H×W) override — wins over shared HxW."
+                 : "Sliders write to shared HxW (affects all 3 slots).")
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.7))
-            sliderRow("HP size", value: hpBadgeSizeBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: 10...100, format: "%.0f pt")
-            sliderRow("HP X",    value: hpBadgeXBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: -300...300, format: "%.0f pt")
-            sliderRow("HP Y",    value: hpBadgeYBinding(height: bucket, width: widthBucket, characterId: selectedKey, slotForLegacy: slotIdx), range: -200...200, format: "%.0f pt")
+            sliderRow("HP size", value: hpBadgeSizeBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: 10...100, format: "%.0f pt")
+            sliderRow("HP X",    value: hpBadgeXBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -300...300, format: "%.0f pt")
+            sliderRow("HP Y",    value: hpBadgeYBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -200...200, format: "%.0f pt")
         }
     }
 
-    // Per-cell HP badge bindings — read/write into bucketHpBadgeOverrides (HxW only).
-    private func hpBadgeSizeBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+    // Per-cell HP badge bindings — read resolves up the chain (slot → HxW →
+    // legacy). Write target depends on layoutConfig.editHpBadgePerSlot:
+    //   OFF → shared HxW dict (bucketHpBadgeOverrides)
+    //   ON  → per-slot dict (bucketHpBadgeSlotOverrides)
+    private func hpBadgeSizeBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String) -> Binding<Double> {
         Binding(
-            get: { layoutConfig.resolvedHpBadgeSize(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
-            set: { layoutConfig.setHpBadgeCellSize(height: height, width: width, size: $0) }
+            get: { layoutConfig.resolvedHpBadgeSize(height: height, width: width, characterId: characterId, slotForLegacy: slot) },
+            set: {
+                if layoutConfig.editHpBadgePerSlot {
+                    layoutConfig.setHpBadgeSlotCellSize(slot: slot, height: height, width: width, size: $0)
+                } else {
+                    layoutConfig.setHpBadgeCellSize(height: height, width: width, size: $0)
+                }
+            }
         )
     }
-    private func hpBadgeXBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+    private func hpBadgeXBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String) -> Binding<Double> {
         Binding(
-            get: { layoutConfig.resolvedHpBadgeX(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
-            set: { layoutConfig.setHpBadgeCellX(height: height, width: width, x: $0) }
+            get: { layoutConfig.resolvedHpBadgeX(height: height, width: width, characterId: characterId, slotForLegacy: slot) },
+            set: {
+                if layoutConfig.editHpBadgePerSlot {
+                    layoutConfig.setHpBadgeSlotCellX(slot: slot, height: height, width: width, x: $0)
+                } else {
+                    layoutConfig.setHpBadgeCellX(height: height, width: width, x: $0)
+                }
+            }
         )
     }
-    private func hpBadgeYBinding(height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String, slotForLegacy: Int) -> Binding<Double> {
+    private func hpBadgeYBinding(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, characterId: String) -> Binding<Double> {
         Binding(
-            get: { layoutConfig.resolvedHpBadgeY(height: height, width: width, characterId: characterId, slotForLegacy: slotForLegacy) },
-            set: { layoutConfig.setHpBadgeCellY(height: height, width: width, y: $0) }
+            get: { layoutConfig.resolvedHpBadgeY(height: height, width: width, characterId: characterId, slotForLegacy: slot) },
+            set: {
+                if layoutConfig.editHpBadgePerSlot {
+                    layoutConfig.setHpBadgeSlotCellY(slot: slot, height: height, width: width, y: $0)
+                } else {
+                    layoutConfig.setHpBadgeCellY(height: height, width: width, y: $0)
+                }
+            }
         )
     }
 
