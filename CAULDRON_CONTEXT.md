@@ -1372,9 +1372,61 @@ A REAL 3D cube rendered via SceneKit replaces the static dice in the tray for Da
 
 **Random face per spin:** `@State var randomTargetFace: Int = Int.random(in: 1...6)` on `DieFaceView3D`, updated via `.onChange(of: spinToken)` and `.onChange(of: die.value)` using a `pickDifferentFace(from:)` helper that guarantees the new face differs from the previous one. Currently uniform; will swap for a weighted/real-value selector once gameplay needs it.
 
-**3D Dice Test SPIN button:** when the editor toggle `gs.show3DTestSpinButton` is ON AND `gs.currentRoundUses3DDice` is true, a floating orange "🎲 SPIN" button appears in the top-right of the main screen. Tapping it increments `gs.spinTrigger3D` → onChange fires → all 5 dice independently re-roll and replay the spin animation. Toggle lives in the editor's `.dice` section.
+**3D Dice Test SPIN button:** when the editor toggle `gs.show3DTestSpinButton` is ON AND `gs.currentRoundUses3DDice` is true, a floating orange "🎲 SPIN" button appears in the top-right of the main screen. Tapping it increments `gs.spinTrigger3D` → onChange fires → all 5 dice independently re-roll and replay the spin animation. Toggle lives in the editor's `.dice` section. **Rendered on top of the layout editor overlay** (ZStack order) so it stays tappable while you're tuning. Additionally, an inline "🎲 Reset Spin Now" button lives in the same `.dice` section of the layout editor as a direct trigger.
 
-### 26.9 Future plans saved as project memories (NOT IMPLEMENTED)
+### 26.9 Animation iterations — `runSlotSpin` evolution (June 8–10)
+
+The spin animation went through several iterations as the user (an animator) refined timing/feel. Revert points are tagged git commits.
+
+**Iteration 1 (`fc8d23a`):** Slot-machine X-axis spin only (no drop). Per-die stagger 40ms × index. Scale bounce settle.
+
+**Iteration 3 (`5690df0`):** Added a drop phase before the spin. Drop height in scene units, impact bounce (Y up + Y down), THEN spin, THEN Y-overshoot settle (replaces the iter-1 scale bounce). Stagger removed (all dice sync).
+
+**Iteration 4 (`d7145dd`):** Drop and spin run IN PARALLEL via `SCNAction.group`. Spin lags drop by `spinJoinDelay = 0.06s`. Impact bounce removed — overlap is energetic enough. Total ~1.14s.
+
+**Iteration 5 (`9c9219e`, "DROP THEN SPIN"):** Back to fully sequential. Adds OVERSHOOT + BOUNCE UP + BOUNCE DOWN between drop and spin. Drop is taller (height 0.99 user-tuned) and faster (0.13s). Total ~1.48s.
+
+**Iteration 6 (uncommitted, "DROP AND SPIN TOGETHER"):** Drop runs alone first. Then bounce-sequence (overshoot + bounce up + bounce down) runs IN PARALLEL with the spin. Spin starts at `dropDuration + spinStartDelay` (~0.14s by default). New knob: `spinStartDelay`. Total ~1.22s.
+
+**Iteration 7 (current, "viewport drop semantics"):** Changes the MEANING of `dropHeight`. Previously: absolute scene Y coordinate where the cube starts. Now: "distance the cube's BOTTOM starts above the window's top edge" — intuitive for an animator. Internally:
+```swift
+let visibleTopY: CGFloat = 0.71      // camera-derived: cameraZ × tan(FOV/2)
+let cubeHalfHeight: CGFloat = 0.5
+let startY = visibleTopY + cubeHalfHeight + dropHeight
+node.position = SCNVector3(0, Float(startY), 0)
+let drop = SCNAction.moveBy(x: 0, y: -startY, z: 0, duration: dropDuration)
+```
+- `dropHeight = 0` → cube starts JUST off-screen (bottom edge touching window top)
+- `dropHeight = 5` → cube starts 5 scene units above the window top edge — long invisible fall, fast entry
+- **Caveat:** if the camera changes (FOV or Z), update `visibleTopY` to match: `visibleTopY = cameraZ × tan(FOV/2 in radians)`.
+
+**All tuning knobs (current state, top of `runSlotSpin`):**
+| Knob | Value | Meaning |
+|---|---|---|
+| `dropHeight` | 0.99 | off-screen distance above window top |
+| `dropDuration` | 0.13 | how fast the fall is |
+| `dropOvershootY` | 0.07 | how far PAST Y=0 the drop sinks (momentum) |
+| `overshootDuration` | 0.09 | hit-the-floor compression time |
+| `bounceUpY` | 0.04 | how high above Y=0 the bounce peaks |
+| `bounceUpDuration` | 0.10 | spring-up time |
+| `bounceDownDuration` | 0.08 | settle-down time after bounce |
+| `spinDuration` | 0.85 | X-axis spin length |
+| `spinStartDelay` | 0.0 | wait after drop ends before spin starts |
+| `settleOvershoot` | 0.12 | post-spin Y sink depth |
+| `settleDownDuration` | 0.09 | post-spin hit-floor time |
+| `settleUpDuration` | 0.14 | post-spin rebound time |
+
+Plus `DieFaceView3D.spinStaggerStep` (currently 0) — per-die start delay (die N waits `N × stagger` before its sequence starts). Used for left-to-right cascade.
+
+### 26.10 Camera framing notes (June 10)
+
+The cube's screen size depends on `camera.fieldOfView` and `cameraNode.position.z`. Set this ONCE for the visual you want, then animate within it — don't iterate between camera and animation values.
+
+- Current: FOV 42°, Z 1.85 → cube fills ~95% of bounding square, visible Y range ±0.71
+- Wider FOV or larger Z → smaller cube, larger visible region (taller drops fit)
+- Camera Y offset → shifts cube within the bounding square (NOT used — reverted; user preferred the viewport-aware `dropHeight` approach instead)
+
+### 26.11 Future plans saved as project memories (NOT IMPLEMENTED)
 
 These are pending designs locked-in during planning conversations but not yet built. Each has a dedicated memory file in the project's auto-memory store:
 

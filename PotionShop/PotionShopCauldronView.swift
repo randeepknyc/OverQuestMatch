@@ -961,7 +961,7 @@ struct DieFaceView3D: View {
     /// Per-die index stagger — die N starts spinning N × this many seconds after die 0.
     /// Iteration 2 (June 10): set to 0 so all dice drop / bounce / roll in sync.
     /// Bump back to 0.04 (or higher) to bring back the slot-machine cascade feel.
-    static let spinStaggerStep: Double = 0.0    // simultaneous start across all dice
+    static let spinStaggerStep: Double = 0.06    // simultaneous start across all dice
 
     let die: PotionShopDie
     let isSelected: Bool
@@ -1156,8 +1156,13 @@ struct DieSceneView3D: UIViewRepresentable {
     ///   1.22 → SETTLE UP ends (Y=0) — done
     private func runSlotSpin(on node: SCNNode) {
         // ── Tuning knobs ─────────────────────────────────────────
-        let dropHeight: CGFloat = 5.50        // tall drop (user-tuned)
-        let dropDuration: Double = 0.13       // fast plop
+        // `dropHeight` is now measured as "how far above the window's top edge
+        // the cube's BOTTOM starts." With dropHeight=0 the cube starts JUST
+        // off-screen (no overlap with the viewport). Larger values mean the
+        // cube starts further off-screen above — longer invisible fall, faster
+        // entry into frame at impact.
+        let dropHeight: CGFloat = 0.99        // off-screen distance above the window
+        let dropDuration: Double = 0.26
         let dropOvershootY: CGFloat = 0.07    // how far PAST Y=0 the drop sinks
         let overshootDuration: Double = 0.09
         let bounceUpY: CGFloat = 0.04         // how high above Y=0 the bounce peaks
@@ -1171,11 +1176,21 @@ struct DieSceneView3D: UIViewRepresentable {
         let settleUpDuration: Double = 0.14
         // ─────────────────────────────────────────────────────────
 
-        // Lift the cube to its drop-start position BEFORE the action plays.
-        node.position = SCNVector3(0, Float(dropHeight), 0)
+        // ── Convert dropHeight (off-screen distance) → actual scene Y ──
+        // Derived from camera: visibleHalfHeight = cameraZ * tan(FOV/2).
+        // With camera at z=1.85 and FOV 42°: ~0.71.
+        // Cube is 1.0 tall, so cube's CENTER must be 0.5 above the window edge
+        // for the bottom to JUST touch the edge.
+        // If you change the camera (z or FOV), update visibleTopY accordingly.
+        let visibleTopY: CGFloat = 0.71
+        let cubeHalfHeight: CGFloat = 0.5
+        let startY: CGFloat = visibleTopY + cubeHalfHeight + dropHeight
 
-        // 1. DROP — runs alone first
-        let drop = SCNAction.moveBy(x: 0, y: -dropHeight, z: 0, duration: dropDuration)
+        // Lift the cube to its drop-start position BEFORE the action plays.
+        node.position = SCNVector3(0, Float(startY), 0)
+
+        // 1. DROP — runs alone first (falls all the way from startY to Y=0)
+        let drop = SCNAction.moveBy(x: 0, y: -startY, z: 0, duration: dropDuration)
         drop.timingMode = .easeIn
 
         // 2. OVERSHOOT, 3. BOUNCE UP, 4. BOUNCE DOWN — group together as one sequence
