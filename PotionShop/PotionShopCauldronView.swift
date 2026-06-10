@@ -1137,30 +1137,35 @@ struct DieSceneView3D: UIViewRepresentable {
         }
     }
 
-    /// Sequential: tall slow drop → overshoot past floor → bounce up & back →
-    /// spin → Y settle (iteration 5, June 10).
+    /// "Drop AND spin together" (iteration 6, June 10).
     ///
-    /// Phases (run one after another — no parallel group):
-    ///   1. DROP — gravity ease-in to Y=0 (slower & higher than iter 4)
-    ///   2. DROP OVERSHOOT — momentum carries past Y=0 (cube sinks into floor)
-    ///   3. BOUNCE UP — springs back ABOVE Y=0 briefly
-    ///   4. BOUNCE DOWN — settles to Y=0
-    ///   5. SPIN — 5 full X-axis revolutions, ease-out
-    ///   6. POST-SPIN SETTLE — Y overshoot DOWN, spring back to Y=0
+    /// Drop runs alone first. Once the drop lands, the bounce phases
+    /// (overshoot → bounce up → bounce down) run IN PARALLEL with the spin —
+    /// so the cube is rolling while it's still settling vertically. Spin
+    /// starts `spinStartDelay` seconds after the drop ends.
     ///
-    /// If this rhythm reads well, next step is to add a per-die stagger
-    /// (currently 0 — all dice in lockstep).
+    /// Timeline (current values):
+    ///   0.00 → DROP starts
+    ///   0.13 → DROP ends → bounce sequence + spin start in parallel
+    ///   0.14 → SPIN starts (= dropDuration + spinStartDelay)
+    ///   0.22 → OVERSHOOT ends (cube at Y=-0.07, still spinning)
+    ///   0.32 → BOUNCE UP peak (Y=+0.04, still spinning)
+    ///   0.40 → BOUNCE DOWN ends (Y=0, still spinning)
+    ///   0.99 → SPIN ends
+    ///   1.08 → SETTLE DOWN ends (Y=-0.12)
+    ///   1.22 → SETTLE UP ends (Y=0) — done
     private func runSlotSpin(on node: SCNNode) {
         // ── Tuning knobs ─────────────────────────────────────────
-        let dropHeight: CGFloat = 0.99        // tall drop (user-tuned)
-        let dropDuration: Double = 0.13       // slower so the fall is felt
+        let dropHeight: CGFloat = 5.50        // tall drop (user-tuned)
+        let dropDuration: Double = 0.13       // fast plop
         let dropOvershootY: CGFloat = 0.07    // how far PAST Y=0 the drop sinks
-        let overshootDuration: Double = 0.09  // hit-the-floor compression
+        let overshootDuration: Double = 0.09
         let bounceUpY: CGFloat = 0.04         // how high above Y=0 the bounce peaks
         let bounceUpDuration: Double = 0.10
         let bounceDownDuration: Double = 0.08
         let spinDuration: Double = 0.85
-        // Post-spin settle (kept from iter 4 — separate from the drop bounce).
+        let spinStartDelay: Double = 0.00     // spin starts this many seconds after drop ends
+        // Post-spin settle — sequential after the group.
         let settleOvershoot: CGFloat = 0.12
         let settleDownDuration: Double = 0.09
         let settleUpDuration: Double = 0.14
@@ -1169,23 +1174,24 @@ struct DieSceneView3D: UIViewRepresentable {
         // Lift the cube to its drop-start position BEFORE the action plays.
         node.position = SCNVector3(0, Float(dropHeight), 0)
 
-        // 1. DROP — gravity fall to Y=0
+        // 1. DROP — runs alone first
         let drop = SCNAction.moveBy(x: 0, y: -dropHeight, z: 0, duration: dropDuration)
         drop.timingMode = .easeIn
 
-        // 2. OVERSHOOT — momentum carries past Y=0 to Y=-dropOvershootY
+        // 2. OVERSHOOT, 3. BOUNCE UP, 4. BOUNCE DOWN — group together as one sequence
         let dropOvershoot = SCNAction.moveBy(x: 0, y: -dropOvershootY, z: 0, duration: overshootDuration)
         dropOvershoot.timingMode = .easeOut
 
-        // 3. BOUNCE UP — from Y=-overshoot to Y=+bounceUpY
         let bounceUp = SCNAction.moveBy(x: 0, y: dropOvershootY + bounceUpY, z: 0, duration: bounceUpDuration)
         bounceUp.timingMode = .easeOut
 
-        // 4. BOUNCE DOWN — from Y=+bounceUpY back to Y=0
         let bounceDown = SCNAction.moveBy(x: 0, y: -bounceUpY, z: 0, duration: bounceDownDuration)
         bounceDown.timingMode = .easeInEaseOut
 
-        // 5. SPIN
+        let bounceSequence = SCNAction.sequence([dropOvershoot, bounceUp, bounceDown])
+
+        // 5. SPIN — starts spinStartDelay after the drop ends (i.e. at
+        // dropDuration + spinStartDelay = 0.14s by default).
         let spin = SCNAction.rotateBy(
             x: CGFloat.pi * 10,    // 5 full vertical revolutions (multiple of 360°)
             y: 0,
@@ -1193,8 +1199,17 @@ struct DieSceneView3D: UIViewRepresentable {
             duration: spinDuration
         )
         spin.timingMode = .easeOut
+        let spinWithLead = SCNAction.sequence([
+            SCNAction.wait(duration: spinStartDelay),
+            spin
+        ])
 
-        // 6. POST-SPIN SETTLE — Y overshoot down + spring back to Y=0
+        // Run bounce sequence AND spin in parallel. Group ends when the LATER
+        // finishes — spin (0.01 + 0.85 = 0.86s) outlasts bounces (0.27s), so the
+        // cube finishes the bounce mid-spin and keeps rotating to a settled stop.
+        let bounceAndSpin = SCNAction.group([bounceSequence, spinWithLead])
+
+        // 6. POST-SPIN SETTLE — runs sequentially after the group
         let settleDown = SCNAction.moveBy(x: 0, y: -settleOvershoot, z: 0, duration: settleDownDuration)
         settleDown.timingMode = .easeOut
         let settleUp = SCNAction.moveBy(x: 0, y: settleOvershoot, z: 0, duration: settleUpDuration)
@@ -1202,14 +1217,10 @@ struct DieSceneView3D: UIViewRepresentable {
 
         var actions: [SCNAction] = []
         // spinDelay (per-die stagger) is currently 0 — all dice in sync.
-        // Will revisit once the new drop rhythm reads well.
         if spinDelay > 0 {
             actions.append(SCNAction.wait(duration: spinDelay))
         }
-        actions.append(contentsOf: [
-            drop, dropOvershoot, bounceUp, bounceDown,
-            spin, settleDown, settleUp
-        ])
+        actions.append(contentsOf: [drop, bounceAndSpin, settleDown, settleUp])
         node.runAction(SCNAction.sequence(actions))
     }
 }
