@@ -972,9 +972,14 @@ struct DieFaceView3D: View {
     /// Bumped by the editor's test-spin button to force a re-spin without rolling.
     let spinToken: Int
 
+    /// Temporary: settled face is randomized per spin (uniform 1...6) so we can
+    /// preview each face landing. Will swap for a weighted/real-value selector
+    /// once that lookup is wired up. Re-rolls explicitly via onChange below.
+    @State private var randomTargetFace: Int = Int.random(in: 1...6)
+
     var body: some View {
         DieSceneView3D(
-            targetFace: die.value,
+            targetFace: randomTargetFace,
             dieColor: UIColor(die.type.color),
             spinDelay: DieFaceView3D.spinStaggerStep * Double(index)
         )
@@ -984,8 +989,25 @@ struct DieFaceView3D: View {
                 .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5),
                         lineWidth: isSelected ? 3 : 1.5)
         )
-        // Force scene rebuild → re-trigger spin on either value change OR test-spin tap.
-        .id("\(die.value)-\(spinToken)")
+        // Re-roll random face whenever a re-spin is requested (button tap or roll).
+        // Loop until we pick a face DIFFERENT from the current one so visual
+        // change is guaranteed on every tap (no 1-in-6 "same face" collision).
+        .onChange(of: spinToken) { _, _ in
+            randomTargetFace = pickDifferentFace(from: randomTargetFace)
+        }
+        .onChange(of: die.value) { _, _ in
+            randomTargetFace = pickDifferentFace(from: randomTargetFace)
+        }
+        // DieSceneView3D detects targetFace changes via its Coordinator and
+        // rebuilds the scene — animation replays on every change.
+    }
+
+    /// Returns a random 1...6 that's NOT `current`. Guarantees the cube lands
+    /// on a visibly different face from the previous spin.
+    private func pickDifferentFace(from current: Int) -> Int {
+        var next = Int.random(in: 1...6)
+        while next == current { next = Int.random(in: 1...6) }
+        return next
     }
 }
 
@@ -995,6 +1017,14 @@ struct DieSceneView3D: UIViewRepresentable {
     let dieColor: UIColor
     let spinDelay: Double   // seconds before this die starts spinning (per-die stagger)
 
+    /// Coordinator tracks the face the scene was last built with so updateUIView
+    /// can detect when the parent has passed a new targetFace and rebuild.
+    final class Coordinator {
+        var lastBuiltFace: Int = -1
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = .clear
@@ -1003,21 +1033,31 @@ struct DieSceneView3D: UIViewRepresentable {
         view.autoenablesDefaultLighting = false
         view.antialiasingMode = .multisampling4X
         view.scene = buildScene()
+        context.coordinator.lastBuiltFace = targetFace
         return view
     }
 
-    func updateUIView(_ uiView: SCNView, context: Context) { }
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        // Rebuild the scene (→ replay the spin animation) only when the parent
+        // has passed a new target face. This guarantees a fresh spin every time
+        // the parent picks a new random face, regardless of SwiftUI's `.id()`
+        // behavior on the wrapping view.
+        guard context.coordinator.lastBuiltFace != targetFace else { return }
+        uiView.scene = buildScene()
+        context.coordinator.lastBuiltFace = targetFace
+    }
 
     private func buildScene() -> SCNScene {
         let scene = SCNScene()
 
-        // Camera with motion blur
+        // Camera with motion blur. Closer + wider FOV so the cube fills
+        // the entire bounding square of the die's container.
         let camera = SCNCamera()
-        camera.fieldOfView = 32
+        camera.fieldOfView = 42
         camera.motionBlurIntensity = 1.0
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(0, 0, 3.4)
+        cameraNode.position = SCNVector3(0, 0, 1.85)
         scene.rootNode.addChildNode(cameraNode)
 
         // Lighting: bright omni from above-right + ambient fill so the cube
@@ -1060,24 +1100,27 @@ struct DieSceneView3D: UIViewRepresentable {
         return scene
     }
 
-    /// Each face texture: colored die background + large white number.
-    /// Matches the existing 2D dice aesthetic so the cube reads as "the same die."
+    /// Load the face texture from Assets.xcassets named `die_face_N` (N = 1...6).
+    /// Falls back to a procedurally-drawn placeholder if the asset is missing.
     private func renderFaceTexture(value: Int) -> UIImage {
+        if let custom = UIImage(named: "die_face_\(value)") {
+            return custom
+        }
+        return fallbackFaceTexture(value: value)
+    }
+
+    /// Used only when the named asset isn't found — keeps the cube from being blank.
+    private func fallbackFaceTexture(value: Int) -> UIImage {
         let s: CGFloat = 256
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: s, height: s))
         return renderer.image { ctx in
             let cg = ctx.cgContext
-
-            // Colored background fill
             dieColor.setFill()
             cg.fill(CGRect(x: 0, y: 0, width: s, height: s))
-
-            // Subtle inner border for definition
             cg.setStrokeColor(UIColor.white.withAlphaComponent(0.6).cgColor)
             cg.setLineWidth(6)
             cg.stroke(CGRect(x: 8, y: 8, width: s - 16, height: s - 16))
 
-            // Large white number stamp
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 160, weight: .heavy),
                 .foregroundColor: UIColor.white,
