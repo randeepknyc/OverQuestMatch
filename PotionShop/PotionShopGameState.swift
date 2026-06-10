@@ -234,12 +234,21 @@ class PotionShopGameState {
     }
 
     /// True ONLY for Day 2 Round 2 (June 8, 2026). When set, dice in the
-    /// tray render with a vertical reel-spin animation (Kalma-style) instead
+    /// tray render with a vertical reel-spin animation (3D-style) instead
     /// of the standard static face. Scoped so other rounds are untouched.
     /// Round 2 in non-flex days = roundIndex 1 (afternoon).
-    var currentRoundUsesKalmaDice: Bool {
+    var currentRoundUses3DDice: Bool {
         !isFlexDay && dayId == "day_2" && roundIndex == 1
     }
+
+    /// Editor-only: when true, a floating "🎲 SPIN" button appears on the
+    /// main screen for testing the 3D dice spin animation without rolling.
+    /// Only visible in Day 2 R2. Toggled from the layout editor.
+    var show3DTestSpinButton: Bool = false
+
+    /// Increments each tap of the test spin button. DieFaceView3D keys its
+    /// scene-rebuild `.id()` on this so all 5 dice replay their spin.
+    var spinTrigger3D: Int = 0
 
     /// True if the current round draws from a random pool (Day 3 R2 today —
     /// June 3, 2026). Used to selectively re-enable the HP badge inside

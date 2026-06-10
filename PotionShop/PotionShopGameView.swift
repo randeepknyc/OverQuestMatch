@@ -128,7 +128,12 @@ struct PotionShopGameView: View {
                     .allowsHitTesting(false)
 
                 phaseOverlay
-                
+
+                // 3D dice test-spin button (editor-driven, Day 2 R2 only)
+                if gs.show3DTestSpinButton && gs.currentRoundUses3DDice {
+                    testSpinFloatingButton3D
+                }
+
                 // Layout editor overlay (semi-transparent, floats over game)
                 if showLayoutOverlay {
                     PotionShopLayoutOverlay(
@@ -155,6 +160,44 @@ struct PotionShopGameView: View {
         .onReceive(purgeTimer) { _ in
             gs.purgeExpiredFloatingNumbers()
         }
+    }
+
+    // MARK: - 3D dice test-spin floating button
+
+    /// Floating "🎲 SPIN" button that lets the user replay the 3D dice
+    /// spin animation without rolling. Anchored to the top-right area of the
+    /// screen, above-but-clear-of the customer scene. Only shown when the
+    /// editor toggle is on AND the current round is Day 2 R2.
+    private var testSpinFloatingButton3D: some View {
+        VStack {
+            HStack {
+                Spacer()
+                Button(action: {
+                    gs.spinTrigger3D += 1
+                }) {
+                    HStack(spacing: 6) {
+                        Text("🎲")
+                            .font(.system(size: 18))
+                        Text("SPIN")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.orange.opacity(0.95))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.7), lineWidth: 1.5)
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                }
+                .padding(.top, 60)
+                .padding(.trailing, 14)
+            }
+            Spacer()
+        }
+        .allowsHitTesting(true)
     }
 
     // MARK: - Phase-end placeholder overlays
@@ -912,6 +955,19 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+
+                // 3D test spin (Day 2 R2 only)
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                Text("3D Dice Test (Day 2 R2)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.orange)
+                Toggle("Show floating SPIN button", isOn: $gs.show3DTestSpinButton)
+                    .toggleStyle(SwitchToggleStyle(tint: .orange))
+                    .foregroundColor(.white)
+                Text("When ON, a floating 🎲 SPIN button appears on the main screen. Tap it to replay all 5 dice spin animations without rolling. Only works in Day 2 R2.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
             }
         case .autoLayout:
             // 🎲 AUTO-LAYOUT (Day 3 RNG test) — Trimmed Jun 1, 2026 to show

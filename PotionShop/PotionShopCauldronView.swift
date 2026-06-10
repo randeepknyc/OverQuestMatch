@@ -840,16 +840,18 @@ struct PotionShopDieButtonView: View {
         let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
         let scaledFontSize = 18 * dieScale
         
-        // Day 2 Round 2 uses a vertical reel-spin animation (Kalma-style).
+        // Day 2 Round 2 uses a vertical reel-spin animation (3D-style).
         // All other rounds use the original static face render.
         Group {
-            if gs.currentRoundUsesKalmaDice {
-                KalmaDieFaceView(
+            if gs.currentRoundUses3DDice {
+                DieFaceView3D(
                     die: die,
                     isSelected: isSelected,
                     size: scaledSize,
                     fontSize: scaledFontSize,
-                    dieScale: dieScale
+                    dieScale: dieScale,
+                    index: index,
+                    spinToken: gs.spinTrigger3D
                 )
             } else {
                 // Try to load die face image, fallback to colored square
@@ -945,7 +947,7 @@ struct PotionShopDieButtonView: View {
     }
 }
 
-// MARK: - Kalma Dice (Day 2 Round 2 only)
+// MARK: - 3D Dice (Day 2 Round 2 only)
 //
 // REAL 3D cube (SceneKit) spinning around the X axis like a slot-machine reel.
 // Multiple revolutions, motion blur on the camera during the fast phase, then
@@ -955,17 +957,26 @@ struct PotionShopDieButtonView: View {
 // is the die-type color with the value number stamped in white. The cube
 // keeps its 3D volume throughout the rotation (never goes flat).
 
-struct KalmaDieFaceView: View {
+struct DieFaceView3D: View {
+    /// Per-die index stagger — die N starts spinning N × this many seconds after die 0.
+    /// Each die's spin has the same duration, so they also STOP staggered by the same offset.
+    /// Tweak this knob for the "very little" lag between dice.
+    static let spinStaggerStep: Double = 0.04   // 40 ms per die — 5 dice = 160 ms total
+
     let die: PotionShopDie
     let isSelected: Bool
     let size: CGFloat
     let fontSize: CGFloat
     let dieScale: Double
+    let index: Int
+    /// Bumped by the editor's test-spin button to force a re-spin without rolling.
+    let spinToken: Int
 
     var body: some View {
-        KalmaDieSceneView(
+        DieSceneView3D(
             targetFace: die.value,
-            dieColor: UIColor(die.type.color)
+            dieColor: UIColor(die.type.color),
+            spinDelay: DieFaceView3D.spinStaggerStep * Double(index)
         )
         .frame(width: size, height: size)
         .overlay(
@@ -973,15 +984,16 @@ struct KalmaDieFaceView: View {
                 .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5),
                         lineWidth: isSelected ? 3 : 1.5)
         )
-        // Force scene rebuild → re-trigger spin on value change.
-        .id(die.value)
+        // Force scene rebuild → re-trigger spin on either value change OR test-spin tap.
+        .id("\(die.value)-\(spinToken)")
     }
 }
 
 /// SwiftUI wrapper around SCNView.
-struct KalmaDieSceneView: UIViewRepresentable {
+struct DieSceneView3D: UIViewRepresentable {
     let targetFace: Int
     let dieColor: UIColor
+    let spinDelay: Double   // seconds before this die starts spinning (per-die stagger)
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
@@ -1087,6 +1099,9 @@ struct KalmaDieSceneView: UIViewRepresentable {
     /// Slot-machine spin: X-axis only, exact multiple of 360° so the cube ends
     /// in the same orientation it started (front face → camera). Since `targetFace`
     /// is assigned to the front material slot, it lands visible. Scale bounce at end.
+    ///
+    /// `spinDelay` shifts the whole sequence so dice fire in a slight cascade
+    /// instead of all-at-once. Same duration per die → they also stop staggered.
     private func runSlotSpin(on node: SCNNode) {
         let spin = SCNAction.rotateBy(
             x: CGFloat.pi * 10,    // 5 full vertical revolutions (multiple of 360°)
@@ -1103,7 +1118,12 @@ struct KalmaDieSceneView: UIViewRepresentable {
         let rest = SCNAction.scale(to: 1.0, duration: 0.06)
         rest.timingMode = .easeOut
 
-        node.runAction(SCNAction.sequence([spin, bounceUp, bounceDown, rest]))
+        var actions: [SCNAction] = []
+        if spinDelay > 0 {
+            actions.append(SCNAction.wait(duration: spinDelay))
+        }
+        actions.append(contentsOf: [spin, bounceUp, bounceDown, rest])
+        node.runAction(SCNAction.sequence(actions))
     }
 }
 
