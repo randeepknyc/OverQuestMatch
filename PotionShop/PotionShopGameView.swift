@@ -129,11 +129,6 @@ struct PotionShopGameView: View {
 
                 phaseOverlay
 
-                // 3D dice test-spin button (editor-driven, Day 2 R2 only)
-                if gs.show3DTestSpinButton && gs.currentRoundUses3DDice {
-                    testSpinFloatingButton3D
-                }
-
                 // Layout editor overlay (semi-transparent, floats over game)
                 if showLayoutOverlay {
                     PotionShopLayoutOverlay(
@@ -141,6 +136,13 @@ struct PotionShopGameView: View {
                         gs: gs,
                         diceFlight: diceFlight
                     )
+                }
+
+                // 3D dice test-spin button — rendered LAST so it sits ON TOP of
+                // the layout editor overlay. Stays tappable while you're tuning
+                // sliders. Still gated to Day 2 R2 + editor toggle.
+                if gs.show3DTestSpinButton && gs.currentRoundUses3DDice {
+                    testSpinFloatingButton3D
                 }
             }
         }
@@ -966,6 +968,31 @@ struct PotionShopLayoutOverlay: View {
                     .toggleStyle(SwitchToggleStyle(tint: .orange))
                     .foregroundColor(.white)
                 Text("When ON, a floating 🎲 SPIN button appears on the main screen. Tap it to replay all 5 dice spin animations without rolling. Only works in Day 2 R2.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+
+                // Direct in-editor reset (no toggle needed). Runs the full
+                // drop + spin + settle flow without leaving the editor.
+                Button {
+                    gs.spinTrigger3D += 1
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(.system(size: 14))
+                        Text("🎲 Reset Spin Now")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().fill(gs.currentRoundUses3DDice ? Color.orange : Color.gray)
+                    )
+                }
+                .disabled(!gs.currentRoundUses3DDice)
+                Text(gs.currentRoundUses3DDice
+                     ? "Replays all 5 dice spin animations right now."
+                     : "Enabled only when you're in Day 2 R2.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.7))
             }

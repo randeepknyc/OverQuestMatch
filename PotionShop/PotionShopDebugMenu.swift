@@ -121,6 +121,7 @@ struct PotionShopDebugMenu: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+
                 }
 
                 // ─── State summary ─────────────────────────────────
