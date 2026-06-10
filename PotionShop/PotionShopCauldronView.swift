@@ -959,9 +959,9 @@ struct PotionShopDieButtonView: View {
 
 struct DieFaceView3D: View {
     /// Per-die index stagger — die N starts spinning N × this many seconds after die 0.
-    /// Each die's spin has the same duration, so they also STOP staggered by the same offset.
-    /// Tweak this knob for the "very little" lag between dice.
-    static let spinStaggerStep: Double = 0.04   // 40 ms per die — 5 dice = 160 ms total
+    /// Iteration 2 (June 10): set to 0 so all dice drop / bounce / roll in sync.
+    /// Bump back to 0.04 (or higher) to bring back the slot-machine cascade feel.
+    static let spinStaggerStep: Double = 0.0    // simultaneous start across all dice
 
     let die: PotionShopDie
     let isSelected: Bool
@@ -984,11 +984,9 @@ struct DieFaceView3D: View {
             spinDelay: DieFaceView3D.spinStaggerStep * Double(index)
         )
         .frame(width: size, height: size)
-        .overlay(
-            RoundedRectangle(cornerRadius: 5)
-                .stroke(isSelected ? Color.yellow : Color.white.opacity(0.5),
-                        lineWidth: isSelected ? 3 : 1.5)
-        )
+        // Bounding-box overlay removed (June 10) — selection indicator is gone
+        // along with it. Re-introduce a stroke or glow on `isSelected` here if
+        // a selection cue is needed.
         // Re-roll random face whenever a re-spin is requested (button tap or roll).
         // Loop until we pick a face DIFFERENT from the current one so visual
         // change is guaranteed on every tap (no 1-in-6 "same face" collision).
@@ -1139,13 +1137,44 @@ struct DieSceneView3D: UIViewRepresentable {
         }
     }
 
-    /// Slot-machine spin: X-axis only, exact multiple of 360° so the cube ends
-    /// in the same orientation it started (front face → camera). Since `targetFace`
-    /// is assigned to the front material slot, it lands visible. Scale bounce at end.
+    /// Drop + bounce + slot-machine spin + Y-overshoot settle (iteration 3, June 10).
     ///
-    /// `spinDelay` shifts the whole sequence so dice fire in a slight cascade
-    /// instead of all-at-once. Same duration per die → they also stop staggered.
+    /// Sequence per die (all in sync — no stagger):
+    ///   1. Cube starts at +dropHeight Y (above resting position — taller drop now)
+    ///   2. DROP (ease-in, like gravity) to Y=0
+    ///   3. Tiny impact BOUNCE — up ~0.04, then back down to 0
+    ///   4. SPIN: 5 full X-axis revolutions, ease-out, lands face-forward
+    ///   5. SETTLE: Y overshoots DOWN past 0 (sinks into the floor briefly),
+    ///      then springs back up to 0 — gives the cube a "weighty landing" feel.
+    ///
+    /// Tweak knobs at the top of the function for timing/heights.
     private func runSlotSpin(on node: SCNNode) {
+        // ── Tuning knobs ─────────────────────────────────────────
+        let dropHeight: CGFloat = 0.34        // start position above resting (+15px vs iter 2)
+        let dropDuration: Double = 0.18       // a bit longer since the fall is longer
+        let impactBounceY: CGFloat = 0.04     // small Y bounce after the drop lands
+        let bouncePhaseDuration: Double = 0.06
+        // Settle overshoot: cube sinks below resting Y, then springs back up.
+        let settleOvershoot: CGFloat = 0.12   // how far DOWN past Y=0 (sinks in)
+        let settleDownDuration: Double = 0.09 // hit-the-floor compression
+        let settleUpDuration: Double = 0.14   // rebound to rest
+        // ─────────────────────────────────────────────────────────
+
+        // Lift the cube to its drop-start position BEFORE the action plays.
+        // (SCNAction sequence won't include "instant teleport"; we set it directly.)
+        node.position = SCNVector3(0, Float(dropHeight), 0)
+
+        // Drop (ease-in for gravity feel)
+        let drop = SCNAction.moveBy(x: 0, y: -dropHeight, z: 0, duration: dropDuration)
+        drop.timingMode = .easeIn
+
+        // Tiny impact bounce — pop up, then settle back to Y=0
+        let impactUp = SCNAction.moveBy(x: 0, y: impactBounceY, z: 0, duration: bouncePhaseDuration)
+        impactUp.timingMode = .easeOut
+        let impactDown = SCNAction.moveBy(x: 0, y: -impactBounceY, z: 0, duration: bouncePhaseDuration)
+        impactDown.timingMode = .easeIn
+
+        // Slot-machine spin (timing unchanged from iteration 1)
         let spin = SCNAction.rotateBy(
             x: CGFloat.pi * 10,    // 5 full vertical revolutions (multiple of 360°)
             y: 0,
@@ -1154,18 +1183,20 @@ struct DieSceneView3D: UIViewRepresentable {
         )
         spin.timingMode = .easeOut
 
-        let bounceUp = SCNAction.scale(to: 1.10, duration: 0.07)
-        bounceUp.timingMode = .easeOut
-        let bounceDown = SCNAction.scale(to: 0.96, duration: 0.07)
-        bounceDown.timingMode = .easeInEaseOut
-        let rest = SCNAction.scale(to: 1.0, duration: 0.06)
-        rest.timingMode = .easeOut
+        // Settle: overshoot DOWN past the resting Y, then spring back up.
+        let settleDown = SCNAction.moveBy(x: 0, y: -settleOvershoot, z: 0, duration: settleDownDuration)
+        settleDown.timingMode = .easeOut    // hits the floor hard
+        let settleUp = SCNAction.moveBy(x: 0, y: settleOvershoot, z: 0, duration: settleUpDuration)
+        settleUp.timingMode = .easeInEaseOut  // soft rebound to rest
 
         var actions: [SCNAction] = []
+        // spinDelay is currently 0 (set in DieFaceView3D.spinStaggerStep = 0.0)
+        // so all dice perform drop/bounce/spin in lockstep. Keep the guard
+        // so re-enabling stagger later still works.
         if spinDelay > 0 {
             actions.append(SCNAction.wait(duration: spinDelay))
         }
-        actions.append(contentsOf: [spin, bounceUp, bounceDown, rest])
+        actions.append(contentsOf: [drop, impactUp, impactDown, spin, settleDown, settleUp])
         node.runAction(SCNAction.sequence(actions))
     }
 }
