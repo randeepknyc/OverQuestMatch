@@ -1,8 +1,8 @@
 # CAULDRON_CONTEXT.md
 **Ednar's Potion Cauldron — Full Project Context**
 
-> **Last Updated:** May 25, 2026 (evening) — Day 3 (flex-day RNG test) built with 13 guide_* characters, auto-spacing queue layout for any width/height combo, new bucket cases (superShort/tallHat/floater + WidthBucket enum). Day 1/2 untouched. See §25. Earlier May 25: art template floor shifted to y=1500. See §24. May 24 (eve): badge body-follow + waiting2 overrides. See §23.17.
-> **Status:** Phase 7 complete + partial Phase 8. Game is playable end-to-end for Day 1 → Day 2. Art assets pending.
+> **Last Updated:** June 10, 2026 — Big additions since May 25: feet-anchor mode for Day 3 R2, 18-cell bucket×slot size matrix, per-cell sparse overrides for character size+X+Y, two-tier HP badge override system (HxW shared + per-slot), focused per-slot editor in the layout overlay, AND a real 3D dice slot-machine spin (SceneKit) gated to Day 2 R2 with custom face textures, motion blur, per-die stagger, and a floating test SPIN button. See **§26** for the full block of post-May-25 work. Earlier (May 25 PM) Day 3 flex-day RNG test, §25. May 25 AM: art template floor shifted to y=1500, §24. May 24 eve: badge body-follow + waiting2 overrides, §23.17.
+> **Status:** Phase 7 complete + partial Phase 8. Game is playable end-to-end for Day 1 → Day 2 → Day 3. Art assets pending. Day 2 R2 now visually demonstrates 3D-cube dice with placeholder textures from Assets.xcassets (`die_face_1`…`die_face_6`).
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
 
 ---
@@ -1279,6 +1279,110 @@ Once the auto-layout is verified visually for Day 3, the plan is:
 4. Stop generating per-character X/Y/scale values in `applyTunedCharacterScales` and let auto-layout handle it.
 
 Migration is deferred until Day 3 is visually validated.
+
+---
+
+## 26. POST-MAY-25 WORK (May 26 → June 10, 2026)
+
+Everything below was added or refactored during the May 26 – June 10 window. The §23 character/badge tuning system is still authoritative for Day 1 and most of Day 2. The new feet-anchor + matrix + per-cell systems are scoped to Day 3 R2 and don't disrupt the older code. The 3D dice are scoped strictly to Day 2 R2.
+
+### 26.1 Feet-anchor mode (Day 3 R2 only)
+
+Customers in Day 3 R2 sit on per-slot floor lines (their FEET snap to a Y fraction; characters of any height align cleanly to the ground). All other rounds keep their existing top-down anchoring.
+
+- **Gate:** `PotionShopGameState.currentRoundUsesFeetAnchor` → true when the round's `PotionShopRound.useFeetAnchor` flag is set (currently only Day 3 R2 + the randomized R3 fork).
+- **Floor-Y per slot:** `autoLayoutFeetYActive` / `autoLayoutFeetYWaiting1` / `autoLayoutFeetYWaiting2` on `PotionShopLayoutConfig` (range 0…1, fraction of scene height).
+- **Slot-X fractions:** `autoLayoutSlotXFraction{Active,Waiting1,Waiting2}` lock each slot to a horizontal anchor so spacing is identity-independent.
+- **Render lookup:** `PotionShopCustomerSceneView` checks `gs.currentRoundUsesFeetAnchor` and uses floor-Y + slot-X-fraction lookup instead of the per-character X/Y tuning.
+
+### 26.2 Bucket × slot size matrix (replaces the old scale stack)
+
+For each (height bucket × slot) combination, the matrix stores a `scale` value (0.3 – 2.0). 6 heights × 3 slots = 18 cells. Replaces what used to be the `autoLayoutScaleActive/Waiting1/Waiting2` triplet + bucket-specific defaults.
+
+- 18 properties on `PotionShopLayoutConfig`: `autoLayoutSize{Active,Waiting1,Waiting2}{SuperShort,Short,Medium,Tall,TallHat,Floater}`.
+- Renderer in feet-anchor mode reads `(slot, bucket)` → matrix scale; all other rounds keep the legacy scale.
+
+### 26.3 Per-cell character overrides (slot × height × width — sparse)
+
+On top of the 18-cell matrix, there's a **sparse override dict** keyed by `(slot, heightBucket, widthBucket)`. Each cell can override `size`, `x`, and `y` independently. Used to fine-tune awkward combinations like `tall × skinny` in slot 1 that the matrix alone doesn't handle.
+
+- Storage: `PotionShopLayoutConfig.bucketCellOverrides: [BucketCellKey: BucketCell]` (max 3 × 6 × 3 = 54 possible cells, all sparse).
+- Setter: `setBucketCellSize/X/Y(slot:height:width:...)`.
+- Resolve order (in feet-anchor mode): per-cell override → bucket-slot matrix → default.
+- ~13 cells currently baked (see `bake(...)` calls in `applyTunedCharacterScales`).
+
+### 26.4 Slot fine-tune offsets
+
+Two final pixel-level offsets per slot on top of the resolved X/Y: `autoLayoutActive{X,Y}`, `autoLayoutWaiting1{X,Y}`, `autoLayoutWaiting2{X,Y}`. Used for tiny push/pull after the matrix + cell-override math.
+
+### 26.5 Focused per-slot editor
+
+When the user taps a customer in the scene with the layout editor open, the auto-layout section collapses from the full 18-cell grid view to only the controls that affect that slot + that customer's bucket cell, plus a character-swap picker for the slot.
+
+- State: `PotionShopLayoutConfig.selectedSlotIndex: Int?` + `selectedCharacterId: String`.
+- View: `focusedAutoLayoutEditor(slotIdx:)` in `PotionShopGameView`.
+- "Show all sliders ›" button returns to the full grid view.
+
+### 26.6 HP badge two-tier override system
+
+**Layer 1 — shared HxW (`bucketHpBadgeOverrides: [BucketKeyHW: BucketHpBadgeCell]`):** keyed by `(heightBucket, widthBucket)` only — head-anchored, inherits per-slot scale at render time. Currently 10 cells baked. Was originally keyed by `(slot, H, W)` until we realized HP is anchored to the head and the slot already scales it; June 3 refactor collapsed it to (H × W).
+
+**Layer 2 — per-slot override (`bucketHpBadgeSlotOverrides: [BucketCellKey: BucketHpBadgeCell]`):** added June 3 when we hit cases where the same HxW combo needs different offsets in different slots (e.g. `medium×wide` in slot 1 vs slot 2). Keyed by `(slot, H, W)`. Wins over Layer 1 field-by-field. Currently 13 cells baked.
+
+**Resolve chain (render time):**
+1. Per-slot HP override (most specific)
+2. Shared HxW HP override
+3. Legacy per-bucket `hpBadgeSize/OffsetX/OffsetY{Short,Medium,Tall}` (oldest)
+
+**Editor:** in the focused slot editor, a red toggle "Override for slot N only" switches between Layer 1 and Layer 2 writes. The header label updates live: `HP Badge (shared HxW) — H · W` vs `HP Badge (slot N override) — H · W`.
+
+**Bake helpers:** `bakeHp(height:width:size:x:y:)` (Layer 1) and `bakeHpSlot(slot:height:width:size:x:y:)` (Layer 2). Nil fields leave the cell unset → falls through to the next layer.
+
+**Future plan (not yet built):** a third tier — **neighbor-aware HP overrides** — that activates only when an adjacent slot has a specific H×W. See the `project_neighboring_hp_values_plan.md` memory file for the design. Triggered by a real case where slot 1's `tall × medium` needs different HP values when active is `tall × wide`.
+
+### 26.7 Export / paste-back workflow
+
+The layout editor exports a giant text blob covering every tunable property. The user pastes it back into chat and I "bake" the deltas into the corresponding source-of-truth defaults in `PotionShopLayoutConfig.swift` (modifying the property's initial value) and the `applyTunedCharacterScales` baker calls. New HP badge sections appear in the export:
+
+```
+HP badge per-cell overrides (height × width, sparse — June 3, 2026):
+  [tall · wide] size=… x=… y=…
+
+HP badge per-slot overrides (slot × height × width, sparse — wins over HxW):
+  [2 · tallHat · medium] size=… x=… y=…
+```
+
+### 26.8 Day 2 R2 — 3D dice (slot-machine spin)
+
+A REAL 3D cube rendered via SceneKit replaces the static dice in the tray for Day 2 Round 2 ONLY. Every other round renders the existing 2D dice. Started June 8.
+
+**Gate:** `PotionShopGameState.currentRoundUses3DDice` → true iff `!isFlexDay && dayId == "day_2" && roundIndex == 1`.
+
+**Implementation lives in `PotionShop/PotionShopCauldronView.swift`:**
+- `DieFaceView3D` (SwiftUI) — wraps the SceneKit view, picks a random target face per spin, lives inside `PotionShopDieButtonView` which gates the render.
+- `DieSceneView3D` (`UIViewRepresentable`) — hosts the `SCNView`, builds the scene, exposes `targetFace`, `dieColor`, `spinDelay`. Uses a `Coordinator` to track `lastBuiltFace` so `updateUIView` can rebuild the scene whenever the target face changes — bypasses any `.id()` weirdness.
+- Cube: `SCNBox` with `chamferRadius: 0.12`. The cube's front (`+Z`) material is assigned to `targetFace` so a multiple-of-360° X-axis spin lands it camera-facing without any landing-rotation math.
+- Camera: at `z=1.85`, FOV `42°`, with `motionBlurIntensity: 1.0` — close enough to fill the bounding square, blur smears the fast portion of the spin.
+- Lighting: omni key light at `(2, 4, 4)` + ambient fill so cube edges read clearly.
+- Animation: `SCNAction.rotateBy(x: π * 10, …, duration: 0.85)` ease-out → small scale bounce (1.0 → 1.10 → 0.96 → 1.0) for the "thud."
+
+**Per-die stagger:** each die delays its spin by `DieFaceView3D.spinStaggerStep * dieIndex` (currently 40ms × index). 5 dice → die 4 stops ~160ms after die 0. Tweak the constant for more/less lag.
+
+**Face textures:** `renderFaceTexture(value:)` loads `UIImage(named: "die_face_\(value)")` from Assets.xcassets. Procedural fallback (`fallbackFaceTexture`) draws a colored square + number if the asset is missing.
+
+**Random face per spin:** `@State var randomTargetFace: Int = Int.random(in: 1...6)` on `DieFaceView3D`, updated via `.onChange(of: spinToken)` and `.onChange(of: die.value)` using a `pickDifferentFace(from:)` helper that guarantees the new face differs from the previous one. Currently uniform; will swap for a weighted/real-value selector once gameplay needs it.
+
+**3D Dice Test SPIN button:** when the editor toggle `gs.show3DTestSpinButton` is ON AND `gs.currentRoundUses3DDice` is true, a floating orange "🎲 SPIN" button appears in the top-right of the main screen. Tapping it increments `gs.spinTrigger3D` → onChange fires → all 5 dice independently re-roll and replay the spin animation. Toggle lives in the editor's `.dice` section.
+
+### 26.9 Future plans saved as project memories (NOT IMPLEMENTED)
+
+These are pending designs locked-in during planning conversations but not yet built. Each has a dedicated memory file in the project's auto-memory store:
+
+- **HP badge image swap plan** (`project_hp_badge_image_swap_plan.md`) — per-slot HP badge image variants (different speech-balloon tail directions). When a customer slides between slots, the badge image cross-fades via `.id(slotName)` while X/Y auto-animate to the new slot's tuned values through the existing override chain.
+- **Node highlight plan** (`project_node_highlight_plan.md`) — die-type-aware lighting of secondary nodes on hover during Day 3 R3's dungeon round. PNG sequence overlays, in-sync across all lit nodes, one-way affects-map per die type.
+- **Neighboring HP values plan** (`project_neighboring_hp_values_plan.md`) — tier 3 HP override that activates when an adjacent slot has a specific H×W. Editor would add a second toggle below the existing per-slot toggle.
+
+Pull any of these up when the user references them.
 
 ---
 

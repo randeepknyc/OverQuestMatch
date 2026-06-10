@@ -1,9 +1,9 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** May 17, 2026 (Title Screen Background Fade Fixed)  
+> **Last Updated:** June 10, 2026  
 > **Project Status:** Active Development - Multi-Game Architecture Complete with Perfect Testing Flow  
-> **Current Work:** Ednar's Potion Cauldron playable (Phase 7 complete - Day 1 only, layout refinement ongoing)
+> **Current Work:** Ednar's Potion Cauldron — Day 1 → Day 3 playable. Recent (late May → June 10): feet-anchor mode for Day 3 R2, 18-cell bucket×slot size matrix + sparse per-cell overrides, two-tier HP badge override system (HxW shared + per-slot), focused per-slot layout editor, 3D-cube SceneKit dice gated to Day 2 R2 with custom face textures + motion blur + per-die stagger + floating test SPIN button. Three future plans saved as project memories (not yet implemented): HP badge image swap, node highlight on hover, neighbor-aware HP values. See **CAULDRON_CONTEXT.md §26** for full detail.
 
 ---
 
@@ -18,7 +18,7 @@
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
 2. **Physics Chain Game** - ✅ COMPLETE & WORKING (with debug menu + End Game button)
 3. **Shop of Oddities** - ✅ COMPLETE & FULLY PLAYABLE - Minimalist card repair game with custom artwork, debug menu, optimized layout, polished animations (deal/flip/drag-and-drop), and centralized config system
-4. **Ednar's Potion Cauldron** - ✅ PLAYABLE (Day 1 only) - Turn-based dice-placement potion brewing game, in `PotionShop/`
+4. **Ednar's Potion Cauldron** - ✅ PLAYABLE (Day 1 → Day 3) - Turn-based dice-placement potion brewing game, in `PotionShop/`. Day 2 R2 has 3D-cube SceneKit dice (slot-machine spin). Day 3 R2 uses feet-anchor mode + bucket×slot size matrix + per-cell character & HP-badge overrides.
 5. **Enna's Tavern Card Game** - ✅ PLAYABLE - Reigns-style swipe card narrative game with 3 progressively unlocking acts and 12 meters, in `EnnaCardGame/` (see `EnnaCardGame_CONTEXT.md`)
 6. **Cooking Game** - 📋 Planned
 7. **Potion Solitaire** - 📋 Planned
@@ -40,7 +40,7 @@
 
 ## 🧪 EDNAR'S POTION CAULDRON — QUICK REFERENCE
 
-**Status:** Phase 7 complete. Day 1 fully playable. Art is placeholder.
+**Status:** Phase 7 complete + partial Phase 8. Day 1 / Day 2 / Day 3 playable. Art is placeholder. Day 2 R2 demonstrates 3D dice (slot-machine reel spin) with placeholder face textures from Assets.xcassets. Day 3 R2 uses feet-anchor mode + 18-cell bucket×slot size matrix + sparse per-cell character + HP-badge overrides.
 
 **Source of Truth:** `CAULDRON_CONTEXT.md` (read this first for any work on this game)
 
