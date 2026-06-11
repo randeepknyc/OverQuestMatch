@@ -1436,6 +1436,45 @@ These are pending designs locked-in during planning conversations but not yet bu
 
 Pull any of these up when the user references them.
 
+### 26.12 3D dice picture/math split + the Equatable trap (June 11)
+
+**Problem context.** Day 2 R2's 3D-spinning dice originally had a single `value: Int` on `PotionShopDie` that drove *both* the brew math (damage/healing) AND the picture shown on the cube/placed die. Two issues fell out of this:
+
+1. **Tier bias.** `tier.rollFace()` rolls a weighted face for basic tier (`[1,2,2,3,3,4]`), so the cube — wired to `die.value` — could only land on 4 of the 5 asset graphics. Shield (5) and stability (6) never showed.
+2. **Independent randoms.** An attempted fix introduced a local `@State private var randomTargetFace` inside `DieFaceView3D` that was uniform 1–6 — but this was **independent** of `die.value`. The cube settled on `randomTargetFace`; the placed-die view (in `PotionShopPlacedDieView`) read `die.value`. They were two completely unrelated random draws → cube and node almost always disagreed.
+
+**The fix (two parts).**
+
+**Part A — split picture from math.** Added a second field `faceValue: Int = 1` to `PotionShopDie` (PotionShopModels.swift:373) alongside the existing `value`. New static helper `PotionShopDie.rollFaceImageValue()` rolls a uniform 1–6 — independent of the tier table, so brew balance is untouched. `drawFromBag` now seeds both: `value: bd.tier.rollFace(), faceValue: PotionShopDie.rollFaceImageValue()`. Both the cube (`DieFaceView3D` → `DieSceneView3D.targetFace`) and the placed-die view (`PotionShopPlacedDieView` when `useFaceAsset == true`) read from the SAME `die.faceValue` — single source of truth.
+
+New method on `PotionShopGameState`: `reroll3DDice()` mutates every die in the hand (both `value` and `faceValue`) and bumps `spinTrigger3D`. Both spin entry points (the floating 🎲 SPIN button in `PotionShopGameView` and the in-editor "Reset Spin Now" button in `PotionShopDebugMenu`) call `gs.reroll3DDice()` instead of bumping the trigger directly.
+
+`DieSceneView3D` gained a `spinSession: Int` property + matching coordinator field. The scene rebuilds when EITHER `spinSession` changes (forces replay on every spin, even on the 1-in-6 case where new face == old face) OR `targetFace` changes. The old `randomTargetFace` `@State` and the `pickDifferentFace` helper were deleted.
+
+**Part B — the Equatable trap.** Part A alone fixed *auto-roll* (start of D2R2 → matches) but **NOT** the floating SPIN button path. Cubes spun and settled fine, but dragging a die to a node still showed a different graphic.
+
+Root cause: `PotionShopDie`'s custom `==` only compared `id`. When `reroll3DDice` mutated `faceValue` in place, the struct compared equal to its pre-reroll self by SwiftUI's standards. SwiftUI used that equality to skip body re-evaluation on the wrapping views — the dice tray's `DieFaceView3D` body never re-ran, so `DieSceneView3D` was reconstructed with a stale `targetFace` (even though the scene DID rebuild because `spinSession` changed). Result: cube rendered the OLD face; the placed-die view (which reads `die.faceValue` directly at render time through a separate path) rendered the NEW face. Mismatch.
+
+The auto-roll path bypassed this because `drawFromBag` creates entirely fresh struct instances — different `id`s, so Equatable returned false → SwiftUI refreshed everything correctly.
+
+Fix at PotionShopModels.swift:388 — extend `==` to compare ALL three identifying fields:
+```swift
+static func == (lhs: PotionShopDie, rhs: PotionShopDie) -> Bool {
+    lhs.id == rhs.id &&
+    lhs.value == rhs.value &&
+    lhs.faceValue == rhs.faceValue
+}
+```
+
+**If a similar "cube vs placed-die graphic doesn't match" bug happens again, check in this order:**
+
+1. **Are both views reading from the SAME field?** Cube: `DieSceneView3D.targetFace` is set from `die.faceValue` in `DieFaceView3D.body`. Placed-die: `PotionShopPlacedDieView` reads `die.faceValue` when `useFaceAsset == true` (which is gated on `gs.currentRoundUses3DDice`). If either path drifts to a different field (`value`, `type.assetName`, a local `@State`), that's the bug.
+2. **Equatable.** If a new mutable field is added to `PotionShopDie`, extend `==` to include it. Otherwise SwiftUI will skip view updates after in-place mutation.
+3. **`spinSession` plumbing.** `DieSceneView3D` MUST rebuild on `spinSession` change, otherwise repeated spins with the same final face won't replay the animation.
+4. **`reroll3DDice` scope.** It only re-rolls dice in `hand`. Dice already placed on nodes keep their pre-spin `faceValue` — that's intentional (placed dice are "locked in"), but if you ever want spin to re-roll placed dice too, that's where to add it.
+
+**Why brew balance is preserved.** `value` is still rolled from `tier.rollFace()` (basic tier = `[1,2,2,3,3,4]`). `faceValue` is purely cosmetic — it never feeds into `computeBrew()`. Per-round weighting tables for both can be plugged in later by replacing the bodies of `rollFaceImageValue()` (pictures) and `tier.rollFace()` (math) with round-keyed lookups. TODO seams are marked in both functions.
+
 ---
 
 **End of CAULDRON_CONTEXT.md**

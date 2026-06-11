@@ -805,26 +805,32 @@ struct PotionShopDiceTrayView: View {
     var dieScale: Double = 1.0  // NEW: Scale multiplier for dice in tray
 
     var body: some View {
+        // Render 5 fixed tray slots (0...4). Each slot looks up the die in
+        // `hand` whose `trayIndex` matches the slot; if none, render a dashed
+        // placeholder. This keeps the remaining dice in place when one is
+        // dragged to the cauldron, instead of HStack-sliding them leftward.
         HStack(spacing: 6) {
-            ForEach(Array(gs.hand.enumerated()), id: \.element.id) { idx, die in
-                PotionShopDieButtonView(
-                    gs: gs,
-                    die: die,
-                    index: idx,
-                    diceFlight: diceFlight,
-                    dieScale: dieScale  // Pass scale to die button
-                )
-            }
-            ForEach(gs.hand.count..<5, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(
-                        Color.white.opacity(0.35),
-                        style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
+            ForEach(0..<5, id: \.self) { slotIndex in
+                if let die = gs.hand.first(where: { $0.trayIndex == slotIndex }),
+                   let handIdx = gs.hand.firstIndex(where: { $0.id == die.id }) {
+                    PotionShopDieButtonView(
+                        gs: gs,
+                        die: die,
+                        index: handIdx,
+                        diceFlight: diceFlight,
+                        dieScale: dieScale
                     )
-                    .frame(
-                        width: PotionShopCauldronLayout.dieSize * dieScale,
-                        height: PotionShopCauldronLayout.dieSize * dieScale
-                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(
+                            Color.white.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
+                        )
+                        .frame(
+                            width: PotionShopCauldronLayout.dieSize * dieScale,
+                            height: PotionShopCauldronLayout.dieSize * dieScale
+                        )
+                }
             }
         }
         .padding(8)
@@ -905,7 +911,12 @@ struct PotionShopDieButtonView: View {
                     fontSize: scaledFontSize,
                     dieScale: dieScale,
                     index: index,
-                    spinToken: gs.spinTrigger3D
+                    spinToken: gs.spinTrigger3D,
+                    // Dice returning from the cauldron (id in settledDiceIds)
+                    // should appear at rest in their slot — NOT replay the
+                    // drop/spin animation. Fresh deals + reroll button both
+                    // clear the set, so those still animate as before.
+                    animateOnAppear: !gs.settledDiceIds.contains(die.id)
                 )
             } else {
                 // Try to load die face image, fallback to colored square
@@ -1027,6 +1038,10 @@ struct DieFaceView3D: View {
     /// game state re-rolls. Forces the cube to rebuild + replay its animation
     /// even when the re-rolled `faceValue` happens to equal the previous one.
     let spinToken: Int
+    /// When false, the cube appears at rest in its slot — no drop, no spin,
+    /// no bounce. Used for dice that are returning to the tray from the
+    /// cauldron (already-rolled, just re-entering view).
+    let animateOnAppear: Bool
 
     var body: some View {
         // SOURCE OF TRUTH: the cube targets `die.faceValue`, the same field the
@@ -1038,7 +1053,8 @@ struct DieFaceView3D: View {
             targetFace: die.faceValue,
             dieColor: UIColor(die.type.color),
             spinDelay: DieFaceView3D.spinStaggerStep * Double(index),
-            spinSession: spinToken
+            spinSession: spinToken,
+            animateOnAppear: animateOnAppear
         )
         .frame(width: size, height: size)
     }
@@ -1054,6 +1070,12 @@ struct DieSceneView3D: UIViewRepresentable {
     /// face, so the spin animation replays on every tap (no "same face = no
     /// spin" bug).
     let spinSession: Int
+    /// When false, `buildScene()` skips `runSlotSpin` — the cube is added to
+    /// the scene at its rest position (0,0,0, identity rotation) showing the
+    /// `targetFace` material camera-facing. Used when a die returns to the
+    /// tray from the cauldron: we want it to just BE in its slot, not replay
+    /// the full drop-and-spin animation a second time.
+    let animateOnAppear: Bool
 
     /// Coordinator tracks the (session, face) the scene was last built with so
     /// updateUIView can detect a new spin and rebuild.
@@ -1140,7 +1162,13 @@ struct DieSceneView3D: UIViewRepresentable {
         let dieNode = SCNNode(geometry: box)
         scene.rootNode.addChildNode(dieNode)
 
-        runSlotSpin(on: dieNode)
+        // Only play the drop/bounce/spin/settle if this is a "fresh roll"
+        // appearance. When a die is RETURNING to the tray from the cauldron,
+        // animateOnAppear is false and the cube simply sits at rest (default
+        // position 0,0,0, identity rotation, targetFace camera-facing).
+        if animateOnAppear {
+            runSlotSpin(on: dieNode)
+        }
         return scene
     }
 

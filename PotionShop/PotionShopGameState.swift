@@ -255,12 +255,23 @@ class PotionShopGameState {
     /// bump `spinTrigger3D` so the 3D scene replays its drop/bounce/spin/settle.
     /// Independent rolls per die — duplicates can occur, just like real dice.
     func reroll3DDice() {
+        // Fresh roll = every die SHOULD animate, even if it was previously
+        // marked as "settled in the tray" by an unplace.
+        settledDiceIds.removeAll()
         for i in hand.indices {
             hand[i].value = hand[i].tier.rollFace()
             hand[i].faceValue = PotionShopDie.rollFaceImageValue()
         }
         spinTrigger3D += 1
     }
+
+    /// Die IDs whose 3D cube should appear at rest (no drop/spin animation)
+    /// the next time the tray's SwiftUI view recreates the cube view. A die
+    /// gets added here when it returns from the cauldron to the tray (so the
+    /// cube just snaps back into its slot) and removed via the set being
+    /// cleared whenever the round deals a fresh hand or the spin button
+    /// re-rolls — both events restart the "spin everything" cycle.
+    var settledDiceIds: Set<String> = []
 
     /// True if the current round draws from a random pool (Day 3 R2 today —
     /// June 3, 2026). Used to selectively re-enable the HP badge inside
@@ -542,6 +553,9 @@ class PotionShopGameState {
         guard let die = placements[nodeId] else { return }
         hand.append(die)
         placements[nodeId] = nil
+        // Returning from cauldron → cube should appear settled in its slot,
+        // NOT replay the drop/spin animation.
+        settledDiceIds.insert(die.id)
     }
     
     // MARK: - Drag and drop methods
@@ -580,6 +594,8 @@ class PotionShopGameState {
     func returnDraggedDie() {
         guard let die = draggedDie else { return }
         hand.append(die)
+        // Tray drag cancel → cube should stay put, not replay drop/spin.
+        settledDiceIds.insert(die.id)
         clearDragState()
     }
     
@@ -657,6 +673,9 @@ class PotionShopGameState {
         guard let die = placements[nodeId] else { return }
         placements[nodeId] = nil
         hand.append(die)
+        // Returning from cauldron → cube should appear settled in its slot,
+        // NOT replay the drop/spin animation.
+        settledDiceIds.insert(die.id)
     }
     
     /// Update which node we're hovering over during drag
@@ -882,16 +901,20 @@ class PotionShopGameState {
         let drawn = Array(bag.prefix(count))
         bag.removeFirst(count)
 
-        hand = drawn.map { bd in
+        hand = drawn.enumerated().map { (i, bd) in
             PotionShopDie(
                 id: bd.id,
                 type: bd.type,
                 tier: bd.tier,
                 value: bd.tier.rollFace(),
-                faceValue: PotionShopDie.rollFaceImageValue()
+                faceValue: PotionShopDie.rollFaceImageValue(),
+                trayIndex: i
             )
         }
         selectedHandIndex = nil
+        // Fresh deal = every die should animate. Drop any leftover "settled"
+        // flags from the previous round.
+        settledDiceIds.removeAll()
     }
 
     /// Move all placed and held dice to the discard pile. Called after each brew.

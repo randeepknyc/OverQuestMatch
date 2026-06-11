@@ -384,6 +384,13 @@ struct PotionShopDie: Identifiable, Equatable {
     /// To add a 6th/7th picture, add it to that map. To go larger than 6,
     /// see the slot-machine roadmap in `DieSceneView3D`.
     var faceValue: Int = 1
+    /// Fixed dice-tray slot index (0...4). Assigned on `drawFromBag` and
+    /// preserved across drag-out → drag-back-in so a die always returns
+    /// to its original slot. The tray renders 5 fixed-position slots and
+    /// reads `trayIndex` to decide which die goes where — without this,
+    /// the tray's HStack would slide remaining dice leftward on every
+    /// drag-out.
+    var trayIndex: Int = 0
 
     // Equatable must compare ALL fields, not just `id`. SwiftUI uses == for
     // view diffing — if two structs with the same id but different `value`
@@ -394,7 +401,8 @@ struct PotionShopDie: Identifiable, Equatable {
     static func == (lhs: PotionShopDie, rhs: PotionShopDie) -> Bool {
         lhs.id == rhs.id &&
         lhs.value == rhs.value &&
-        lhs.faceValue == rhs.faceValue
+        lhs.faceValue == rhs.faceValue &&
+        lhs.trayIndex == rhs.trayIndex
     }
 
     /// Roll an unweighted face value 1...6 — drives WHICH picture the 3D
