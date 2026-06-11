@@ -385,8 +385,16 @@ struct PotionShopDie: Identifiable, Equatable {
     /// see the slot-machine roadmap in `DieSceneView3D`.
     var faceValue: Int = 1
 
+    // Equatable must compare ALL fields, not just `id`. SwiftUI uses == for
+    // view diffing — if two structs with the same id but different `value`
+    // or `faceValue` compare equal, SwiftUI may skip body re-evaluation and
+    // the 3D cube ends up rendering a stale face after a reroll-in-place
+    // (June 11 bug: floating SPIN button left tray cube showing one asset
+    // but placed die showed another).
     static func == (lhs: PotionShopDie, rhs: PotionShopDie) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id &&
+        lhs.value == rhs.value &&
+        lhs.faceValue == rhs.faceValue
     }
 
     /// Roll an unweighted face value 1...6 — drives WHICH picture the 3D
