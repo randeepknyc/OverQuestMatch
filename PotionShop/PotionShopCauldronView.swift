@@ -41,6 +41,47 @@ extension CGRect {
     }
 }
 
+// MARK: - 3D Dice asset mapping (Day 2 R2)
+//
+// Single source of truth for which asset shows on the cube's settled face AND
+// on the placed-die view (when on a node). Both render paths read from this
+// mapping so they always agree on what graphic to display.
+//
+// To add a new die type later (e.g. supporting a 10-pool with 6 picked
+// at random):
+//   1. Add the new asset name to `allDiceAssetNames`
+//   2. Either edit the `assetName(forValue:)` switch to point a value at it,
+//      OR add a per-cube subset-picker that randomly draws from the pool.
+
+struct PotionShop3DDiceAssetMap {
+    /// Master pool of every die face asset available in the project.
+    /// Adding a new entry here doesn't automatically change what shows on the
+    /// cube — you also need to map a value to it below (or add a subset
+    /// picker later for randomized assignment).
+    static let allDiceAssetNames: [String] = [
+        "die_potency",
+        "die_boost",
+        "die_heal",
+        "die_shield",
+        "die_stability"
+        // Add more here later: "die_fire", "die_water", etc.
+    ]
+
+    /// Map a rolled value (1...6, since the cube has 6 faces) → asset name.
+    /// Change this freely. Multiple values can share the same asset (e.g.
+    /// values 1 and 2 both → die_potency today).
+    static func assetName(forValue value: Int) -> String {
+        switch value {
+        case 1, 2: return "die_potency"
+        case 3:    return "die_boost"
+        case 4:    return "die_heal"
+        case 5:    return "die_shield"
+        case 6:    return "die_stability"
+        default:   return "die_potency"   // fallback for any weird value
+        }
+    }
+}
+
 // MARK: - Layout constants for the cauldron
 
 struct PotionShopCauldronLayout {
@@ -304,7 +345,7 @@ struct PotionShopCauldronView: View {
                     let localY = dragLocation.y - localPoint.y
                     
                     // Render the dragging die at finger position
-                    PotionShopPlacedDieView(die: die, visualScale: nodeScale)
+                    PotionShopPlacedDieView(die: die, visualScale: nodeScale, useFaceAsset: gs.currentRoundUses3DDice)
                         .scaleEffect(1.15)
                         .shadow(
                             color: die.type.color.opacity(0.5),
@@ -464,12 +505,12 @@ struct PotionShopNodeButtonView: View {
                 Group {
                     if isDraggingFromHere {
                         // Drag origin: ghosted die stays put
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0)
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0, useFaceAsset: gs.currentRoundUses3DDice)
                             .opacity(0.3)
                     } else {
                         // Locked-in die, scaled down so node frame shows
                         // around it as a "socket".
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0)
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0, useFaceAsset: gs.currentRoundUses3DDice)
                             .matchedGeometryEffect(
                                 id: die.id,
                                 in: diceFlight,
@@ -584,10 +625,20 @@ struct PotionShopNodeButtonView: View {
 struct PotionShopPlacedDieView: View {
     let die: PotionShopDie
     var visualScale: Double = 1.0  // Visual-only scale
+    /// When true (Day 2 R2), the placed die renders the asset from the
+    /// shared value→asset mapping (`PotionShop3DDiceAssetMap`), matching the
+    /// 3D cube. When false (default, every other round), uses the die's TYPE
+    /// asset as before.
+    var useFaceAsset: Bool = false
 
     var body: some View {
+        // Pick asset source: value-keyed (3D dice mode) OR type-keyed (default).
+        let assetName = useFaceAsset
+            ? PotionShop3DDiceAssetMap.assetName(forValue: die.value)
+            : die.type.assetName
+
         // Try to load die face image, fallback to colored square
-        if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
+        if let dieImage = PotionShopImageLoader.loadImage(named: assetName) {
             ZStack {
                 Image(uiImage: dieImage)
                     .resizable()
@@ -1098,10 +1149,14 @@ struct DieSceneView3D: UIViewRepresentable {
         return scene
     }
 
-    /// Load the face texture from Assets.xcassets named `die_face_N` (N = 1...6).
-    /// Falls back to a procedurally-drawn placeholder if the asset is missing.
+    /// Load the face texture from the shared value→asset mapping. Both the
+    /// cube AND the placed-die view read from this mapping, so the graphic
+    /// on the cube's settled face matches the graphic shown when placed on
+    /// a node. Falls back to a procedurally-drawn placeholder if the asset
+    /// is missing.
     private func renderFaceTexture(value: Int) -> UIImage {
-        if let custom = UIImage(named: "die_face_\(value)") {
+        let mappedName = PotionShop3DDiceAssetMap.assetName(forValue: value)
+        if let custom = UIImage(named: mappedName) {
             return custom
         }
         return fallbackFaceTexture(value: value)
