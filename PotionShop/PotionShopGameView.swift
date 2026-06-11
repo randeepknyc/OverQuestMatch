@@ -175,7 +175,7 @@ struct PotionShopGameView: View {
             HStack {
                 Spacer()
                 Button(action: {
-                    gs.spinTrigger3D += 1
+                    gs.reroll3DDice()
                 }) {
                     HStack(spacing: 6) {
                         Text("🎲")
@@ -974,7 +974,7 @@ struct PotionShopLayoutOverlay: View {
                 // Direct in-editor reset (no toggle needed). Runs the full
                 // drop + spin + settle flow without leaving the editor.
                 Button {
-                    gs.spinTrigger3D += 1
+                    gs.reroll3DDice()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.clockwise.circle.fill")

@@ -250,6 +250,18 @@ class PotionShopGameState {
     /// scene-rebuild `.id()` on this so all 5 dice replay their spin.
     var spinTrigger3D: Int = 0
 
+    /// Re-roll every die in the hand: both brew-math `value` (from the tier
+    /// table) AND picture `faceValue` (from the uniform 1...6 roller). Then
+    /// bump `spinTrigger3D` so the 3D scene replays its drop/bounce/spin/settle.
+    /// Independent rolls per die — duplicates can occur, just like real dice.
+    func reroll3DDice() {
+        for i in hand.indices {
+            hand[i].value = hand[i].tier.rollFace()
+            hand[i].faceValue = PotionShopDie.rollFaceImageValue()
+        }
+        spinTrigger3D += 1
+    }
+
     /// True if the current round draws from a random pool (Day 3 R2 today —
     /// June 3, 2026). Used to selectively re-enable the HP badge inside
     /// feet-anchor mode while keeping the attack badge hidden.
@@ -875,7 +887,8 @@ class PotionShopGameState {
                 id: bd.id,
                 type: bd.type,
                 tier: bd.tier,
-                value: bd.tier.rollFace()
+                value: bd.tier.rollFace(),
+                faceValue: PotionShopDie.rollFaceImageValue()
             )
         }
         selectedHandIndex = nil

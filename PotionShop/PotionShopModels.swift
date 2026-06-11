@@ -370,10 +370,34 @@ struct PotionShopDie: Identifiable, Equatable {
     let id: String
     let type: PotionShopDieType
     let tier: PotionShopDieTier
+    /// Brew math value — drives damage/healing/shielding. Rolled from the
+    /// tier table (`tier.rollFace()`). DO NOT use this to choose the
+    /// graphic in 3D-dice rounds; use `faceValue` instead.
     var value: Int
+    /// Picture value (1...6 — matches the 6 cube faces). Independent of
+    /// `value`. Used ONLY when the round renders 3D-spinning dice
+    /// (`currentRoundUses3DDice == true`, Day 2 R2 today). Other rounds
+    /// ignore this. Defaults to 1 so existing constructors keep compiling.
+    ///
+    /// Mapping value→asset lives in `PotionShop3DDiceAssetMap`. Today there
+    /// are 5 distinct assets covering 6 face values (1 & 2 both → potency).
+    /// To add a 6th/7th picture, add it to that map. To go larger than 6,
+    /// see the slot-machine roadmap in `DieSceneView3D`.
+    var faceValue: Int = 1
 
     static func == (lhs: PotionShopDie, rhs: PotionShopDie) -> Bool {
         lhs.id == rhs.id
+    }
+
+    /// Roll an unweighted face value 1...6 — drives WHICH picture the 3D
+    /// cube lands on. Independent of the math-side `value`.
+    ///
+    /// Per-round picture weighting hook: replace this body with a round-keyed
+    /// table when balance work begins. e.g. for a boost-heavy round:
+    ///   `[1, 2, 2, 3, 3, 3, 4, 5, 6].randomElement()!`
+    /// Today: uniform 1...6 so every picture has equal chance to land.
+    static func rollFaceImageValue() -> Int {
+        Int.random(in: 1...6)
     }
 }
 

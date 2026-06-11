@@ -632,9 +632,12 @@ struct PotionShopPlacedDieView: View {
     var useFaceAsset: Bool = false
 
     var body: some View {
-        // Pick asset source: value-keyed (3D dice mode) OR type-keyed (default).
+        // Pick asset source. When 3D-dice mode is active, read from the
+        // SHARED faceValue field that the cube also targets — so the picture
+        // on the cube and the picture on the placed die are guaranteed to
+        // match. In every other round, use the die's TYPE asset as before.
         let assetName = useFaceAsset
-            ? PotionShop3DDiceAssetMap.assetName(forValue: die.value)
+            ? PotionShop3DDiceAssetMap.assetName(forValue: die.faceValue)
             : die.type.assetName
 
         // Try to load die face image, fallback to colored square
@@ -1020,43 +1023,24 @@ struct DieFaceView3D: View {
     let fontSize: CGFloat
     let dieScale: Double
     let index: Int
-    /// Bumped by the editor's test-spin button to force a re-spin without rolling.
+    /// Bumped by reroll3DDice() (and the editor's spin button) every time the
+    /// game state re-rolls. Forces the cube to rebuild + replay its animation
+    /// even when the re-rolled `faceValue` happens to equal the previous one.
     let spinToken: Int
 
-    /// Temporary: settled face is randomized per spin (uniform 1...6) so we can
-    /// preview each face landing. Will swap for a weighted/real-value selector
-    /// once that lookup is wired up. Re-rolls explicitly via onChange below.
-    @State private var randomTargetFace: Int = Int.random(in: 1...6)
-
     var body: some View {
+        // SOURCE OF TRUTH: the cube targets `die.faceValue`, the same field the
+        // placed-die view reads when this round renders 3D dice. So whatever
+        // graphic the cube lands on is identical to the graphic shown after the
+        // die is dragged onto a node. `spinToken` guarantees the spin replays
+        // even on a duplicate roll.
         DieSceneView3D(
-            targetFace: randomTargetFace,
+            targetFace: die.faceValue,
             dieColor: UIColor(die.type.color),
-            spinDelay: DieFaceView3D.spinStaggerStep * Double(index)
+            spinDelay: DieFaceView3D.spinStaggerStep * Double(index),
+            spinSession: spinToken
         )
         .frame(width: size, height: size)
-        // Bounding-box overlay removed (June 10) — selection indicator is gone
-        // along with it. Re-introduce a stroke or glow on `isSelected` here if
-        // a selection cue is needed.
-        // Re-roll random face whenever a re-spin is requested (button tap or roll).
-        // Loop until we pick a face DIFFERENT from the current one so visual
-        // change is guaranteed on every tap (no 1-in-6 "same face" collision).
-        .onChange(of: spinToken) { _, _ in
-            randomTargetFace = pickDifferentFace(from: randomTargetFace)
-        }
-        .onChange(of: die.value) { _, _ in
-            randomTargetFace = pickDifferentFace(from: randomTargetFace)
-        }
-        // DieSceneView3D detects targetFace changes via its Coordinator and
-        // rebuilds the scene — animation replays on every change.
-    }
-
-    /// Returns a random 1...6 that's NOT `current`. Guarantees the cube lands
-    /// on a visibly different face from the previous spin.
-    private func pickDifferentFace(from current: Int) -> Int {
-        var next = Int.random(in: 1...6)
-        while next == current { next = Int.random(in: 1...6) }
-        return next
     }
 }
 
@@ -1065,10 +1049,16 @@ struct DieSceneView3D: UIViewRepresentable {
     let targetFace: Int
     let dieColor: UIColor
     let spinDelay: Double   // seconds before this die starts spinning (per-die stagger)
+    /// Bumped every time the game state re-rolls (reroll3DDice). Forces the
+    /// scene to rebuild even when targetFace happens to equal the previous
+    /// face, so the spin animation replays on every tap (no "same face = no
+    /// spin" bug).
+    let spinSession: Int
 
-    /// Coordinator tracks the face the scene was last built with so updateUIView
-    /// can detect when the parent has passed a new targetFace and rebuild.
+    /// Coordinator tracks the (session, face) the scene was last built with so
+    /// updateUIView can detect a new spin and rebuild.
     final class Coordinator {
+        var lastBuiltSession: Int = -1
         var lastBuiltFace: Int = -1
     }
 
@@ -1082,17 +1072,22 @@ struct DieSceneView3D: UIViewRepresentable {
         view.autoenablesDefaultLighting = false
         view.antialiasingMode = .multisampling4X
         view.scene = buildScene()
+        context.coordinator.lastBuiltSession = spinSession
         context.coordinator.lastBuiltFace = targetFace
         return view
     }
 
     func updateUIView(_ uiView: SCNView, context: Context) {
-        // Rebuild the scene (→ replay the spin animation) only when the parent
-        // has passed a new target face. This guarantees a fresh spin every time
-        // the parent picks a new random face, regardless of SwiftUI's `.id()`
-        // behavior on the wrapping view.
-        guard context.coordinator.lastBuiltFace != targetFace else { return }
+        // Rebuild the scene (→ replay the spin animation) when EITHER the spin
+        // session bumped OR the target face changed. Session-change guarantees
+        // replays even on duplicate face rolls; face-change guards against any
+        // edge case where the game state changed a die's faceValue without
+        // bumping the session token.
+        let sessionChanged = context.coordinator.lastBuiltSession != spinSession
+        let faceChanged = context.coordinator.lastBuiltFace != targetFace
+        guard sessionChanged || faceChanged else { return }
         uiView.scene = buildScene()
+        context.coordinator.lastBuiltSession = spinSession
         context.coordinator.lastBuiltFace = targetFace
     }
 
