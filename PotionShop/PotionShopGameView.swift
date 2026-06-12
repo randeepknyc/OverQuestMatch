@@ -80,7 +80,14 @@ struct PotionShopGameView: View {
                         cauldronScale: layoutConfig.cauldronBowlScale,
                         cauldronXOffset: layoutConfig.cauldronBowlX,
                         cauldronYOffset: layoutConfig.cauldronBowlY,
-                        nodeScale: layoutConfig.nodeScale,
+                        // REQUEST 1 (June 12): node size now follows the tray
+                        // die size (see nodeMatchesTrayDieSize in
+                        // PotionShopCauldronLayout). The editor's Node Scale
+                        // slider is bypassed while that toggle is on.
+                        nodeScale: PotionShopCauldronLayout.effectiveNodeScale(
+                            layoutNodeScale: layoutConfig.nodeScale,
+                            trayDieScale: layoutConfig.dieScale
+                        ),
                         nodeXOffset: layoutConfig.nodeXOffset,
                         nodeYOffset: layoutConfig.nodeYOffset,
                         nodeSpacingMultiplier: layoutConfig.nodeSpacingMultiplier,
@@ -127,7 +134,10 @@ struct PotionShopGameView: View {
                 PotionShopDraggedDieOverlay(
                     gs: gs,
                     diceFlight: diceFlight,
-                    nodeScale: layoutConfig.nodeScale
+                    nodeScale: PotionShopCauldronLayout.effectiveNodeScale(
+                        layoutNodeScale: layoutConfig.nodeScale,
+                        trayDieScale: layoutConfig.dieScale
+                    )
                 )
                     .allowsHitTesting(false)
 

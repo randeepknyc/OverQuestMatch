@@ -160,18 +160,34 @@ class PotionShopGameState {
     /// instead of its original slot.
     var traySlotPositions: [Int: CGRect] = [:]
 
-    /// Find an empty tray slot (no hand die has that `trayIndex`) whose frame
-    /// contains `position`. Returns nil if the position isn't over any slot
-    /// or the slot under it is occupied. Used by the node→tray drag to pick
-    /// the landing slot.
+    /// REQUEST 3 (June 12): pick which OPEN tray slot a node→tray drop
+    /// should land in. Much more forgiving than strict frame containment:
+    ///   1. If the release point's X falls within an empty slot's column,
+    ///      that slot wins — regardless of Y, so releasing anywhere in the
+    ///      extended drop zone above the tray still maps to the column
+    ///      under the finger.
+    ///   2. Otherwise (released over an occupied slot, a gap, or the tray
+    ///      padding), the NEAREST empty slot by horizontal distance wins.
+    /// Returns nil only when no slot frames are known or every slot is
+    /// occupied — in which case the die falls back to its original
+    /// `trayIndex` (which is empty, since the die left from there).
     func findEmptyTraySlot(at position: CGPoint) -> Int? {
         let occupied = Set(hand.map { $0.trayIndex })
+        var nearest: (slot: Int, distance: CGFloat)? = nil
         for (slot, frame) in traySlotPositions {
-            if frame.contains(position) && !occupied.contains(slot) {
+            guard !occupied.contains(slot) else { continue }
+            // Pass 1: direct column hit (ignore Y so the extended drop
+            // zone above the tray still resolves to the column below).
+            if position.x >= frame.minX && position.x <= frame.maxX {
                 return slot
             }
+            // Track nearest empty slot for the fallback pass.
+            let distance = abs(position.x - frame.midX)
+            if nearest == nil || distance < nearest!.distance {
+                nearest = (slot, distance)
+            }
         }
-        return nil
+        return nearest?.slot
     }
     /// Currently hovered node index (for visual feedback)
     var hoveredNodeIndex: Int? = nil

@@ -161,7 +161,9 @@ struct CharacterPortraitWithHealthBorder: View {
             StateBasedCharacterPortrait(character: character)
                 .frame(width: 165, height: 165)
                 .clipShape(Circle())
-                .id(character.currentState)  // ← FORCE UPDATE when state changes!
+                // 🎬 .id(character.currentState) REMOVED — it was rebuilding
+                // the portrait on every state change, resetting flipbooks to
+                // frame 1 mid-animation. The coordinator handles transitions.
                 .animation(.none, value: character.currentState)  // ← NO transition animation between states
             .offset(x: isAttacking ? 15 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
@@ -224,120 +226,8 @@ struct HealthBadge: View {
     }
 }
 
-// MARK: - Character Portrait (OLD STYLE - DEPRECATED)
-
-struct CharacterPortrait: View {
-    let character: Character
-    let isAttacking: Bool
-    let isFlashing: Bool
-    let showShield: Bool
-    
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            // Portrait Image - NOW USES CHARACTER STATE
-            Group {
-                if let image = UIImage(named: character.currentState.imageName(for: character.name)) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } else {
-                    // Fallback if image not found
-                    Rectangle()
-                        .fill(Color.blue.opacity(0.3))
-                        .overlay(
-                            Text(String(character.name.prefix(1)))
-                                .font(.system(size: 60, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            .frame(height: 160)
-            .cornerRadius(12)
-            .offset(x: isAttacking ? 15 : 0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAttacking)
-            .overlay(
-                Rectangle()
-                    .fill(Color.white.opacity(isFlashing ? 0.5 : 0))
-                    .cornerRadius(12)
-                    .animation(.easeInOut(duration: 0.2), value: isFlashing)
-            )
-        }
-        .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
-    }
-}
-
-// MARK: - Health Bar (OLD STYLE - DEPRECATED)
-
-struct CharacterHealthBar: View {
-    let character: Character
-    
-    var body: some View {
-        VStack(spacing: 3) {
-            HStack(spacing: 6) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.red)
-                Text("\(character.currentHealth)/\(character.maxHealth)")
-                    .font(.gameScore(size: 35))
-                    .foregroundStyle(.white)
-            }
-            
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(Color.black.opacity(0.3))
-                    
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(
-                            LinearGradient(
-                                colors: [healthColor, healthColor.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geo.size.width * character.healthPercentage)
-                        .animation(.easeInOut(duration: 0.3), value: character.currentHealth)
-                }
-            }
-            .frame(height: 12)
-        }
-        .frame(width: 140)
-    }
-    
-    private var healthColor: Color {
-        if character.healthPercentage > 0.5 {
-            return .green
-        } else if character.healthPercentage > 0.25 {
-            return .yellow
-        } else {
-            return .red
-        }
-    }
-}
-
-// MARK: - Shield Badge (KEPT FOR REFERENCE - not currently used)
-
-struct ShieldBadge: View {
-    let amount: Int
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.cyan)
-                .frame(width: 28, height: 28)
-            
-            Circle()
-                .stroke(Color.white, lineWidth: 2)
-                .frame(width: 28, height: 28)
-            
-            Text("\(amount)")
-                .font(.gameScore(size: 20))
-                .foregroundStyle(.white)
-        }
-        .shadow(color: .black.opacity(0.4), radius: 3, y: 1)
-        .offset(x: 8, y: -8)
-    }
-}
+// 🧹 CLEANUP: Removed deprecated unused structs (CharacterPortrait,
+// CharacterHealthBar, ShieldBadge — old pre-health-border style)
 
 // MARK: - Battle Narrative Column (3 messages)
 

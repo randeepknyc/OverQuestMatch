@@ -124,9 +124,12 @@ class GameViewModel {
             showPoisonPillEffect = true
             
             // Apply immediate damage
-            battleManager.player.takeDamage(3)
+        battleManager.player.takeDamage(3)
             hapticManager?.playerDamaged(damage: 3)
-            battleManager.player.currentState = .hurt2
+            // 🎬 hurt2 holds 3.5s — matches the frog screen effect duration
+            battleManager.playerAnimator.play(.hurt2, duration: 3.5)
+            // 🐛 BUG FIX: this damage could kill you but never ended the game
+            battleManager.checkGameOver()
             
             battleManager.addEvent(BattleEvent(
                 text: "💀 POISON PILL REVEALED!",
@@ -140,10 +143,7 @@ class GameViewModel {
             // Hide poison tile from board
             battleManager.poisonPillManager.hidePoisonTile()
             
-            // Return to idle
-            if battleManager.gameState == .playing {
-                battleManager.player.currentState = .idle
-            }
+            // 🎬 Return-to-idle removed — coordinator handles it after the 3.5s hold
             
             return  // Don't process normal swap
         }
@@ -207,7 +207,10 @@ class GameViewModel {
         // Apply immediate damage
         battleManager.player.takeDamage(3)
         hapticManager?.playerDamaged(damage: 3)
-        battleManager.player.currentState = .hurt2
+        // 🎬 hurt2 holds 3.5s — matches the frog screen effect duration
+        battleManager.playerAnimator.play(.hurt2, duration: 3.5)
+        // 🐛 BUG FIX: this damage could kill you but never ended the game
+        battleManager.checkGameOver()
         
         battleManager.addEvent(BattleEvent(
             text: "💀 POISON PILL REVEALED!",
@@ -221,10 +224,7 @@ class GameViewModel {
         // Hide poison tile from board
         battleManager.poisonPillManager.hidePoisonTile()
         
-        // Return to idle
-        if battleManager.gameState == .playing {
-            battleManager.player.currentState = .idle
-        }
+        // 🎬 Return-to-idle removed — coordinator handles it after the 3.5s hold
     }
     
     @MainActor
@@ -353,8 +353,10 @@ class GameViewModel {
             // PENALTY: Enemy attacks for 8 damage due to invalid move
             battleManager.player.takeDamage(8)
             
-            // 🎨 RAMP TAKES DAMAGE FROM MISTAKE (set to hurt2 state)
-            battleManager.player.currentState = .hurt2
+            // 🎬 hurt2 via coordinator (0.6s default — one boil loop + a beat)
+            battleManager.playerAnimator.play(.hurt2)
+            // 🐛 BUG FIX: penalty damage could kill you without ending the game
+            battleManager.checkGameOver()
             
             // Show hurt animation
             isEnemyAttacking = true  // Enemy punishment visual
@@ -363,9 +365,7 @@ class GameViewModel {
             isEnemyAttacking = false
             flashPlayer = false
             
-            // 🎨 RETURN RAMP TO IDLE
-            try? await Task.sleep(for: .milliseconds(150))
-            battleManager.player.currentState = .idle
+            // 🎬 Return-to-idle removed — coordinator handles it
             
             isProcessing = false
             return
@@ -393,8 +393,8 @@ class GameViewModel {
                     await enemyTurn()
                 }
                 
-                // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
-                battleManager.finalizeGameOver()
+                // 🎬 finalizeGameOver() removed — the victory/defeat animation's
+                // completion now reveals the game-over screen (after the 2s hold)
                 
                 isProcessing = false
             }
@@ -633,6 +633,7 @@ class GameViewModel {
         // Apply calculated effects
         if totalDamage > 0 {
             battleManager.enemy.takeDamage(totalDamage)
+            battleManager.enemyAnimator.play(.hurt)  // 🎬 Session 25.1
         }
         if totalShield > 0 {
             battleManager.player.addShield(totalShield)
@@ -770,6 +771,7 @@ class GameViewModel {
         // Apply calculated effects
         if totalDamage > 0 {
             battleManager.enemy.takeDamage(totalDamage)
+            battleManager.enemyAnimator.play(.hurt)  // 🎬 Session 25.1
         }
         if totalShield > 0 {
             battleManager.player.addShield(totalShield)
@@ -844,44 +846,50 @@ class GameViewModel {
         // 🧪 FIRST: Apply poison damage at start of turn
         let poisonDamage = battleManager.poisonPillManager.getPoisonDamageForTurn()
         if poisonDamage > 0 {
-            // Show poison damage happening
-            battleManager.player.currentState = .hurt2
+            // 🎬 hurt2 via coordinator (handles its own return to idle)
+            battleManager.playerAnimator.play(.hurt2)
             flashPlayer = true
             
             battleManager.applyPoisonDamage()
             
             try? await Task.sleep(for: .milliseconds(350))
             flashPlayer = false
-            battleManager.player.currentState = .idle
-            
             try? await Task.sleep(for: .milliseconds(200))
         }
+        
+        // 🎬 KEY CHANGE: the enemy WAITS for Ramp to finish his animations
+        // (and his whole queue) before attacking. 4-second safety timeout
+        // inside waitUntilIdle() means the game can never freeze.
+        await battleManager.playerAnimator.waitUntilIdle()
+        
+        // If poison just killed the player (or the game already ended),
+        // the defeat animation is playing — enemy stands down.
+        guard battleManager.gameState == .playing,
+              battleManager.pendingGameOver == nil else { return }
         
         // ⚡ RESPONSIVE MODE: Skip pre-enemy pause
         if !skipWaitingPauses {
             try? await Task.sleep(for: .milliseconds(400))
         }
         
-        // 🎨 SET PORTRAIT STATES (direct update)
-        battleManager.enemy.currentState = .attack
-        battleManager.player.currentState = .hurt
+        // 🎬 SET PORTRAIT STATES via coordinators
+        battleManager.enemyAnimator.play(.attack)
+        battleManager.playerAnimator.play(.hurt)
         
         // Show visual attack effects
         isEnemyAttacking = true  // Ednar portrait slides forward
         flashPlayer = true       // Ramp flashes white
         
-        // Apply damage (happens instantly)
+        // Apply damage (if this kills Ramp, the defeat animation
+        // automatically interrupts the hurt animation — priority 5 beats 4)
         battleManager.enemyTurn()
         
-        // Wait for animation to complete
+        // Wait for slide/flash to complete
         try? await Task.sleep(for: .milliseconds(350))
         isEnemyAttacking = false
         flashPlayer = false
         
-        // 🎨 RETURN BOTH TO IDLE
-        try? await Task.sleep(for: .milliseconds(150))
-        battleManager.player.currentState = .idle
-        battleManager.enemy.currentState = .idle
+        // 🎬 No manual idle resets — the coordinators handle that
     }
     
     func resetGame() {
@@ -1047,8 +1055,8 @@ class GameViewModel {
             // Enemy turn (always happens, even if no gems were cleared)
             await enemyTurn()
             
-            // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
-            battleManager.finalizeGameOver()
+            // 🎬 finalizeGameOver() removed — the victory/defeat animation's
+            // completion now reveals the game-over screen (after the 2s hold)
             
             // 🐛 FIX: ALWAYS reset isProcessing, even if gemInfo was empty
             isProcessing = false
@@ -1109,6 +1117,10 @@ class GameViewModel {
         
         // Apply damage
         battleManager.enemy.takeDamage(totalDamage)
+        battleManager.playerAnimator.play(.attack)
+        battleManager.enemyAnimator.play(.hurt)  // 🎬 Session 25.1
+        // 🐛 BUG FIX: chain damage could win the game — make sure victory triggers
+        battleManager.checkGameOver()
         
         // Show attack animation
         isPlayerAttacking = true
@@ -1120,8 +1132,8 @@ class GameViewModel {
         // Enemy turn
                 await enemyTurn()
                 
-                // ✨ ALL ANIMATIONS DONE - Now show game over screen if needed
-                battleManager.finalizeGameOver()
+                // 🎬 finalizeGameOver() removed — the victory/defeat animation's
+                // completion now reveals the game-over screen (after the 2s hold)
                 
                 isProcessing = false
             }

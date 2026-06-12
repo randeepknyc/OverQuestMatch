@@ -374,15 +374,16 @@ struct PotionShopDie: Identifiable, Equatable {
     /// tier table (`tier.rollFace()`). DO NOT use this to choose the
     /// graphic in 3D-dice rounds; use `faceValue` instead.
     var value: Int
-    /// Picture value (1...6 — matches the 6 cube faces). Independent of
-    /// `value`. Used ONLY when the round renders 3D-spinning dice
+    /// Picture value — matches an entry in the face table
+    /// (`PotionShop3DDiceAssetMap.faceSpecs`). Independent of `value`.
+    /// Used ONLY when the round renders 3D-spinning dice
     /// (`currentRoundUses3DDice == true`, Day 2 R2 today). Other rounds
     /// ignore this. Defaults to 1 so existing constructors keep compiling.
     ///
-    /// Mapping value→asset lives in `PotionShop3DDiceAssetMap`. Today there
-    /// are 5 distinct assets covering 6 face values (1 & 2 both → potency).
-    /// To add a 6th/7th picture, add it to that map. To go larger than 6,
-    /// see the slot-machine roadmap in `DieSceneView3D`.
+    /// REQUEST 6 (June 12): the value→asset mapping, the roll weights, and
+    /// the set of available faces all live in that ONE face table in
+    /// PotionShopCauldronView.swift — edit it to upgrade faces (e.g. heal →
+    /// higher-value heal art) or add brand-new face types.
     var faceValue: Int = 1
     /// Fixed dice-tray slot index (0...4). Assigned on `drawFromBag` and
     /// preserved across drag-out → drag-back-in so a die always returns
@@ -405,15 +406,15 @@ struct PotionShopDie: Identifiable, Equatable {
         lhs.trayIndex == rhs.trayIndex
     }
 
-    /// Roll an unweighted face value 1...6 — drives WHICH picture the 3D
-    /// cube lands on. Independent of the math-side `value`.
+    /// Roll which PICTURE the 3D cube lands on. Independent of the
+    /// math-side `value`.
     ///
-    /// Per-round picture weighting hook: replace this body with a round-keyed
-    /// table when balance work begins. e.g. for a boost-heavy round:
-    ///   `[1, 2, 2, 3, 3, 3, 4, 5, 6].randomElement()!`
-    /// Today: uniform 1...6 so every picture has equal chance to land.
+    /// REQUEST 6 (June 12): this now delegates to the weighted face table
+    /// in `PotionShop3DDiceAssetMap.faceSpecs` (PotionShopCauldronView.swift).
+    /// Edit that ONE table to change face art, adjust roll weights, or add
+    /// entirely new faces — every roll site in the game reads from it.
     static func rollFaceImageValue() -> Int {
-        Int.random(in: 1...6)
+        PotionShop3DDiceAssetMap.rollWeightedFaceValue()
     }
 }
 
@@ -434,6 +435,16 @@ struct PotionShopBagDie {
 // CauldronGame so the user's debug positioning work is preserved.)
 
 struct PotionShopBoard {
+    // ─── CHANGING THE NODE COUNT (Request 5 context, June 12 — NOT
+    // executed, just a map for later):
+    //   1. Add/remove entries in `nodes` below (positions) and update
+    //      `edges` so reach/boost math knows the new topology.
+    //   2. PotionShopLayoutConfig.perNodeOffsets is sized to 12 — update
+    //      its default array (and the saved-values reset) to the new count.
+    //   3. PotionShopCauldronView's `perNodeOffsets` default parameter is
+    //      also `count: 12` — update to match.
+    //   Everything else (node views, connection lines, drag targets) loops
+    //   over `nodes.count` and adapts automatically.
     struct Node {
         let x: Double
         let y: Double

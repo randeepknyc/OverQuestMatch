@@ -53,32 +53,82 @@ extension CGRect {
 //   2. Either edit the `assetName(forValue:)` switch to point a value at it,
 //      OR add a per-cube subset-picker that randomly draws from the pool.
 
+/// One entry in the face pool. Each entry = one rollable face.
+///   value     — the face's id. Must be unique within `faceSpecs`.
+///   assetName — which image shows for this face (on the cube AND on a
+///               placed die). Multiple faces may share an asset.
+///   weight    — relative roll weight. weight 2 lands twice as often as
+///               weight 1. Set weight 0 to keep a face in the pool's art
+///               rotation (it can flash by during the spin) without it
+///               ever being the landed result.
+struct PotionShopDieFaceSpec {
+    let value: Int
+    let assetName: String
+    var weight: Int = 1
+}
+
 struct PotionShop3DDiceAssetMap {
-    /// Master pool of every die face asset available in the project.
-    /// Adding a new entry here doesn't automatically change what shows on the
-    /// cube — you also need to map a value to it below (or add a subset
-    /// picker later for randomized assignment).
-    static let allDiceAssetNames: [String] = [
-        "die_potency",
-        "die_boost",
-        "die_heal",
-        "die_shield",
-        "die_stability"
-        // Add more here later: "die_fire", "die_water", etc.
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  THE FACE TABLE — edit this to change/add faces (Request 6, June 12)
+    // ═══════════════════════════════════════════════════════════════════
+    //
+    //  • CHANGE A FACE'S ART:  edit its assetName (e.g. point face 4 at a
+    //    new "die_heal_big" asset when heal gets upgraded).
+    //  • CHANGE HOW OFTEN A FACE LANDS:  edit its weight. Today potency
+    //    effectively appears on 2 of 6 faces, which is expressed below as
+    //    two separate face entries (values 1 and 2) sharing the same art —
+    //    exactly matching the old behavior. You could instead delete face
+    //    2 and give face 1 a weight of 2 for the same odds.
+    //  • ADD A NEW FACE / DIE TYPE:  append a new entry with a fresh
+    //    value, e.g. .init(value: 7, assetName: "die_bonus", weight: 1).
+    //    Nothing else needs to change — the roller and the cube both read
+    //    from this table. If the pool grows past 6 entries, the physical
+    //    cube shows the landed face up front and fills its other 5 sides
+    //    with a random draw from the rest of the pool (they only flash by
+    //    during the spin, so this is purely cosmetic).
+    //  • REMOVE A FACE:  delete its entry. Pools smaller than 6 also work
+    //    (remaining cube sides repeat from the pool).
+    static var faceSpecs: [PotionShopDieFaceSpec] = [
+        .init(value: 1, assetName: "die_potency",   weight: 1),
+        .init(value: 2, assetName: "die_potency",   weight: 1),
+        .init(value: 3, assetName: "die_boost",     weight: 1),
+        .init(value: 4, assetName: "die_heal",      weight: 1),
+        .init(value: 5, assetName: "die_shield",    weight: 1),
+        .init(value: 6, assetName: "die_stability", weight: 1),
+        // Future examples (just uncomment / duplicate):
+        // .init(value: 7, assetName: "die_bonus",  weight: 1),
+        // .init(value: 8, assetName: "die_fire",   weight: 2),
     ]
 
-    /// Map a rolled value (1...6, since the cube has 6 faces) → asset name.
-    /// Change this freely. Multiple values can share the same asset (e.g.
-    /// values 1 and 2 both → die_potency today).
+    /// Every face value currently in the pool (in table order).
+    static var allFaceValues: [Int] {
+        faceSpecs.map { $0.value }
+    }
+
+    /// Map a rolled value → asset name, via the face table.
+    /// Falls back to the first face's asset for any unknown value.
     static func assetName(forValue value: Int) -> String {
-        switch value {
-        case 1, 2: return "die_potency"
-        case 3:    return "die_boost"
-        case 4:    return "die_heal"
-        case 5:    return "die_shield"
-        case 6:    return "die_stability"
-        default:   return "die_potency"   // fallback for any weird value
+        if let spec = faceSpecs.first(where: { $0.value == value }) {
+            return spec.assetName
         }
+        return faceSpecs.first?.assetName ?? "die_potency"
+    }
+
+    /// Weighted roll across the face table. This is THE roller for which
+    /// picture lands — `PotionShopDie.rollFaceImageValue()` delegates here,
+    /// so editing weights above changes every roll in the game (fresh
+    /// deals, post-brew redraws, and the editor's SPIN button alike).
+    static func rollWeightedFaceValue() -> Int {
+        let pool = faceSpecs.filter { $0.weight > 0 }
+        guard !pool.isEmpty else { return faceSpecs.first?.value ?? 1 }
+        let totalWeight = pool.reduce(0) { $0 + $1.weight }
+        var roll = Int.random(in: 1...totalWeight)
+        for spec in pool {
+            roll -= spec.weight
+            if roll <= 0 { return spec.value }
+        }
+        return pool[0].value
     }
 }
 
@@ -94,6 +144,23 @@ struct PotionShopCauldronLayout {
     static let nodeHitArea: CGFloat = 36
 
     static let dieSize:     CGFloat = 44
+
+    // ─── REQUEST 1 (June 12): nodes render at the SAME SIZE as the dice
+    // in the tray. When this is true, the node visual scale passed down
+    // from PotionShopGameView is computed so that
+    //     nodeVisible × scale == dieSize × layoutConfig.dieScale
+    // i.e. a node is exactly as big as a tray die, and a placed die fills
+    // its node edge-to-edge. Flip to false to go back to the layout
+    // editor's independent "Node Scale" slider value.
+    // NOTE: while this is true, the editor's Node Scale slider has no
+    // effect (the tray's Die Scale slider drives both sizes).
+    static let nodeMatchesTrayDieSize: Bool = true
+
+    /// Resolve the node visual scale. See `nodeMatchesTrayDieSize` above.
+    static func effectiveNodeScale(layoutNodeScale: Double, trayDieScale: Double) -> Double {
+        guard nodeMatchesTrayDieSize else { return layoutNodeScale }
+        return Double(dieSize / nodeVisible) * trayDieScale
+    }
 
     static let rimHeight:   CGFloat = 0.06
     static let liquidHeight: CGFloat = 0.20
@@ -408,6 +475,40 @@ struct PotionShopCauldronView: View {
     }
 }
 
+// MARK: - Node glow tuning (Request 7, June 12)
+//
+// All knobs for the "this die would affect these nodes" preview glow.
+// While a die is dragged and HOVERING over a node, every node that die
+// would reach (from PotionShopDieRules.affectedNodes) pulses with this
+// glow — Die-in-the-Dungeon style. Works for both tray→node drags and
+// node→node drags.
+//
+// WHICH nodes light up for WHICH die is defined in PotionShopDieRules
+// (PotionShopModels.swift) — e.g. boost hovering node 0 lights up the
+// nodes its reach covers. Edit that struct to change relationships;
+// edit THIS struct to change how the glow looks and pulses.
+
+struct PotionShopNodeGlowTuning {
+    /// Color of the reach-preview glow. Set `tintPreviewWithDieColor` to
+    /// true to use the dragged die's own color instead (boost = purple
+    /// glow, heal = green glow, etc.).
+    static let previewColor = Color(red: 0.30, green: 0.85, blue: 1.00)   // cyan
+    static let tintPreviewWithDieColor: Bool = false
+
+    /// Pulse: glow opacity oscillates between min and max, and the node
+    /// art breathes up to `pulseScaleMax`, repeating while hovered.
+    static let pulseEnabled: Bool = true
+    static let pulseOpacityMin: Double = 0.35
+    static let pulseOpacityMax: Double = 1.00
+    /// Seconds for one half-cycle (dim→bright). Full breath = 2× this.
+    static let pulseHalfPeriod: Double = 0.45
+    /// Node art scale at the bright peak (1.0 = no size pulse).
+    static let pulseScaleMax: CGFloat = 1.08
+
+    /// Base glow radius for preview nodes (pre-pulse).
+    static let previewGlowRadius: CGFloat = 16
+}
+
 // MARK: - One node on the cauldron
 
 struct PotionShopNodeButtonView: View {
@@ -418,6 +519,9 @@ struct PotionShopNodeButtonView: View {
 
     @State private var globalFrame: CGRect = .zero
     @State private var isDraggingFromHere: Bool = false  // Local drag state
+    /// Drives the reach-preview pulse: oscillates 0→1 (repeatForever)
+    /// while this node is in the hovered die's reach, rests at 1 otherwise.
+    @State private var previewPulse: Double = 1.0
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
@@ -445,7 +549,15 @@ struct PotionShopNodeButtonView: View {
     private var glowColor: Color {
         if isHovered && canReceiveDrop { return Color.yellow }
         if canBePlacedOn               { return Color.yellow }
-        if isInPreview                 { return Color(red: 0.30, green: 0.85, blue: 1.00) }  // cyan
+        if isInPreview {
+            // Reach-preview color (Request 7) — tunable in
+            // PotionShopNodeGlowTuning, optionally tinted by the die.
+            if PotionShopNodeGlowTuning.tintPreviewWithDieColor,
+               let dragged = gs.draggedDie {
+                return dragged.type.color
+            }
+            return PotionShopNodeGlowTuning.previewColor
+        }
         if let die = placedDie         { return die.type.color }
         return .clear
     }
@@ -453,7 +565,7 @@ struct PotionShopNodeButtonView: View {
     private var glowRadius: CGFloat {
         if isHovered && canReceiveDrop { return 20 }
         if canBePlacedOn               { return 12 }
-        if isInPreview                 { return 14 }
+        if isInPreview                 { return PotionShopNodeGlowTuning.previewGlowRadius }
         if placedDie != nil            { return 9 }
         return 0
     }
@@ -461,9 +573,22 @@ struct PotionShopNodeButtonView: View {
     private var glowOpacity: Double {
         if isHovered && canReceiveDrop { return 1.0 }
         if canBePlacedOn               { return 0.75 }
-        if isInPreview                 { return 0.85 }
+        if isInPreview {
+            // Pulse between min and max opacity while in the reach preview.
+            guard PotionShopNodeGlowTuning.pulseEnabled else { return 0.85 }
+            let lo = PotionShopNodeGlowTuning.pulseOpacityMin
+            let hi = PotionShopNodeGlowTuning.pulseOpacityMax
+            return lo + (hi - lo) * previewPulse
+        }
         if placedDie != nil            { return 0.65 }
         return 0.0
+    }
+
+    /// Node-art breathing scale while in the reach preview (1.0 otherwise).
+    private var previewScale: CGFloat {
+        guard isInPreview, PotionShopNodeGlowTuning.pulseEnabled else { return 1.0 }
+        let extra = PotionShopNodeGlowTuning.pulseScaleMax - 1.0
+        return 1.0 + extra * CGFloat(previewPulse)
     }
 
     var body: some View {
@@ -484,6 +609,9 @@ struct PotionShopNodeButtonView: View {
                     width: PotionShopCauldronLayout.nodeVisible * visualScale,
                     height: PotionShopCauldronLayout.nodeVisible * visualScale
                 )
+                // Reach-preview breathing (Request 7): node art gently
+                // grows/shrinks while in the hovered die's reach.
+                .scaleEffect(previewScale)
                 // Two stacked shadows = a thicker, softer glow
                 .shadow(color: glowColor.opacity(glowOpacity), radius: glowRadius)
                 .shadow(color: glowColor.opacity(glowOpacity * 0.55), radius: glowRadius * 0.5)
@@ -519,6 +647,25 @@ struct PotionShopNodeButtonView: View {
         // you can tap or drag from anywhere within the frame, not
         // only inside the small visible die.
         .contentShape(Rectangle())
+        // Reach-preview pulse loop (Request 7): when this node enters the
+        // hovered die's reach, oscillate previewPulse 0↔1 forever; when it
+        // leaves, settle back to rest without animation residue.
+        .onChange(of: isInPreview) { _, nowInPreview in
+            guard PotionShopNodeGlowTuning.pulseEnabled else { return }
+            if nowInPreview {
+                previewPulse = 0.0
+                withAnimation(
+                    .easeInOut(duration: PotionShopNodeGlowTuning.pulseHalfPeriod)
+                    .repeatForever(autoreverses: true)
+                ) {
+                    previewPulse = 1.0
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    previewPulse = 1.0
+                }
+            }
+        }
         .onTapGesture {
             guard !gs.isAnimating, !isDraggingFromHere else { return }
             if placedDie != nil {
@@ -925,14 +1072,27 @@ struct PotionShopDiceTrayView: View {
 // after a brew).
 
 struct PotionShopDiceDropInModifier: ViewModifier {
-    @State private var dropOffset: CGFloat = -PotionShopCauldronLayout.dropInOffset
+    /// REQUEST 2 (June 12): when false, the die appears INSTANTLY at rest in
+    /// its slot — no drop-from-above spring, no fade. Used for dice that are
+    /// RETURNING to the tray from a cauldron node so they snap home the same
+    /// way dice snap onto nodes. Fresh deals still drop in as before.
+    let enabled: Bool
+
+    @State private var dropOffset: CGFloat
     @State private var hasAppeared: Bool = false
+
+    init(enabled: Bool = true) {
+        self.enabled = enabled
+        // Returning dice start AT their slot (offset 0) so there is no
+        // first-frame jump; fresh dice start above and spring down.
+        _dropOffset = State(initialValue: enabled ? -PotionShopCauldronLayout.dropInOffset : 0)
+    }
 
     func body(content: Content) -> some View {
         content
             .offset(y: dropOffset)
             .onAppear {
-                guard !hasAppeared else { return }
+                guard enabled, !hasAppeared else { return }
                 hasAppeared = true
 
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.68)) {
@@ -970,20 +1130,36 @@ struct PotionShopDieButtonView: View {
         // All other rounds use the original static face render.
         Group {
             if gs.currentRoundUses3DDice {
-                DieFaceView3D(
-                    die: die,
-                    isSelected: isSelected,
-                    size: scaledSize,
-                    fontSize: scaledFontSize,
-                    dieScale: dieScale,
-                    index: index,
-                    spinToken: gs.spinTrigger3D,
-                    // Dice returning from the cauldron (id in settledDiceIds)
-                    // should appear at rest in their slot — NOT replay the
-                    // drop/spin animation. Fresh deals + reroll button both
-                    // clear the set, so those still animate as before.
-                    animateOnAppear: !gs.settledDiceIds.contains(die.id)
-                )
+                // REQUEST 8 (June 12): the die's brew-math VALUE is now
+                // stamped over the cube in the tray, same style as the
+                // value shown on a placed die. It hides during the spin
+                // and fades in once the cube settles (see
+                // PotionShopTrayDieValueBadge for the timing knobs).
+                ZStack {
+                    DieFaceView3D(
+                        die: die,
+                        isSelected: isSelected,
+                        size: scaledSize,
+                        fontSize: scaledFontSize,
+                        dieScale: dieScale,
+                        index: index,
+                        spinToken: gs.spinTrigger3D,
+                        // Dice returning from the cauldron (id in settledDiceIds)
+                        // should appear at rest in their slot — NOT replay the
+                        // drop/spin animation. Fresh deals + reroll button both
+                        // clear the set, so those still animate as before.
+                        animateOnAppear: !gs.settledDiceIds.contains(die.id)
+                    )
+
+                    PotionShopTrayDieValueBadge(
+                        value: die.value,
+                        fontSize: scaledFontSize,
+                        spinToken: gs.spinTrigger3D,
+                        // Returning dice didn't spin → show the number instantly.
+                        revealAfterSpin: !gs.settledDiceIds.contains(die.id)
+                    )
+                    .allowsHitTesting(false)
+                }
             } else {
                 // Try to load die face image, fallback to colored square
                 if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
@@ -1037,7 +1213,15 @@ struct PotionShopDieButtonView: View {
             color: isDragging ? die.type.color.opacity(0.5) : .clear,
             radius: isDragging ? 12 : 0
         )
-        .modifier(PotionShopDiceDropInModifier())
+        // REQUEST 2 (June 12): dice RETURNING from the cauldron (id in
+        // settledDiceIds) skip the drop-from-above animation entirely and
+        // appear instantly in their slot — combined with the
+        // disablesAnimations transaction in the node-drag release, this is
+        // a clean SNAP (same feel as snapping onto a node), with only the
+        // landPopScale punch on top. Fresh deals still drop in.
+        .modifier(PotionShopDiceDropInModifier(
+            enabled: !gs.settledDiceIds.contains(die.id)
+        ))
         // "Just landed in tray" pop. The drag-from-node flow inserts this
         // die's id into `gs.diceToPopIds` before snapping it home; here we
         // consume that signal and play a quick scale punch that springs
@@ -1090,6 +1274,64 @@ struct PotionShopDieButtonView: View {
             }
         }
         .disabled(gs.isAnimating)
+    }
+}
+
+// MARK: - Tray die value badge (Request 8, June 12)
+//
+// The numeric brew-math value (`die.value`) stamped over the 3D cube in
+// the tray — same white-with-shadow style as the value shown on a placed
+// die, so the number "travels" with the die from tray to node.
+//
+// Reveal timing: the number stays hidden while the cube is dropping and
+// spinning, then fades in once the cube settles. Re-hides + replays every
+// time the dice re-roll (spinToken bump = fresh deal, post-brew redraw, or
+// the editor's SPIN button).
+
+struct PotionShopTrayDieValueBadge: View {
+    let value: Int
+    let fontSize: CGFloat
+    /// Bumped on every re-roll; restarts the hide→reveal cycle.
+    let spinToken: Int
+    /// true  → wait `revealDelay` (cube is playing its drop/spin), then fade in.
+    /// false → show immediately (die returned from the cauldron, no spin).
+    let revealAfterSpin: Bool
+
+    // ─── Tuning knobs ───────────────────────────────────────────
+    /// Seconds after a re-roll before the number fades in. Matches the
+    /// cube's full drop+spin+settle timeline (~1.22s) plus a hair.
+    static let revealDelay: Double = 1.30
+    /// Fade-in duration once the delay elapses.
+    static let revealFadeDuration: Double = 0.20
+    // ────────────────────────────────────────────────────────────
+
+    @State private var badgeOpacity: Double = 0.0
+
+    var body: some View {
+        Text("\(value)")
+            .font(Font.gameScore(size: fontSize))
+            .foregroundColor(.white)
+            .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+            .opacity(badgeOpacity)
+            .onAppear { runReveal() }
+            .onChange(of: spinToken) {
+                runReveal()
+            }
+    }
+
+    private func runReveal() {
+        if !revealAfterSpin {
+            badgeOpacity = 1.0
+            return
+        }
+        badgeOpacity = 0.0
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + PotionShopTrayDieValueBadge.revealDelay
+        ) {
+            withAnimation(.easeOut(duration: PotionShopTrayDieValueBadge.revealFadeDuration)) {
+                badgeOpacity = 1.0
+            }
+        }
     }
 }
 
@@ -1230,9 +1472,16 @@ struct DieSceneView3D: UIViewRepresentable {
         // Material order: [front (+Z), right (+X), back (-Z), left (-X), top (+Y), bottom (-Y)]
         // We put `targetFace` at the FRONT slot so a pure multiple-of-360° X-axis
         // spin lands the target value facing the camera with zero settle math.
-        // Remaining values fill the other 5 slots — they only flash during the spin.
-        var remaining = [1, 2, 3, 4, 5, 6].filter { $0 != targetFace }
-        let faceOrder = [targetFace] + remaining   // [front, right, back, left, top, bottom]
+        // The other 5 physical sides are filled from the face pool
+        // (PotionShop3DDiceAssetMap.faceSpecs) — they only flash during the
+        // spin, so when the pool has more than 6 faces we draw 5 at random,
+        // and when it has fewer than 6 we repeat entries to fill the cube.
+        var remaining = PotionShop3DDiceAssetMap.allFaceValues
+            .filter { $0 != targetFace }
+            .shuffled()
+        if remaining.isEmpty { remaining = [targetFace] }   // 1-face pool edge case
+        while remaining.count < 5 { remaining += remaining } // pad small pools
+        let faceOrder = [targetFace] + Array(remaining.prefix(5))
         box.materials = faceOrder.map { face in
             let mat = SCNMaterial()
             mat.diffuse.contents = renderFaceTexture(value: face)

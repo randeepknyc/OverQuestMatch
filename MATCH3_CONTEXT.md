@@ -1,7 +1,7 @@
 # MATCH-3 GAME CONTEXT
 **OverQuestMatch3 - Match-3 RPG Battle Game**
 
-> **Last Updated:** April 6, 2026 (Added Pause Menu "End Game" button)  
+> **Last Updated:** June 12, 2026 (Session 25 - Animation Coordinator System)  
 > **Status:** ✅ COMPLETE & FULLY WORKING - No splash/title/map in Match3ContentView anymore
 
 ---
@@ -55,10 +55,11 @@ Match3Game/
 ```
 
 **Shared Files** (in `/Shared` folder, used by all games):
-- `Character.swift` - Character data models
+- `Character.swift` - Character data models (state enum, no more stateChangeID)
 - `GameAssets.swift` - Asset names & UI config
 - `BattleMechanicsConfig.swift` - All battle numbers centralized
-- `CharacterAnimations-Shared.swift` - Character animation system
+- `CharacterAnimations.swift` - Boil flipbook engine (TimelineView-based, Session 25)
+- `AnimationCoordinator.swift` ✨ NEW - Animation queue/priority system (Session 25)
 - `HapticManager.swift` - Haptic feedback
 
 ---
@@ -248,6 +249,39 @@ ZStack (z-index layers):
 ---
 
 ## 🎨 ANIMATIONS
+
+### **Character Portrait System** ✨ NEW (Session 25)
+**Overview:** Every character state can play a 3-frame line-boil flipbook.
+An AnimationCoordinator (one per character, owned by BattleManager) manages
+a queue + priority system so animations play out fully and never overlap.
+
+**Priority ladder (higher interrupts lower):**
+victory/defeat (5) > hurt/hurt2 (4) > attack (3) > spell/defend (2) > idle (0)
+
+**Key behaviors:**
+- Repeated cascade attacks COALESCE into one continuous attack
+- defend is DROPPED when busy (message still shows); spell always QUEUES
+- Enemy turn awaits `playerAnimator.waitUntilIdle()` before attacking
+- Victory/defeat hold 2.0s, then their completion calls `finalizeGameOver()`
+  to reveal the game-over screen
+- Coordinator auto-returns characters to .idle when the queue empties
+- Poison pill reveal holds hurt2 for 3.5s (passed as duration override)
+
+**Tuning:** config table at top of `AnimationCoordinator.swift`
+(priority / duration / policy per state). All durations must be ≥ 0.45s
+(one boil loop = 3 frames × 0.15s).
+
+**Boil asset naming (plug-and-play, no code):**
+`ramp_boil1/2/3` (idle, legacy name) · `ramp_attack_boil1/2/3` ·
+`ramp_hurt_boil1/2/3` · `ramp_hurt2_boil1/2/3` · `ramp_defend_boil1/2/3` ·
+`ramp_spell_boil1/2/3` · `ramp_victory_boil1/2/3` · `ramp_defeat_boil1/2/3`
+Missing frames automatically fall back to static images (ramp_hurt etc.)
+
+**⚠️ RULES:**
+- ONLY AnimationCoordinator may write `character.currentState`
+- Never re-add `.id(character.currentState)` or `stateChangeID` — those
+  force-rebuilds reset flipbooks to frame 1 (the original bug)
+- Full non-coder instructions: `ANIMATION_ART_GUIDE.md`
 
 ### **Raindrop Cascade** ⭐ CRITICAL FEATURE
 **Overview:** New gems spawn with cascading effect from top
@@ -618,6 +652,19 @@ var asyncEnemyTurn: Bool = false
 
 ## 📚 RECENT MAJOR CHANGES
 
+**Session 25 (June 12, 2026)** - Animation Coordinator System ✨
+- NEW `AnimationCoordinator.swift`: queue + priority + coalesce/drop system
+- All states route through coordinators; boil flipbooks for every state
+- `LineBoilAnimation` rebuilt on TimelineView (clock-driven, can't freeze)
+- Removed `.id()` rebuilds + `stateChangeID` (flipbook reset bug)
+- Enemy turn waits for player animation queue
+- Victory/defeat hold 2s, completion reveals game-over screen
+- Bug fixes: spell never reset; penalty/poison/chain damage not triggering
+  game over; stale 350ms idle-reset race
+- Removed dead structs from BattleSceneView (CharacterPortrait,
+  CharacterHealthBar, ShieldBadge)
+- See `SESSION_25_ANIMATION_COORDINATOR_SYSTEM.md` + `ANIMATION_ART_GUIDE.md`
+
 **Session 22 (March 28, 2026)** - Project Reorganization
 - Created `Match3Game/` folder
 - Moved all 18 Match-3 files into folder
@@ -663,8 +710,12 @@ var asyncEnemyTurn: Bool = false
 - `coffee_bonus.png` - Bonus tile (coffee cup)
 
 ### **Character Portraits:**
-- `ramp_idle.png`, `ramp_attack.png`, `ramp_hurt.png`, `ramp_hurt2.png`
-- `ednar_idle.png`, `ednar_attack.png`, `ednar_hurt.png`
+- Static (fallbacks): `ramp_idle`, `ramp_attack`, `ramp_hurt`, `ramp_hurt2`,
+  `ramp_defend`, `ramp_spell`, `ramp_victory`, `ramp_defeat`, `ednar_idle`
+- Boil flipbooks (3 frames each): `ramp_boil1/2/3` (idle ✅),
+  `ramp_attack_boil1/2/3` (✅), plus `ramp_<state>_boil1/2/3` for
+  hurt/hurt2/defend/spell/victory/defeat (📋 art pending — static
+  fallbacks show until added)
 
 ### **Optional PNG Animations (Bonus Blasts):**
 - `bonus_blast_row_1.png` through `bonus_blast_row_6.png` (2048×256px)
@@ -677,6 +728,9 @@ var asyncEnemyTurn: Bool = false
 ### **When Modifying Match-3 Code:**
 
 **CRITICAL RULES:**
+0. ✅ **NEVER** write `character.currentState` directly — route ALL state
+   changes through `playerAnimator/enemyAnimator.play(...)`. Never re-add
+   `.id(character.currentState)` or `stateChangeID` (Session 25)
 1. ✅ **NEVER** modify raindrop cascade animation (lines 276-323 in GameBoardView.swift)
 2. ✅ Always provide COMPLETE files or functions (never snippets)
 3. ✅ Include Xcode step-by-step instructions
@@ -688,7 +742,10 @@ var asyncEnemyTurn: Bool = false
 - Adjust battle numbers → Edit `BattleMechanicsConfig.swift`
 - Change gem effects → Edit values in `BattleMechanicsConfig.swift`
 - Add battle messages → Add to arrays in `BattleMechanicsConfig.swift`
-- Modify animations → Edit GameBoardView.swift (preserve raindrop!)
+- Modify board animations → Edit GameBoardView.swift (preserve raindrop!)
+- Portrait hold times/priorities → Config table in `AnimationCoordinator.swift`
+- Portrait boil speed → `frameDuration` in `CharacterAnimations.swift`
+- Add boil art → Just add PNGs to Assets (see `ANIMATION_ART_GUIDE.md`)
 - Debug board issues → Use Debug Menu (hammer icon)
 
 **Files to Check:**

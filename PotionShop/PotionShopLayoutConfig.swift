@@ -316,18 +316,18 @@ class PotionShopLayoutConfig {
     var cauldronBowlX: Double = 44.709229469299316
     var cauldronBowlY: Double = 58.0
     
-    // Nodes
-    var nodeScale: Double = 1.8311170041561127
-    var nodeXOffset: Double = 79.43263053894043
-    var nodeYOffset: Double = 71.27659320831299
-    var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
+    // Nodes (baked June 12, 2026 from layout-editor export)
+    var nodeScale: Double = 1.5997340604662895
+    var nodeXOffset: Double = 103.54609489440918
+    var nodeYOffset: Double = 119.14892196655273
+    var nodeSpacingMultiplier: Double = 1.0664893835783005  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
     var perNodeOffsets: [CGPoint] = [
         CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
         CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
         CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-        CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+        CGPoint(x: -12.765955924987793, y: -6.91489577293396),   // Node 3 (re-tuned June 12, 2026)
         CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
         CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
         CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
@@ -337,7 +337,7 @@ class PotionShopLayoutConfig {
         CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
         CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
     ]
-    
+
     // Helper method to reset all per-node offsets
     func resetAllNodeOffsets() {
         perNodeOffsets = Array(repeating: .zero, count: 12)
@@ -1510,18 +1510,18 @@ class PotionShopLayoutConfig {
         cauldronBowlX = 44.709229469299316
         cauldronBowlY = 58.0
         
-        // Nodes
-        nodeScale = 1.8311170041561127
-        nodeXOffset = 79.43263053894043
-        nodeYOffset = 71.27659320831299
-        nodeSpacingMultiplier = 1.0
-        
+        // Nodes (baked June 12, 2026)
+        nodeScale = 1.5997340604662895
+        nodeXOffset = 103.54609489440918
+        nodeYOffset = 119.14892196655273
+        nodeSpacingMultiplier = 1.0664893835783005
+
         // Per-Node Offsets (all 12 nodes)
         perNodeOffsets = [
             CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
             CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
             CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-            CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+            CGPoint(x: -12.765955924987793, y: -6.91489577293396),   // Node 3 (re-tuned June 12, 2026)
             CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
             CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
             CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6

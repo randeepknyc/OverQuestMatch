@@ -160,6 +160,7 @@
 		7FB075EA2F5EA7EE00BD0591 /* MapScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */; };
 		7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */; };
 		7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */; };
+		7FCBED112FDC7D030057AA22 /* AnimationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCBED102FDC7D030057AA22 /* AnimationCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -317,6 +318,7 @@
 		7FB075E92F5EA7EE00BD0591 /* MapScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreenView.swift; sourceTree = "<group>"; };
 		7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontExtensions.swift; sourceTree = "<group>"; };
 		7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AI_CONTEXT.md; sourceTree = "<group>"; };
+		7FCBED102FDC7D030057AA22 /* AnimationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCoordinator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -408,6 +410,7 @@
 				7F3124542F72513B00316079 /* PoisonPillScreenEffect.swift */,
 				7F0094F02F6E384C00E10AEB /* DebugMenuView.swift */,
 				7F5574602F77865000081E01 /* Match3ContentView.swift */,
+				7FCBED102FDC7D030057AA22 /* AnimationCoordinator.swift */,
 			);
 			path = "Match3​Game";
 			sourceTree = "<group>";
@@ -817,6 +820,7 @@
 				7F2ADE632F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift in Sources */,
 				7FB075402F5D2FFA00BD0591 /* AnimationHelpers.swift in Sources */,
 				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
+				7FCBED112FDC7D030057AA22 /* AnimationCoordinator.swift in Sources */,
 				7F5574952F786B4500081E01 /* PhysicsTileView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
 				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,

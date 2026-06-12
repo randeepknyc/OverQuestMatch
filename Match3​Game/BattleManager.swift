@@ -35,20 +35,34 @@ class BattleManager {
         case defeat
     }
     
+    // 🎬 ANIMATION COORDINATORS — the only things allowed to change portrait states
+    let playerAnimator: AnimationCoordinator
+    let enemyAnimator: AnimationCoordinator
+
     init() {
-        self.player = Character(
+        let playerCharacter = Character(
             name: "Ramp",
             imageName: GameAssets.barbarianImage,
             maxHealth: BattleMechanicsConfig.playerStartingHealth,
             currentHealth: BattleMechanicsConfig.playerStartingHealth
         )
-        
-        self.enemy = Character(
+
+        let enemyCharacter = Character(
             name: "Toad King",
             imageName: GameAssets.toadImage,
             maxHealth: BattleMechanicsConfig.enemyStartingHealth,
             currentHealth: BattleMechanicsConfig.enemyStartingHealth
         )
+
+        self.player = playerCharacter
+        self.enemy = enemyCharacter
+        self.playerAnimator = AnimationCoordinator(character: playerCharacter)
+        self.enemyAnimator = AnimationCoordinator(character: enemyCharacter)
+
+        // 🎬 Battle messages appear when their animation actually STARTS
+        // (keeps narrative text in sync with queued/delayed animations)
+        playerAnimator.onEmitEvent = { [weak self] event in self?.addEvent(event) }
+        enemyAnimator.onEmitEvent = { [weak self] event in self?.addEvent(event) }
     }
     
     func processMatches(_ matches: [Match]) {
@@ -80,37 +94,26 @@ class BattleManager {
                 let damage = Int(Double(BattleMechanicsConfig.swordDamagePerGem * matchCount) * multiplier)
                 totalDamage += damage
                 
-                // 🎨 SET PLAYER TO ATTACK STATE
-                player.currentState = .attack
-                
-                addEvent(barbarianAttackMessage(damage: damage, isCombo: isCombo))
+                // 🎬 Animation + message travel together through the coordinator
+                playerAnimator.play(.attack, message: barbarianAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .fire:
                 let damage = Int(Double(BattleMechanicsConfig.fireDamagePerGem * matchCount) * multiplier)
                 totalDamage += damage
                 
-                // 🎨 SET PLAYER TO ATTACK STATE
-                player.currentState = .attack
-                
-                addEvent(magicAttackMessage(damage: damage, isCombo: isCombo))
+                playerAnimator.play(.attack, message: magicAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .shield:
                 let shield = BattleMechanicsConfig.shieldPerGem * matchCount
                 totalShield += shield
                 
-                // 🎨 SET PLAYER TO DEFEND STATE
-                player.currentState = .defend
-                
-                addEvent(shieldMessage(amount: shield, isCombo: isCombo))
+                playerAnimator.play(.defend, message: shieldMessage(amount: shield, isCombo: isCombo))
                 
             case .heart:
                 let healing = BattleMechanicsConfig.healingPerGem * matchCount
                 totalHealing += healing
                 
-                // 🎨 SET PLAYER TO DEFEND STATE (healing = defensive action)
-                player.currentState = .defend
-                
-                addEvent(healMessage(amount: healing, isCombo: isCombo))
+                playerAnimator.play(.defend, message: healMessage(amount: healing, isCombo: isCombo))
                 
             case .mana:
                 let manaGain = BattleMechanicsConfig.manaPerGem * matchCount
@@ -127,6 +130,10 @@ class BattleManager {
         if totalDamage > 0 {
             enemy.takeDamage(totalDamage)
             hapticManager?.enemyDamaged(damage: totalDamage)  // ✨ Enemy damage haptic
+            
+            // 🎬 ENEMY HURT REACTION (Session 25.1)
+            // Plays a beat after Ramp's attack starts so the hit "lands"
+            enemyAnimator.play(.hurt)
         }
         if totalHealing > 0 {
             player.heal(totalHealing)
@@ -161,17 +168,9 @@ class BattleManager {
         // 🔥 SESSION 2 ADDITION: POWER SURGE DETECTION (END)
         // ═══════════════════════════════════════════════════════════════
         
-        // ═══════════════════════════════════════════════════════════════
-        // 🎨 RETURN PLAYER TO IDLE STATE AFTER ANIMATIONS
-        // ═══════════════════════════════════════════════════════════════
-        // Return to idle after a delay (matches don't overlap)
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            if gameState == .playing {
-                player.currentState = .idle
-            }
-        }
-        // ═══════════════════════════════════════════════════════════════
+        // 🎬 Idle reset REMOVED — AnimationCoordinator returns the character
+        // to idle automatically when its queue empties (and never at the
+        // wrong moment, unlike the old fixed 350ms timer).
         
         checkGameOver()
     }
@@ -219,29 +218,40 @@ class BattleManager {
         }
     }
     
-    private func checkGameOver() {
+    // 🎬 No longer private — GameViewModel calls this after poison-pill and
+    // invalid-swap penalty damage (bug fix: that damage could kill you
+    // without ever ending the game)
+    func checkGameOver() {
+        // Already pending or already over? Don't trigger twice
+        guard pendingGameOver == nil, gameState == .playing else { return }
+
         if !enemy.isAlive {
-            // ✨ DON'T show game over yet - store it for later!
             pendingGameOver = .victory
-            
-            // 🎨 SET PLAYER TO VICTORY STATE (animation will play)
-            player.currentState = .victory
-            
             hapticManager?.victory()  // ✨ Victory haptic celebration!
-            
-            // ✅ UPDATED: Use victory message from config
-            addEvent(BattleEvent(text: BattleMechanicsConfig.victoryMessage, type: .special))
+
+            // 🎬 ENEMY SLUMPS while Ramp celebrates (Session 25.1)
+            enemyAnimator.play(.defeat)
+
+            // 🎬 Victory boil plays for 2s (duration in AnimationCoordinator
+            // config), THEN the game-over screen appears via the completion.
+            playerAnimator.play(
+                .victory,
+                message: BattleEvent(text: BattleMechanicsConfig.victoryMessage, type: .special),
+                completion: { [weak self] in self?.finalizeGameOver() }
+            )
         } else if !player.isAlive {
-            // ✨ DON'T show game over yet - store it for later!
             pendingGameOver = .defeat
-            
-            // 🎨 SET PLAYER TO DEFEAT STATE (animation will play)
-            player.currentState = .defeat
-            
             hapticManager?.defeat()  // ✨ Defeat haptic
-            
-            // ✅ UPDATED: Use defeat message from config
-            addEvent(BattleEvent(text: BattleMechanicsConfig.defeatMessage, type: .special))
+
+            // 🎬 ENEMY CELEBRATES while Ramp slumps (Session 25.1)
+            enemyAnimator.play(.victory)
+
+            // 🎬 Ramp slumps for 2s, then the screen appears
+            playerAnimator.play(
+                .defeat,
+                message: BattleEvent(text: BattleMechanicsConfig.defeatMessage, type: .special),
+                completion: { [weak self] in self?.finalizeGameOver() }
+            )
         }
     }
     
@@ -255,9 +265,9 @@ class BattleManager {
         comboCount = 0
         turnCount = 0
         
-        // Reset character states
-        player.currentState = .idle
-        enemy.currentState = .idle
+        // 🎬 Reset animation coordinators (clears queues, unlocks, returns to idle)
+        playerAnimator.reset()
+        enemyAnimator.reset()
         
         gameState = .playing
         pendingGameOver = nil  // ✅ FIX: Clear pending game over state
@@ -283,8 +293,8 @@ class BattleManager {
         case .heroicStrike:
             // This now means "Clear Board" - requires gem type selection
             if let gemType = gemType {
-                // 🎨 SET PLAYER TO SPELL STATE
-                player.currentState = .spell
+                // 🎬 Spell animation (auto-returns to idle — old version never reset!)
+                playerAnimator.play(.spell)
                 
                 // ═══════════════════════════════════════════════════════════════
                 // ✨ GEM CLEAR EFFECTS: Apply gem effects based on count
@@ -338,6 +348,11 @@ class BattleManager {
                 // ✨ GEM CLEAR MESSAGE (shows what happened)
                 // ═══════════════════════════════════════════════════════════════
                 
+                // 🎬 ENEMY HURT REACTION for Gem Clear damage (Session 25.1)
+                if totalDamage > 0 {
+                    enemyAnimator.play(.hurt)
+                }
+                
                 var effectMessage = ""
                 
                 if totalDamage > 0 {
@@ -361,8 +376,8 @@ class BattleManager {
         case .divineShield:
             let shieldAmount = BattleMechanicsConfig.shieldAbilityAmount
             
-            // 🎨 SET PLAYER TO SPELL STATE
-            player.currentState = .spell
+            // 🎬 Spell animation (auto-returns to idle — old version never reset!)
+            playerAnimator.play(.spell)
             
             player.addShield(shieldAmount)
             
@@ -374,8 +389,8 @@ class BattleManager {
         case .greaterHeal:
             let healAmount = BattleMechanicsConfig.healAbilityAmount
             
-            // 🎨 SET PLAYER TO SPELL STATE
-            player.currentState = .spell
+            // 🎬 Spell animation (auto-returns to idle — old version never reset!)
+            playerAnimator.play(.spell)
             
             player.heal(healAmount)
             

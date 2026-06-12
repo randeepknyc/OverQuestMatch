@@ -1527,4 +1527,249 @@ The tray-drop branch wraps `unplaceDie` + `cancelNodeDrag` in `withAnimation(.sp
 
 ---
 
+## 27. JUNE 12, 2026 — D2R2 DICE SESSION (node sizing, tray snap-back, face table, glow pulse, value badge)
+
+Eight requests handled in one pass. D2R2 (Day 2 Round 2) remains the dice
+test environment; D3R3 is the customers/scene/HP-badge test environment.
+Files changed: `PotionShopCauldronView.swift`, `PotionShopGameView.swift`,
+`PotionShopGameState.swift`, `PotionShopModels.swift`. Nothing else touched.
+
+### 27.1 Request 1 — Nodes render at the SAME SIZE as tray dice
+
+New toggle + helper in `PotionShopCauldronLayout` (PotionShopCauldronView.swift):
+
+```swift
+static let nodeMatchesTrayDieSize: Bool = true
+static func effectiveNodeScale(layoutNodeScale: Double, trayDieScale: Double) -> Double
+```
+
+How it works: the node visual scale handed down from `PotionShopGameView`
+is no longer `layoutConfig.nodeScale` directly. Both call sites (the
+`PotionShopCauldronView` init AND the `PotionShopDraggedDieOverlay` init)
+now pass `PotionShopCauldronLayout.effectiveNodeScale(layoutNodeScale:trayDieScale:)`.
+When the toggle is true, that helper returns `(dieSize / nodeVisible) × dieScale`
+= `(44 / 26) × layoutConfig.dieScale`, so a node's visible art is EXACTLY
+`dieSize × dieScale` — the same on-screen size as a die sitting in the tray.
+With the saved dieScale (≈1.405) that's ≈62pt, up from the old ≈48pt.
+
+Consequences to remember:
+- **The layout editor's "Node Scale" slider is INERT while the toggle is
+  true.** The tray's "Die Scale" slider drives both sizes. Flip
+  `nodeMatchesTrayDieSize` to `false` to restore the old independent slider.
+- The hit area scales along with it (`nodeHitArea 36 × effective scale`),
+  so nodes are also easier to tap/drop on.
+- A placed die fills its node edge-to-edge (placed-die view renders at
+  `nodeVisible × visualScale`, which now equals the tray die size).
+- The dragged-from-node overlay die uses the same effective scale, so the
+  die does NOT change size as it travels node → finger → tray.
+- Node POSITIONS/SPACING are untouched (spacing multiplier + per-node
+  offsets still apply). Bigger nodes on the same spacing can crowd —
+  if any pair overlaps, fix it with the spacing slider or per-node offsets.
+
+### 27.2 Request 2 — Node→tray drop now SNAPS (crossfade/float killed)
+
+Diagnosis: the `withTransaction(disablesAnimations: true)` snap from §26.13
+was already in place, but TWO other effects were still firing on the
+returning die's freshly-created tray view:
+1. `PotionShopDiceDropInModifier` replayed its "fall from 80pt above +
+   spring" entrance — meant for fresh deals, wrong for a die being dropped
+   back by hand.
+2. The default matchedGeometryEffect insertion crossfade layered on top.
+
+Fix: `PotionShopDiceDropInModifier` gained an `enabled: Bool` (default
+true). When false, the modifier's initial offset is 0 (not −80) and
+`.onAppear` does nothing — the die materializes at rest in its slot,
+instantly. The tray die view passes
+`enabled: !gs.settledDiceIds.contains(die.id)` — i.e. dice RETURNING from
+the cauldron skip the drop-in; fresh deals (whose ids were cleared from
+`settledDiceIds` by `drawFromBag`) still drop in as before.
+
+Combined result on release over the tray: disablesAnimations transaction
+(no matched-geometry tween) + no drop-in (no fall) + the existing
+`landPopScale` 1.35→1.0 spring punch = a hard snap with a satisfying pop,
+matching the feel of snapping a die ONTO a node.
+
+`settledDiceIds` lifecycle reminder (unchanged, but now load-bearing for
+two systems): inserted by `unplaceDie`/`returnDraggedDie`; cleared by
+`drawFromBag`, `discardAllDice`, and `reroll3DDice`. It now gates BOTH the
+3D cube's animate-on-appear AND the drop-in modifier AND the value badge
+reveal (§27.6).
+
+### 27.3 Request 3 — Drop into ANY open tray slot (forgiving picker)
+
+`findEmptyTraySlot(at:)` in `PotionShopGameState` was strict frame
+containment (release had to be exactly inside an empty slot's rect, which
+is only ~62pt tall — easy to miss). Rewritten with two passes:
+
+1. **Column match:** if the release point's X falls within an empty slot's
+   X-range, that slot wins regardless of Y. So releasing anywhere in the
+   80pt-extended drop zone above the tray maps to the column under the
+   finger.
+2. **Nearest-empty fallback:** otherwise (released over an occupied slot,
+   a gap between slots, or the tray padding) the empty slot with the
+   smallest horizontal distance to the finger wins.
+
+Returns nil only if no slot frames are known / all occupied → die falls
+back to its original `trayIndex` via `unplaceDie`'s existing nil-handling
+(that slot is empty anyway, since the die left from there).
+
+**This supersedes the `findEmptyTraySlot` description in §26.13.** The
+`unplaceDie(_:toSlot:)` plumbing from that section is unchanged.
+
+### 27.4 Request 4 — Re-roll + spin at the top of every turn (verified, no change)
+
+Confirmed already working as designed; nothing was modified:
+- A "turn" ends when BREW's 7-phase sequence finishes → `doBrew()` calls
+  `discardAllDice()` + `drawFromBag()`.
+- A round starts via `startRound()` → `spawnCustomers(from:)` → `drawFromBag()`.
+- `drawFromBag()` clears `settledDiceIds`/`diceToPopIds` FIRST, rolls
+  fresh `value` + `faceValue` for 5 new dice, then bumps `spinTrigger3D`
+  — which forces every `DieSceneView3D` to rebuild its scene and replay
+  the drop/bounce/spin/settle, even when a slot's new face equals the old
+  one (the June-11 duplicate-face guard).
+
+So: every turn AND every round start = full re-roll + full spin. Already true.
+
+### 27.5 Request 6 — THE FACE TABLE (data-driven dice faces, weights, new types)
+
+The hardcoded `assetName(forValue:)` switch and the `[1,2,3,4,5,6]` cube
+fill are GONE. `PotionShop3DDiceAssetMap` (top of PotionShopCauldronView.swift)
+is now built around one editable table:
+
+```swift
+struct PotionShopDieFaceSpec {
+    let value: Int        // face id, unique within the table
+    let assetName: String // art shown on the cube face AND the placed die
+    var weight: Int = 1   // relative roll weight; 0 = never lands (art-only)
+}
+static var faceSpecs: [PotionShopDieFaceSpec] = [ ...6 entries today... ]
+```
+
+Today's table reproduces the old behavior exactly: values 1 & 2 both →
+`die_potency`, 3 → boost, 4 → heal, 5 → shield, 6 → stability, all weight 1.
+
+**How to use it (the whole point):**
+- **Upgrade a face's art** (e.g. heal becomes higher-value heal): edit that
+  entry's `assetName`. Done — cube face and placed-die render both follow.
+- **Change odds:** edit `weight`. weight 2 lands twice as often as weight 1.
+  weight 0 keeps a face in the cosmetic spin rotation without it ever
+  being the landed result.
+- **Add a new die face/type:** append `.init(value: 7, assetName: "die_bonus", weight: 1)`.
+  Nothing else changes anywhere.
+- **Remove a face:** delete its entry.
+
+Plumbing that makes one table enough:
+- `PotionShopDie.rollFaceImageValue()` (Models) now delegates to
+  `PotionShop3DDiceAssetMap.rollWeightedFaceValue()` — a weighted roll over
+  the table. Every roll site (deal, post-brew redraw, editor SPIN button)
+  goes through it.
+- `assetName(forValue:)` is a table lookup with a safe fallback to the
+  first entry.
+- `DieSceneView3D.buildScene()` fills the cube's 6 physical sides from the
+  table: landed face at the FRONT slot (the multiple-of-360° spin trick
+  from §26.8 still applies), the other 5 sides drawn at random from the
+  rest of the pool. Pools **larger than 6** work (extras just don't appear
+  on that particular cube's spin); pools **smaller than 6** work too
+  (entries repeat to fill the cube). Cosmetic only — the landed face is
+  always correct.
+
+REMINDER (still true from §26.12): `value` = brew math (tier table),
+`faceValue` = picture (face table). Independent rolls. Both are in
+`PotionShopDie.==` — keep them there.
+
+### 27.6 Request 8 — Numeric value badge on tray dice (3D rounds)
+
+New view `PotionShopTrayDieValueBadge` (PotionShopCauldronView.swift),
+layered over `DieFaceView3D` in a ZStack inside `PotionShopDieButtonView`'s
+3D branch. Shows `die.value` (the BREW-MATH value — same number a placed
+die shows, so the number "travels" with the die), white `Font.gameScore`
+with the standard black shadow, centered (the art keeps its center ~30%
+blank, per the asset spec).
+
+Reveal timing: hidden while the cube drops/spins, fades in after the spin
+settles. Knobs at the top of the badge struct:
+- `revealDelay: Double = 1.30` — seconds after a re-roll before the fade-in
+  (the cube's full timeline ends ≈1.22s; see §26.9). If you re-tune
+  `runSlotSpin`, re-tune this to match.
+- `revealFadeDuration: Double = 0.20`
+
+Replays on every `spinTrigger3D` bump (deal, redraw, SPIN button). Dice
+returning from the cauldron (`settledDiceIds`) didn't spin → badge shows
+instantly. Non-3D rounds are untouched (they already drew the value).
+
+### 27.7 Request 7 — Reach-preview glow now PULSES (tuning struct)
+
+The reach-preview system itself already existed (§ drag-and-drop work):
+while a die is dragged and hovering a node, `gs.previewAffectedNodes`
+(computed from `PotionShopDieRules.affectedNodes(for:placedAt:)`) marks
+every node that die would reach, and those nodes glowed static cyan.
+Works for tray→node AND node→node drags.
+
+This session made it unmissable and fully tunable. New struct
+`PotionShopNodeGlowTuning` (PotionShopCauldronView.swift, just above
+`PotionShopNodeButtonView`):
+
+```swift
+previewColor              // cyan default
+tintPreviewWithDieColor   // false; true = glow uses the dragged die's color
+pulseEnabled              // true
+pulseOpacityMin / Max     // 0.35 → 1.00 glow brightness oscillation
+pulseHalfPeriod           // 0.45s per dim→bright half-cycle
+pulseScaleMax             // 1.08 — node art "breathes" up to this at peak
+previewGlowRadius         // 16
+```
+
+Implementation: `PotionShopNodeButtonView` gained
+`@State previewPulse: Double` driven by `.onChange(of: isInPreview)` —
+entering the preview starts a `repeatForever(autoreverses: true)`
+ease-in-out 0↔1 oscillation; leaving settles it back without residue.
+`glowOpacity` (preview branch) and a new `previewScale` (applied via
+`.scaleEffect` on the node background) both read `previewPulse`.
+
+**Division of labor (important):** WHICH nodes light up for WHICH die is
+STILL defined ONLY in `PotionShopDieRules` (PotionShopModels.swift) — e.g.
+"boost dragged over node 0 → nodes 4 & 5 glow" is a reach-rule edit there,
+not a glow edit. `PotionShopNodeGlowTuning` controls only how the glow
+LOOKS and PULSES. The hovered node itself keeps its own yellow drop-target
+glow (priority order in the node view is unchanged).
+
+### 27.8 Request 5 — Changing the node count (CONTEXT ONLY, NOT EXECUTED)
+
+User may change how many cauldron nodes exist. Map of what to touch,
+also written as a comment at the top of `PotionShopBoard` (Models):
+1. `PotionShopBoard.nodes` (positions) + `PotionShopBoard.edges`
+   (topology — reach/boost math depends on it).
+2. `PotionShopLayoutConfig.perNodeOffsets` default array is sized 12
+   (and its reset/saved-values block) — resize to the new count.
+3. `PotionShopCauldronView`'s `perNodeOffsets` default parameter is also
+   `count: 12` — match it.
+Everything else (node ForEach, connection lines, drag targets, glow)
+loops over `nodes.count` and adapts automatically.
+
+### 27.9 Hard-won lessons from this session
+
+- **A "crossfade" complaint can be three stacked animations.** The
+  node→tray fade survived the §26.13 disablesAnimations fix because the
+  drop-in entrance modifier was independently re-firing on the new tray
+  view. When a snap doesn't snap, audit EVERY modifier that runs on the
+  destination view's appearance, not just the matched-geometry pair.
+- **`settledDiceIds` is now triple-duty** (cube animate-on-appear, drop-in
+  skip, value-badge instant reveal). Any future "returning vs fresh die"
+  visual should key off it too — and any new code path that returns a die
+  to the hand MUST insert into it, or all three systems replay entrance
+  animations.
+- **Strict rect containment is hostile on touch.** The slot picker's
+  column-match + nearest-empty fallback pattern (ignore Y inside an
+  already-validated drop zone, then distance fallback) is the shape to
+  reuse for future drop targets.
+- **One table beats N switches.** The face table collapsed three sources
+  of truth (asset switch, hardcoded cube fill, uniform roller) into one
+  editable array. When adding the next dice feature (per-round weighting,
+  upgrades), extend `faceSpecs` / swap it per round — don't add a new switch.
+- **Editor slider shadowing:** with `nodeMatchesTrayDieSize == true` the
+  Node Scale slider silently does nothing. If future-you "can't change
+  node size from the editor," this toggle is why.
+
+---
+
 **End of CAULDRON_CONTEXT.md**
