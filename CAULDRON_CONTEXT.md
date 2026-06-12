@@ -1475,6 +1475,56 @@ static func == (lhs: PotionShopDie, rhs: PotionShopDie) -> Bool {
 
 **Why brew balance is preserved.** `value` is still rolled from `tier.rollFace()` (basic tier = `[1,2,2,3,3,4]`). `faceValue` is purely cosmetic — it never feeds into `computeBrew()`. Per-round weighting tables for both can be plugged in later by replacing the bodies of `rollFaceImageValue()` (pictures) and `tier.rollFace()` (math) with round-keyed lookups. TODO seams are marked in both functions.
 
+### 26.13 Dice tray: fixed slots, return-from-cauldron, drag-back-to-tray (June 11)
+
+A connected pile of UX changes to the dice tray, all driven by a desire for the tray to "feel solid" — dice keep their slot, returning dice don't re-spin, and the player can drag placed dice back to any open slot with the same fidelity as placing them.
+
+**1. Fixed-position slots (no more HStack reflow).**
+
+Old behavior: the tray was a packed `HStack` over `gs.hand` — placing a die on the cauldron caused the remaining dice to slide leftward.
+
+New: each die has a `trayIndex: Int = 0` field on `PotionShopDie` (PotionShopModels.swift), assigned 0...4 on `drawFromBag`. The tray renders `ForEach(0..<5)` and for each slot looks up the die in `hand` whose `trayIndex` matches — if none, renders a dashed placeholder. Remaining dice never move when one is dragged out. A die returning to the tray lands in its original slot by default. `==` was extended to include `trayIndex` (same Equatable trap as §26.12).
+
+**2. "Settled in tray" dice don't replay the spin animation.**
+
+When a die comes BACK to the tray from a node, the SwiftUI cube view (`DieFaceView3D` / `DieSceneView3D`) is freshly created — without intervention, `makeUIView` → `buildScene` → `runSlotSpin` would replay the full drop + spin + settle on every return, which looks wrong.
+
+Fix: new `settledDiceIds: Set<String>` on `PotionShopGameState`.
+- **Cleared** by `drawFromBag` (fresh deal) and `reroll3DDice` (spin button) → "spin everything next time."
+- **Populated** by every "die returns to the tray" path: `unplaceDie`, `dragPlacedDieToTray`, `returnDraggedDie` (drag cancel).
+- `PotionShopDieButtonView` reads `!gs.settledDiceIds.contains(die.id)` and passes it as `animateOnAppear: Bool` through `DieFaceView3D` → `DieSceneView3D`.
+- In `buildScene`, `runSlotSpin` is gated on `animateOnAppear`. When false, the cube is added to the scene at rest position (0,0,0, identity rotation, `targetFace` camera-facing) and just sits there.
+
+**3. Drag a placed die from a node back to the tray.**
+
+Used to be: only way back was a tap to unplace.
+
+Now: the node drag's `onEnded` checks three drop zones in order:
+- `gs.trayDropZone.contains(value.location)` — drop into the tray.
+- An empty, non-source node → swap to that node.
+- Anywhere else → snap back to source node.
+
+Plumbing:
+- `gs.trayFrame: CGRect` — published by `PotionShopDiceTrayView` via a `GeometryReader` background.
+- `gs.trayDropZone: CGRect` — computed property that grows `trayFrame` upward by `PotionShopCauldronLayout.trayDropZoneTopExtension` (default 80pt) so the player can release a bit above the visible brown panel and still land it. Tune the constant to adjust the buffer.
+- `gs.traySlotPositions: [Int: CGRect]` — each slot publishes its global frame too.
+- `findEmptyTraySlot(at: CGPoint) -> Int?` — returns the slot whose frame contains the point if that slot's `trayIndex` isn't already claimed by a die in `hand`.
+- `unplaceDie(_:toSlot:)` — gained an optional `toSlot: Int?` parameter. When provided AND the target slot is unoccupied, the die's `trayIndex` is rewritten so it lands there. When nil OR slot is occupied, falls back to the die's original slot. The tray drag uses this with `findEmptyTraySlot(at:)` so the player can choose ANY open slot by dropping over it.
+
+**4. Visible drag overlay lifted to the screen-level ZStack.**
+
+The "die at finger position" overlay used to render INSIDE `PotionShopCauldronView`, but the cauldron view is laid out BEFORE the tray view in the parent `VStack` — so when the player dragged into the tray's area, the die rendered BEHIND the tray.
+
+Fix: the visible drag overlay was extracted into `PotionShopDraggedDieOverlay` at the top of the screen-level ZStack in `PotionShopGameView`. The overlay also hosts the `matchedGeometryEffect` placeholder, which is now **positioned at `gs.nodeDragLocation`** instead of screen center — so when the player releases, the matched effect animates from the FINGER position to the destination (tray slot or another node), not from the original node.
+
+**5. Drop-snap animation knob.**
+
+The tray-drop branch wraps `unplaceDie` + `cancelNodeDrag` in `withAnimation(.spring(response: 0.42, dampingFraction: 0.72))` — the same curve as the node-to-node swap. Other curves to consider: `.spring(response: 0.25, dampingFraction: 0.9)` (quick, no bounce), `.easeOut(duration: 0.18)` (smooth glide), or NO `withAnimation` for a hard snap.
+
+**Bug pitfall worth remembering (Equatable, again).**
+
+`PotionShopDie`'s custom `==` keeps growing as new mutable fields are added (`value` → `+ faceValue` → `+ trayIndex`). Every new mutable field that affects rendering MUST be added to `==`, or SwiftUI will optimize away the body re-evaluation after in-place mutation and you'll see "stale visual after the data changed" bugs. See §26.12 for the original case (cube face). The fixed-slot tray would have had the same bug if `trayIndex` had been left out.
+
 ---
 
 **End of CAULDRON_CONTEXT.md**

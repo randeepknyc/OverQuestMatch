@@ -103,6 +103,14 @@ struct PotionShopCauldronLayout {
 
     /// How far above the slot dice start when dropping in.
     static let dropInOffset: CGFloat = 80
+
+    /// How far ABOVE the visible dice tray panel still counts as "drop into
+    /// the tray" when dragging a placed die back from a cauldron node. The
+    /// drop zone is the brown tray rect grown upward by this many points so
+    /// the player can release a bit early without missing the snap-to-tray.
+    /// Tune to taste: bigger value = easier to drop into tray; smaller =
+    /// tighter to the visible panel.
+    static let trayDropZoneTopExtension: CGFloat = 80
 }
 
 // MARK: - The bowl shape (ellipse clipped to bottom half)
@@ -545,28 +553,47 @@ struct PotionShopNodeButtonView: View {
                         return
                     }
 
-                    let droppedInTray = gs.trayFrame.contains(value.location)
+                    // Tray drop zone is the brown panel grown upward by
+                    // `trayDropZoneTopExtension` so a player can release a
+                    // bit above the tray and still land it.
+                    let droppedInTray = gs.trayDropZone.contains(value.location)
                     let targetNodeId = gs.findNodeAtPosition(value.location)
                     let canDropOnNode = targetNodeId != nil &&
                                         targetNodeId != nodeIndex &&
                                         gs.placements[targetNodeId!] == nil
 
                     if droppedInTray {
-                        // Drag back to the dice tray → unplace. All mutations
-                        // (unplace + drag-state clear) go in ONE withAnimation
-                        // so SwiftUI sees a single transaction: matched source
-                        // (the finger-anchored placeholder) disappears in the
-                        // same frame the destination (tray slot) appears,
-                        // letting the matched effect animate from finger to
-                        // tray slot.
-                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                            gs.unplaceDie(nodeIndex)
+                        // Drag back to the dice tray → unplace into whichever
+                        // open slot the player released over (or back to the
+                        // die's original slot if the release wasn't over an
+                        // empty slot).
+                        //
+                        // Why this looks the way it does:
+                        //   • matchedGeometryEffect's default transition does
+                        //     an opacity crossfade between source (placed
+                        //     die) and destination (tray die). That's the
+                        //     fade the user saw.
+                        //   • `withTransaction(disablesAnimations: true)`
+                        //     forces the matched effect to SNAP — no fade,
+                        //     no slide. The die teleports into the slot.
+                        //   • A separate one-shot pop animation runs on the
+                        //     tray die's `.onAppear` (gated by
+                        //     `gs.diceToPopIds`) to give the landing a
+                        //     satisfying scale punch.
+                        let targetSlot = gs.findEmptyTraySlot(at: value.location)
+                        if let dieId = gs.placements[nodeIndex]?.id {
+                            gs.diceToPopIds.insert(dieId)
+                        }
+                        var snap = Transaction()
+                        snap.disablesAnimations = true
+                        withTransaction(snap) {
+                            gs.unplaceDie(nodeIndex, toSlot: targetSlot)
                             gs.nodeDragLocation = nil
                             gs.cancelNodeDrag()
                         }
                         isDraggingFromHere = false
                     } else if canDropOnNode, let target = targetNodeId {
-                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                        withAnimation(.spring(response: 0.20, dampingFraction: 0.8)) {
                             if let die = gs.placements[nodeIndex] {
                                 gs.placements[nodeIndex] = nil
                                 gs.placements[target] = die
@@ -817,26 +844,41 @@ struct PotionShopDiceTrayView: View {
         // dragged to the cauldron, instead of HStack-sliding them leftward.
         HStack(spacing: 6) {
             ForEach(0..<5, id: \.self) { slotIndex in
-                if let die = gs.hand.first(where: { $0.trayIndex == slotIndex }),
-                   let handIdx = gs.hand.firstIndex(where: { $0.id == die.id }) {
-                    PotionShopDieButtonView(
-                        gs: gs,
-                        die: die,
-                        index: handIdx,
-                        diceFlight: diceFlight,
-                        dieScale: dieScale
-                    )
-                } else {
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(
-                            Color.white.opacity(0.35),
-                            style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
+                Group {
+                    if let die = gs.hand.first(where: { $0.trayIndex == slotIndex }),
+                       let handIdx = gs.hand.firstIndex(where: { $0.id == die.id }) {
+                        PotionShopDieButtonView(
+                            gs: gs,
+                            die: die,
+                            index: handIdx,
+                            diceFlight: diceFlight,
+                            dieScale: dieScale
                         )
-                        .frame(
-                            width: PotionShopCauldronLayout.dieSize * dieScale,
-                            height: PotionShopCauldronLayout.dieSize * dieScale
-                        )
+                    } else {
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(
+                                Color.white.opacity(0.35),
+                                style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
+                            )
+                            .frame(
+                                width: PotionShopCauldronLayout.dieSize * dieScale,
+                                height: PotionShopCauldronLayout.dieSize * dieScale
+                            )
+                    }
                 }
+                // Publish this slot's global frame so a node→tray drag can
+                // figure out which open slot the player released over.
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .onAppear {
+                                gs.traySlotPositions[slotIndex] = geometry.frame(in: .global)
+                            }
+                            .onChange(of: geometry.frame(in: .global)) { _, newValue in
+                                gs.traySlotPositions[slotIndex] = newValue
+                            }
+                    }
+                )
             }
         }
         .padding(8)
@@ -911,6 +953,11 @@ struct PotionShopDieButtonView: View {
     
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging: Bool = false
+    /// One-shot scale used to play a "landed in tray" pop when the die
+    /// returns from the cauldron via drag-to-tray. 1.0 = neutral. Set to
+    /// the punch value in `.onAppear` (gated on `gs.diceToPopIds`), then
+    /// spring-animated back to 1.0.
+    @State private var landPopScale: CGFloat = 1.0
 
     private var isSelected: Bool { gs.selectedHandIndex == index }
     private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
@@ -982,6 +1029,7 @@ struct PotionShopDieButtonView: View {
             properties: [.position, .size]
         )
         .scaleEffect(isDragging ? 1.15 : 1.0)
+        .scaleEffect(landPopScale)
         .opacity(atCap && !isSelected ? 0.5 : 1.0)
         .offset(dragOffset)
         .zIndex(isDragging ? 1000 : 0)
@@ -990,6 +1038,20 @@ struct PotionShopDieButtonView: View {
             radius: isDragging ? 12 : 0
         )
         .modifier(PotionShopDiceDropInModifier())
+        // "Just landed in tray" pop. The drag-from-node flow inserts this
+        // die's id into `gs.diceToPopIds` before snapping it home; here we
+        // consume that signal and play a quick scale punch that springs
+        // back to normal — gives the snap some weight without re-introducing
+        // the matchedGeometryEffect crossfade.
+        .onAppear {
+            if gs.diceToPopIds.contains(die.id) {
+                gs.diceToPopIds.remove(die.id)
+                landPopScale = 1.35
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) {
+                    landPopScale = 1.0
+                }
+            }
+        }
         .gesture(
             DragGesture(coordinateSpace: .global)
                 .onChanged { value in

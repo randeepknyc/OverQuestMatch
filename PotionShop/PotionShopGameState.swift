@@ -139,6 +139,40 @@ class PotionShopGameState {
     /// node drag gesture to detect when a placed die is being dragged back
     /// to the tray (→ unplace) vs. to another node (→ swap).
     var trayFrame: CGRect = .zero
+
+    /// The "drop into tray" hit zone — `trayFrame` grown upward by
+    /// `PotionShopCauldronLayout.trayDropZoneTopExtension` so the player can
+    /// release a die a bit above the visible tray panel and still snap it
+    /// home. Empty (`.zero`) until the tray view has reported its frame.
+    var trayDropZone: CGRect {
+        guard trayFrame != .zero else { return .zero }
+        let top = PotionShopCauldronLayout.trayDropZoneTopExtension
+        return CGRect(
+            x: trayFrame.minX,
+            y: trayFrame.minY - top,
+            width: trayFrame.width,
+            height: trayFrame.height + top
+        )
+    }
+    /// Each tray slot's global frame (slot index 0...4 → CGRect). Populated by
+    /// the tray view's slot ForEach. The node drag gesture uses this to figure
+    /// out which slot the player released over so the die can land there
+    /// instead of its original slot.
+    var traySlotPositions: [Int: CGRect] = [:]
+
+    /// Find an empty tray slot (no hand die has that `trayIndex`) whose frame
+    /// contains `position`. Returns nil if the position isn't over any slot
+    /// or the slot under it is occupied. Used by the node→tray drag to pick
+    /// the landing slot.
+    func findEmptyTraySlot(at position: CGPoint) -> Int? {
+        let occupied = Set(hand.map { $0.trayIndex })
+        for (slot, frame) in traySlotPositions {
+            if frame.contains(position) && !occupied.contains(slot) {
+                return slot
+            }
+        }
+        return nil
+    }
     /// Currently hovered node index (for visual feedback)
     var hoveredNodeIndex: Int? = nil
     /// Drag location for node-to-node moves (absolute position in global coords)
@@ -276,6 +310,12 @@ class PotionShopGameState {
     /// cleared whenever the round deals a fresh hand or the spin button
     /// re-rolls — both events restart the "spin everything" cycle.
     var settledDiceIds: Set<String> = []
+
+    /// One-shot signal: die IDs that should play a brief scale-pop animation
+    /// the next time their tray view appears. Consumed (removed) by the tray
+    /// die view on `.onAppear`. Currently only the drag-from-node-to-tray
+    /// flow sets this — tap-to-unplace doesn't, because it's a smaller action.
+    var diceToPopIds: Set<String> = []
 
     /// True if the current round draws from a random pool (Day 3 R2 today —
     /// June 3, 2026). Used to selectively re-enable the HP badge inside
@@ -553,8 +593,20 @@ class PotionShopGameState {
         selectedHandIndex = nil
     }
 
-    func unplaceDie(_ nodeId: Int) {
-        guard let die = placements[nodeId] else { return }
+    /// Move a placed die from a cauldron node back into the dice tray.
+    /// - Parameters:
+    ///   - nodeId: which cauldron node to clear.
+    ///   - toSlot: which tray slot the die should land in. When nil, the die
+    ///     keeps its original `trayIndex`. When provided AND the slot is
+    ///     unoccupied, the die's `trayIndex` is updated so it appears there.
+    func unplaceDie(_ nodeId: Int, toSlot: Int? = nil) {
+        guard var die = placements[nodeId] else { return }
+        if let slot = toSlot {
+            let occupied = Set(hand.map { $0.trayIndex })
+            if !occupied.contains(slot) {
+                die.trayIndex = slot
+            }
+        }
         hand.append(die)
         placements[nodeId] = nil
         // Returning from cauldron → cube should appear settled in its slot,
@@ -896,6 +948,17 @@ class PotionShopGameState {
     /// Draw 5 dice from the bag into the hand. If bag is short, shuffle
     /// the discard pile back in first.
     func drawFromBag() {
+        // Clear leftover flags FIRST — before assigning `hand`. Bag die IDs
+        // are reused across rounds (they shuffle back in from discard), so
+        // a new die can land with an id that's still in `settledDiceIds`
+        // from the previous round (e.g., it was unplaced before brewing).
+        // If we clear after setting hand, SwiftUI may create the cube view
+        // for that die while the id is still "settled" → cube renders
+        // static and never spins. Doing the clear first guarantees every
+        // freshly-built cube sees `animateOnAppear == true`.
+        settledDiceIds.removeAll()
+        diceToPopIds.removeAll()
+
         if bag.count < 5 && !discardPile.isEmpty {
             bag.append(contentsOf: discardPile)
             discardPile.removeAll()
@@ -916,13 +979,22 @@ class PotionShopGameState {
             )
         }
         selectedHandIndex = nil
-        // Fresh deal = every die should animate. Drop any leftover "settled"
-        // flags from the previous round.
-        settledDiceIds.removeAll()
+        // Bump the 3D spin session so every cube REBUILDS its scene on the
+        // next render — even ones in slots where the new faceValue happens
+        // to equal the old die's settled face. Without this, ~1 in 6 slots
+        // would skip the spin between rounds because DieSceneView3D's
+        // updateUIView would short-circuit on `sessionChanged || faceChanged`
+        // when both are false. (No-op for non-3D-dice rounds; nothing reads
+        // this token there.)
+        spinTrigger3D &+= 1
     }
 
     /// Move all placed and held dice to the discard pile. Called after each brew.
     func discardAllDice() {
+        // The dice are leaving the table — drop any leftover settled/pop
+        // flags so they don't haunt the next deal (bag die IDs are reused).
+        settledDiceIds.removeAll()
+        diceToPopIds.removeAll()
         for die in placements.values {
             discardPile.append(PotionShopBagDie(id: die.id, type: die.type, tier: die.tier))
         }
