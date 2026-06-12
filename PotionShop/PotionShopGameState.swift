@@ -135,6 +135,10 @@ class PotionShopGameState {
     var draggedFromNode: Int? = nil
     /// Node positions in global coordinates (set by nodes during layout)
     var nodePositions: [Int: CGRect] = [:]
+    /// Dice tray's global frame. Set by `PotionShopDiceTrayView`. Used by the
+    /// node drag gesture to detect when a placed die is being dragged back
+    /// to the tray (→ unplace) vs. to another node (→ swap).
+    var trayFrame: CGRect = .zero
     /// Currently hovered node index (for visual feedback)
     var hoveredNodeIndex: Int? = nil
     /// Drag location for node-to-node moves (absolute position in global coords)

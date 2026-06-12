@@ -123,8 +123,12 @@ struct PotionShopGameView: View {
                 PotionShopFloatingNumberOverlay(gs: gs)
                     .allowsHitTesting(false)
                 
-                // Dragged die overlay (above everything else so it doesn't go behind cauldron)
-                PotionShopDraggedDieOverlay(gs: gs, diceFlight: diceFlight)
+                // Dragged die overlay (above everything else so it doesn't go behind cauldron OR tray)
+                PotionShopDraggedDieOverlay(
+                    gs: gs,
+                    diceFlight: diceFlight,
+                    nodeScale: layoutConfig.nodeScale
+                )
                     .allowsHitTesting(false)
 
                 phaseOverlay
@@ -325,18 +329,55 @@ struct PotionShopFloatingNumberView: View {
 struct PotionShopDraggedDieOverlay: View {
     @Bindable var gs: PotionShopGameState
     let diceFlight: Namespace.ID
-    
+    /// Visual scale for the die rendered while dragging from a node — matches
+    /// the placed die's scale so it visually flows from node to finger.
+    var nodeScale: Double = 1.0
+
     var body: some View {
-        if let draggedDie = gs.draggedDie {
-            // Invisible placeholder that uses matchedGeometryEffect
-            // This acts as the destination for the dragged die
-            Color.clear
-                .frame(width: PotionShopCauldronLayout.dieSize, height: PotionShopCauldronLayout.dieSize)
-                .matchedGeometryEffect(
-                    id: draggedDie.id,
-                    in: diceFlight,
-                    properties: [.position, .size]
-                )
+        GeometryReader { geo in
+            let origin = geo.frame(in: .global).origin
+            ZStack {
+                // Matched-geometry anchor pinned to the FINGER POSITION while
+                // the user is dragging from a node. When they release, the
+                // anchor disappears and the destination view (tray slot for
+                // an unplace, or target node for a swap) takes over with the
+                // same matched id — SwiftUI animates from finger to
+                // destination instead of from the original node.
+                if let draggedDie = gs.draggedDie,
+                   let dragLocation = gs.nodeDragLocation {
+                    Color.clear
+                        .frame(width: PotionShopCauldronLayout.dieSize, height: PotionShopCauldronLayout.dieSize)
+                        .matchedGeometryEffect(
+                            id: draggedDie.id,
+                            in: diceFlight,
+                            properties: [.position, .size]
+                        )
+                        .position(
+                            x: dragLocation.x - origin.x,
+                            y: dragLocation.y - origin.y
+                        )
+                }
+
+                // Visible drag overlay for dies being dragged FROM a node.
+                // Rendered at the top of the view hierarchy so it floats over
+                // the tray and other siblings — without this it would be
+                // hidden behind the tray when the finger moves into the tray.
+                if gs.draggedFromNode != nil,
+                   let die = gs.draggedDie,
+                   let dragLocation = gs.nodeDragLocation {
+                    PotionShopPlacedDieView(
+                        die: die,
+                        visualScale: nodeScale,
+                        useFaceAsset: gs.currentRoundUses3DDice
+                    )
+                    .scaleEffect(1.15)
+                    .shadow(color: die.type.color.opacity(0.5), radius: 12)
+                    .position(
+                        x: dragLocation.x - origin.x,
+                        y: dragLocation.y - origin.y
+                    )
+                }
+            }
         }
     }
 }

@@ -334,27 +334,12 @@ struct PotionShopCauldronView: View {
                         .zIndex(2)  // 🔧 EXPLICIT Z-INDEX: Top layer (above everything)
                 }
                 
-                // LAYER 3: Dragging die overlay (above ALL nodes!)
-                if gs.draggedFromNode != nil,
-                   let die = gs.draggedDie,
-                   let dragLocation = gs.nodeDragLocation {
-                    
-                    // Convert from global coordinates to this view's local coordinates
-                    let localPoint = geo.frame(in: .global).origin
-                    let localX = dragLocation.x - localPoint.x
-                    let localY = dragLocation.y - localPoint.y
-                    
-                    // Render the dragging die at finger position
-                    PotionShopPlacedDieView(die: die, visualScale: nodeScale, useFaceAsset: gs.currentRoundUses3DDice)
-                        .scaleEffect(1.15)
-                        .shadow(
-                            color: die.type.color.opacity(0.5),
-                            radius: 12
-                        )
-                        .position(x: localX, y: localY)
-                        .zIndex(1000)  // Above EVERYTHING
-                        .allowsHitTesting(false)  // Don't intercept gestures
-                }
+                // LAYER 3: Drag-from-node overlay used to render here, but it
+                // was bounded by this view's frame in the parent VStack and
+                // ended up rendering BEHIND the dice tray when dragged
+                // downward. It now lives in `PotionShopDraggedDieOverlay` at
+                // the top of the screen-level ZStack so it floats over the
+                // tray as well.
 
                 // BREW BUTTON (conditionally shown)
                 if showBrewButton {
@@ -560,25 +545,46 @@ struct PotionShopNodeButtonView: View {
                         return
                     }
 
+                    let droppedInTray = gs.trayFrame.contains(value.location)
                     let targetNodeId = gs.findNodeAtPosition(value.location)
-                    let canDrop = targetNodeId != nil &&
-                                  targetNodeId != nodeIndex &&
-                                  gs.placements[targetNodeId!] == nil
+                    let canDropOnNode = targetNodeId != nil &&
+                                        targetNodeId != nodeIndex &&
+                                        gs.placements[targetNodeId!] == nil
 
-                    if canDrop, let target = targetNodeId {
-                        if let die = gs.placements[nodeIndex] {
-                            gs.placements[nodeIndex] = nil
-                            gs.placements[target] = die
+                    if droppedInTray {
+                        // Drag back to the dice tray → unplace. All mutations
+                        // (unplace + drag-state clear) go in ONE withAnimation
+                        // so SwiftUI sees a single transaction: matched source
+                        // (the finger-anchored placeholder) disappears in the
+                        // same frame the destination (tray slot) appears,
+                        // letting the matched effect animate from finger to
+                        // tray slot.
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                            gs.unplaceDie(nodeIndex)
+                            gs.nodeDragLocation = nil
+                            gs.cancelNodeDrag()
                         }
-                        gs.nodeDragLocation = nil
                         isDraggingFromHere = false
-                        gs.cancelNodeDrag()
+                    } else if canDropOnNode, let target = targetNodeId {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                            if let die = gs.placements[nodeIndex] {
+                                gs.placements[nodeIndex] = nil
+                                gs.placements[target] = die
+                            }
+                            gs.nodeDragLocation = nil
+                            gs.cancelNodeDrag()
+                        }
+                        isDraggingFromHere = false
                     } else {
+                        // Invalid drop → die snaps back to its source node
+                        // (animated from finger position via the matched
+                        // effect, since the placedDie view on the source
+                        // node still has the same matched id).
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
                             gs.nodeDragLocation = nil
-                            isDraggingFromHere = false
+                            gs.cancelNodeDrag()
                         }
-                        gs.cancelNodeDrag()
+                        isDraggingFromHere = false
                     }
                 }
         )
@@ -853,6 +859,19 @@ struct PotionShopDiceTrayView: View {
         )
         .padding(.horizontal, 14)
         .opacity(gs.isAnimating ? 0.7 : 1.0)
+        // Publish the tray's global frame so the node-drag gesture can detect
+        // when a placed die is being dragged back here (→ unplace).
+        .background(
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        gs.trayFrame = geometry.frame(in: .global)
+                    }
+                    .onChange(of: geometry.frame(in: .global)) { _, newValue in
+                        gs.trayFrame = newValue
+                    }
+            }
+        )
     }
 }
 
