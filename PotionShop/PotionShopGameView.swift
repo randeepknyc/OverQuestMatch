@@ -421,6 +421,8 @@ struct PotionShopLayoutOverlay: View {
     // UI State
     @State private var activeSection: LayoutSection? = nil
     @State private var selectedNodeIndex: Int = 0  // For fine-tune section
+    /// June 12, 2026: legacy/one-time-setup tabs hidden behind "More ▾".
+    @State private var showLegacySections: Bool = false
     // selectedCharacterId moved to PotionShopLayoutConfig (May 25, 2026)
     // so the customer-scene tap can sync with the editor. Use
     // `layoutConfig.selectedCharacterId` everywhere it was used before.
@@ -439,6 +441,21 @@ struct PotionShopLayoutOverlay: View {
         case dice = "🎲 Dice"
         case brewZone = "🥄 Brew"
     }
+
+    /// The everyday tabs (June 12, 2026). Everything else lives behind
+    /// "More ▾". Move cases between these arrays to re-prioritize.
+    static let primarySections: [LayoutSection] = [
+        .autoLayout, .badges, .customers, .fineTune, .nodes, .dice
+    ]
+    static let legacySections: [LayoutSection] = [
+        .sections, .ednar, .permutations, .cauldronArt, .cauldronBowl, .brewZone
+    ]
+
+    private var visibleSections: [LayoutSection] {
+        showLegacySections
+            ? Self.primarySections + Self.legacySections
+            : Self.primarySections
+    }
     
     var body: some View {
         ZStack {
@@ -454,8 +471,46 @@ struct PotionShopLayoutOverlay: View {
                     .allowsHitTesting(false)
                 
                 VStack(spacing: 0) {
-                    // Close button at top
-                    HStack {
+                    // Header row: Undo + A/B tools (June 12, 2026) + close.
+                    HStack(spacing: 10) {
+                        // ↩️ Undo — reverts the most recent slider/stepper/
+                        // typed/drag change. Disabled while viewing snapshot A.
+                        Button {
+                            _ = PotionShopEditorHistory.shared.undo()
+                        } label: {
+                            Label("Undo", systemImage: "arrow.uturn.backward.circle.fill")
+                                .font(.caption.bold())
+                                .foregroundColor(PotionShopEditorHistory.shared.canUndo ? .white : .white.opacity(0.3))
+                        }
+                        .disabled(!PotionShopEditorHistory.shared.canUndo)
+
+                        // 📸 Set A — snapshot the current layout, then keep
+                        // tweaking. A/B flashes between snapshot and current.
+                        Button {
+                            if PotionShopEditorHistory.shared.hasSnapshotA {
+                                PotionShopEditorHistory.shared.clearSnapshotA()
+                            } else {
+                                PotionShopEditorHistory.shared.setSnapshotA()
+                            }
+                        } label: {
+                            Text(PotionShopEditorHistory.shared.hasSnapshotA ? "Clear A" : "Set A")
+                                .font(.caption.bold())
+                                .foregroundColor(.yellow)
+                        }
+
+                        if PotionShopEditorHistory.shared.hasSnapshotA {
+                            Button {
+                                PotionShopEditorHistory.shared.toggleAB()
+                            } label: {
+                                Text(PotionShopEditorHistory.shared.showingA ? "Showing A" : "A ⇄ B")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Capsule().fill(PotionShopEditorHistory.shared.showingA ? Color.yellow : Color.green))
+                            }
+                        }
+
                         Spacer()
                         Button {
                             isPresented = false
@@ -464,14 +519,17 @@ struct PotionShopLayoutOverlay: View {
                                 .font(.title2)
                                 .foregroundColor(.white)
                         }
-                        .padding()
                     }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
                     .background(Color.black.opacity(0.7))
                     
-                    // Section picker
+                    // Section picker — grouped (June 12, 2026): the tabs you
+                    // live in stay on the strip; one-time-setup / legacy tabs
+                    // are tucked behind "More ▾" to cut hunting.
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(LayoutSection.allCases, id: \.self) { section in
+                            ForEach(visibleSections, id: \.self) { section in
                                 Button {
                                     withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
                                         activeSection = activeSection == section ? nil : section
@@ -487,6 +545,19 @@ struct PotionShopLayoutOverlay: View {
                                                 .fill(activeSection == section ? Color.cyan : Color.white.opacity(0.3))
                                         )
                                 }
+                            }
+                            // "More ▾" toggle reveals the legacy tabs.
+                            Button {
+                                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                                    showLegacySections.toggle()
+                                }
+                            } label: {
+                                Text(showLegacySections ? "Less ▴" : "More ▾")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.cyan)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Capsule().stroke(Color.cyan.opacity(0.6)))
                             }
                         }
                         .padding(.horizontal)
@@ -511,6 +582,28 @@ struct PotionShopLayoutOverlay: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding()
             }
+        }
+        // Tap-anything-to-jump (June 12, 2026): characters, HP badges, and
+        // cauldron nodes post a jump request when tapped while the editor
+        // is open; the editor switches to the matching tab here.
+        .onChange(of: PotionShopEditorHistory.shared.jumpRequest) { _, request in
+            guard let request else { return }
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                switch request.target {
+                case .autoLayout: activeSection = .autoLayout
+                case .badges:     activeSection = .badges
+                case .ednar:      activeSection = .ednar
+                case .dice:       activeSection = .dice
+                case .fineTune:
+                    activeSection = .fineTune
+                    if let idx = request.nodeIndex { selectedNodeIndex = idx }
+                }
+                // Jumped-to tab may be a legacy one — reveal the strip group.
+                if Self.legacySections.contains(activeSection!) {
+                    showLegacySections = true
+                }
+            }
+            PotionShopEditorHistory.shared.jumpRequest = nil
         }
     }
     
@@ -2028,9 +2121,125 @@ struct PotionShopLayoutOverlay: View {
                  : "Sliders write to shared HxW (affects all 3 slots).")
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.7))
-            sliderRow("HP size", value: hpBadgeSizeBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: 10...100, format: "%.0f pt")
-            sliderRow("HP X",    value: hpBadgeXBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -300...300, format: "%.0f pt")
-            sliderRow("HP Y",    value: hpBadgeYBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -200...200, format: "%.0f pt")
+            // Tier dots (June 12, 2026): 🔴 = slot override winning,
+            // 🟠 = shared H×W winning, ⚪ gray = legacy/default. The ⊘
+            // button clears the winning tier; tap again to walk down.
+            Text("dot: 🔴 slot override · 🟠 shared H×W · ⚪ default — ⊘ clears the winning one")
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.55))
+            sliderRow("HP size", value: hpBadgeSizeBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: 10...100, format: "%.0f pt",
+                      tier: hpBadgeTier(slot: slotIdx, height: bucket, width: widthBucket, field: .size))
+            sliderRow("HP X",    value: hpBadgeXBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -300...300, format: "%.0f pt",
+                      tier: hpBadgeTier(slot: slotIdx, height: bucket, width: widthBucket, field: .x))
+            sliderRow("HP Y",    value: hpBadgeYBinding(slot: slotIdx, height: bucket, width: widthBucket, characterId: selectedKey), range: -200...200, format: "%.0f pt",
+                      tier: hpBadgeTier(slot: slotIdx, height: bucket, width: widthBucket, field: .y))
+
+            // ─── CONTEXTUAL NUDGE (June 12, 2026 — §28.9 built) ─────────
+            // Deltas applied ON TOP of the resolved values above, keyed by
+            // (this slot · my H×W · FRONT NEIGHBOR's H×W). Sparse: only
+            // problem pairings get entries; identity nudges auto-delete.
+            Text("🟣 Contextual nudge (vs neighbor in front)")
+                .font(.caption2.bold())
+                .foregroundColor(.purple)
+            Toggle(isOn: Binding(
+                get: { layoutConfig.editHpBadgeContextual },
+                set: { layoutConfig.editHpBadgeContextual = $0 }
+            )) {
+                Text("Badge drag writes the nudge (not base values)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .tint(.purple)
+
+            if slotIdx >= 1,
+               let liveMe = liveOccupantKey(slot: slotIdx),
+               let liveNbr = liveOccupantKey(slot: slotIdx - 1) {
+                let meCS = layoutConfig.characterScale(for: liveMe)
+                let nbrCS = layoutConfig.characterScale(for: liveNbr)
+                Text("Pairing now: \(meCS.heightBucket.rawValue)·\(meCS.widthBucket.rawValue) (\(liveMe)) ← in front: \(nbrCS.heightBucket.rawValue)·\(nbrCS.widthBucket.rawValue) (\(liveNbr))")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                Text("Sliders below tune THIS pairing only. Every (same buckets) pair anywhere gets the same nudge. ⊘ deletes the entry.")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.55))
+                sliderRow("Nudge ΔX", value: contextNudgeBinding(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr, field: 0), range: -200...200, format: "%.0f pt",
+                          tier: contextNudgeTier(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr))
+                sliderRow("Nudge ΔY", value: contextNudgeBinding(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr, field: 1), range: -200...200, format: "%.0f pt",
+                          tier: contextNudgeTier(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr))
+                sliderRow("Nudge size ×", value: contextNudgeBinding(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr, field: 2), range: 0.3...2.0, format: "%.2f",
+                          tier: contextNudgeTier(slot: slotIdx, myKey: liveMe, nbrKey: liveNbr))
+            } else {
+                Text(slotIdx == 0
+                     ? "Slot 0 has nobody in front — contextual nudges apply to slots 1 and 2 only."
+                     : "No live neighbor in front of this slot right now (use the swap pickers to stage a pairing).")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        }
+    }
+
+    /// Live occupant of a queue slot (for contextual nudge pairing).
+    private func liveOccupantKey(slot: Int) -> String? {
+        guard slot < gs.queue.count,
+              let c = gs.customers.first(where: { $0.id == gs.queue[slot] }) else { return nil }
+        return c.charKey
+    }
+
+    /// field: 0 = dx, 1 = dy, 2 = sizeMul. June 12, 2026 (§28.9).
+    private func contextNudgeBinding(slot: Int, myKey: String, nbrKey: String, field: Int) -> Binding<Double> {
+        Binding(
+            get: {
+                let n = layoutConfig.hpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey)
+                switch field {
+                case 0: return n.dx
+                case 1: return n.dy
+                default: return n.sizeMul
+                }
+            },
+            set: { v in
+                switch field {
+                case 0: layoutConfig.setHpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey, dx: v)
+                case 1: layoutConfig.setHpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey, dy: v)
+                default: layoutConfig.setHpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey, sizeMul: v)
+                }
+            }
+        )
+    }
+
+    private func contextNudgeTier(slot: Int, myKey: String, nbrKey: String) -> PotionShopTunerTier {
+        if layoutConfig.hasHpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey) {
+            return PotionShopTunerTier(
+                color: .purple,
+                label: "contextual nudge set for this pairing",
+                onClear: { layoutConfig.clearHpBadgeContextNudge(slot: slot, myCharacterId: myKey, neighborCharacterId: nbrKey) }
+            )
+        }
+        return PotionShopTunerTier(color: .gray, label: "no nudge for this pairing", onClear: nil)
+    }
+
+    /// Builds the tier indicator (dot + label + clear action) for one HP
+    /// badge field in the focused editor. June 12, 2026.
+    private func hpBadgeTier(slot: Int, height: PotionShopLayoutConfig.CustomerHeightBucket, width: PotionShopLayoutConfig.CustomerWidthBucket, field: PotionShopLayoutConfig.HpBadgeField) -> PotionShopTunerTier {
+        let source = layoutConfig.hpBadgeTierSource(slot: slot, height: height, width: width, field: field)
+        switch source {
+        case .slotCell:
+            return PotionShopTunerTier(
+                color: .red,
+                label: "slot \(slot) override",
+                onClear: { layoutConfig.clearWinningHpBadgeTier(slot: slot, height: height, width: width, field: field) }
+            )
+        case .sharedCell:
+            return PotionShopTunerTier(
+                color: .orange,
+                label: "shared H×W",
+                onClear: { layoutConfig.clearWinningHpBadgeTier(slot: slot, height: height, width: width, field: field) }
+            )
+        case .legacy:
+            return PotionShopTunerTier(
+                color: .gray,
+                label: "default (per-bucket/legacy)",
+                onClear: nil
+            )
         }
     }
 
@@ -2151,20 +2360,14 @@ struct PotionShopLayoutOverlay: View {
         }
     }
 
-    private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(label)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.7))
-                Spacer()
-                Text(String(format: format, value.wrappedValue))
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.cyan)
-            }
-            Slider(value: value, in: range)
-                .tint(.cyan)
-        }
+    // June 12, 2026: sliderRow now delegates to PotionShopTunerRow
+    // (PotionShopEditorKit.swift) — every row in the editor gains −/+
+    // steppers, tap-the-number-to-type, and automatic undo + A/B
+    // recording, with zero changes at the ~130 call sites. The optional
+    // `tier` parameter adds the where-is-this-value-from dot + ⊘ clear
+    // button (used by the focused editor's HP badge rows).
+    private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String, tier: PotionShopTunerTier? = nil) -> some View {
+        PotionShopTunerRow(label: label, value: value, range: range, format: format, tier: tier)
     }
 }
 

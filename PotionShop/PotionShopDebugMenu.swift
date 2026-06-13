@@ -106,6 +106,28 @@ struct PotionShopDebugMenu: View {
                                 .opacity(0.7)
                         }
                     }
+                    // June 12, 2026: capture the diff baseline the first
+                    // time this menu appears in a session — everything
+                    // tuned after this point shows up in "changed only".
+                    .onAppear {
+                        PotionShopEditorHistory.shared
+                            .captureExportBaselineIfNeeded(generateLayoutValuesText())
+                    }
+
+                    Button {
+                        copyChangedLayoutValuesToClipboard()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard.fill")
+                                .foregroundColor(.mint)
+                            Text("📋 Copy Changed Values Only")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("this session")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
 
                     Button(role: .destructive) {
                         PotionShopLayoutConfig.shared.restoreLockedDefaults()
@@ -507,6 +529,29 @@ struct PotionShopDebugMenu: View {
     /// Copies all current layout values from PotionShopLayoutConfig.shared to clipboard
     /// in a format that's easy to paste back to Claude for permanent code updates.
     private func copyLayoutValuesToClipboard() {
+        let text = generateLayoutValuesText()
+        #if os(iOS)
+        UIPasteboard.general.string = text
+        #endif
+        print("📋 Layout values copied to clipboard!")
+    }
+
+    /// June 12, 2026: copies ONLY the values that changed since session
+    /// start — diffed against the baseline captured the first time the
+    /// debug menu opened. Small, reviewable paste-backs instead of the
+    /// full wall of values.
+    private func copyChangedLayoutValuesToClipboard() {
+        let diff = PotionShopEditorHistory.shared
+            .diffAgainstBaseline(current: generateLayoutValuesText())
+        #if os(iOS)
+        UIPasteboard.general.string = diff
+        #endif
+        print("📋 Changed layout values copied to clipboard!")
+    }
+
+    /// Full export text builder (refactored out of the copy function on
+    /// June 12, 2026 so the changed-only diff can reuse it).
+    private func generateLayoutValuesText() -> String {
         let cfg = PotionShopLayoutConfig.shared
         
         var text = """
@@ -1021,6 +1066,15 @@ struct PotionShopDebugMenu: View {
         }
         
         text += """
+
+        ───────────────────────────────────────────────────────────────
+        🟣 CONTEXTUAL HP BADGE NUDGES (slot · myH×W ← neighborH×W)
+        ───────────────────────────────────────────────────────────────
+        \(formatHpBadgeContextNudges())
+
+        """
+
+        text += """
         ═══════════════════════════════════════════════════════════════
         END OF LAYOUT VALUES
         ═══════════════════════════════════════════════════════════════
@@ -1034,12 +1088,19 @@ struct PotionShopDebugMenu: View {
         
         """
         
-        // Copy to clipboard
-        #if os(iOS)
-        UIPasteboard.general.string = text
-        #endif
-        
-        print("📋 Layout values copied to clipboard!")
+        return text
+    }
+
+    /// June 12, 2026 (§28.9): one stable line per contextual nudge entry —
+    /// sorted so the changed-values diff stays clean.
+    private func formatHpBadgeContextNudges() -> String {
+        let nudges = PotionShopLayoutConfig.shared.hpBadgeContextNudges
+        guard !nudges.isEmpty else { return "(none set)" }
+        return nudges.map { key, n in
+            "hpBadgeContextNudge[slot\(key.slot) \(key.myHeight.rawValue)·\(key.myWidth.rawValue) ← \(key.nbrHeight.rawValue)·\(key.nbrWidth.rawValue)]: dx=\(n.dx), dy=\(n.dy), sizeMul=\(n.sizeMul)"
+        }
+        .sorted()
+        .joined(separator: "\n")
     }
 }
 

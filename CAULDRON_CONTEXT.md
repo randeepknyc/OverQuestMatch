@@ -1770,6 +1770,210 @@ loops over `nodes.count` and adapts automatically.
   Node Scale slider silently does nothing. If future-you "can't change
   node size from the editor," this toggle is why.
 
+## 28. JUNE 12, 2026 — EDITOR QUALITY-OF-LIFE PACK (drag-to-edit, undo, A/B, tier dots, diff export)
+
+Eight editor upgrades built in one pass, AWAITING USER TESTING as of this
+writing. Files changed: **PotionShopEditorKit.swift (NEW FILE — must be
+added to the Xcode target or nothing compiles)**, PotionShopGameView.swift,
+PotionShopCustomerSceneView.swift, PotionShopCauldronView.swift,
+PotionShopLayoutConfig.swift, PotionShopDebugMenu.swift.
+
+### 28.1 The new file: PotionShopEditorKit.swift
+
+Everything shared lives here:
+- `PotionShopEditorHistory` — @Observable singleton: undo stack, A/B
+  snapshot engine, tap-to-jump request bus, diff-export baseline.
+- `PotionShopTunerRow` — the upgraded slider row (steppers, tap-to-type,
+  tier dot, automatic undo/A·B recording).
+- `PotionShopEditorJump` — jump-request payload (target tab + optional
+  node index).
+- `PotionShopEditorDragSession` — per-element drag bookkeeping used by the
+  scene/cauldron drag gestures (records undo on drag start).
+- `PotionShopTunerTier` — tier-dot descriptor (color, label, onClear).
+
+### 28.2 One-helper leverage: sliderRow → TunerRow
+
+GameView's `sliderRow(_:value:range:format:)` keeps its signature (plus a
+new optional `tier:` param) but its body now just returns
+`PotionShopTunerRow`. ALL ~130 editor rows gained, with zero call-site
+changes:
+- **−/+ steppers.** Step size derives from the format string:
+  `%.0f` → 1, `%.1f` → 0.1, `%.2f` → 0.01, `%.3f` → 0.001. So pt-valued
+  rows nudge by a point; fraction rows nudge by their display precision.
+- **Tap-the-number-to-type.** The cyan value is a button → inline
+  TextField (numbersAndPunctuation keyboard), commit on return, clamped to
+  the row's range. " pt" suffixes are stripped before parsing.
+- **Automatic history recording** (next section).
+
+LESSON: because every row funnels through ONE component, future row-level
+features (e.g. long-press to reset, per-row lock) are one-spot changes.
+Never add raw `Slider(...)` rows to the editor — go through sliderRow.
+
+### 28.3 Undo + A/B engine (PotionShopEditorHistory)
+
+**Recording.** Each TunerRow holds a per-instance `@State token = UUID()`.
+`beginChange(token:label:current:read:apply:)` appends a
+`PotionShopEditorChange` (oldValue + read/apply closures); consecutive
+changes with the SAME token merge into one step — so a burst of stepper
+taps or one slider scrub = ONE undo. Slider records on
+`onEditingChanged(true)`; steppers/typing record per action; drags record
+on drag start via `PotionShopEditorDragSession.begin` (X and Y as two
+steps, so one drag = two undos). Stack capped at 100.
+
+**Undo.** Header button pops the last change and applies `oldValue`.
+Disabled while viewing snapshot A.
+
+**A/B.** "Set A" marks the current index in the change list. "A ⇄ B":
+flip-to-A caches each subsequent change's CURRENT value (read closure)
+into `bCache`, then replays oldValues in REVERSE order (correctly unwinds
+multiple edits to the same row); flip-to-B replays the cached values
+forward. Editing while viewing A clears the marker (user picked a
+direction). Undoing past the marker also clears it.
+
+**CAVEAT (by design):** A/B and undo cover changes made THROUGH the
+recording paths (sliders, steppers, typing, the three drag gestures). They
+do NOT snapshot the whole config — programmatic changes (e.g. Restore
+Locked Defaults) are invisible to them.
+
+### 28.4 Drag-the-thing-itself (scene + cauldron)
+
+All drags: `DragGesture(minimumDistance: ~8–12)` so plain taps still
+work; gated on `layoutConfig.layoutEditorIsOpen`; write through the SAME
+setters the sliders use; record undo on start. Write targets:
+
+- **Character body** (CustomerSceneView, gesture on the inner character
+  ZStack): feet-anchor rounds → per-cell `setBucketCellX/Y(slot·H·W)`
+  (same as the focused editor's "Cell X/Y" sliders); legacy rounds →
+  `characterScale.x/y`, `.waitingX/Y`, `.waiting2X/Y` by slot tier. Body
+  offsets render in raw points → 1:1 drag delta. Drag also selects the
+  character/slot for the editor.
+- **HP badge** (gesture on the badge ZStack): feet-anchor → slot-cell or
+  shared-H×W dict per the `editHpBadgePerSlot` toggle (exactly like the
+  sliders); legacy → per-character `hpBadgeOffsetX/YOverride` /
+  `waiting…` / `waiting2…` by slot. **Badge offsets render multiplied by
+  `scale`, so drag deltas convert back by ÷ scale** — the badge tracks the
+  finger even on shrunken waiting-slot characters.
+- **Node** (CauldronView NodeButtonView): editor open re-purposes the
+  existing drag gesture — writes `layoutConfig.perNodeOffsets[i]` (same
+  value as Fine-Tune sliders), 1:1 screen points. Gameplay die-drag branch
+  is skipped entirely while the editor is open.
+
+### 28.5 Tap-anything-to-jump
+
+While the editor is open: tapping a character or its HP badge selects it
+(`selectedCharacterId` + `selectedSlotIndex`) AND posts
+`PotionShopEditorJump(target: .autoLayout)`; tapping a node posts
+`(.fineTune, nodeIndex:)`. The editor overlay's
+`.onChange(of: PotionShopEditorHistory.shared.jumpRequest)` switches
+`activeSection` (and `selectedNodeIndex` for nodes), reveals the legacy
+strip group if needed, then nils the request.
+**Gameplay node taps (place/unplace die) are SUSPENDED while the editor is
+open** — the editor branch returns before the gameplay branch.
+
+### 28.6 Tier dots + ⊘ clear (HP badge rows, focused editor)
+
+New LayoutConfig introspection:
+- `hpBadgeTierSource(slot:height:width:field:)` → `.slotCell` /
+  `.sharedCell` / `.legacy` per field (size/x/y).
+- `clearWinningHpBadgeTier(...)` — nils the winning tier's field; removes
+  fully-empty cells from their dict (keeps exports clean). Tapping ⊘
+  repeatedly walks down the chain (slot → shared → done).
+
+UI convention (legend shown above the rows): 🔴 dot = slot override
+winning, 🟠 = shared H×W winning, ⚪ gray = legacy/default (no ⊘ shown).
+Row shows "from: …" under the slider. This is the foundation tier-clarity
+work that the FUTURE contextual badge layer (§28.9) will plug into as a
+fourth dot color.
+
+### 28.7 Diff export ("Copy Changed Values Only")
+
+`copyLayoutValuesToClipboard()` was refactored: the giant string builder
+is now `generateLayoutValuesText() -> String`; the copy button is a thin
+wrapper. The **first time the debug menu appears each session**, an
+`.onAppear` captures the full text as the baseline
+(`captureExportBaselineIfNeeded`). The new "📋 Copy Changed Values Only"
+button diffs current vs baseline by LINE SETS (decoration/header/
+"Generated:" lines excluded): lines only in current = CHANGED/NEW, lines
+only in baseline = REMOVED (cleared overrides). Set-based diffing is
+robust to the dict exports growing/shrinking/reordering.
+GOTCHA: the baseline captures when the menu first opens — if values were
+somehow changed before ever opening the menu, those would not show as
+diffs. In practice the editor is launched FROM the menu, so this is fine.
+
+### 28.8 Tab strip grouping
+
+Primary strip: Auto-Layout, Badges, Customers, Fine-Tune, Nodes, Dice.
+Behind "More ▾": Sections, Ednar, Permutations, Cauldron, Bowl, Brew.
+Edit the two static arrays (`primarySections` / `legacySections`) in the
+overlay struct to re-prioritize. Tap-to-jump into a hidden tab auto-opens
+the group. The header row also hosts Undo / Set A / A⇄B next to close.
+
+### 28.9 Contextual HP badge layer — BUILT (later same day; untested)
+
+User green-lit immediate build as a separate test step (test §28.1–28.8
+first, then this). Design as agreed:
+- Trigger: badge placement sometimes needs to depend on the NEIGHBOR one
+  slot in front (slot 0 for slot 1, slot 1 for slot 2) — e.g. small-thin
+  in slot 1 behind tall-wide active. Badges hang LEFT (negative X) into
+  the front neighbor's space, hence the collision.
+- Architecture: **Option 1 — sparse contextual NUDGE layer** on top of the
+  existing resolve chain (deltas, not absolutes, so base re-tunes carry
+  through automatically).
+- Key: **(my slot, my H×W, neighbor's FULL H×W)** — user explicitly wants
+  both height AND width on the neighbor side, not width-only. Sparse dict;
+  only problem pairings get entries.
+- Resolution must be LIVE from the current queue (badges re-resolve when
+  the lineup changes); consider a short ease on the offset so the jump
+  reads as intentional.
+- Editor: third write-mode toggle in the badge section ("contextual nudge
+  for the CURRENT live pairing"), entries in Copy Layout Values + the new
+  diff export, and a fourth tier-dot color in §28.6's indicator.
+
+**As implemented:**
+- Storage: `hpBadgeContextNudges: [HpBadgeContextKey: HpBadgeContextNudge]`
+  in LayoutConfig. Key = (slot, myHeight, myWidth, nbrHeight, nbrWidth);
+  nudge = (dx, dy, sizeMul) DELTAS. Identity nudges auto-delete on write
+  (`setHpBadgeContextNudge`) so the dict stays sparse.
+- Render: in CustomerSceneView the badge computes `frontNeighborKey` LIVE
+  from `gs.queue[badgeQueueSlot - 1]`, looks up the nudge, and applies
+  `size × sizeMul`, `x + dx`, `y + dy` ON TOP of the fully-resolved values
+  — in BOTH feet-anchor and legacy rounds. A 0.25s easeInOut keyed on the
+  neighbor's charKey makes lineup-change hops read as intentional.
+- Editor (focused per-slot editor, below the HP rows): purple "Contextual
+  nudge" block with (a) `editHpBadgeContextual` toggle — when ON, dragging
+  the HP badge in the scene writes the NUDGE for the live pairing instead
+  of base tiers (badgeX/YAccessors branch on it FIRST, before the
+  feet-anchor branch); (b) live pairing readout (me H×W ← neighbor H×W,
+  with char names); (c) ΔX / ΔY / Size× rows with purple tier dot when an
+  entry exists, ⊘ deletes the whole entry. Slot 0 shows an explainer
+  instead (nobody in front). Pairings are staged with the swap pickers.
+- Export: `formatHpBadgeContextNudges()` adds one stable sorted line per
+  entry to Copy Layout Values (and therefore the changed-only diff).
+- GOTCHA (fixed during build): inserting the export section via str-replace
+  initially landed INSIDE an open `"""` literal, silently swallowing
+  code as text. When editing the giant export string builder, always
+  verify triple-quote parity afterward.
+- Tuning workflow: D3R3, swap pickers to stage the problem pairing →
+  toggle contextual ON → drag the badge (or use ΔX/ΔY) → toggle OFF →
+  Copy Changed Values Only.
+
+### 28.10 Hard-won lessons
+
+- **Funnel rows through one component before adding row features.** The
+  131-call-site sliderRow delegation made steppers/typing/undo a single
+  edit. Same principle as §27's face table: one source of truth.
+- **Closure-log undo beats config snapshots here.** LayoutConfig is a
+  huge non-Codable class; recording (read, apply, oldValue) per edit gave
+  undo AND A/B without serializing anything. The cost is the §28.3 caveat:
+  only recorded paths are covered.
+- **Per-view-instance `@State token = UUID()` is a clean row identity.**
+  Labels repeat ("HP X" exists in a dozen rows); tokens don't, and they
+  survive re-renders. Never key undo merging on labels.
+- **Drag deltas must respect the render math.** Body offsets apply raw
+  (1:1); badge offsets apply ×scale (÷ on the way back). When adding new
+  draggables, find the render expression first and invert it.
+- **Editor-open must suspend conflicting gameplay gestures explicitly**
+  (node taps/drags) — the same surface can't serve both masters at once.
 ---
 
 **End of CAULDRON_CONTEXT.md**

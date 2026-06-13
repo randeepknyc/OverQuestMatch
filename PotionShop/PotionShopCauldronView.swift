@@ -519,6 +519,8 @@ struct PotionShopNodeButtonView: View {
 
     @State private var globalFrame: CGRect = .zero
     @State private var isDraggingFromHere: Bool = false  // Local drag state
+    /// June 12, 2026: editor-mode "drag the node itself" session.
+    @State private var editorNodeDrag = PotionShopEditorDragSession()
     /// Drives the reach-preview pulse: oscillates 0→1 (repeatForever)
     /// while this node is in the hovered die's reach, rests at 1 otherwise.
     @State private var previewPulse: Double = 1.0
@@ -667,6 +669,14 @@ struct PotionShopNodeButtonView: View {
             }
         }
         .onTapGesture {
+            // June 12, 2026: with the layout editor open, tapping a node
+            // jumps the editor to the Fine-Tune tab with THIS node selected
+            // (gameplay tap-to-place is suspended while editing).
+            if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
+                PotionShopEditorHistory.shared.jumpRequest =
+                    PotionShopEditorJump(target: .fineTune, nodeIndex: nodeIndex)
+                return
+            }
             guard !gs.isAnimating, !isDraggingFromHere else { return }
             if placedDie != nil {
                 // Tap on a placed die → remove back to tray
@@ -683,6 +693,25 @@ struct PotionShopNodeButtonView: View {
         .gesture(
             DragGesture(minimumDistance: 5, coordinateSpace: .global)
                 .onChanged { value in
+                    // June 12, 2026: editor open → drag moves the NODE
+                    // itself (writes perNodeOffsets, same value the
+                    // Fine-Tune sliders edit) instead of dragging dice.
+                    if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
+                        let cfg = PotionShopLayoutConfig.shared
+                        guard nodeIndex < cfg.perNodeOffsets.count else { return }
+                        if !editorNodeDrag.active {
+                            editorNodeDrag.begin(
+                                label: "node \(nodeIndex)",
+                                readX: { cfg.perNodeOffsets[nodeIndex].x },
+                                applyX: { cfg.perNodeOffsets[nodeIndex].x = $0 },
+                                readY: { cfg.perNodeOffsets[nodeIndex].y },
+                                applyY: { cfg.perNodeOffsets[nodeIndex].y = $0 }
+                            )
+                        }
+                        cfg.perNodeOffsets[nodeIndex].x = editorNodeDrag.startX + value.translation.width
+                        cfg.perNodeOffsets[nodeIndex].y = editorNodeDrag.startY + value.translation.height
+                        return
+                    }
                     // Drag is only meaningful when a die lives here
                     guard placedDie != nil, !gs.isAnimating else { return }
                     if !isDraggingFromHere {
@@ -693,6 +722,11 @@ struct PotionShopNodeButtonView: View {
                     gs.updateDragHoverPosition(value.location)
                 }
                 .onEnded { value in
+                    // June 12, 2026: end of an editor node-move drag.
+                    if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
+                        editorNodeDrag.end()
+                        return
+                    }
                     guard placedDie != nil, !gs.isAnimating else {
                         gs.nodeDragLocation = nil
                         isDraggingFromHere = false

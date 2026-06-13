@@ -677,6 +677,136 @@ struct PotionShopCustomerInSceneView: View {
         return (1.0, 1.0, slotX + cellX, slotY + cellY, 1.0)
     }
 
+    // ─── Editor drag-the-thing-itself (June 12, 2026) ──────────────────
+    // With the layout editor open, the character body and the HP badge can
+    // be dragged directly in the scene. Drags write to the SAME values the
+    // editor sliders edit (mode-aware), and register as undo steps.
+    @State private var editorBodyDrag = PotionShopEditorDragSession()
+    @State private var editorBadgeDrag = PotionShopEditorDragSession()
+
+    /// Read/write closures for the character body's X offset — matches
+    /// whatever the focused editor's sliders would write for this slot:
+    /// feet-anchor rounds → the per-cell (slot·H×W) X; legacy rounds → the
+    /// per-character x / waitingX / waiting2X for this slot tier.
+    private func bodyXAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
+        let key = customer.charKey
+        let cfg = PotionShopLayoutConfig.shared
+        if gs.currentRoundUsesFeetAnchor {
+            let cs = cfg.characterScale(for: key)
+            let h = cs.heightBucket, w = cs.widthBucket
+            return ({ cfg.resolvedCellX(slot: slotIdx, height: h, width: w) },
+                    { cfg.setBucketCellX(slot: slotIdx, height: h, width: w, x: $0) })
+        }
+        switch slotIdx {
+        case 0:
+            return ({ cfg.characterScale(for: key).x },
+                    { v in var cs = cfg.characterScale(for: key); cs.x = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        case 1:
+            return ({ cfg.characterScale(for: key).waitingX },
+                    { v in var cs = cfg.characterScale(for: key); cs.waitingX = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        default:
+            return ({ cfg.characterScale(for: key).waiting2X },
+                    { v in var cs = cfg.characterScale(for: key); cs.waiting2X = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        }
+    }
+
+    private func bodyYAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
+        let key = customer.charKey
+        let cfg = PotionShopLayoutConfig.shared
+        if gs.currentRoundUsesFeetAnchor {
+            let cs = cfg.characterScale(for: key)
+            let h = cs.heightBucket, w = cs.widthBucket
+            return ({ cfg.resolvedCellY(slot: slotIdx, height: h, width: w) },
+                    { cfg.setBucketCellY(slot: slotIdx, height: h, width: w, y: $0) })
+        }
+        switch slotIdx {
+        case 0:
+            return ({ cfg.characterScale(for: key).y },
+                    { v in var cs = cfg.characterScale(for: key); cs.y = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        case 1:
+            return ({ cfg.characterScale(for: key).waitingY },
+                    { v in var cs = cfg.characterScale(for: key); cs.waitingY = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        default:
+            return ({ cfg.characterScale(for: key).waiting2Y },
+                    { v in var cs = cfg.characterScale(for: key); cs.waiting2Y = v; cfg.updateCharacterScale(for: key, scale: cs) })
+        }
+    }
+
+    /// The charKey of whoever stands one slot in front (live queue), or
+    /// nil for slot 0 / empty. Used by contextual nudges + their editor.
+    private func liveFrontNeighborKey(forSlot slotIdx: Int) -> String? {
+        guard slotIdx >= 1,
+              slotIdx - 1 < gs.queue.count,
+              let nbr = gs.customers.first(where: { $0.id == gs.queue[slotIdx - 1] })
+        else { return nil }
+        return nbr.charKey
+    }
+
+    /// Read/write closures for the HP badge X offset — same precedence the
+    /// focused editor uses: feet-anchor → slot-cell or shared-H×W dict
+    /// (per the editHpBadgePerSlot toggle); legacy → per-character override
+    /// for this slot tier.
+    /// June 12, 2026 (§28.9): when `editHpBadgeContextual` is ON and this
+    /// slot has a live front neighbor, the drag writes the CONTEXTUAL
+    /// NUDGE dx for the current pairing instead of the base tiers.
+    private func badgeXAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
+        let key = customer.charKey
+        let cfg = PotionShopLayoutConfig.shared
+        if cfg.editHpBadgeContextual, let nbrKey = liveFrontNeighborKey(forSlot: slotIdx) {
+            return ({ cfg.hpBadgeContextNudge(slot: slotIdx, myCharacterId: key, neighborCharacterId: nbrKey).dx },
+                    { cfg.setHpBadgeContextNudge(slot: slotIdx, myCharacterId: key, neighborCharacterId: nbrKey, dx: $0) })
+        }
+        if gs.currentRoundUsesFeetAnchor {
+            let cs = cfg.characterScale(for: key)
+            let h = cs.heightBucket, w = cs.widthBucket
+            return ({ cfg.resolvedHpBadgeX(height: h, width: w, characterId: key, slotForLegacy: slotIdx) },
+                    { v in
+                        if cfg.editHpBadgePerSlot {
+                            cfg.setHpBadgeSlotCellX(slot: slotIdx, height: h, width: w, x: v)
+                        } else {
+                            cfg.setHpBadgeCellX(height: h, width: w, x: v)
+                        }
+                    })
+        }
+        return ({ cfg.hpBadgeOffsetX(for: key, queueSlot: slotIdx) },
+                { v in
+                    var cs = cfg.characterScale(for: key)
+                    if slotIdx >= 2 { cs.waiting2HpBadgeOffsetXOverride = v }
+                    else if slotIdx >= 1 { cs.waitingHpBadgeOffsetXOverride = v }
+                    else { cs.hpBadgeOffsetXOverride = v }
+                    cfg.updateCharacterScale(for: key, scale: cs)
+                })
+    }
+
+    private func badgeYAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
+        let key = customer.charKey
+        let cfg = PotionShopLayoutConfig.shared
+        if cfg.editHpBadgeContextual, let nbrKey = liveFrontNeighborKey(forSlot: slotIdx) {
+            return ({ cfg.hpBadgeContextNudge(slot: slotIdx, myCharacterId: key, neighborCharacterId: nbrKey).dy },
+                    { cfg.setHpBadgeContextNudge(slot: slotIdx, myCharacterId: key, neighborCharacterId: nbrKey, dy: $0) })
+        }
+        if gs.currentRoundUsesFeetAnchor {
+            let cs = cfg.characterScale(for: key)
+            let h = cs.heightBucket, w = cs.widthBucket
+            return ({ cfg.resolvedHpBadgeY(height: h, width: w, characterId: key, slotForLegacy: slotIdx) },
+                    { v in
+                        if cfg.editHpBadgePerSlot {
+                            cfg.setHpBadgeSlotCellY(slot: slotIdx, height: h, width: w, y: v)
+                        } else {
+                            cfg.setHpBadgeCellY(height: h, width: w, y: v)
+                        }
+                    })
+        }
+        return ({ cfg.hpBadgeOffsetY(for: key, queueSlot: slotIdx) },
+                { v in
+                    var cs = cfg.characterScale(for: key)
+                    if slotIdx >= 2 { cs.waiting2HpBadgeOffsetYOverride = v }
+                    else if slotIdx >= 1 { cs.waitingHpBadgeOffsetYOverride = v }
+                    else { cs.hpBadgeOffsetYOverride = v }
+                    cfg.updateCharacterScale(for: key, scale: cs)
+                })
+    }
+
     var body: some View {
         // Determine which scale to use based on position in queue (3-way choice)
         let perCharWidth: Double = isActive ? customerSceneWidth : (queueIndex == 1 ? customerWaitingWidth : customerWaiting2Width)
@@ -797,13 +927,40 @@ struct PotionShopCustomerInSceneView: View {
                 // Tap-to-select (May 26, 2026): scoped to the inner character
                 // ZStack ONLY (not the whole outer ZStack including badges/emoji)
                 // so adjacent customers' tap rectangles don't overlap.
+                // June 12, 2026: tap also JUMPS the editor to the focused
+                // per-slot tab, and dragging the body moves the character
+                // (writes the same values the position sliders edit).
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
                         PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
                         PotionShopLayoutConfig.shared.selectedSlotIndex = min(queueIndex, 2)
+                        PotionShopEditorHistory.shared.jumpRequest =
+                            PotionShopEditorJump(target: .autoLayout)
                     }
                 }
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onChanged { value in
+                            guard PotionShopLayoutConfig.shared.layoutEditorIsOpen else { return }
+                            let slotIdx = isActive ? 0 : min(max(queueIndex, 1), 2)
+                            let xAcc = bodyXAccessors(slotIdx: slotIdx)
+                            let yAcc = bodyYAccessors(slotIdx: slotIdx)
+                            if !editorBodyDrag.active {
+                                PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
+                                PotionShopLayoutConfig.shared.selectedSlotIndex = slotIdx
+                                editorBodyDrag.begin(label: "\(customer.charKey) body",
+                                                     readX: xAcc.read, applyX: xAcc.apply,
+                                                     readY: yAcc.read, applyY: yAcc.apply)
+                            }
+                            // Body offsets are applied in raw points → 1:1 delta.
+                            xAcc.apply(editorBodyDrag.startX + value.translation.width)
+                            yAcc.apply(editorBodyDrag.startY + value.translation.height)
+                        }
+                        .onEnded { _ in
+                            editorBodyDrag.end()
+                        }
+                )
 
                 // Badge queue slot (May 24, 2026): 0 = active (queue[0]),
                 // 1 = waiting1 (queue[1]), 2 = waiting2 (queue[2]). Clamped for safety.
@@ -819,15 +976,35 @@ struct PotionShopCustomerInSceneView: View {
                 // from the per-cell (height × width) HP matrix. Falls back to
                 // legacy per-bucket values when the cell isn't set.
                 let csHpBadge = layoutConfig.characterScale(for: customer.charKey)
-                let hpSize: Double = gs.currentRoundUsesFeetAnchor
+                // CONTEXTUAL NUDGE (June 12, 2026 — §28.9): who stands one
+                // slot in front of me right now? If a nudge entry exists for
+                // (my slot · my H×W · their H×W) it shifts/scales the badge.
+                // Live from the current queue, so it re-resolves on swaps,
+                // defeats, and expirations. Identity when slot 0 / no entry.
+                let frontNeighborKey: String? = {
+                    guard badgeQueueSlot >= 1,
+                          badgeQueueSlot - 1 < gs.queue.count,
+                          let nbr = gs.customers.first(where: { $0.id == gs.queue[badgeQueueSlot - 1] })
+                    else { return nil }
+                    return nbr.charKey
+                }()
+                let contextNudge = layoutConfig.hpBadgeContextNudge(
+                    slot: badgeQueueSlot,
+                    myCharacterId: customer.charKey,
+                    neighborCharacterId: frontNeighborKey
+                )
+                let hpSize: Double = (gs.currentRoundUsesFeetAnchor
                     ? layoutConfig.resolvedHpBadgeSize(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
                     : layoutConfig.hpBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot)
-                let hpOffX: Double = gs.currentRoundUsesFeetAnchor
+                ) * contextNudge.sizeMul
+                let hpOffX: Double = (gs.currentRoundUsesFeetAnchor
                     ? layoutConfig.resolvedHpBadgeX(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
                     : layoutConfig.hpBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot)
-                let hpOffY: Double = gs.currentRoundUsesFeetAnchor
+                ) + contextNudge.dx
+                let hpOffY: Double = (gs.currentRoundUsesFeetAnchor
                     ? layoutConfig.resolvedHpBadgeY(height: csHpBadge.heightBucket, width: csHpBadge.widthBucket, characterId: customer.charKey, slotForLegacy: badgeQueueSlot)
                     : layoutConfig.hpBadgeOffsetY(for: customer.charKey, queueSlot: badgeQueueSlot)
+                ) + contextNudge.dy
 
                 // HP Badge (ABOVE character's head — shows for active AND waiting customers)
                 ZStack {
@@ -861,6 +1038,45 @@ struct PotionShopCustomerInSceneView: View {
                     y: effectiveY + headOffsetY + hpOffY * scale
                 )
                 .transition(.scale.combined(with: .opacity))
+                // Contextual nudges re-resolve when the lineup changes —
+                // ease the hop so it reads as intentional, not a glitch.
+                .animation(.easeInOut(duration: 0.25), value: frontNeighborKey)
+                // June 12, 2026: with the editor open, the HP badge itself is
+                // tappable (jumps to the focused editor) and draggable (writes
+                // the same X/Y the HP badge sliders edit — mode-aware, and
+                // respecting the "Override for slot N only" toggle).
+                .contentShape(Circle())
+                .onTapGesture {
+                    if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
+                        PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
+                        PotionShopLayoutConfig.shared.selectedSlotIndex = badgeQueueSlot
+                        PotionShopEditorHistory.shared.jumpRequest =
+                            PotionShopEditorJump(target: .autoLayout)
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 8)
+                        .onChanged { value in
+                            guard PotionShopLayoutConfig.shared.layoutEditorIsOpen else { return }
+                            let xAcc = badgeXAccessors(slotIdx: badgeQueueSlot)
+                            let yAcc = badgeYAccessors(slotIdx: badgeQueueSlot)
+                            if !editorBadgeDrag.active {
+                                PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
+                                PotionShopLayoutConfig.shared.selectedSlotIndex = badgeQueueSlot
+                                editorBadgeDrag.begin(label: "\(customer.charKey) HP badge",
+                                                      readX: xAcc.read, applyX: xAcc.apply,
+                                                      readY: yAcc.read, applyY: yAcc.apply)
+                            }
+                            // Badge offsets render multiplied by `scale`, so a
+                            // screen-point drag delta converts back by ÷ scale.
+                            let s = max(scale, 0.001)
+                            xAcc.apply(editorBadgeDrag.startX + value.translation.width / s)
+                            yAcc.apply(editorBadgeDrag.startY + value.translation.height / s)
+                        }
+                        .onEnded { _ in
+                            editorBadgeDrag.end()
+                        }
+                )
 
                 } // end HP badge conditional
 

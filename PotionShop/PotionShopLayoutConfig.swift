@@ -316,18 +316,18 @@ class PotionShopLayoutConfig {
     var cauldronBowlX: Double = 44.709229469299316
     var cauldronBowlY: Double = 58.0
     
-    // Nodes (baked June 12, 2026 from layout-editor export)
-    var nodeScale: Double = 1.5997340604662895
-    var nodeXOffset: Double = 103.54609489440918
-    var nodeYOffset: Double = 119.14892196655273
-    var nodeSpacingMultiplier: Double = 1.0664893835783005  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
+    // Nodes
+    var nodeScale: Double = 1.8311170041561127
+    var nodeXOffset: Double = 79.43263053894043
+    var nodeYOffset: Double = 71.27659320831299
+    var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
     var perNodeOffsets: [CGPoint] = [
         CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
         CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
         CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-        CGPoint(x: -12.765955924987793, y: -6.91489577293396),   // Node 3 (re-tuned June 12, 2026)
+        CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
         CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
         CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
         CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
@@ -337,7 +337,7 @@ class PotionShopLayoutConfig {
         CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
         CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
     ]
-
+    
     // Helper method to reset all per-node offsets
     func resetAllNodeOffsets() {
         perNodeOffsets = Array(repeating: .zero, count: 12)
@@ -758,6 +758,161 @@ class PotionShopLayoutConfig {
         }
         return hpBadgeOffsetY(for: characterId, queueSlot: slotForLegacy)
     }
+
+    // MARK: - HP badge tier introspection (June 12, 2026 — editor tier dots)
+    //
+    // "Where is this value coming from?" support for the layout editor.
+    // Each HP badge field (size/x/y) resolves slot-cell → shared-cell →
+    // legacy; these helpers report WHICH tier is currently winning, and
+    // can clear the winning tier so the value falls back one level.
+    // (Repeatedly tapping the editor's ⊘ button walks down the chain.)
+
+    enum HpBadgeField { case size, x, y }
+    enum HpBadgeTierSource { case slotCell, sharedCell, legacy }
+
+    func hpBadgeTierSource(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, field: HpBadgeField) -> HpBadgeTierSource {
+        let slotCell = bucketHpBadgeSlotCell(slot: slot, height: height, width: width)
+        let shared = bucketHpBadgeCell(height: height, width: width)
+        switch field {
+        case .size:
+            if slotCell.size != nil { return .slotCell }
+            if shared.size != nil { return .sharedCell }
+        case .x:
+            if slotCell.x != nil { return .slotCell }
+            if shared.x != nil { return .sharedCell }
+        case .y:
+            if slotCell.y != nil { return .slotCell }
+            if shared.y != nil { return .sharedCell }
+        }
+        return .legacy
+    }
+
+    /// Clears the WINNING tier's entry for one field. slot-cell first, then
+    /// shared H×W. No-op when already at legacy. Empty cells are removed
+    /// from their dictionary so the export stays clean.
+    func clearWinningHpBadgeTier(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket, field: HpBadgeField) {
+        let slotKey = bucketCellKey(slot: slot, height: height, width: width)
+        if var cell = bucketHpBadgeSlotOverrides[slotKey] {
+            let had: Bool
+            switch field {
+            case .size: had = cell.size != nil; cell.size = nil
+            case .x:    had = cell.x != nil;    cell.x = nil
+            case .y:    had = cell.y != nil;    cell.y = nil
+            }
+            if had {
+                if cell.size == nil && cell.x == nil && cell.y == nil {
+                    bucketHpBadgeSlotOverrides.removeValue(forKey: slotKey)
+                } else {
+                    bucketHpBadgeSlotOverrides[slotKey] = cell
+                }
+                return
+            }
+        }
+        let sharedKey = bucketHpBadgeKey(height: height, width: width)
+        if var cell = bucketHpBadgeOverrides[sharedKey] {
+            switch field {
+            case .size: cell.size = nil
+            case .x:    cell.x = nil
+            case .y:    cell.y = nil
+            }
+            if cell.size == nil && cell.x == nil && cell.y == nil {
+                bucketHpBadgeOverrides.removeValue(forKey: sharedKey)
+            } else {
+                bucketHpBadgeOverrides[sharedKey] = cell
+            }
+        }
+    }
+
+    // MARK: - CONTEXTUAL HP badge nudges (June 12, 2026 — §28.9 built)
+    //
+    // Sometimes a badge's right place depends on WHO IS STANDING ONE SLOT
+    // IN FRONT (the badge hangs left, into the front neighbor's space —
+    // e.g. small-thin in slot 1 behind a tall-wide active needs its badge
+    // shoved differently). This layer is a SPARSE dictionary of NUDGES
+    // (deltas, not absolutes) applied ON TOP of the fully-resolved badge
+    // values, keyed by:
+    //
+    //     (my slot, my height × width, neighbor's height × width)
+    //
+    // Both sides use the FULL H×W per the user's call (June 12). Because
+    // nudges are deltas, re-tuning any base tier later carries through
+    // automatically — contextual entries never go stale.
+    //
+    // Neighbor = the customer one slot closer to the counter (slot 0 for
+    // slot 1, slot 1 for slot 2). Slot 0 has nobody in front → no nudges.
+    // Resolution is LIVE: the scene recomputes from the current queue
+    // every render, so badges hop to their contextual spot when the
+    // lineup changes (defeat / expire / swap).
+
+    struct HpBadgeContextKey: Hashable, Codable {
+        let slot: Int                       // 1 or 2 (the badge owner's slot)
+        let myHeight: CustomerHeightBucket
+        let myWidth: CustomerWidthBucket
+        let nbrHeight: CustomerHeightBucket
+        let nbrWidth: CustomerWidthBucket
+    }
+
+    struct HpBadgeContextNudge: Codable, Equatable {
+        var dx: Double = 0        // added to resolved badge X
+        var dy: Double = 0        // added to resolved badge Y
+        var sizeMul: Double = 1.0 // multiplies resolved badge size
+        var isIdentity: Bool { dx == 0 && dy == 0 && sizeMul == 1.0 }
+    }
+
+    /// SPARSE — only problem pairings ever get entries.
+    var hpBadgeContextNudges: [HpBadgeContextKey: HpBadgeContextNudge] = [:]
+
+    func hpBadgeContextKey(slot: Int, myCharacterId: String, neighborCharacterId: String) -> HpBadgeContextKey {
+        let me = characterScale(for: myCharacterId)
+        let nbr = characterScale(for: neighborCharacterId)
+        return HpBadgeContextKey(
+            slot: slot,
+            myHeight: me.heightBucket, myWidth: me.widthBucket,
+            nbrHeight: nbr.heightBucket, nbrWidth: nbr.widthBucket
+        )
+    }
+
+    /// The nudge for a live pairing — identity when no entry exists or
+    /// there is no front neighbor.
+    func hpBadgeContextNudge(slot: Int, myCharacterId: String, neighborCharacterId: String?) -> HpBadgeContextNudge {
+        guard slot >= 1, let neighborCharacterId else { return HpBadgeContextNudge() }
+        let key = hpBadgeContextKey(slot: slot, myCharacterId: myCharacterId, neighborCharacterId: neighborCharacterId)
+        return hpBadgeContextNudges[key] ?? HpBadgeContextNudge()
+    }
+
+    /// Whether an entry exists for this live pairing (drives the editor's
+    /// purple tier dot).
+    func hasHpBadgeContextNudge(slot: Int, myCharacterId: String, neighborCharacterId: String?) -> Bool {
+        guard slot >= 1, let neighborCharacterId else { return false }
+        let key = hpBadgeContextKey(slot: slot, myCharacterId: myCharacterId, neighborCharacterId: neighborCharacterId)
+        return hpBadgeContextNudges[key] != nil
+    }
+
+    func setHpBadgeContextNudge(slot: Int, myCharacterId: String, neighborCharacterId: String,
+                                dx: Double? = nil, dy: Double? = nil, sizeMul: Double? = nil) {
+        let key = hpBadgeContextKey(slot: slot, myCharacterId: myCharacterId, neighborCharacterId: neighborCharacterId)
+        var nudge = hpBadgeContextNudges[key] ?? HpBadgeContextNudge()
+        if let dx { nudge.dx = dx }
+        if let dy { nudge.dy = dy }
+        if let sizeMul { nudge.sizeMul = sizeMul }
+        // Keep the dictionary sparse: identity nudges are removed.
+        if nudge.isIdentity {
+            hpBadgeContextNudges.removeValue(forKey: key)
+        } else {
+            hpBadgeContextNudges[key] = nudge
+        }
+    }
+
+    func clearHpBadgeContextNudge(slot: Int, myCharacterId: String, neighborCharacterId: String?) {
+        guard let neighborCharacterId else { return }
+        let key = hpBadgeContextKey(slot: slot, myCharacterId: myCharacterId, neighborCharacterId: neighborCharacterId)
+        hpBadgeContextNudges.removeValue(forKey: key)
+    }
+
+    /// Editor write-mode (June 12, 2026): when true, the focused editor's
+    /// HP badge drag + nudge sliders write the CONTEXTUAL nudge for the
+    /// current live pairing instead of the base tiers.
+    var editHpBadgeContextual: Bool = false
 
     // Active slot
     var autoLayoutSizeActiveSuperShort: Double = 1.0
@@ -1510,18 +1665,18 @@ class PotionShopLayoutConfig {
         cauldronBowlX = 44.709229469299316
         cauldronBowlY = 58.0
         
-        // Nodes (baked June 12, 2026)
-        nodeScale = 1.5997340604662895
-        nodeXOffset = 103.54609489440918
-        nodeYOffset = 119.14892196655273
-        nodeSpacingMultiplier = 1.0664893835783005
-
+        // Nodes
+        nodeScale = 1.8311170041561127
+        nodeXOffset = 79.43263053894043
+        nodeYOffset = 71.27659320831299
+        nodeSpacingMultiplier = 1.0
+        
         // Per-Node Offsets (all 12 nodes)
         perNodeOffsets = [
             CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
             CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
             CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-            CGPoint(x: -12.765955924987793, y: -6.91489577293396),   // Node 3 (re-tuned June 12, 2026)
+            CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
             CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
             CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
             CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6

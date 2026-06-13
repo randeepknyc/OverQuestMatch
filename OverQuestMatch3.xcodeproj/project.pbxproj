@@ -161,6 +161,7 @@
 		7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */; };
 		7FB075F62F5FE76A00BD0591 /* AI_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */; };
 		7FCBED112FDC7D030057AA22 /* AnimationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCBED102FDC7D030057AA22 /* AnimationCoordinator.swift */; };
+		7FEC37882FDCF61D007BF757 /* PotionShopEditorKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -319,6 +320,7 @@
 		7FB075EB2F5EB3C500BD0591 /* FontExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontExtensions.swift; sourceTree = "<group>"; };
 		7FB075F52F5FE76A00BD0591 /* AI_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AI_CONTEXT.md; sourceTree = "<group>"; };
 		7FCBED102FDC7D030057AA22 /* AnimationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCoordinator.swift; sourceTree = "<group>"; };
+		7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopEditorKit.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -504,6 +506,7 @@
 		7F7908602FA725F900412002 /* PotionShop */ = {
 			isa = PBXGroup;
 			children = (
+				7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */,
 				7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */,
 				7F79086F2FA81CF800412002 /* PotionShopDebugMenu.swift */,
 				7F7908692FA7A05800412002 /* PotionShopCauldronView.swift */,
@@ -821,6 +824,7 @@
 				7FB075402F5D2FFA00BD0591 /* AnimationHelpers.swift in Sources */,
 				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
 				7FCBED112FDC7D030057AA22 /* AnimationCoordinator.swift in Sources */,
+				7FEC37882FDCF61D007BF757 /* PotionShopEditorKit.swift in Sources */,
 				7F5574952F786B4500081E01 /* PhysicsTileView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
 				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,
