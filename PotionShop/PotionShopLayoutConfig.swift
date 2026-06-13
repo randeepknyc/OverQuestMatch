@@ -317,9 +317,9 @@ class PotionShopLayoutConfig {
     var cauldronBowlY: Double = 58.0
     
     // Nodes
-    var nodeScale: Double = 1.8311170041561127
-    var nodeXOffset: Double = 79.43263053894043
-    var nodeYOffset: Double = 71.27659320831299
+    var nodeScale: Double = 2.070478707551956
+    var nodeXOffset: Double = 112.05673217773438
+    var nodeYOffset: Double = 122.69504070281982
     var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
     // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
@@ -327,7 +327,7 @@ class PotionShopLayoutConfig {
         CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
         CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
         CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-        CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+        CGPoint(x: -7.446807622909546, y: -11.879432201385498),   // Node 3
         CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
         CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
         CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
@@ -1438,28 +1438,32 @@ class PotionShopLayoutConfig {
         // slot 0 = active, 1 = waiting1, 2 = waiting2.
         bake(slot: 0, height: .medium,  width: .medium, size: nil,                x: -8.510637283325195,   y: nil)
         bake(slot: 0, height: .medium,  width: .skinny, size: 1.0512411206960677, x: -2.4822592735290527, y: -9.574472904205322)
-        bake(slot: 0, height: .medium,  width: .wide,   size: nil,                x: -16.66666269302368,   y: nil)
+        bake(slot: 0, height: .medium,  width: .wide,   size: 1.0045213103294373, x: -5.6737542152404785,  y: -4.255318641662598)
+        bake(slot: 0, height: .superShort, width: .medium, size: 0.941223394870758, x: 4.964542388916016,    y: -1.4184355735778809)
         bake(slot: 0, height: .tall,    width: .skinny, size: 1.0030142098665238, x: nil,                  y: -4.964542388916016)
         bake(slot: 1, height: .medium,  width: .skinny, size: 0.9705674469470977, x: 2.127671241760254,    y: -9.574472904205322)
-        bake(slot: 1, height: .medium,  width: .wide,   size: nil,                x: 10.638284683227539,   y: -7.446813583374023)
+        bake(slot: 1, height: .medium,  width: .medium, size: nil,                x: 9.219861030578613,    y: -6.3829779624938965)
+        bake(slot: 1, height: .medium,  width: .wide,   size: nil,                x: 2.1276235580444336,   y: -7.446813583374023)
         bake(slot: 1, height: .short,   width: .wide,   size: nil,                x: nil,                  y: 4.255318641662598)
         bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
         bake(slot: 1, height: .tall,    width: .wide,   size: nil,                x: -16.312050819396973,  y: -4.609930515289307)
-        bake(slot: 1, height: .tallHat, width: .medium, size: nil,                x: 5.673766136169434,    y: 8.156037330627441)
+        bake(slot: 1, height: .superShort, width: .medium, size: nil,              x: 19.5035457611084,     y: 5.3191423416137695)
+        bake(slot: 1, height: .tallHat, width: .medium, size: nil,                x: 16.666674613952637,   y: 8.156037330627441)
         bake(slot: 2, height: .medium,  width: .skinny, size: 0.8886525064706803, x: nil,                  y: nil)
         bake(slot: 2, height: .tall,    width: .skinny, size: 0.8841312557458878, x: -7.446813583374023,   y: 3.5460948944091797)
+        bake(slot: 2, height: .tall,    width: .wide,   size: 0.9037234604358673, x: -13.120567798614502,  y: nil)
         bake(slot: 2, height: .tallHat, width: .medium, size: nil,                x: nil,                  y: 7.801413536071777)
 
         // ─── HP badge per-cell overrides (June 3, 2026) ────────────
         // Keyed by (height × width) only — HP badge is head-anchored and already
         // scales with per-slot scale at render time.
-        bakeHp(height: .superShort, width: .medium, size: nil,                 x: -59.94681715965271,   y: -32.180845737457275)
+        bakeHp(height: .superShort, width: .medium, size: nil,                 x: -48.244696855545044,  y: -32.180845737457275)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
         bakeHp(height: .medium,     width: .medium, size: nil,                 x: -49.574464559555054,  y: -18.794310092926025)
         bakeHp(height: .medium,     width: .wide,   size: nil,                 x: -44.78724002838135,   y: -18.794310092926025)
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
-        bakeHp(height: .tall,       width: .medium, size: nil,                 x: -25.000011920928955,  y: 6.6489458084106445)
+        bakeHp(height: .tall,       width: .medium, size: nil,                 x: -43.61702799797058,   y: 22.2517728805542)
         bakeHp(height: .tall,       width: .wide,   size: 52.193264067173004,  x: -63.297879695892334,  y: -16.046106815338135)
         bakeHp(height: .tallHat,    width: .medium, size: 59.852840304374695,  x: 18.085098266601562,   y: 7.003545761108398)
         bakeHp(height: .floater,    width: .medium, size: nil,                 x: -41.063833236694336,  y: -45.39005756378174)
@@ -1469,9 +1473,11 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 0, height: .medium,    width: .wide,   size: nil,                x: -39.46809768676758,   y: nil)
         bakeHpSlot(slot: 0, height: .tallHat,   width: .medium, size: nil,                x: -40.42553901672363,   y: 25.08864402770996)
         bakeHpSlot(slot: 1, height: .medium,    width: .skinny, size: nil,                x: -11.808496713638306,  y: -33.33332538604736)
-        bakeHpSlot(slot: 1, height: .medium,    width: .wide,   size: nil,                x: -38.93616199493408,   y: nil)
+        bakeHpSlot(slot: 1, height: .medium,    width: .wide,   size: nil,                x: -37.34040856361389,   y: nil)
         bakeHpSlot(slot: 1, height: .short,     width: .wide,   size: nil,                x: -14.734035730361938,  y: -72.2517728805542)
-        bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: nil,               x: -22.180867195129395,  y: -42.10991859436035)
+        bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: nil,               x: -6.223422288894653,   y: -42.10991859436035)
+        bakeHpSlot(slot: 1, height: .tall,      width: .medium, size: nil,                x: -43.61702799797058,   y: nil)
+        bakeHpSlot(slot: 1, height: .tall,      width: .wide,   size: 59.134753942489624, x: -60.106390714645386,  y: -23.847520351409912)
         bakeHpSlot(slot: 2, height: .floater,   width: .medium, size: 61.12943232059479,  x: -43.19148659706116,   y: -52.127647399902344)
         bakeHpSlot(slot: 2, height: .medium,    width: .skinny, size: nil,                x: -26.17020606994629,   y: -33.33332538604736)
         bakeHpSlot(slot: 2, height: .short,     width: .wide,   size: 53.070925772190094, x: -32.819151878356934,  y: -66.22340679168701)
@@ -1479,6 +1485,20 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 2, height: .tall,      width: .medium, size: nil,                x: -30.851072072982788,  y: 5.939722061157227)
         bakeHpSlot(slot: 2, height: .tall,      width: .wide,   size: nil,                x: -45.7446813583374,    y: nil)
         bakeHpSlot(slot: 2, height: .tallHat,   width: .medium, size: 61.767733693122864, x: 43.08511018753052,    y: 31.11701011657715)
+
+        // ─── HP badge context nudges (June 13, 2026) ─────────────
+        // Slot × myBody × neighborBody → dx/dy/sizeMul adjustments.
+        bakeHpContext(slot: 1, myHeight: .floater,    myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 34.04254913330078,   dy: -9.574472904205322,  sizeMul: 1.0120567619800567)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 39.716315269470215,  dy: -27.304959297180176, sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .short,   nbrWidth: .wide,   dx: -38.65247964859009,  dy: 8.86523723602295,    sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .tallHat, nbrWidth: .medium, dx: -32.97872543334961,  dy: 6.0283660888671875,  sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 37.58864402770996,   dy: -16.312050819396973, sizeMul: 1.0195922136306763)
+        bakeHpContext(slot: 1, myHeight: .tallHat,    myWidth: .medium, nbrHeight: .medium,  nbrWidth: .skinny, dx: -39.361703395843506, dy: 0.0,                 sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .medium,  nbrWidth: .wide,   dx: 3.191494941711426,   dy: -9.929072856903076,  sizeMul: 1.0286347657442092)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 42.19858646392822,   dy: -35.10638475418091,  sizeMul: 1.0617907732725143)
+        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 10.63830852508545,   dy: -18.439722061157227, sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 31.20567798614502,   dy: -2.482271194458008,  sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 10.63830852508545,   dy: -15.2482271194458,   sizeMul: 1.0)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to
@@ -1523,6 +1543,17 @@ class PotionShopLayoutConfig {
         if let xv = x { cell.x = xv }
         if let yv = y { cell.y = yv }
         bucketCellOverrides[bucketCellKey(slot: slot, height: height, width: width)] = cell
+    }
+
+    /// Bakes a context-dependent HP badge nudge for a specific slot + body pair.
+    private func bakeHpContext(slot: Int,
+                               myHeight: CustomerHeightBucket, myWidth: CustomerWidthBucket,
+                               nbrHeight: CustomerHeightBucket, nbrWidth: CustomerWidthBucket,
+                               dx: Double, dy: Double, sizeMul: Double) {
+        let key = HpBadgeContextKey(slot: slot,
+                                     myHeight: myHeight, myWidth: myWidth,
+                                     nbrHeight: nbrHeight, nbrWidth: nbrWidth)
+        hpBadgeContextNudges[key] = HpBadgeContextNudge(dx: dx, dy: dy, sizeMul: sizeMul)
     }
 
     /// Configures a Day 3 guide character with template-correct head anchor.
@@ -1666,9 +1697,9 @@ class PotionShopLayoutConfig {
         cauldronBowlY = 58.0
         
         // Nodes
-        nodeScale = 1.8311170041561127
-        nodeXOffset = 79.43263053894043
-        nodeYOffset = 71.27659320831299
+        nodeScale = 2.070478707551956
+        nodeXOffset = 112.05673217773438
+        nodeYOffset = 122.69504070281982
         nodeSpacingMultiplier = 1.0
         
         // Per-Node Offsets (all 12 nodes)
@@ -1676,7 +1707,7 @@ class PotionShopLayoutConfig {
             CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
             CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
             CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-            CGPoint(x: -7.446807622909546, y: -22.16312289237976),   // Node 3
+            CGPoint(x: -7.446807622909546, y: -11.879432201385498),   // Node 3
             CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
             CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
             CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
