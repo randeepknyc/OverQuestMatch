@@ -3030,6 +3030,45 @@ Beyond what's built, suggested but NOT done: a live BREW TOTAL near the brew
 button ("Damage 11 / Heal 5 / Shield 4"). The realized per-die numbers + the
 Ednar bubble + dynamic HP cover most of the need; a single total is the
 natural next add if the player still can't read the whole brew at a glance.
+## 46. JUNE 20, 2026 — feedback polish: burst on HP badge, Ednar bubble repositioned, particle burst (active only)
+
+Follow-ups to §45. File: PotionShopCustomerSceneView.swift.
+
+### 46.1 Damage particle burst
+
+`PotionShopDamageBurst` (new view, end of file): radial burst of red shards
+fired via `burstTick` when the ACTIVE customer is hit by a brew (gated on
+`gs.queue.first == customer.id` so waiting customers attacking don't burst).
+Now lives INSIDE the HP badge ZStack, so it inherits the EXACT badge
+position/size configured in the debug menu (no separate offset to keep in
+sync). Shake already fired on damage; this adds the particle pop.
+
+### 46.2 HP "stays down" on brew (no flash-back)
+
+`PotionShopRollingHPText` gained an `isAnimating` param. During a brew the
+displayed HP HOLDS the previewed value and follows realHP DOWN as the damage
+phase applies, instead of snapping back up to pre-damage hp then dropping.
+(The earlier flash was target reverting to actual hp once isAnimating turned
+the preview off.)
+
+### 46.3 Ednar heal/shield bubble — POSITION KNOBS + future art
+
+The bubble was originally placed to Ednar's LEFT, but Ednar sits at the far-
+LEFT screen edge, so it was clipped off-screen (NOT behind the image as first
+suspected). Moved to his INWARD side.
+TO REPOSITION (PotionShopEdnarView, in PotionShopCustomerSceneView.swift):
+  • `.overlay(alignment: .topTrailing)` (~line 527) — the ANCHOR CORNER.
+    Change to .topLeading / .bottomTrailing / .center / .leading / etc.
+  • `.offset(x: 30, y: 10)` (~line 554) — fine-tune nudge in points
+    (x: +right/−left, y: +down/−up).
+⚠️ FUTURE: the heal/shield bubble (and likely the realized-value badges and
+damage shards) are placeholder SwiftUI shapes/text — user plans to REPLACE
+these with IMAGE ASSETS later. Keep the values/positions easy to retarget.
+
+### 46.4 Realized-value badge position
+
+Moved to the placed die's upper-RIGHT corner (`.offset(x: 16, y: -16)`,
+zIndex 50) after it was hidden behind the node below at first.
 ---
 
 **End of CAULDRON_CONTEXT.md**
