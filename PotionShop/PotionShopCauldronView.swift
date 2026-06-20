@@ -444,7 +444,8 @@ struct PotionShopCauldronView: View {
                     nodeOriginX: g.nodeOriginX,
                     nodeOriginY: g.nodeOriginY,
                     nodeSpacingMultiplier: g.nodeSpacingMultiplier,
-                    perNodeOffsets: perNodeOffsets
+                    perNodeOffsets: perNodeOffsets,
+                    gs: gs
                 )
                     .zIndex(1)  // 🔧 EXPLICIT Z-INDEX: Middle layer (above cauldron, behind nodes)
 
@@ -698,6 +699,34 @@ struct PotionShopNodeButtonView: View {
                     }
                 }
                 .allowsHitTesting(false)  // Gestures live on the outer ZStack
+                // JUNE 20, 2026: REALIZED-VALUE PREVIEW. Show the die's FINAL
+                // number after boosts/bonuses (clean — e.g. "7", not "3+4").
+                // Only for non-boost dice (boosts have no output of their own).
+                // Reads the live brew preview keyed by this node.
+                if die.type != .boost,
+                   !gs.isAnimating,
+                   let realized = gs.livePreview.nodeValues[nodeIndex],
+                   !isDraggingFromHere {
+                    // JUNE 20, 2026: positioned as a notification badge at the
+                    // node's upper-RIGHT corner (was below-center, which got
+                    // hidden behind the node beneath it). overlay alignment +
+                    // small outward offset keeps it clear of neighbors.
+                    Text("\(realized)")
+                        .font(Font.gameScore(size: 18))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.85), radius: 1, x: 0, y: 1)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(
+                            Capsule().fill(die.type.color.opacity(0.98))
+                        )
+                        .overlay(Capsule().stroke(.white.opacity(0.85), lineWidth: 1.5))
+                        .fixedSize()
+                        .offset(x: 16 * visualScale, y: -16 * visualScale)
+                        .allowsHitTesting(false)
+                        .transition(.scale.combined(with: .opacity))
+                        .zIndex(50)
+                }
             }
         }
         // ━━━ ALL GESTURES LIVE HERE on the full hit area ━━━━━━━━━
@@ -1757,36 +1786,75 @@ struct PotionShopNodeConnectionLines: View {
     let nodeOriginY: CGFloat
     let nodeSpacingMultiplier: CGFloat
     let perNodeOffsets: [CGPoint]
-    
+    /// JUNE 20, 2026: pass game state so we can LIGHT UP edges where a boost
+    /// is feeding a connected die. Optional so previews/other callers work.
+    var gs: PotionShopGameState? = nil
+
+    /// Set of edges (as ordered pairs, both directions) that are active boost
+    /// connections: one end is a boost, the other is a non-boost die that the
+    /// boost reaches. Drawn brighter/thicker to show the boost flow.
+    private var boostEdges: Set<[Int]> {
+        guard let gs = gs else { return [] }
+        var result = Set<[Int]>()
+        for (boostNode, boostDie) in gs.placements where boostDie.type == .boost {
+            let reach = PotionShopDieRules.affectedNodes(for: boostDie, placedAt: boostNode)
+            for (a, b) in PotionShopBoard.edges {
+                let other = (a == boostNode) ? b : (b == boostNode ? a : nil)
+                if let other = other,
+                   reach.contains(other),
+                   let d = gs.placements[other], d.type != .boost {
+                    result.insert([a, b])
+                }
+            }
+        }
+        return result
+    }
+
     var body: some View {
-        Canvas { context, size in
-            // Draw each edge as a line
-            for (fromIdx, toIdx) in PotionShopBoard.edges {
-                // Get base node positions
-                let fromNode = PotionShopBoard.nodes[fromIdx]
-                let toNode = PotionShopBoard.nodes[toIdx]
-                
-                // Calculate actual positions with all transforms applied
-                let fromOffset = fromIdx < perNodeOffsets.count ? perNodeOffsets[fromIdx] : .zero
-                let toOffset = toIdx < perNodeOffsets.count ? perNodeOffsets[toIdx] : .zero
-                
-                let fromX = nodeOriginX + CGFloat(fromNode.x) * nodeSpacingMultiplier + fromOffset.x
-                let fromY = nodeOriginY + CGFloat(fromNode.y) * nodeSpacingMultiplier + fromOffset.y
-                
-                let toX = nodeOriginX + CGFloat(toNode.x) * nodeSpacingMultiplier + toOffset.x
-                let toY = nodeOriginY + CGFloat(toNode.y) * nodeSpacingMultiplier + toOffset.y
-                
-                // Create path for this edge
-                var path = Path()
-                path.move(to: CGPoint(x: fromX, y: fromY))
-                path.addLine(to: CGPoint(x: toX, y: toY))
-                
-                // Draw the line with green color matching the image
-                context.stroke(
-                    path,
-                    with: .color(Color(red: 0.18, green: 0.80, blue: 0.44).opacity(0.6)),  // Green with slight transparency
-                    lineWidth: 2.5
-                )
+        let boosted = boostEdges
+        // JUNE 20, 2026: TimelineView drives a continuous pulse for the gold
+        // boost lines (opacity + width oscillate). Only animates when there
+        // ARE boost lines; otherwise it's a static draw.
+        TimelineView(.animation) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            // 0..1 sine pulse, ~1.1s period
+            let pulse = 0.5 + 0.5 * sin(t * 5.7)
+            Canvas { context, size in
+                // Draw each edge as a line
+                for (fromIdx, toIdx) in PotionShopBoard.edges {
+                    let fromNode = PotionShopBoard.nodes[fromIdx]
+                    let toNode = PotionShopBoard.nodes[toIdx]
+
+                    let fromOffset = fromIdx < perNodeOffsets.count ? perNodeOffsets[fromIdx] : .zero
+                    let toOffset = toIdx < perNodeOffsets.count ? perNodeOffsets[toIdx] : .zero
+
+                    let fromX = nodeOriginX + CGFloat(fromNode.x) * nodeSpacingMultiplier + fromOffset.x
+                    let fromY = nodeOriginY + CGFloat(fromNode.y) * nodeSpacingMultiplier + fromOffset.y
+
+                    let toX = nodeOriginX + CGFloat(toNode.x) * nodeSpacingMultiplier + toOffset.x
+                    let toY = nodeOriginY + CGFloat(toNode.y) * nodeSpacingMultiplier + toOffset.y
+
+                    var path = Path()
+                    path.move(to: CGPoint(x: fromX, y: fromY))
+                    path.addLine(to: CGPoint(x: toX, y: toY))
+
+                    if boosted.contains([fromIdx, toIdx]) {
+                        // Pulsing gold: opacity 0.55→1.0, width 4→6.
+                        let op = 0.55 + 0.45 * pulse
+                        let w = 4.0 + 2.0 * pulse
+                        context.stroke(
+                            path,
+                            with: .color(Color(red: 1.0, green: 0.78, blue: 0.25).opacity(op)),
+                            lineWidth: w
+                        )
+                    } else {
+                        context.stroke(
+                            path,
+                            with: .color(Color(red: 0.18, green: 0.80, blue: 0.44).opacity(0.6)),
+                            lineWidth: 2.5
+                        )
+                    }
+                }
             }
         }
     }

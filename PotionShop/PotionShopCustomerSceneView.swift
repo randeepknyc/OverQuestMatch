@@ -519,6 +519,44 @@ struct PotionShopEdnarView: View {
                     .offset(y: ednarArtYOffset * 0.5)
             }
         }
+        // JUNE 20, 2026: HEAL/SHIELD PREVIEW BUBBLE. Ednar sits at the far
+        // LEFT edge of the screen, so a left-side bubble was clipped off-
+        // screen. Placed on his INWARD (right) side, slightly above, where
+        // there's room and it's visible. Shows the brew's healing (+X) and
+        // shielding (🛡 #) as dice are placed.
+        .overlay(alignment: .topTrailing) {
+            let p = gs.livePreview
+            if !gs.isAnimating, p.healing > 0 || p.shielding > 0 {
+                VStack(alignment: .leading, spacing: 3) {
+                    if p.healing > 0 {
+                        Text("+\(p.healing)")
+                            .font(Font.gameScore(size: 16))
+                            .foregroundColor(PotionShopTheme.composureGood)
+                    }
+                    if p.shielding > 0 {
+                        Text("🛡 \(p.shielding)")
+                            .font(Font.gameScore(size: 15))
+                            .foregroundColor(Color(red: 0.45, green: 0.65, blue: 0.95))
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.92))
+                        .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(PotionShopTheme.ink.opacity(0.3), lineWidth: 1)
+                )
+                .fixedSize()
+                .offset(x: 30, y: 10)
+                .zIndex(200)
+                .transition(.scale.combined(with: .opacity))
+                .allowsHitTesting(false)
+            }
+        }
     }
 }
 
@@ -587,6 +625,8 @@ struct PotionShopCustomerInSceneView: View {
     @State private var defeatFrozenX: CGFloat = 0
     @State private var defeatFrozenY: CGFloat = 0
     @State private var emojiOpacity: Double = 0.0
+    // JUNE 20, 2026: damage particle burst (fires with the shake on brew hit).
+    @State private var burstTick: Int = 0
     @State private var emojiOffset: CGFloat = 0
 
     private var char: PotionShopCharacter? {
@@ -601,7 +641,20 @@ struct PotionShopCustomerInSceneView: View {
     // Read HP straight from gs so SwiftUI's observation on the customers array
     // triggers a re-render here even if the parent's cached `customer` snapshot is stale.
     private var liveHP: Int {
-        gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp
+        let actual = gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp
+        // JUNE 20, 2026: for the ACTIVE customer (front of queue), show the
+        // HP they'll have AFTER the current brew's damage — dynamically, as
+        // dice are placed. Clamped at 0 so it never goes negative.
+        // CRITICAL: only preview while PLACING (not animating). During doBrew
+        // the real hp is reduced at the damage phase but placements aren't
+        // cleared until much later, so previewing then would subtract the
+        // damage a SECOND time from the already-reduced hp. Gating on
+        // !isAnimating makes the brew show real hp; preview resumes after.
+        if gs.queue.first == customer.id, !gs.isAnimating {
+            let dmg = gs.livePreview.damage
+            return max(0, actual - dmg)
+        }
+        return actual
     }
 
     private var dim: Bool {
@@ -1055,10 +1108,22 @@ struct PotionShopCustomerInSceneView: View {
                             )
                     }
 
-                    // HP number (white text on top) — reads from gs so live damage updates show
-                    Text("\(liveHP)")
-                        .font(Font.gameScore(size: 18 * scale))
-                        .foregroundColor(.white)
+                    // HP number — rolling counter. JUNE 20, 2026: when this
+                    // customer BECOMES active, the number rolls down from their
+                    // real HP to the board-adjusted value (real − board damage).
+                    // While already active and placing dice, it tracks live.
+                    PotionShopRollingHPText(
+                        target: liveHP,
+                        realHP: gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp,
+                        isActive: gs.queue.first == customer.id,
+                        isAnimating: gs.isAnimating,
+                        fontSize: 18 * scale
+                    )
+
+                    // JUNE 20, 2026: damage burst CENTERED ON THE HP BADGE.
+                    // Living inside the badge ZStack means it inherits the
+                    // exact badge position/size configured in the debug menu.
+                    PotionShopDamageBurst(trigger: burstTick, scale: scale)
                 }
                 // Include effectiveX/Y so the badge tracks the body within the slot.
                 .offset(
@@ -1179,6 +1244,11 @@ struct PotionShopCustomerInSceneView: View {
             // PHASE 7: shake when shake counter increments
             .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
                 runShake()
+                // JUNE 20: damage burst only for the ACTIVE customer (the one
+                // taking the brew hit) — not waiting customers shaking on attack.
+                if gs.queue.first == customer.id {
+                    burstTick += 1
+                }
             }
             // PHASE 7: slide off-screen when added to expiringCustomerIds
             .onChange(of: gs.expiringCustomerIds.contains(customer.id)) { _, isExpiring in
@@ -1676,6 +1746,188 @@ struct PotionShopInspectStripView: View {
                         size: 62
                     )
                 )
+        }
+    }
+}
+
+// MARK: - Rolling HP counter — slot-machine style (June 20, 2026)
+//
+// Shows a customer's HP. When ACTIVE and the board reduces their HP, the
+// number "spins" slot-machine style from their real HP down to the
+// board-adjusted target, then settles. Robust to the view being recreated
+// on customer-switch (it keys the roll off target/realHP at appear time and
+// on change, not just onChange(isActive) which may never fire across a swap).
+struct PotionShopRollingHPText: View {
+    let target: Int      // value to display (board-adjusted for the active customer)
+    let realHP: Int      // true current HP (pre-board)
+    let isActive: Bool
+    let isAnimating: Bool   // JUNE 20: true during a brew — hold value, don't snap
+    let fontSize: Double
+
+    @State private var displayed: Int = 0
+    @State private var spinTimer: Timer? = nil
+    @State private var wasActive: Bool = false
+    @State private var spinning: Bool = false
+
+    var body: some View {
+        Text("\(displayed)")
+            .font(Font.gameScore(size: fontSize))
+            .foregroundColor(.white)
+            .onAppear {
+                wasActive = isActive
+                // If the view is (re)created already active WITH board damage,
+                // that's a swap-in via recreation — spin from original HP.
+                // Otherwise just show the right number.
+                if isActive && target < realHP {
+                    beginDelayedSpin(from: realHP, to: target)
+                } else {
+                    displayed = isActive ? target : realHP
+                }
+            }
+            .onDisappear { spinTimer?.invalidate() }
+            // The ONLY trigger for the slot-machine spin: this customer just
+            // became active (a SWAP). Start from their ORIGINAL HP (realHP)
+            // and roll down to the board-adjusted target.
+            .onChange(of: isActive) { _, nowActive in
+                if nowActive && !wasActive {
+                    if target < realHP {
+                        beginDelayedSpin(from: realHP, to: target)
+                    } else {
+                        displayed = target          // no board damage → just show it
+                    }
+                } else if !nowActive {
+                    spinTimer?.invalidate()
+                    spinning = false
+                    displayed = realHP              // demoted: show true HP
+                }
+                wasActive = nowActive
+            }
+            // Placing/removing dice on the ALREADY-active customer updates the
+            // number INSTANTLY (no spin) — unless a spin is mid-flight, or a
+            // brew is animating (don't let target snap back up to the
+            // pre-damage hp; hold the previewed value, real hp catches up).
+            .onChange(of: target) { _, newTarget in
+                if isActive && !spinning && !isAnimating {
+                    displayed = newTarget
+                }
+            }
+            // Real HP changing keeps non-active honest. For the ACTIVE
+            // customer DURING a brew, the damage phase lowers realHP — follow
+            // it down so the number lands on the true post-brew hp (no flash).
+            .onChange(of: realHP) { _, newReal in
+                if !isActive {
+                    displayed = newReal
+                } else if isAnimating {
+                    displayed = newReal
+                }
+            }
+    }
+
+    /// Delay before the spin so it waits out the customer-swap slide, THEN
+    /// spins from the original HP down to the board-adjusted target. Show the
+    /// original HP during the wait so it visibly starts at the right number.
+    private func beginDelayedSpin(from: Int, to: Int) {
+        spinTimer?.invalidate()
+        spinning = true
+        displayed = from                            // hold ORIGINAL HP during the wait
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.spinStartDelay) {
+            // Bail if the player swapped away again during the delay.
+            guard isActive, wasActive else { spinning = false; return }
+            spin(from: from, to: to)
+        }
+    }
+
+    /// Delay before the become-active spin starts, so it waits out the
+    /// customer-swap slide. Bump this up if the spin still overlaps the slide.
+    static let spinStartDelay: Double = 0.60
+
+    /// Slot-machine spin: flicker through rapidly-changing numbers, decelerate,
+    /// land on `to`. Uses a repeating timer with easing on the step interval.
+    private func spin(from: Int, to: Int) {
+        displayed = from
+        let span = max(1, from - to)
+        // Total ticks of the reel — more for bigger drops, capped.
+        let ticks = min(10, 5 + span)
+        var i = 0
+        // Ease-out: start fast, end slow.
+        func interval(forStep step: Int) -> Double {
+            let p = Double(step) / Double(ticks)          // 0→1
+            return 0.018 + 0.085 * (p * p)                // 18ms → ~103ms
+        }
+        func scheduleNext() {
+            guard i < ticks else {
+                displayed = to
+                spinning = false
+                return
+            }
+            let t = Timer.scheduledTimer(withTimeInterval: interval(forStep: i), repeats: false) { _ in
+                i += 1
+                if i >= ticks {
+                    displayed = to
+                    spinning = false
+                } else {
+                    // For the last few ticks, home in toward `to`; before that,
+                    // flicker random values in the (to...from) range for the
+                    // slot-machine look.
+                    let remaining = ticks - i
+                    if remaining <= 4 {
+                        // Glide the final stretch deterministically to `to`.
+                        let stepDown = Double(from - to) * (Double(remaining) / 4.0)
+                        displayed = to + Int(stepDown.rounded())
+                    } else {
+                        displayed = Int.random(in: min(to, from)...max(to, from))
+                    }
+                    scheduleNext()
+                }
+            }
+            RunLoop.main.add(t, forMode: .common)
+            spinTimer = t
+        }
+        scheduleNext()
+    }
+}
+
+// MARK: - Damage particle burst (June 20, 2026)
+//
+// A quick radial burst of shards, fired when `trigger` increments (the brew
+// hits this customer). Purely cosmetic feedback to sell the HP drop.
+struct PotionShopDamageBurst: View {
+    let trigger: Int
+    let scale: CGFloat
+
+    @State private var animate = false
+    @State private var shown = false
+
+    private let count = 10
+
+    var body: some View {
+        ZStack {
+            if shown {
+                ForEach(0..<count, id: \.self) { i in
+                    let angle = Double(i) / Double(count) * 2 * .pi
+                    let dist: CGFloat = animate ? 34 * scale : 4 * scale
+                    Circle()
+                        .fill(PotionShopTheme.composureBad)
+                        .frame(width: 7 * scale, height: 7 * scale)
+                        .offset(
+                            x: cos(angle) * dist,
+                            y: sin(angle) * dist
+                        )
+                        .opacity(animate ? 0 : 1)
+                        .scaleEffect(animate ? 0.4 : 1.0)
+                }
+            }
+        }
+        .onChange(of: trigger) { _, _ in
+            guard trigger > 0 else { return }
+            shown = true
+            animate = false
+            withAnimation(.easeOut(duration: 0.45)) {
+                animate = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                shown = false
+            }
         }
     }
 }

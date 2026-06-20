@@ -2959,6 +2959,77 @@ named) — it does NOT change tier. A real `.upgradeTier(type:)` boon
 (basic→silver→gold, raising the value RANGE) is a small clean addition that
 does not yet exist. Seeded dice are all `.basic` and stay basic. Build when
 desired — slots next to the §43.3 type-wide boons.
+## 45. JUNE 20, 2026 — IN-THE-MOMENT FEEDBACK (realized values, Ednar bubble, dynamic HP, boost lines) — BUILT
+
+Inspired by Die in the Dungeon's "marker" feedback (user shared screenshots).
+Goal: show the player what their dice are DOING before they brew, instead of
+making them do the math. Files: PotionShopGameState.swift,
+PotionShopCauldronView.swift, PotionShopCustomerSceneView.swift,
+PotionShopGameView.swift. Boon frequency: back to .everyRound.
+
+### 45.1 Realized-value preview (per-die final number)
+
+`computeBrew()`/`BrewPreview` now also returns `nodeValues: [Int:Int]` — each
+placed die's FINAL value after boosts/bonuses (stability stored as its halved
+output; boost dice omitted). The board overlays this as a clean number badge
+on each placed non-boost die (e.g. a 3-potency next to a 4-boost shows "7",
+NOT "3+4"). Positioned at the node's UPPER-RIGHT corner (notification style,
+zIndex 50) after it was hidden behind the node below at first. Gated on
+`!gs.isAnimating` so it only shows while PLACING, not mid-brew.
+`var livePreview: BrewPreview { computeBrew() }` is the cached accessor the
+views read.
+
+### 45.2 Ednar heal/shield bubble
+
+Overlay to Ednar's LEFT (PotionShopEdnarView) showing the current brew's
+healing ("+X", green) and shielding ("🛡 #", blue) as dice are placed. Only
+appears when healing/shielding > 0; gated on !isAnimating.
+
+### 45.3 Dynamic active-customer HP + slot-machine roll on swap
+
+Active customer's HP previews live as dice are placed (active 20, board 8 →
+shows 12), clamped at 0. THE KEY BUG FIXED: real hp is reduced at the brew
+damage phase but placements don't clear until much later, so the preview was
+subtracting damage AGAIN from already-reduced hp during the animation →
+gated on !isAnimating so brew shows real hp dropping once.
+ROLL ON SWAP (PotionShopRollingHPText, new view at end of CustomerSceneView):
+when a customer BECOMES active via swap, the HP number slot-machine-spins
+from their ORIGINAL hp down to the board-adjusted value (16 → reel → 12).
+Placing dice on the already-active customer updates INSTANTLY (no spin) — the
+spin is ONLY for swaps. Robust to SwiftUI recreating the view on swap (spins
+from onAppear-if-active-with-damage AND onChange(isActive)). A `spinning`
+flag blocks the instant-update path from snapping mid-reel.
+TIMING KNOBS (top of PotionShopRollingHPText):
+  • `spinStartDelay` (currently 0.60) — seconds to wait after the tap so the
+    reel starts AFTER the swap slide settles, not during it.
+  • reel length: `let ticks = min(10, 5 + span)` (currently) — bigger = longer.
+  • reel speed: the `interval` fn `0.018 + 0.085*(p*p)` — fastest→slowest tick.
+
+### 45.4 Boost connection lines — gold + pulsing
+
+PotionShopNodeConnectionLines now takes `gs` and computes `boostEdges`: edges
+where one end is a placed boost and the other a non-boost die the boost
+REACHES (asks the boost's own reach, consistent with §43 boost direction).
+Those edges draw GOLD and PULSE (opacity 0.55→1.0, width 4→6) via a
+TimelineView(.animation) sine; other edges stay static green. Shows the
+player what a boost is feeding.
+
+### 45.5 Cauldron rescale-on-boon-screen bug — FIXED
+
+The boon menu's full-screen background used `.ignoresSafeArea()`, which
+momentarily changed the geometry the GameView GeometryReader reads to size
+every section (header/scene/cauldron/tray all = totalHeight × percent), so
+the cauldron + nodes visibly rescaled when the boon screen appeared. FIX:
+`phaseOverlay` pinned to `geo.size` and given `.ignoresSafeArea()` at THAT
+level; the boon menu's inner background no longer ignores safe area. Layout
+underneath stays put.
+
+### 45.6 Recommendations given (for later)
+
+Beyond what's built, suggested but NOT done: a live BREW TOTAL near the brew
+button ("Damage 11 / Heal 5 / Shield 4"). The realized per-die numbers + the
+Ednar bubble + dynamic HP cover most of the need; a single total is the
+natural next add if the player still can't read the whole brew at a glance.
 ---
 
 **End of CAULDRON_CONTEXT.md**

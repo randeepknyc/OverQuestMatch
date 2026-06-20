@@ -135,7 +135,7 @@ class PotionShopGameState {
     var boonOffer: [PotionShopBoon] = []
     /// How often the boon menu appears — flag so both can be playtested
     /// with no rebuild (§40.4). Default: every round, for testing.
-    var boonFrequency: PotionShopBoonFrequency = .everyDay
+    var boonFrequency: PotionShopBoonFrequency = .everyRound
     /// Map from cauldron node id → die placed there.
     var placements: [Int: PotionShopDie] = [:]
     var selectedHandIndex: Int? = nil
@@ -950,6 +950,10 @@ class PotionShopGameState {
         var healing: Int
         var shielding: Int
         var boostNodes: [Int]
+        /// JUNE 20, 2026: per-node FINAL value after boosts/bonuses, so the
+        /// board can show each die's realized number (clean "7", not "3+4").
+        /// Keyed by node id. Boost dice are omitted (they have no output).
+        var nodeValues: [Int: Int] = [:]
     }
 
     /// Compute total damage, heal, and shield from currently placed dice.
@@ -963,6 +967,7 @@ class PotionShopGameState {
         var healing = 0
         var shielding = 0
         var boostNodes: [Int] = []
+        var nodeValues: [Int: Int] = [:]
 
         for (nodeId, die) in placements {
             // STAGE 1 — the die's number: rolled value + global inspiring
@@ -998,15 +1003,19 @@ class PotionShopGameState {
             switch die.type {
             case .potency:
                 damage += Double(total)
+                nodeValues[nodeId] = total
             case .stability:
                 // Clean half of potency (June 18, 2026). Stability's real
                 // role ("stabilize the cauldron") is undecided — for now it's
                 // a half-strength damage die.
                 damage += Double(total) * 0.5
+                nodeValues[nodeId] = Int((Double(total) * 0.5).rounded())
             case .heal:
                 healing += total
+                nodeValues[nodeId] = total
             case .shield:
                 shielding += total
+                nodeValues[nodeId] = total
             case .boost:
                 break
             }
@@ -1016,9 +1025,16 @@ class PotionShopGameState {
             damage: Int(damage.rounded()),
             healing: healing,
             shielding: shielding,
-            boostNodes: boostNodes
+            boostNodes: boostNodes,
+            nodeValues: nodeValues
         )
     }
+
+    /// JUNE 20, 2026: live preview of the current placements, recomputed on
+    /// demand. Used by the board (per-die realized values + boost lines) and
+    /// the Ednar heal/shield bubble. Cheap enough to call per render since
+    /// placements is tiny (≤ maxPlacementsPerBrew).
+    var livePreview: BrewPreview { computeBrew() }
 
     /// Brew target for the active customer (their HP + Intimidating modifier).
     var currentBrewTarget: Int {

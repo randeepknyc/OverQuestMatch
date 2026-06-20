@@ -142,6 +142,8 @@ struct PotionShopGameView: View {
                     .allowsHitTesting(false)
 
                 phaseOverlay
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .ignoresSafeArea()
 
                 // Layout editor overlay (semi-transparent, floats over game)
                 if showLayoutOverlay {
@@ -2401,7 +2403,7 @@ struct PotionShopBoonMenuView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.78).ignoresSafeArea()
+            Color.black.opacity(0.78)
 
             VStack(spacing: 16) {
                 Text("Choose a Boon")
