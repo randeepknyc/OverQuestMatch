@@ -146,6 +146,7 @@ struct PotionShopImageLoader {
 enum PotionShopPhase {
     case playing       // normal gameplay
     case roundWon      // round complete overlay shown
+    case choosingBoon  // JUNE 18: boon menu shown (run system test)
     case dayWon        // day complete overlay shown
     case lost          // composure hit 0 — game over
 }
@@ -243,6 +244,18 @@ struct PotionShopCharacter: Identifiable {
     let expireDialogue: String
     let defeatDialogue: String
     let trait: String?      // trait id, or nil for no trait
+
+    // ─── JUNE 18, 2026: per-character COSMETIC pools ───────────────────
+    // Each character owns its OWN bag of flavor. On spawn the game picks one
+    // at random from that character's bag, so the customer varies what they
+    // say / which trait shows, but always stays in-character. Default empty
+    // for back-compat.
+    //   • orderPhrases — random order line (the customer "speaking"), shown
+    //     on the banner's bottom row. Falls back to orderDialogue when empty.
+    //   • traitNames   — random PERSONALITY word shown next to the name with
+    //     the attack number. Cosmetic only — does NOT change attack/mechanics.
+    var orderPhrases: [String] = []
+    var traitNames: [String] = []
 }
 
 // MARK: - Round and Day definitions
@@ -370,20 +383,21 @@ struct PotionShopDie: Identifiable, Equatable {
     let id: String
     let type: PotionShopDieType
     let tier: PotionShopDieTier
-    /// Brew math value — drives damage/healing/shielding. Rolled from the
-    /// tier table (`tier.rollFace()`). DO NOT use this to choose the
-    /// graphic in 3D-dice rounds; use `faceValue` instead.
+    /// Brew math value — drives damage/healing/shielding (read by
+    /// computeBrew). JUNE 13, 2026 (ii-a): on Day 1 this is set from the
+    /// SAME rolled face as `type` and `faceValue` (see drawFromBag), so the
+    /// number shown in the tray equals the effect at the node. On other days
+    /// it's still rolled independently from the tier table.
     var value: Int
-    /// Picture value — matches an entry in the face table
-    /// (`PotionShop3DDiceAssetMap.faceSpecs`). Independent of `value`.
-    /// Used ONLY when the round renders 3D-spinning dice
-    /// (`currentRoundUses3DDice == true`, Day 2 R2 today). Other rounds
-    /// ignore this. Defaults to 1 so existing constructors keep compiling.
+    /// Cube FACE ID — which face the 3D cube spins to (NOT the brew value).
+    /// Matches a `PotionShopDieFaceSpec.id` in the face/odds table
+    /// (PotionShopCauldronView.swift). On Day 1 (ii-a) it comes from the same
+    /// rolled face as `type`/`value`, so the picture matches the effect.
+    /// Other rounds roll it independently for picture only. Defaults to 1.
     ///
-    /// REQUEST 6 (June 12): the value→asset mapping, the roll weights, and
-    /// the set of available faces all live in that ONE face table in
-    /// PotionShopCauldronView.swift — edit it to upgrade faces (e.g. heal →
-    /// higher-value heal art) or add brand-new face types.
+    /// REQUEST 6 (June 12) / ii-a (June 13): the face→(type,value,art,odds)
+    /// mapping all lives in that ONE face table — edit it to change faces,
+    /// values, odds, or add new types.
     var faceValue: Int = 1
     /// Fixed dice-tray slot index (0...4). Assigned on `drawFromBag` and
     /// preserved across drag-out → drag-back-in so a die always returns
@@ -392,6 +406,10 @@ struct PotionShopDie: Identifiable, Equatable {
     /// the tray's HStack would slide remaining dice leftward on every
     /// drag-out.
     var trayIndex: Int = 0
+    /// JUNE 18, 2026 (run system test): flat bonus this die carries from a
+    /// boon (e.g. an upgraded potency = +2). Added to value in computeBrew.
+    /// 0 for ordinary dice.
+    var ruleBonus: Int = 0
 
     // Equatable must compare ALL fields, not just `id`. SwiftUI uses == for
     // view diffing — if two structs with the same id but different `value`
@@ -423,6 +441,10 @@ struct PotionShopBagDie {
     let id: String
     let type: PotionShopDieType
     let tier: PotionShopDieTier
+    /// JUNE 18, 2026 (run system test): optional rule this die carries —
+    /// e.g. a boon-upgraded die with +2 bonus value. Default = no bonus.
+    /// Rides with the die through the deck so its effect persists for the run.
+    var rule: PotionShopDieRule = PotionShopDieRule()
 }
 
 // MARK: - Cauldron board topology
@@ -551,19 +573,13 @@ struct PotionShopDieRules {
 
         // ─── BOOST ──────────────────────────────────────────────
         case .boost:
-            // Default: nodes within die.value hops
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
-            //
-            // ALTERNATE IDEAS (uncomment one and comment the default):
-            //
-            // Only direct neighbors, regardless of value:
-            //   return PotionShopBoard.neighborsWithin(nodeIndex, hops: 1)
-            //
-            // Always 2 hops, regardless of value:
-            //   return PotionShopBoard.neighborsWithin(nodeIndex, hops: 2)
-            //
-            // Affects NOTHING (purely decorative):
-            //   return []
+            // JUNE 20, 2026: a boost affects its DIRECTLY CONNECTED neighbors
+            // (1 hop) — the nodes it's literally wired to on the board. The
+            // boost's VALUE controls how MUCH it adds (in computeBrew), NOT
+            // how far it reaches. (Previously reach = die.value hops, which
+            // confusingly made bigger boosts reach farther.) So "connected"
+            // now means exactly what you see: the lines from this node.
+            return PotionShopBoard.neighborsWithin(nodeIndex, hops: 1)
 
         // ─── HEAL ───────────────────────────────────────────────
         case .heal:

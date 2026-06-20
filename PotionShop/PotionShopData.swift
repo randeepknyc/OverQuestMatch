@@ -638,12 +638,22 @@ enum PotionShopData {
             iconFallback: "🐙",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Potion, Please", orderDialogue: "Bloop. Need a brew.",
-            hp: 12, patience: 6, activeAttack: 2, waitingAttack: 1,
+            hp: 12, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
             tickDialogue: "Tentacles wriggle impatiently.",
             expireDialogue: "Bloop! Leaving now.",
             defeatDialogue: "Bloop! Splendid.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Bloop — one potion, when you get a moment.",
+                "My tentacles ache; something soothing, please.",
+                "Glub. The sea sends its regards, and its coin."
+            ],
+            traitNames: [
+                "Briny",
+                "Mellow",
+                "Drifting"
+            ]
         ),
         "gmarker_girl": PotionShopCharacter(
             id: "gmarker_girl", name: "Petal", title: "Cheerful Apprentice",
@@ -651,12 +661,22 @@ enum PotionShopData {
             iconFallback: "🌸",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Bright Brew", orderDialogue: "Hi! Just a quick potion?",
-            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "She fidgets with her hair-flowers.",
             expireDialogue: "Maybe next time then!",
             defeatDialogue: "Yay! Thank you!",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Hi! Mum said you make the good kind.",
+                "Ooh, can it be a sparkly one? Please?",
+                "I've got exactly enough coins, see?"
+            ],
+            traitNames: [
+                "Cheery",
+                "Curious",
+                "Bright"
+            ]
         ),
         "gmarker_skull": PotionShopCharacter(
             id: "gmarker_skull", name: "Bones", title: "Restless Skeleton",
@@ -669,7 +689,17 @@ enum PotionShopData {
             tickDialogue: "Blue flames flicker around the skull.",
             expireDialogue: "...too slow... drifting away...",
             defeatDialogue: "...thank you, brewer...",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "...a draught. For the long road down.",
+                "Death is patient. My thirst is not.",
+                "Rattle me up something strong."
+            ],
+            traitNames: [
+                "Grim",
+                "Hollow",
+                "Patient"
+            ]
         ),
         "gmarker_slug": PotionShopCharacter(
             id: "gmarker_slug", name: "Slimey", title: "Slug-Folk Patron",
@@ -677,12 +707,22 @@ enum PotionShopData {
             iconFallback: "🐌",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "Something Slow", orderDialogue: "Take... your time...",
-            hp: 12, patience: 6, activeAttack: 2, waitingAttack: 1,
+            hp: 12, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
             tickDialogue: "Slimey leaves a faint trail.",
             expireDialogue: "Oh well... slither off...",
             defeatDialogue: "Delicious...",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Taaake... your... tiiime... I suppose.",
+                "One slooow brew, if it's no trouble.",
+                "I left a trail. You're welcome."
+            ],
+            traitNames: [
+                "Sluggish",
+                "Placid",
+                "Gooey"
+            ]
         ),
         "gmarker_fishguy": PotionShopCharacter(
             id: "gmarker_fishguy", name: "Finn", title: "Witch-Hat Fisher",
@@ -690,12 +730,22 @@ enum PotionShopData {
             iconFallback: "🎣",
             difficulty: 4, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Briny Brew", orderDialogue: "Hurry it up, surface-walker.",
-            hp: 22, patience: 11, activeAttack: 3, waitingAttack: 1,
+            hp: 22, patience: 10, activeAttack: 3, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 7,
             tickDialogue: "Finn glares from under his pointy hat.",
             expireDialogue: "Bah! Cursed slow brewer.",
             defeatDialogue: "Adequate. Goodbye.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Glub! Surface air's dry — need a tonic.",
+                "Make it cold, brewer, cold as the deep.",
+                "Scales itching. Something for that?"
+            ],
+            traitNames: [
+                "Slippery",
+                "Briny",
+                "Wary"
+            ]
         ),
         "gmarker_bull": PotionShopCharacter(
             id: "gmarker_bull", name: "Hammer", title: "Minotaur Smith",
@@ -708,7 +758,17 @@ enum PotionShopData {
             tickDialogue: "He hefts his hammer thoughtfully.",
             expireDialogue: "*snorts and stomps out*",
             defeatDialogue: "Good. Stronger now.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "A strong one. I've a field to plough.",
+                "Don't water it down, brewer.",
+                "Snort. Make it quick or I charge."
+            ],
+            traitNames: [
+                "Stubborn",
+                "Brawny",
+                "Gruff"
+            ]
         ),
         "gmarker_frog": PotionShopCharacter(
             id: "gmarker_frog", name: "Ribbit", title: "Frog Gentleman",
@@ -716,12 +776,22 @@ enum PotionShopData {
             iconFallback: "🐸",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Damp Tonic", orderDialogue: "Ribbit! Potion, good sir!",
-            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "Ribbit's throat-sac inflates impatiently.",
             expireDialogue: "Ribbit! Bah! *hops out*",
             defeatDialogue: "Ribbit! Splendid!",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Ribbit — something with a kick.",
+                "Hopped all the way here. Worth it?",
+                "Flies for breakfast, potion for lunch."
+            ],
+            traitNames: [
+                "Springy",
+                "Twitchy",
+                "Keen"
+            ]
         ),
         "gmarker_fox": PotionShopCharacter(
             id: "gmarker_fox", name: "Vix", title: "Vulpine Ranger",
@@ -734,7 +804,17 @@ enum PotionShopData {
             tickDialogue: "Vix's tail flicks.",
             expireDialogue: "Bah. I hunt elsewhere.",
             defeatDialogue: "Sharp work. My thanks.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Quick paws, quicker tongue — a brew, now.",
+                "I know a good potion when I smell one.",
+                "Clever hands deserve clever pay, hm?"
+            ],
+            traitNames: [
+                "Sly",
+                "Quick",
+                "Cunning"
+            ]
         ),
         "gmarker_traveler": PotionShopCharacter(
             id: "gmarker_traveler", name: "Wanderer", title: "Road-Worn Traveler",
@@ -742,12 +822,22 @@ enum PotionShopData {
             iconFallback: "🎒",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Traveler's Tea", orderDialogue: "Long road ahead. A pick-me-up?",
-            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "Adjusts the pack on their shoulder.",
             expireDialogue: "Time presses on. Farewell.",
             defeatDialogue: "Many thanks. Safe travels to you, too.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Long road behind me. Something restorative.",
+                "I've coin from three kingdoms — surprise me.",
+                "A traveler's tonic, brewer, for the miles ahead."
+            ],
+            traitNames: [
+                "Weathered",
+                "Wandering",
+                "Hardy"
+            ]
         ),
         "gmarker_demon": PotionShopCharacter(
             id: "gmarker_demon", name: "Wisp", title: "Floating Imp",
@@ -755,12 +845,22 @@ enum PotionShopData {
             iconFallback: "👹",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Wicked Brew", orderDialogue: "Hsss... give me potion...",
-            hp: 14, patience: 7, activeAttack: 2, waitingAttack: 2,
+            hp: 14, patience: 10, activeAttack: 2, waitingAttack: 2,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "Wisp hovers, glowing with malice.",
             expireDialogue: "Hssss! Cursed! *vanishes*",
             defeatDialogue: "...acceptable, mortal.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Mortal. A potion. Do not disappoint me.",
+                "Your finest, or your last.",
+                "I have burned shops for weaker brews."
+            ],
+            traitNames: [
+                "Wrathful",
+                "Smoldering",
+                "Dread"
+            ]
         ),
         "gmarker_goatguy": PotionShopCharacter(
             id: "gmarker_goatguy", name: "Goatfellow", title: "Faun Pilgrim",
@@ -768,12 +868,22 @@ enum PotionShopData {
             iconFallback: "🐐",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Forest Draught", orderDialogue: "Goatfellow seeks a brew.",
-            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "Goatfellow leans on his staff.",
             expireDialogue: "The wood calls. Farewell.",
             defeatDialogue: "Blessings of the green.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Maaa. One brew, and make it bitter.",
+                "I'll headbutt the counter if you're slow.",
+                "Grass won't cut it today, brewer."
+            ],
+            traitNames: [
+                "Ornery",
+                "Headstrong",
+                "Bleating"
+            ]
         ),
         "gmarker_oldlady": PotionShopCharacter(
             id: "gmarker_oldlady", name: "Gran", title: "Headscarfed Elder",
@@ -781,12 +891,91 @@ enum PotionShopData {
             iconFallback: "👵",
             difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
             orderName: "A Mild Brew", orderDialogue: "Now then, dearie, a potion if you would.",
-            hp: 16, patience: 8, activeAttack: 2, waitingAttack: 1,
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
             activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
             tickDialogue: "Gran sighs and adjusts her handbag.",
             expireDialogue: "Hmph! I'll write to the council.",
             defeatDialogue: "Lovely, dearie. Just lovely.",
-            trait: nil
+            trait: nil,
+            orderPhrases: [
+                "Eh? Speak up and pour up, dearie.",
+                "In my day, potions were stronger.",
+                "A little something for these old bones."
+            ],
+            traitNames: [
+                "Crotchety",
+                "Spry",
+                "Sharp"
+            ]
+        ),
+        "gmarker_bird": PotionShopCharacter(
+            id: "gmarker_bird", name: "Feathers", title: "Avian Visitor",
+            portrait: "gmarker_bird", scenePortrait: "gmarker_bird",
+            iconFallback: "🐦",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Warming Tonic", orderDialogue: "Chirp! One potion, please.",
+            hp: 14, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "Feathers ruffles impatiently.",
+            expireDialogue: "Tweet! I'm flying off!",
+            defeatDialogue: "Chirp chirp! Wonderful brew!",
+            trait: nil,
+            orderPhrases: [
+                "Tweet — something light, on the wing.",
+                "Migrating soon; need it to-go.",
+                "Seeds and a sip, that's all I ask."
+            ],
+            traitNames: [
+                "Flighty",
+                "Chirpy",
+                "Restless"
+            ]
+        ),
+        "gmarker_dino": PotionShopCharacter(
+            id: "gmarker_dino", name: "Rex", title: "Ancient Lizard",
+            portrait: "gmarker_dino", scenePortrait: "gmarker_dino",
+            iconFallback: "🦕",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Primordial Elixir", orderDialogue: "RAAWR. Potion. Now.",
+            hp: 16, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "Rex stomps a massive foot.",
+            expireDialogue: "RAAWR! Too slow!",
+            defeatDialogue: "Rrrr... good brew.",
+            trait: nil,
+            orderPhrases: [
+                "Rawr — a big one, brewer. Big.",
+                "Old blood needs a strong brew.",
+                "Stomp. Stomp. Potion. Now."
+            ],
+            traitNames: [
+                "Ancient",
+                "Towering",
+                "Roaring"
+            ]
+        ),
+        "gmarker_puck": PotionShopCharacter(
+            id: "gmarker_puck", name: "Puck", title: "Mischief Sprite",
+            portrait: "gmarker_puck", scenePortrait: "gmarker_puck",
+            iconFallback: "🧚",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Trickster's Brew", orderDialogue: "Hehe! Whatcha got for me?",
+            hp: 10, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "Puck giggles and fidgets.",
+            expireDialogue: "Bah! I'll prank someone else!",
+            defeatDialogue: "Ooh! Sparkly! Thanks!",
+            trait: nil,
+            orderPhrases: [
+                "Hee! Make it fizz, make it pop!",
+                "A trick in a bottle, if you please.",
+                "Catch me if the potion's too slow!"
+            ],
+            traitNames: [
+                "Mischief",
+                "Spry",
+                "Giddy"
+            ]
         ),
     ]
 
@@ -803,34 +992,61 @@ enum PotionShopData {
         name: "Day 1",
         subtitle: "Opening for Business",
 
-        // 2 customers, both difficulty 1, both no-trait. Pure tutorial.
+        // ═══════════════════════════════════════════════════════════════
+        //  JUNE 12, 2026 — DAY 1 = FULL-GAME-FLOW TEST GROUND
+        //  Every Day 1 round now:
+        //   • uses the D3R3 customer-scene visuals  → useFeetAnchor: true
+        //   • uses the D2R2 dice + node behavior     → wired in
+        //     PotionShopGameState.currentRoundUses3DDice (dayId == "day_1")
+        //   • draws its customers AT RANDOM from the 12 gmarker_* assets
+        //     every time the round spawns (randomFromPool). Re-entering a
+        //     round via the debug menu re-spawns it → fresh characters.
+        //  Counts: morning/afternoon/evening = 3 customers; night = 1 boss.
+        //  (customerIds is COUNT-ONLY when randomFromPool is set — the
+        //   literal ids are placeholders; the pool is what actually draws.)
+        // ═══════════════════════════════════════════════════════════════
+
+        // 3 random customers from the gmarker pool.
         morning: PotionShopRound(
             timeOfDay: .morning,
-            customerIds: ["mildred", "tomik"]
+            customerIds: ["gmarker_octo", "gmarker_girl", "gmarker_skull"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // 2 customers. Pemberton (grumpy merchant) introduces patience
-        // pressure. Greta (inspiring) teaches that some traits help you.
+        // 3 random customers from the gmarker pool.
         afternoon: PotionShopRound(
             timeOfDay: .afternoon,
-            customerIds: ["pemberton", "greta"]
+            customerIds: ["gmarker_slug", "gmarker_fishguy", "gmarker_bull"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // 3 customers — first time the player sees a full queue.
-        // Wendelina (high stats, no trait), Crispin (intimidating),
-        // Ardo (skittish). Player has to triage.
+        // 3 random customers from the gmarker pool.
         evening: PotionShopRound(
             timeOfDay: .evening,
-            customerIds: ["wendelina", "crispin", "ardo"]
+            customerIds: ["gmarker_frog", "gmarker_fox", "gmarker_traveler"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // Single boss. Grimdrek by default.
-        // To swap: change to ["carmilla"] or ["royal_envoy"].
+        // Single BOSS — 1 random customer from the gmarker pool.
         night: PotionShopRound(
             timeOfDay: .night,
-            customerIds: ["grimdrek"]
+            customerIds: ["gmarker_demon"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         )
     )
+
+    /// June 12, 2026: the 12 gmarker_* customer ids, used as Day 1's random
+    /// draw pool. Add/remove ids here to change who can appear in Day 1.
+    static let gmarkerPool: [String] = [
+        "gmarker_octo", "gmarker_girl", "gmarker_skull", "gmarker_slug",
+        "gmarker_fishguy", "gmarker_bull", "gmarker_frog", "gmarker_fox",
+        "gmarker_traveler", "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady",
+        "gmarker_bird", "gmarker_dino", "gmarker_puck"
+    ]
 
     // MARK: ─── DAY 2 ROUNDS ────────────────────────────────────────────
     //
@@ -844,31 +1060,37 @@ enum PotionShopData {
         name: "Day 2",
         subtitle: "Word Gets Around",
 
-        // Sister Halla (new, pious) + Mildred (Day 1 repeat).
-        // Gentle warmup — eases the player back in for Day 2.
+        // ═══════════════════════════════════════════════════════════════
+        //  JUNE 18, 2026 — DAY 2 now MIRRORS DAY 1 (second comparable test
+        //  day). All rounds feet-anchor + gmarker random pool + 3/3/3/1.
+        // ═══════════════════════════════════════════════════════════════
+
         morning: PotionShopRound(
             timeOfDay: .morning,
-            customerIds: ["sister_halla", "mildred"]
+            customerIds: ["gmarker_octo", "gmarker_girl", "gmarker_skull"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // Bram (new, loud STUB) + Lady Carmilla (new, hexer STUB).
-        // Two unused characters; Carmilla brings tier-5 HP early.
         afternoon: PotionShopRound(
             timeOfDay: .afternoon,
-            customerIds: ["bram", "carmilla"]
+            customerIds: ["gmarker_slug", "gmarker_fishguy", "gmarker_bull"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // Hexa Mott + Ironhilde (both new, tier-4) + Ardo (repeat, skittish).
-        // The real fight of Day 2 — two heavy hitters in the line.
         evening: PotionShopRound(
             timeOfDay: .evening,
-            customerIds: ["hexa_mott", "ironhilde", "ardo"]
+            customerIds: ["gmarker_frog", "gmarker_fox", "gmarker_traveler"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         ),
 
-        // The Royal Envoy — Day 2 boss (intimidating, HP 34).
         night: PotionShopRound(
             timeOfDay: .night,
-            customerIds: ["royal_envoy"]
+            customerIds: ["gmarker_demon"],
+            useFeetAnchor: true,
+            randomFromPool: PotionShopData.gmarkerPool
         )
     )
 
@@ -903,6 +1125,7 @@ enum PotionShopData {
                                 "gmarker_slug", "gmarker_fishguy", "gmarker_bull",
                                 "gmarker_frog", "gmarker_fox", "gmarker_traveler",
                                 "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady",
+                                "gmarker_bird", "gmarker_dino", "gmarker_puck",
                             ]),
             // Round 3 (added June 1, 2026) — same fixed lineup as the old R2
             // but using gmarker_* assets. Acts as the A/B baseline against the

@@ -53,16 +53,30 @@ extension CGRect {
 //   2. Either edit the `assetName(forValue:)` switch to point a value at it,
 //      OR add a per-cube subset-picker that randomly draws from the pool.
 
-/// One entry in the face pool. Each entry = one rollable face.
-///   value     — the face's id. Must be unique within `faceSpecs`.
+/// One entry in the face pool = one complete rollable OUTCOME.
+///   id        — the face's unique id. Drives the 3D cube spin (the cube
+///               places this face's art at the front and spins to it). Must
+///               be unique within `faceSpecs`. (Was called `value` before
+///               June 13; renamed to `id` because it is NOT the brew value.)
+///   type      — the EFFECT this face fires when placed on a node
+///               (.potency damages, .heal heals, .boost boosts, etc.).
+///   brewValue — the NUMBER the effect uses (heal 4 = brewValue 4). This is
+///               what `computeBrew` reads and what the tray badge shows.
 ///   assetName — which image shows for this face (on the cube AND on a
 ///               placed die). Multiple faces may share an asset.
-///   weight    — relative roll weight. weight 2 lands twice as often as
-///               weight 1. Set weight 0 to keep a face in the pool's art
-///               rotation (it can flash by during the spin) without it
-///               ever being the landed result.
+///   weight    — relative roll weight (the ODDS knob). weight 2 lands twice
+///               as often as weight 1. weight 0 = art-only (flashes by during
+///               the spin, never the landed result).
+///
+/// JUNE 13, 2026 (ii-a model): a face now bundles type + value + art, so ONE
+/// weighted roll against this table decides everything about a dealt die —
+/// what it does AND how much. The bag is the odds (the weights here); the
+/// spin reveals which face the player got. What-you-see = what-you-get,
+/// locked from tray to node.
 struct PotionShopDieFaceSpec {
-    let value: Int
+    let id: Int
+    let type: PotionShopDieType
+    let brewValue: Int
     let assetName: String
     var weight: Int = 1
 }
@@ -70,65 +84,107 @@ struct PotionShopDieFaceSpec {
 struct PotionShop3DDiceAssetMap {
 
     // ═══════════════════════════════════════════════════════════════════
-    //  THE FACE TABLE — edit this to change/add faces (Request 6, June 12)
+    //  THE FACE / ODDS TABLE — edit this to change faces, values & odds
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  • CHANGE A FACE'S ART:  edit its assetName (e.g. point face 4 at a
-    //    new "die_heal_big" asset when heal gets upgraded).
-    //  • CHANGE HOW OFTEN A FACE LANDS:  edit its weight. Today potency
-    //    effectively appears on 2 of 6 faces, which is expressed below as
-    //    two separate face entries (values 1 and 2) sharing the same art —
-    //    exactly matching the old behavior. You could instead delete face
-    //    2 and give face 1 a weight of 2 for the same odds.
-    //  • ADD A NEW FACE / DIE TYPE:  append a new entry with a fresh
-    //    value, e.g. .init(value: 7, assetName: "die_bonus", weight: 1).
-    //    Nothing else needs to change — the roller and the cube both read
-    //    from this table. If the pool grows past 6 entries, the physical
-    //    cube shows the landed face up front and fills its other 5 sides
-    //    with a random draw from the rest of the pool (they only flash by
-    //    during the spin, so this is purely cosmetic).
-    //  • REMOVE A FACE:  delete its entry. Pools smaller than 6 also work
-    //    (remaining cube sides repeat from the pool).
+    //  Each row is one outcome a die can land on: (id, type, value, art, weight).
+    //
+    //  • CHANGE WHAT A FACE DOES:        edit its `type`.
+    //  • CHANGE HOW MUCH:                edit its `brewValue`.
+    //  • CHANGE HOW OFTEN IT LANDS:      edit its `weight` (the odds knob).
+    //  • CHANGE ITS PICTURE:             edit its `assetName`.
+    //  • ADD A NEW FACE:                 append a row with a fresh `id`.
+    //  • REMOVE A FACE:                  delete its row.
+    //
+    //  FUTURE (not yet built, seams are ready):
+    //   • Per-day / per-round odds tables → see rollOutcome(dayId:roundIndex:)
+    //     below; swap which table it rolls against.
+    //   • Per-day value caps ("nothing above 3 until Day X") → filter rows by
+    //     brewValue inside that same function.
+    //   • These six rows reproduce the pre-June-13 behavior: potency on two
+    //     faces (values 1 & 2), one each of boost/heal/shield/stability.
     static var faceSpecs: [PotionShopDieFaceSpec] = [
-        .init(value: 1, assetName: "die_potency",   weight: 1),
-        .init(value: 2, assetName: "die_potency",   weight: 1),
-        .init(value: 3, assetName: "die_boost",     weight: 1),
-        .init(value: 4, assetName: "die_heal",      weight: 1),
-        .init(value: 5, assetName: "die_shield",    weight: 1),
-        .init(value: 6, assetName: "die_stability", weight: 1),
-        // Future examples (just uncomment / duplicate):
-        // .init(value: 7, assetName: "die_bonus",  weight: 1),
-        // .init(value: 8, assetName: "die_fire",   weight: 2),
+        .init(id: 1, type: .potency,   brewValue: 1, assetName: "die_potency",   weight: 1),
+        .init(id: 2, type: .potency,   brewValue: 2, assetName: "die_potency",   weight: 1),
+        .init(id: 3, type: .boost,     brewValue: 3, assetName: "die_boost",     weight: 1),
+        .init(id: 4, type: .heal,      brewValue: 4, assetName: "die_heal",      weight: 1),
+        .init(id: 5, type: .shield,    brewValue: 5, assetName: "die_shield",    weight: 1),
+        .init(id: 6, type: .stability, brewValue: 6, assetName: "die_stability", weight: 1),
+        // Future examples:
+        // .init(id: 7, type: .heal,    brewValue: 2, assetName: "die_heal",   weight: 2),
+        // .init(id: 8, type: .potency, brewValue: 4, assetName: "die_potency", weight: 1),
     ]
 
-    /// Every face value currently in the pool (in table order).
-    static var allFaceValues: [Int] {
-        faceSpecs.map { $0.value }
+    /// Look up a full face spec by its id (the cube's target face).
+    static func spec(forId id: Int) -> PotionShopDieFaceSpec? {
+        faceSpecs.first(where: { $0.id == id })
     }
 
-    /// Map a rolled value → asset name, via the face table.
-    /// Falls back to the first face's asset for any unknown value.
+    /// JUNE 18, 2026 (dice-model pivot): return a face id whose TYPE matches
+    /// the given die type, so the cube cosmetically spins to land on the
+    /// die's OWN type. The die already knows what it is (from the bag); this
+    /// just picks which face-art the spin resolves to. Falls back to the
+    /// first face if no face of that type exists.
+    static func faceId(forType type: PotionShopDieType) -> Int {
+        if let spec = faceSpecs.first(where: { $0.type == type }) {
+            return spec.id
+        }
+        return faceSpecs.first?.id ?? 1
+    }
+
+    /// Every face id currently in the pool (in table order). Used by the
+    /// cube to fill its non-landed sides.
+    static var allFaceValues: [Int] {
+        faceSpecs.map { $0.id }
+    }
+
+    /// Map a rolled face id → asset name, via the face table.
+    /// Falls back to the first face's asset for any unknown id.
     static func assetName(forValue value: Int) -> String {
-        if let spec = faceSpecs.first(where: { $0.value == value }) {
+        if let spec = faceSpecs.first(where: { $0.id == value }) {
             return spec.assetName
         }
         return faceSpecs.first?.assetName ?? "die_potency"
     }
 
-    /// Weighted roll across the face table. This is THE roller for which
-    /// picture lands — `PotionShopDie.rollFaceImageValue()` delegates here,
-    /// so editing weights above changes every roll in the game (fresh
-    /// deals, post-brew redraws, and the editor's SPIN button alike).
-    static func rollWeightedFaceValue() -> Int {
-        let pool = faceSpecs.filter { $0.weight > 0 }
-        guard !pool.isEmpty else { return faceSpecs.first?.value ?? 1 }
+    // ─── THE ROLLER (ii-a, June 13, 2026) ──────────────────────────────
+    //
+    // ONE weighted roll picks a whole face. This is the single seam every
+    // future weighting feature plugs into:
+    //   • per-day/round odds   → branch on dayId/roundIndex to pick a table
+    //   • per-day value caps    → filter `pool` by brewValue
+    //   • pity timer            → handled in drawFromBag (the draw loop),
+    //                             which can override this result
+    static func rollOutcome(dayId: String = "", roundIndex: Int = 0) -> PotionShopDieFaceSpec {
+        // SEAM: today every Day 1 round uses the one table below. Later,
+        // switch `pool` by (dayId, roundIndex), and/or filter by brewValue
+        // for a per-day cap, e.g.:
+        //   if dayId == "day_1" { pool = pool.filter { $0.brewValue <= 3 } }
+        var pool = faceSpecs.filter { $0.weight > 0 }
+        guard !pool.isEmpty else {
+            return faceSpecs.first ?? PotionShopDieFaceSpec(id: 1, type: .potency, brewValue: 1, assetName: "die_potency")
+        }
         let totalWeight = pool.reduce(0) { $0 + $1.weight }
         var roll = Int.random(in: 1...totalWeight)
         for spec in pool {
             roll -= spec.weight
-            if roll <= 0 { return spec.value }
+            if roll <= 0 { return spec }
         }
-        return pool[0].value
+        return pool[0]
+    }
+
+    /// Legacy shim: still used anywhere that only wants a face id. Now rolls
+    /// a full outcome and returns its id, so picture odds match the table.
+    static func rollWeightedFaceValue() -> Int {
+        let pool = faceSpecs.filter { $0.weight > 0 }
+        guard !pool.isEmpty else { return faceSpecs.first?.id ?? 1 }
+        let totalWeight = pool.reduce(0) { $0 + $1.weight }
+        var roll = Int.random(in: 1...totalWeight)
+        for spec in pool {
+            roll -= spec.weight
+            if roll <= 0 { return spec.id }
+        }
+        return pool[0].id
     }
 }
 
@@ -1414,6 +1470,14 @@ struct DieFaceView3D: View {
             animateOnAppear: animateOnAppear
         )
         .frame(width: size, height: size)
+        // JUNE 13, 2026 fix: tie the view's IDENTITY to the spin token + face +
+        // whether it should animate. When any of these change (a fresh deal or
+        // reroll bumps spinToken), SwiftUI tears down the old SCNView and runs
+        // makeUIView again → buildScene() → runSlotSpin plays. This guarantees
+        // the drop/spin replays every deal even if updateUIView's diff would
+        // otherwise short-circuit. (animateOnAppear is folded in so a die that
+        // returns to the tray at-rest doesn't get re-identified into a spin.)
+        .id("die3d-\(die.id)-\(spinToken)-\(die.faceValue)-\(animateOnAppear ? 1 : 0)")
     }
 }
 

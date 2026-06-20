@@ -1974,6 +1974,991 @@ first, then this). Design as agreed:
   draggables, find the render expression first and invert it.
 - **Editor-open must suspend conflicting gameplay gestures explicitly**
   (node taps/drags) — the same surface can't serve both masters at once.
+## 29. CUSTOMER SPAWNING: random pool (BUILT) vs HP-bucket→visual (PLANNED)
+
+(Reconstructed June 15, 2026 — this section was lost in a doc-merge and
+rewritten from the code + session history.)
+
+### 29.1 What EXISTS today — `randomFromPool` (built June 3, 2026)
+
+`PotionShopRound` (PotionShopModels.swift) can carry `randomFromPool: [String]?`.
+When set and non-empty, `spawnCustomers(from:)` treats the round's literal
+`customerIds` as a COUNT ONLY and draws that many ids at random from the
+pool, fresh every spawn:
+```swift
+if let pool = round.randomFromPool, !pool.isEmpty {
+    resolvedIds = Array(pool.shuffled().prefix(round.customerIds.count))
+} else {
+    resolvedIds = round.customerIds   // literal, fixed lineup
+}
+```
+- Re-draws every spawn; re-entering a round (advance, restart, debug jump)
+  reshuffles. Debug "reshuffle" forces a new draw without quitting.
+- WHOLE-BUNDLE draw: each id resolves via `PotionShopData.character(id)` to
+  a fixed bundle (hp, patience, trait, visual). The draw picks bundles; HP
+  comes FROM the drawn character, not a target.
+- So "random pool of 50–100 customers" is already viable: define characters,
+  list ids in `randomFromPool`, set the count.
+
+### 29.2 What is NOT built — HP-bucket → random-visual (intended)
+
+User's vision: customers bucketed by HP/difficulty, with the VISUAL chosen
+at random from a pool. This INVERTS 29.1's flow (pick difficulty first, then
+dress with a random skin). Requires: (1) decouple stats from appearance,
+(2) tag the visual pool by H×W bucket so a skin only lands where its
+silhouette fits, (3) difficulty-first spawner. NOTE: §34 (later) confirms
+this became the agreed model. Superseded/expanded by §35 (spawn architecture).
+
+### 29.3 Prerequisite for endless mode
+
+Endless mode needs difficulty-first spawning (Day 40 wants "a 25-HP enemy",
+not a named character). So 29.2 is groundwork for endless, not a separate
+nicety — build it AS PART OF endless work, against the real difficulty curve.
+
+## 30. JUNE 12, 2026 — DAY 1 = FULL-GAME-FLOW TEST GROUND
+
+(Reconstructed June 15, 2026.) Day 1 became the integrated test bed: D2R2
+dice/node behavior + D3R3 customer-scene visuals + random draws, together.
+Files: PotionShopData.swift, PotionShopGameState.swift.
+
+### 30.1 The four requirements
+
+1. D2R2 dice+node behavior → every Day 1 round. `currentRoundUses3DDice`
+   extended to return true for all of `dayId == "day_1"` (plus the original
+   Day 2 Round 2). One flag gates the whole §27/§28 dice package.
+2. D3R3 customer-scene visuals → every Day 1 round. Each Day 1 round set
+   `useFeetAnchor: true` (the flag `currentRoundUsesFeetAnchor` reads). Clean
+   half — feet-anchor was always per-round data, just flipped on.
+3. Counts: morning/afternoon/evening = 3 customers; night = 1 (boss). Via
+   each round's `customerIds.count` (count-only when a pool is set).
+4. Random customers from the gmarker pool, re-drawn every entry. Each Day 1
+   round sets `randomFromPool: PotionShopData.gmarkerPool`. Falls out of
+   §29.1 — switching away and back re-spawns fresh. ZERO new code.
+
+### 30.2 The gmarker pool
+
+`static let gmarkerPool: [String]` in PotionShopData — the 12 `gmarker_*`
+ids. Add/remove to change Day 1's cast. Night boss draws 1 from the same
+pool (give `night` its own array later if a distinct boss pool is wanted).
+
+### 30.3 Notes
+
+- Old Day-1 hand-authored cast (mildred, tomik, etc.) no longer referenced
+  by Day 1 but still in the `characters` dict (Day 2+ and swap pickers use
+  them) — don't delete.
+- First time the 3D dice run outside D2R2, and first time 3D dice + the
+  feet-anchor scene run in the SAME round. They're independent subsystems;
+  Day 1 is where to watch for any interaction.
+
+## 31. JUNE 13, 2026 — DAY 1 SCENE FIX: auto-layout was gated on flex-day, not feet-anchor
+
+(Reconstructed June 15, 2026.) After §30, Day 1 customers rendered
+wrong-sized/mis-positioned (giant minotaur, pile-up) while Day 3 R3 — same
+characters — looked right. File: PotionShopCustomerSceneView.swift.
+
+### 31.1 Root cause
+
+The bucket-based auto-layout (sizes each customer by H×W bucket, spreads
+them out) was switched on by `useAutoLayout: gs.isFlexDay` at the `scale`
+and `xPos` render sites. Day 3 is a flex day → got it. Day 1 is a legacy
+day → `isFlexDay == false` → auto-layout OFF → fell back to untuned
+per-character defaults. The Y path already short-circuited on
+`currentRoundUsesFeetAnchor`, so only SCALE + X were broken (right vertical
+spot, wrong size/spacing — exactly the bad screenshot).
+
+KEY INSIGHT: feet-anchor IS the bucket system; auto-layout and feet-anchor
+must travel together. Gating one on flex-day and the other on feet-anchor
+was a latent inconsistency that surfaced once a feet-anchor round existed on
+a non-flex day (Day 1).
+
+### 31.2 Fix
+
+Scene visuals that distinguished "flex day" now trigger on
+`gs.isFlexDay || gs.currentRoundUsesFeetAnchor`: scale + xPos auto-layout;
+floor line hidden; background uses the `bgtest1` perspective-grid template.
+HP badges already keyed on feet-anchor (they were using the matrix all
+along — they just looked wrong pinned to mis-sized characters; fixing
+scale+X fixed them for free).
+
+GENERAL RULE: gate D3R3-style scene behavior on `currentRoundUsesFeetAnchor`,
+NOT `isFlexDay`.
+
+## 32. JUNE 13, 2026 — UNIFIED DICE OUTCOME (ii-a): spin decides type+value, locked tray→node (DAY 1)
+
+The tray spin is now a real slot machine on Day 1: one weighted roll lands a
+whole outcome (type + value + face art), the player drags those known dice
+to nodes, and what the tray showed is exactly what fires. Scoped to Day 1
+only; all other days keep the old behavior. Files changed:
+PotionShopCauldronView.swift, PotionShopGameState.swift, PotionShopModels.swift.
+
+### 32.1 The model chosen (recap of the design convo)
+
+Player picked **(ii-a)**: the spin decides BOTH type and value; the bag is an
+ODDS TABLE (weights), not a list of typed dice; results are LOCKED from tray
+to node (no re-roll on placement — "value between tray and node stays the
+same"). Strategy = reacting to rolled outcomes + choosing which node each
+die goes on. 5 effect types today; more values/types come later via the
+odds table + balloons.
+
+### 32.2 The core problem this fixed
+
+Pre-June-13 a dealt die had THREE independent rolls that didn't agree:
+`type` (from the bag list), `value` (from `tier.rollFace()`), `faceValue`
+(picture, from a separate roller). So the cube could show heal art, act as
+potency, and display a third number. The dice were "lying." ii-a collapses
+this to ONE roll.
+
+### 32.3 The face table became the ODDS table
+
+`PotionShopDieFaceSpec` (PotionShopCauldronView.swift) gained `type` and
+`brewValue`; its old `value` field was renamed `id` (it's the cube face id,
+NOT the brew number — this distinction matters because the cube spin places
+a face by id and spins to it). Each row is now a complete outcome:
+`(id, type, brewValue, assetName, weight)`. `weight` is the odds knob.
+
+New roller `rollOutcome(dayId:roundIndex:)` does ONE weighted pick and
+returns the whole spec. This is THE seam every future weighting feature
+plugs into (all labeled in-code):
+- per-day/round odds → branch to pick a different table by (dayId, roundIndex)
+- per-day value caps ("nothing above 3 until Day X") → filter pool by brewValue
+- pity timer → handled in the draw loop, can override the roll
+`rollWeightedFaceValue()` kept as a legacy shim (returns just an id) for
+non-Day-1 picture rolls.
+
+### 32.4 The deal rolls once (drawFromBag + reroll3DDice)
+
+`drawFromBag`: on `dayId == "day_1"`, each drawn slot calls `rollOutcome`
+and builds the die with type/value/faceValue ALL from that one face. The
+bag die now contributes only id+tier; its type is overridden by the roll.
+Other days unchanged (type from bag, value from tier, picture separate).
+
+`reroll3DDice` (editor SPIN + post-unplace): same Day-1 branch, but it had
+to REBUILD the die struct (not just mutate value/faceValue) because `type`
+is a `let` — without rebuilding, a reroll would land new art+value but keep
+the OLD type (a fresh what-you-see≠what-you-get bug). Fixed.
+
+### 32.5 Why "locked tray→node" needed NO extra code
+
+`computeBrew` already reads `die.type` + `die.value` off the PLACED die
+(it switches type→effect: potency/stability→damage, heal→heal,
+shield→shield, boost→neighbor multiplier; value = magnitude; reach from
+`PotionShopDieRules`). The placed-die VIEW already reads
+`assetName(forValue: die.faceValue)` + `die.value` — the same id+value the
+cube showed. So once the deal stores one consistent outcome, every
+downstream reader (cube, badge, placed art, brew math, type color/abbr/glow)
+agrees automatically. The fix was REMOVING the second roll, not adding
+lock logic.
+
+### 32.6 Scope + what was deliberately NOT built
+
+- Scoped to ALL of Day 1 (every reader keys on `dayId == "day_1"`); other
+  days bit-for-bit unchanged. Port further later by widening that check.
+- NOT built (seams left clean, per plan): the actual weighting formula,
+  per-day value caps, specific boost-reach rules (still in
+  `PotionShopDieRules`), and the pity timer (a bad-luck guarantee — force a
+  type if absent N turns; N needs real play to pick, so deferred until
+  streaks are observed; the draw loop is its hook).
+
+### 32.7 Tier overlap (known, intentional, deferred)
+
+`PotionShopDieTier` (basic/silver/gold → value ranges 1–4/2–5/3–6) still
+exists and still works on non-Day-1 days. On Day 1 the odds table sets
+value, so tier's value role is now redundant there (the die keeps a tier
+for compatibility but its value comes from the face). Eventually fold
+"stronger dice" into the odds table and retire tier; not this turn.
+
+### 32.8 Gotcha for next session
+
+The cube spin keys on `faceValue` as a FACE ID, and `==`/scene-rebuild
+logic compares value+faceValue. If you add faces to the table, keep `id`
+unique. If two faces share art but differ in type/value, that's fine — the
+cube shows by id, the math reads type/value. Don't collapse id back into
+brewValue; they are intentionally separate (multiple faces can have the
+same brewValue but different ids/types).
+## 33. JUNE 13, 2026 — DAY 1 SPIN REGRESSION: a reverted flag, plus a misdiagnosis worth remembering
+
+After §32, Day 1 dice showed CORRECT numbers/effects but NO spin animation,
+while D2R2 still spun. Took two attempts; the lesson is as valuable as the
+fix. File ultimately changed: PotionShopGameState.swift (one property).
+
+### 33.1 The real cause (a lost edit, not a logic bug)
+
+`currentRoundUses3DDice` in the uploaded GameState had reverted to its
+ORIGINAL form:
+    `!isFlexDay && dayId == "day_2" && roundIndex == 1`
+i.e. the §30 Day-1 extension was GONE. So on Day 1 the flag was false, the
+tray rendered the FLAT (non-3D) dice branch, and there was no cube to spin.
+Numbers/effects still worked because §32's value unification keys on
+`dayId == "day_1"` in `drawFromBag` SEPARATELY and survived the revert —
+hence the exact split "right numbers, no spin." D2R2 still spun because the
+reverted flag still pointed at exactly that round.
+
+Fix: restored the extension —
+    `if isFlexDay { return false }`
+    `if dayId == "day_1" { return true }`
+    `return dayId == "day_2" && roundIndex == 1`
+
+### 33.2 The misdiagnosis (so we don't repeat it)
+
+First attempt assumed a SwiftUI diffing problem (cube not rebuilding because
+the unified roll could re-land the same faceValue) and added a defensive
+`.id("die3d-\(die.id)-\(spinToken)-\(die.faceValue)-...")` to
+DieFaceView3D. That was solving a problem that didn't exist: the cube was
+never CREATED on Day 1 (flat branch), so there was nothing to force-rebuild.
+The `.id()` is harmless and remains (it's a legitimate belt-and-suspenders
+guarantee that a deal/reroll replays the spin), but it was NOT the fix.
+
+ROOT-CAUSE LESSON: when a visual subsystem works in round A but not round B
+with identical code, check the per-round GATE FLAG first
+(`currentRoundUses3DDice`, `currentRoundUsesFeetAnchor`), before suspecting
+the subsystem's internals. A "works here, not there" split almost always
+means a flag, not a bug.
+
+### 33.3 Process lesson — reverts keep biting
+
+This is the SECOND revert-caused issue in two sessions (earlier: uploads
+missing `rollOutcome`; now: missing the Day-1 flag extension). The Day-1
+feature set spans MANY files (Data: gmarker pool + feetAnchor; GameState:
+the 3D flag + unified-roll branches; CustomerSceneView: auto-layout on
+feet-anchor; CauldronView: the odds table). A stale copy of any one silently
+undoes cross-file work. When verifying a regression, grep the expected edits
+across ALL relevant files (e.g. `grep -c gmarkerPool`, `grep -c
+currentRoundUsesFeetAnchor`, `grep -c 'dayId == "day_1"'`) to spot which
+file reverted. In §33's case that grep confirmed only the one flag was lost.
+
+### 33.4 Current Day-1 state (all confirmed present + working)
+
+- 3D spinning dice: ON (currentRoundUses3DDice → true for day_1). ✓ spins.
+- Unified roll (§32): type+value+face from one `rollOutcome`. ✓ numbers correct.
+- Feet-anchor customer scene + bucket sizing (§30/§31). ✓
+- Random gmarker pool, reshuffles on round re-entry (§30). ✓
+- `.id()` spin-replay guard on the cube (this session). ✓ harmless safety net.
+---
+
+## 34. JUNE 15, 2026 — Three new gmarker characters + HP badge context nudges (June 15, 2026)
+
+### 34.1 New gmarker characters
+
+Three new art assets added to the gmarker customer pool:
+
+| id             | name      | height      | width  | HP | patience |
+|----------------|-----------|-------------|--------|----|----------|
+| gmarker_bird   | Feathers  | medium      | medium | 14 | 7        |
+| gmarker_dino   | Rex       | medium      | medium | 16 | 7        |
+| gmarker_puck   | Puck      | superShort  | skinny | 10 | 6        |
+
+**Pool size:** 12 → 15 (`gmarkerPool` in `PotionShopData.swift`).
+
+**Where they appear:** Random draws only — Day 3 R2's `randomFromPool` and `gmarkerPool`. No curated Day 1/2 rounds changed.
+
+**Files changed:**
+- `PotionShopData.swift` — character entries + pool arrays
+- `PotionShopLayoutConfig.swift` — `applyGuideCharacter()` bucket registration
+- `PotionShopGameView.swift` — `allGuideCharIds` (layout editor picker)
+- `PotionShopDebugMenu.swift` — `allCharacterIds` (export list, also added all 12 existing gmarkers that were previously missing)
+
+### 34.2 HP badge context nudges (bakeHpContext system)
+
+New system added to `PotionShopLayoutConfig.swift` for context-dependent HP badge positioning. When a character in slot 1 or 2 has a specific neighbor in the slot ahead, the badge can be nudged (dx/dy/sizeMul) to avoid overlaps.
+
+- **Storage:** `hpBadgeContextNudges: [HpBadgeContextKey: HpBadgeContextNudge]` (sparse dictionary)
+- **Key:** slot + myHeight + myWidth + neighborHeight + neighborWidth
+- **Seeding:** `bakeHpContext()` helper called from `applyTunedCharacterScales()`
+- **15 pairings baked** as of this session (slots 1 and 2, various body combos)
+- **Editor support:** already wired in the layout overlay; values are exported in the "Copy Layout Values" clipboard dump
+
+
+## 35. SPAWN ARCHITECTURE PLAN (June 13, 2026) — HP buckets, art-repeat rules, dice pity (DESIGN, NOT BUILT)
+
+Settled design for how customers spawn, scale in difficulty, and avoid
+repeating — plus where the dice pity timer sits. NONE of this is built yet;
+this is the agreed spec so a future session/Claude-in-Xcode builds it the
+RIGHT way. The big realization: difficulty and customer-identity are FULLY
+DECOUPLED, which removes every conflict the earlier (weighted) framing had.
+
+### 35.1 Three independent systems (no interactions to manage)
+
+1. HP-BUCKET TABLE = difficulty, per round/day, by RANGE.
+2. ART-REPEAT EXCLUSION = cosmetic, no-repeat memory at round/day/run scope.
+3. DICE PITY TIMER = playability guarantee, lives in DICE logic (§32), not customers.
+
+Because customers are NEVER weighted (user decision, June 13), the art pick
+is "grab an unused face" with no odds to distort — so repeat-rules and
+difficulty never fight. This supersedes the earlier worry (old § planning)
+that weighting + no-repeats conflict: there IS no weighting.
+
+### 35.2 HP-bucket table (difficulty)
+
+- Each round defines an HP RANGE; every customer SLOT in that round rolls
+  its HP somewhere in that range (range, NOT fixed — user confirmed).
+- Bosses are just a tight range (e.g. 16–16 = exactly 16).
+- Example shape (illustrative, real numbers TBD by user balance pass):
+    day_1 rounds 1–3 → HP 6–12 ; day_1 round 4 (boss) → 16
+    day_2 rounds … → own ranges ; etc.
+- One editable table keyed by (dayId, roundIndex). No logic — pure data,
+  the home for all future difficulty tuning.
+- IMPLEMENTATION NOTE: this REPLACES the current model where HP is baked
+  into each named character in PotionShopData. The character's `hp` field
+  becomes irrelevant for pooled spawns; HP comes from the round's range
+  roll. This is exactly the HP-bucket→random-visual decoupling flagged in
+  §29.2 as an endless-mode prerequisite — it's now the live spawn model.
+
+### 35.3 Art-repeat rules (cosmetic exclusion)
+
+Same mechanism (a "used" set the draw excludes), three scopes:
+1. WITHIN A ROUND: likely already free — `pool.shuffled().prefix(N)` can't
+   pick a dup. Only needs work IF the queue refills mid-round (unverified;
+   check `spawnCustomers`/queue-refill before assuming it's free).
+2. WITHIN A DAY: a "used today" set; morning records its draw, afternoon
+   draws from pool minus used, etc.; resets at day start. Pool (12 gmarkers)
+   > day need (3+3+3+1=10), so room exists. OPEN CHOICE: should a debug
+   re-entry of a round respect the day's used-set, or be exempt? (Currently
+   re-entry redraws fresh — §30/§33.)
+3. WITHIN A RUN (#3): "used this run" set; never repeat UNTIL the whole pool
+   has cycled, THEN reshuffle and allow repeats. User confirmed this
+   cycle-and-reshuffle behavior (June 13).
+
+KEY CONSEQUENCE of decoupling: a cycled-back face is HARMLESS — same picture,
+new HP (from the round's range), genuinely a different challenge. So #3 does
+NOT require procedural customers; a big-enough art rotation makes repeats
+feel rare. (Procedural §29.2 customers would make it literally infinite, but
+aren't REQUIRED for endless under this model — a meaningful simplification.)
+
+MATH CONSTRAINT (the only one that survives): true never-repeat holds only
+until the art pool is exhausted; past that, cycle-and-reshuffle is the
+designed fallback. Per-day #2 needs pool ≥ 10; per-run #3 just needs the
+rotation big enough that cycling is infrequent.
+
+### 35.4 Dice pity timer (separate; lives in §32 dice logic)
+
+NOT a customer system. "If Y turns pass without the player rolling a die
+that lets them act (attack/heal/etc.), force one into the next deal." Hooks
+into the odds-table draw loop (`drawFromBag`/`rollOutcome`, §32). Y is a
+balance number to set from real play (why it was deferred — see §32.6).
+Keep this mentally separate from art-repeat: customers don't REPEAT (art
+exclusion), dice don't STARVE (forced inclusion). Different boxes.
+
+### 35.5 Suggested build order (when greenlit)
+
+1. HP-bucket table (difficulty by range) — foundational; the spawn model
+   everything else assumes.
+2. Per-round + per-day art-repeat (#1 verify-free, #2 used-set).
+3. Per-run no-repeat + cycle-reshuffle (#3).
+4. Dice pity timer (needs Y from playtesting first).
+Build 1 before 2–3 (they assume art is decoupled from HP). 4 is independent
+and can land any time after §32's odds table is exercised in play.
+
+---
+
+## 36. CUSTOMER ANIMATION PLAN (June 15, 2026) — idle boil + hit/attack poses (DESIGN, NOT BUILT)
+
+Goal: customers feel alive — line-boil while ACTIVE (slot 0), and hit/attack
+poses while WAITING (slots 1 & 2). NOT built; this is the spec so a future
+session / Claude-in-Xcode builds it right. The big advantage: the boil
+ENGINE already exists in the Match-3 game and can likely be reused.
+
+### 36.1 What already exists (don't reinvent)
+
+Per MASTER_CONTEXT (Session 25): the Match-3 game has a working line-boil
+flipbook — 3 frames, 0.15s/frame, 0.45s/loop, driven by TimelineView
+(clock-based, can't freeze), managed by `AnimationCoordinator` (one per
+character) with a queue + PRIORITY system (hurt interrupts attack;
+victory/defeat interrupt all; repeated attacks merge). Lives in `Shared/`:
+- `Shared/AnimationCoordinator.swift` — queue/priority engine
+- `Shared/CharacterAnimations.swift` — the boil flipbook driver
+- Art convention: `ramp_<state>_boil1/2/3` PNGs; missing frames → static art
+- ⚠️ Only AnimationCoordinator may write `character.currentState`
+
+IMPORTANT: these files were NOT in the potion file set when this spec was
+written (they're in Shared/, not uploaded). Whoever builds this MUST read
+the real AnimationCoordinator.swift + CharacterAnimations.swift first — do
+NOT assume the API from this doc; confirm signatures against the source.
+
+### 36.2 The integration point in the potion scene
+
+`PotionShopCustomerInSceneView` (PotionShopCustomerSceneView.swift) renders
+the portrait via `sceneAsset: char.scenePortrait` — a SINGLE static image —
+around the body render (~lines 898–929), with a white-silhouette variant
+for waiting customers (`useWhiteSilhouette = !isActive && ...`). THIS is
+where a boil flipbook view replaces the static Image. The scene already
+reacts to state: `.waiting/.defeated/.expired`, shake via
+`customerShakeCounters`, and the June-13 defeat fade. So the EVENT triggers
+for poses largely exist already (see 35.4).
+
+### 36.3 The asks + difficulty
+
+1. IDLE BOIL while active — reuse the boil engine on the active customer's
+   scene portrait. Mostly plumbing, low invention. START HERE.
+2. HIT + ATTACK poses for slots 1 & 2 — swap to a hit-frame / attack-frame
+   when the existing events fire. Today a hit = shake + floating number
+   (NO pose change); an attack = `customerShakeCounters` bump + damage.
+   Work = art-swap-on-event, triggers already fire.
+3. DEFEAT pose — ACTIVE SLOT ONLY (user, June 15). The pose plays DURING the
+   existing June-13 defeat exit (`runDefeat()` freezes position + fades over
+   0.35s, see §ref) — the pose is just the ART shown while that fade carries
+   the customer off (a slump/knockout), NOT a competing animation. Cleanest
+   of the four: defeat is TERMINAL (plays once, no loop, no return-to-idle)
+   and the AnimationCoordinator already treats victory/defeat as
+   interrupt-everything top priority. MAYBE later: if waiting customers (slot
+   1/2) become attackable, defeat would need to work in all slots — but for
+   now defeat only happens to the active customer, so it's slot-0 only.
+4. ALL coexisting (boil loops, hit/attack/defeat poses interrupt, return to
+   idle except defeat which is terminal) — EXACTLY what AnimationCoordinator's
+   queue/priority already does in Match-3. Proven pattern; reuse value highest.
+
+### 36.4 Existing event hooks to drive poses
+
+- Attack (waiting customer acts): brew sequence already bumps
+  `gs.customerShakeCounters[id]` and applies damage → hook the attack pose
+  to the same moment.
+- Hit (customer takes brew damage): currently shake + floating number only
+  → add a hit-frame swap at that event.
+- Defeat (active customer's HP hits 0): the June-13 `runDefeat()` in
+  PotionShopCustomerSceneView already fires on `customer.status == .defeated`,
+  freezing position and fading opacity 0 over 0.35s. The defeat POSE swaps
+  the art at that same trigger — the fade/freeze plumbing is done, only the
+  frame swap is new. Active slot only for now.
+- Expire: already handled (June-13 expire slide).
+
+### 36.5 THE REAL CONSTRAINT — it's ART, not code
+
+Boil/poses are hand-drawn FRAMES, not code effects. Per state, per customer:
+- idle boil = 3 frames; hit = ≥1 frame; attack = ≥1 frame; defeat = ≥1 frame
+  (slump/knockout; active customer only).
+- ~12 gmarkers today, heading toward 50–100. Full boil on every state for
+  every customer = a LOT of frames.
+- The engine degrades gracefully: missing frames → static art (MASTER_CONTEXT
+  confirms "other states show static until boil frames added"). So roll out
+  INCREMENTALLY — customer by customer, state by state. Nothing blocks
+  partial coverage. (Missing defeat frame = today's plain fade, so defeat
+  poses are purely additive.)
+
+### 36.6 Open design decisions (resolve before building)
+
+1. HOW MUCH per customer? Recommend LIGHT to start: boil on IDLE only
+   (most-seen), single STATIC poses (no boil) for hit/attack/defeat. Slashes
+   art load while still reading as "reacts when hit / winds up to attack /
+   slumps when defeated." Full boil-everything is the rich-but-expensive version.
+2. REUSE Match-3's AnimationCoordinator, or a slim potion-specific one?
+   It's in Shared/ so reusable, but the potion scene is a different render
+   path (feet-anchor + scenePortrait) than Match-3 battle portraits. Reuse
+   = less new code, more adaptation; slim custom = more code, no Match-3
+   entanglement. Decide by reading the coordinator's coupling first.
+3. ASSET NAMING: customers currently render ONE `scenePortrait`
+   (`gmarker_octo`). Boil needs a frame set per state — decide the
+   convention BEFORE drawing art, e.g. `gmarker_octo_idle_boil1/2/3`,
+   `gmarker_octo_hit`, `gmarker_octo_attack`, `gmarker_octo_defeat`,
+   mirroring `ramp_<state>_boilN`.
+
+### 36.7 Recommended sequencing
+
+START: idle boil on the ACTIVE customer only — one state, reuses the proven
+engine, immediately makes the scene feel alive, minimal art (3 frames ×
+however many customers you choose to animate first). FEEL the art workload.
+THEN: add hit/attack poses (static first, boil later if wanted). Doing all
+three states × all customers at once is a big art commitment before knowing
+whether the light version already suffices.
+
+### 36.8 Cross-refs
+
+- MASTER_CONTEXT "Character Portrait Animation System" (Session 25) + its
+  ANIMATION_ART_GUIDE.md / SESSION_25 doc = the authoritative engine docs.
+- This plan slots alongside §34 (spawn architecture) as a planned-feature
+  spec; both are art-gated content systems for the same customer scene.
+
+## 37. JUNE 15–18, 2026 — COMBAT/UX FIXES: defeat fade, patience ring, patience=10, boost multiplies
+
+Several real BUILT changes this session (distinct from the planning in
+§34–36). Files: PotionShopCustomerSceneView.swift, PotionShopGameState.swift,
+PotionShopData.swift.
+
+### 37.1 Defeat exit — fade in place (was: snap to screen right)
+
+A defeated customer used to get yanked from the queue instantly; the queue
+re-index + matchedGeometryEffect dragged the dying view rightward before it
+vanished ("snap to screen right"). FIX: `runDefeat()` in
+PotionShopCustomerSceneView freezes the customer at its current spot
+(`defeatFrozenX/Y`, `defeatFrozen`) and fades opacity 0 over 0.35s, opting
+OUT of the queue reposition and matchedGeometry (via new
+`PotionShopConditionalMatchedGeometry` modifier, `active: !defeatFrozen`).
+Triggered on `customer.status == .defeated`. Expired customers' intentional
+slide-off (storm out, `expireSlideX = 200`) is untouched — defeat ≠ expire.
+NOTE: `PotionShopConditionalMatchedGeometry.id` is `UUID` (customer.id is a
+UUID, not String) — an early build error was a String/UUID mismatch.
+
+### 37.2 Patience ring not depleting — STALE-COPY bug (the real one)
+
+Symptom: the green ring around the 3 profile buttons sat full no matter how
+many brews. Patience WAS ticking correctly in the brew sequence (doBrew
+Phase 5, `customers[cIdx].patience -= tick`) — the ring just wasn't seeing
+it. ROOT CAUSE: the ring read `customer.patience` from the `let customer`
+COPY passed into the profile-button view, which went stale; the live decrement
+was on `gs.customers`. FIX: new helpers in BOTH ring-drawing structs
+(`PotionShopProfileButtonView` AND `PotionShopInspectStripView` — there are
+TWO) look the customer up live by id:
+    `liveCustomer = gs.customers.first { $0.id == customer.id } ?? customer`
+    `livePatience / liveMaxPatience`
+and the ring/trim/color/animation all read those. ALSO thickened 3→6pt with
+a gray track + round line caps so the per-tick step is visible.
+GOTCHA THAT BIT US: the file has TWO structs each drawing a patience ring;
+the first fix added helpers to one struct but edited the ring in the other →
+7 "cannot find in scope" errors. Both structs now have the helpers. When
+touching the profile ring, remember there are two.
+XCODE QUIRK: after the successful fix, stale red "cannot find in scope"
+errors lingered in the issue navigator even though the build SUCCEEDED and
+the rings worked — ghost diagnostics from the prior failed compile. Cleared
+by reopening the file / deleting derived data. A successful build = correct
+code; surviving errors are an editor display bug, not real.
+
+### 37.3 Patience timing + value
+
+- Patience ticks ONCE PER BREW, during the brew sequence AFTER damage/attacks
+  resolve (doBrew Phase 5). It is NOT a background timer — it does not move
+  while the player just sits there. This matches the intended "tick at the
+  top of every turn, after a brew."
+- All 15 gmarker customers set to `patience: 10` in PotionShopData (Day 1
+  cast). Old hand-authored characters left untouched (Day 2+ unaffected).
+  Per-customer patience values will be tuned later (placeholder 10 for now).
+
+### 37.4 Boost — multiply EXPERIMENT, reverted to ADDITIVE (June 18)
+
+History: June 15 changed boost from additive to multiplicative
+(`multiplier *= boost.value`, also applied to heal/shield). June 18 the user
+REVERTED to ADDITIVE — the multiply was too swingy. CURRENT (canonical)
+behavior in `computeBrew`:
+- `multiplier += boost.value * 0.5` — a 4-boost gives ×3 to adjacent dice.
+- Boost affects DAMAGE dice only (potency, stability). Heal/shield are plain
+  `baseValue`, NOT boosted.
+Which dice a boost REACHES still comes from `PotionShopDieRules.affectedNodes`;
+the specific reach rules (§ planning #3) remain NOT wired — today it's
+whatever that struct returns.
+
+### 37.5 Still open / not built (unchanged by this session)
+
+- Specific boost-reach rules (which nodes a boost affects) — §ref planning #3.
+- Spawn architecture (§35): HP-bucket table, art-repeat rules, dice pity.
+- Customer animation (§36): idle boil + hit/attack/defeat poses.
+- A NUMBERS-TESTING system (user gathering balance numbers): discussed three
+  levels — (1) live-tunable values + on-screen readout of hidden state
+  (patience/damage/composure each turn), (2) a simulator that dry-runs a
+  round N times for win-rate, (3) an analytical math dump. Recommended
+  starting at level 1 (most confusion has been "couldn't see the numbers,"
+  e.g. the patience-expiration "slot-1 death" and this ring bug). NOT built.
+## 38. JUNE 18, 2026 — PER-CHARACTER FLAVOR (order phrases + trait names), banner relabel, boost FINAL
+
+Cosmetic per-character flavor system BUILT, plus a banner rework and the
+final word on boost. Files: PotionShopModels.swift, PotionShopGameState.swift,
+PotionShopData.swift, PotionShopCustomerSceneView.swift. (These FOUR must
+ship together — the feature spans all of them; a stale copy of any one
+causes "has no member 'chosenOrderPhrase/chosenTraitName'" build errors,
+which happened twice this session due to partial uploads.)
+
+### 38.1 The model chosen — PER-CHARACTER pools (not global)
+
+User's decision (vs the global-pool idea in §35): each character owns its
+OWN bag of flavor; on spawn the game picks one at random from THAT
+character's bag. Result: a customer varies what they say / which trait shows,
+but always stays in-character (no global mixing, no incoherent combos). This
+is COSMETIC only. Functional stats (HP, attack) are unchanged and remain
+per-character numbers for now (their bucketing is still §35 future work).
+
+### 38.2 What was added (data model)
+
+- `PotionShopCharacter` (Models) gained two optional arrays, default empty:
+  `var orderPhrases: [String]` and `var traitNames: [String]`.
+- `PotionShopCustomer` (live, GameState) gained `var chosenOrderPhrase` and
+  `var chosenTraitName`, picked ONCE at spawn from the character's bags and
+  held stable (don't re-roll per render). Both spawn sites set them:
+    `chosenOrderPhrase: char.orderPhrases.randomElement() ?? char.orderDialogue`
+    `chosenTraitName: char.traitNames.randomElement() ?? ""`
+- Back-compat: empty bags fall back to the old single `orderDialogue` /
+  no trait, so non-gmarker characters are unaffected.
+
+### 38.3 Banner layout (PotionShopCustomerSceneView, inspect strip)
+
+TWO rows now:
+- TOP: `name • [trait] number` — the word "Atk" was REMOVED; the trait word
+  is the label, the bare number is the attack value (kept visible for
+  testing). e.g. "Rex • Towering 2". Trait shown in accent color; hidden if
+  the bag is empty.
+- BOTTOM: the order PHRASE the customer is "saying" (`orderLineToShow`,
+  prefers chosenOrderPhrase → orderDialogue → orderName). 2-line limit with
+  slight auto-shrink since real phrases run longer than "A Potion, Please".
+
+### 38.4 ⚠️ WHERE TO WRITE / REPLACE TEXT (for the user)
+
+All flavor lives in `PotionShopData.swift`, one block per gmarker right after
+`trait: nil,`. As of June 18 each of the 15 gmarkers has 3 REAL placeholder
+phrases + 3 trait words (themed, usable as-is). TO EDIT:
+- Open PotionShopData.swift, find each `"gmarker_*": PotionShopCharacter(`.
+- The `orderPhrases: [ ... ]` array = what that customer SAYS (bottom banner
+  row). Replace/extend freely — add as many lines as you want (10–30 fine).
+- The `traitNames: [ ... ]` array = the PERSONALITY word by their name.
+  Replace/extend freely.
+- These are COSMETIC — editing them never changes HP/attack/mechanics.
+- Current placeholder content (replace at will): e.g. dino/Rex says
+  "Rawr — a big one, brewer. Big." with traits Ancient/Towering/Roaring;
+  demon "Your finest, or your last." with Wrathful/Smoldering/Dread; etc.
+- Non-gmarker (Day 2+) characters have EMPTY bags → they show their old
+  single orderDialogue and no trait until you write bags for them too.
+
+### 38.5 BOOST — FINAL behavior decisions (history of flip-flops)
+
+Boost has changed several times; current state and the PENDING change:
+- June 15: changed additive→MULTIPLICATIVE (`multiplier *= boost.value`),
+  applied to heal/shield too. Too swingy.
+- June 18 (early): reverted to ADDITIVE-TO-MULTIPLIER
+  (`multiplier += boost.value * 0.5`; a 4-boost → ×3), damage dice only,
+  heal/shield NOT boosted. THIS is what's in the delivered code right now.
+- June 18 (PENDING — user's latest ask, NOT yet built): boost should ADD ITS
+  FACE VALUE FLAT to connected die VALUES, not a multiplier. "A 4-boost adds
+  4 to all values" → a 3-potency next to a 4-boost = 3+4 = 7. Open confirms
+  before building: (A) add to die value pre-effect [expected] vs (B) +flat to
+  final output; whether it hits heal/shield too ["all values" suggests yes];
+  whether two boosts stack additively [expected yes]. The boost loop in
+  `computeBrew` is the single edit site (currently
+  `multiplier += Double(adjDie.value) * 0.5`). Reach still from
+  `PotionShopDieRules.affectedNodes` (specific reach rules still NOT wired).
+
+### 38.6 Process note — stale uploads (recurring)
+
+Third+ time this session a partial/old upload undid cross-file work (the
+flavor feature missing entirely from one upload; boost reverting; the
+context doc itself arriving stale at §33 while the live doc was §37). RULE:
+features here span multiple files — always pull the WHOLE delivered set, and
+treat the highest-numbered context doc as canonical. When diagnosing, grep
+the expected symbols across files (`chosenOrderPhrase`, `orderPhrases`,
+`multiplier +=`) to spot which file reverted.
+## 39. DYNAMIC BOARD PLAN (June 18, 2026) — per-day node/connection variation (DESIGN, OPTIONS OPEN, NOT BUILT)
+
+Idea: every day the cauldron board is slightly rearranged — different
+connections (and maybe different node positions) — so strategy shifts. User
+undecided on the variants; this captures the analysis so it isn't re-derived.
+
+### 39.1 Key finding — the board is already data-driven
+
+`PotionShopBoard` (PotionShopModels.swift) is just two constants:
+`static let nodes: [Node]` (12 positions) and `static let edges: [(Int,Int)]`
+(connections). EVERYTHING else reads from them and adapts: node views,
+connection lines, drag targets (loop over nodes.count), and the reach/boost
+math (BFS over edges via `neighbors`/`neighborsWithin`). So "dynamic board"
+fundamentally = swap what's in nodes/edges per day. The machinery to USE a
+different board already exists; only the SELECTION is missing.
+
+### 39.2 Two axes the user is deciding between
+
+A. WHAT varies:
+   - CONNECTIONS ONLY (easier/safer): fixed 12 node positions, different
+     edge list per day. Same dots, different lines. Keeps ALL visual tuning
+     valid (perNodeOffsets, cauldron art alignment, drag frames) since
+     nodes don't move. RECOMMENDED first version.
+   - NODES + CONNECTIONS (harder): positions move too → drags the whole
+     visual-tuning system in (perNodeOffsets, bowl art, editor all assume
+     fixed positions). More involved.
+B. HOW chosen:
+   - PREDETERMINED BUCKET (recommended): hand-author 3–5 layouts, pick one
+     per day (by day number or random from bucket). Every layout is seen +
+     tuned + approved; controllable difficulty/feel; fits the existing
+     tune-in-editor→save-values workflow.
+   - FULLY RANDOM: generate topology each day. More variety but unpredictable
+     (can be trivial, brutal, or ugly); needs guardrails (all nodes
+     reachable, edge count in range) and still won't look as intentional.
+
+### 39.3 Nice property — reach is graph-hops, so connections drive strategy free
+
+Reach = graph hops over `edges` (a die reaches nodes N connections away),
+NOT physical distance. So changing the edge list automatically changes
+reach/boost strategy at runtime — dynamic connections don't just LOOK
+different, they PLAY different with no extra code.
+
+### 39.4 Recommendation + sequencing
+
+Start with CONNECTIONS-ONLY + PREDETERMINED BUCKET: lowest risk, reuses all
+tuning, every layout pre-approved, and reach-changes-for-free gives real
+gameplay variety. Implementation: convert nodes/edges from `static let` to a
+per-day SELECTION (board chosen at day start, like HP buckets §35). Belongs
+near the §35 day/round-driven systems. Moving-nodes and fully-random are
+possible later but trade designed-feel + tuning-stability for unpredictability.
+STATUS: user undecided (June 18) — do NOT build until A + B are chosen.
+## 40. RUN SYSTEM PLAN — boons (deck-building) + relics (June 18, 2026) (DESIGN, NOT BUILT)
+
+The roguelite spine: a persistent RUN, a deck that grows via BOONS, and
+optional always-on RELICS. This is the same neighborhood as the endless-mode
+idea (§35) and should be built as ONE coherent run-system, not piecemeal.
+Standard roguelite architecture (cf. Slay the Spire cards + relics). User has
+zero coding background — this spec is the full blueprint for a future
+session / Claude-in-Xcode; build nothing until greenlit.
+
+### 40.1 The foundation — a RUN-STATE CONTAINER (build this first, always)
+
+Today `PotionShopGameState` (an @Observable class) already persists across
+rounds/days (dayId, roundIndex, composure, potionsBrewed, bag). BUT
+`buildStartingBag()` REBUILDS the deck from a hardcoded list every round
+(called at lines ~398, ~463) — so the deck resets constantly. That reset is
+the ONE thing between today and deck-building.
+
+THE FOUNDATION: an explicit run-state bundle that survives the WHOLE run and
+resets ONLY on death / new run. It holds:
+  • the player's RUN DECK (accumulated dice — replaces the per-round rebuild)
+  • the list of BOONS taken
+  • (later) the list of active RELICS
+  • run progress (day, etc.)
+KEY CHANGE: `buildStartingBag()` runs ONCE at run start to seed the deck;
+after that the deck only changes when a boon modifies it. The deck STOPS
+being regenerated each round and instead carries forward.
+⚠️ CRITICAL: even for a boons-ONLY first version, build the run-state
+container PROPERLY. Hacking deck-persistence in ad hoc is the one decision
+that's expensive to reverse — a clean container keeps relics (40.3) an
+optional later add with no rebuild.
+
+### 40.2 BOONS — deck-building (the EASIER half, build first)
+
+User's model: boons add/upgrade dice, and a die can CARRY A RULE that affects
+the run when that die is used. Your dice get stronger.
+- A DIE becomes: type + value + tier + OPTIONAL rule(s). (Today it's
+  type+value+tier; needs an optional modifier bundle added.)
+- A BOON = "add this die to your run deck" OR "upgrade a die in your run
+  deck" (upgrade = same mechanism pointed at an existing die). The die may
+  carry a rule (e.g. an upgraded boost die carries a higher value / a special
+  reach).
+- PERSISTENCE IS AUTOMATIC: the rule rides on the die, the die rides in the
+  run deck, the run deck carries forward. Acquire the die → its effect is
+  part of your run until the run ends. No separate global system needed —
+  everything flows through the deck (the channel that already exists).
+- WHY EASIER: reuses the existing bag/deck. The only structural work is
+  (a) persist the deck (40.1), (b) let a die carry a rule, (c) the menu (40.4).
+
+### 40.3 RELICS — always-on run effects (the HARDER half, optional later layer)
+
+User's model: relics carry rules/values/effects that persist for the ENTIRE
+run, independent of the deck (e.g. "Amulet: +1 focus every evening & night
+round").
+- A relic is NOT carried by a die. It's a free-floating, always-on effect at
+  the RUN level, firing on triggers unrelated to the deck.
+- REQUIRES (the new work relics need and boons don't):
+  1. a run-level LIST OF ACTIVE RELICS (lives in the 40.1 container).
+  2. TRIGGER HOOKS scattered through the game — start-of-round, end-of-round,
+     start-of-day, on-brew, on-defeat, etc. Each moment must "check active
+     relics and fire any that apply here." This is essentially a small EVENT
+     system, and it's why relics are harder — not any single relic, but the
+     wiring of moments-that-announce-themselves.
+- WHY IT'S A CLEAN SECOND LAYER: relics are just a SECOND list added to the
+  same run-state container from 40.1. Boons don't get rebuilt; relics slot in
+  beside them. The only genuinely new work is the trigger hooks.
+
+### 40.4 The BETWEEN-ROUNDS MENU (frequency is a SETTING, not a structural choice)
+
+After a round (or day) clears: pause, show 2–3 boon cards, player picks one,
+it's applied to the run deck. New UI (a card-choice screen) + a "pick N random
+boons from the boon pool" roll.
+FREQUENCY — every-round vs every-day: this is JUST A TRIGGER, identical system
+either way. Build it as a FLAG ("boon menu: every round / every day") so the
+user can toggle and playtest which feels better — NO rebuild to switch, no
+"remove and expand." (Same toggle pattern as the dice/scene flags.)
+
+### 40.5 Difficulty / sequencing answers (for the user)
+
+- EASIER: boons (deck-building) — reuses the deck system. Relics need a new
+  event/trigger layer.
+- "Boons for a few days, then relics?" YES, the right order. Both share the
+  40.1 run-state container; build it properly with boons, and relics become a
+  second list + trigger hooks later with no rebuild.
+- "Both or one?" Don't have to decide now. A proper run-state container keeps
+  relics OPTIONAL for free. Only expensive mistake = ad-hoc deck persistence.
+- BUILD ORDER: (1) run-state container + persist deck; (2) dice carry rules;
+  (3) boon menu (frequency flag); (4) [later] relics list + trigger hooks.
+- Interlocks with §35 (spawn/HP buckets), §39 (dynamic board) — all are
+  per-run/per-day systems hanging off the same run-state. Design together
+  against real balance numbers; don't build ad hoc before those land.
+## 41. JUNE 18, 2026 — RUN SYSTEM TEST BUILD (boons + persistent deck) — BUILT
+
+First testable cut of the roguelite spine from §40. BUILT (test, not final).
+NEW FILE: PotionShopRunSystem.swift (must be ADDED to the Xcode target — it's
+a new file, not a replacement). Also changed: PotionShopGameState.swift,
+PotionShopModels.swift, PotionShopGameView.swift, PotionShopDebugMenu.swift.
+
+### 41.1 What was built
+
+- RUN-STATE CONTAINER (§40.1): `PotionShopRunState` (deck + boonsTaken) lives
+  on PotionShopGameState as `run`. The deck is SEEDED ONCE at run start and
+  carries forward; it is NO LONGER rebuilt each round. Both deal sites now do
+  `ensureRunDeck(); bag = run.deck.shuffled()` instead of buildStartingBag().
+  resetGame() reseeds (new run = fresh deck).
+- BOONS (§40.2): `PotionShopBoon` with effect `.addDie(type, rule)` or
+  `.upgradeDie(type, amount)`. `PotionShopBoonPool` = 8 placeholder boons,
+  draws 3 per menu. `run.apply(boon)` mutates the deck.
+- DICE CARRY RULES: `PotionShopBagDie` gained `var rule: PotionShopDieRule`
+  (bonusValue + label). `PotionShopDie` gained `var ruleBonus: Int`. The
+  bonus threads bag→live die→computeBrew (`baseValue = die.value +
+  dieValueMod + die.ruleBonus`).
+- BOON MENU UI: new `.choosingBoon` phase; `PotionShopBoonMenuView` (3 cards,
+  tap to pick, shows a live deck summary so you watch it grow). advanceRound
+  routes through `offerBoons(thenAdvanceToDay:)` → menu → `chooseBoon` →
+  continues to next round or dayWon.
+- FREQUENCY FLAG: `boonFrequency` (.everyRound / .everyDay) — toggle, no
+  rebuild (§40.4). CURRENT DEFAULT: .everyDay (changed June 18, see §44).
+
+### 41.2 KNOWN TEST LIMITATION — Day-1/Day-2 type override
+
+Because Day 1 & 2 use the §32 unified-roll (spin DECIDES type), a boon-added
+"potency die" grows the deck and its ruleBonus still applies, BUT its TYPE is
+re-rolled by the slot machine when drawn — so you can't yet see boon
+type-TARGETING on those days (deck-growth + bonus magnitude ARE visible).
+On non-unified days the type would stick. → This limitation is exactly why
+the DICE-MODEL PIVOT (§42, next) is happening.
+
+### 41.3 What's NOT in this build
+
+Relics, dynamic board, real balance values, focus mechanics. All deferred.
+
+## 42. DICE-MODEL PIVOT — bag-of-real-dice (Dice-in-the-Dungeon model) — BUILT June 18, 2026
+
+Major decision that REVISES §32. The user wants Dice-in-the-Dungeon
+mechanics, NOT the §32 "spin decides type" slot machine. NOT yet built;
+this is the agreed spec for the next build.
+
+### 42.1 The pivot
+
+OLD (§32, ii-a): the bag is ODDS; the spin DECIDES a die's type+value; a die
+has no identity until it lands. NEW: the bag holds REAL TYPED+TIERED DICE you
+own; you draw a random assortment; each drawn die's TYPE is fixed (its own
+identity, from the bag); the spin is COSMETIC animation that lands on that
+die's OWN type; only the VALUE rolls. Strategy = your bag composition (what
+you own, shaped by boons), not reacting to a slot machine.
+
+Player-facing: looks almost identical (dice still tumble + stop). What
+changes is MEANING — the tumble decorates a die that already knows what it
+is, instead of choosing what it is.
+
+### 42.2 A die = TYPE + TIER + (rolled VALUE) + (rule BONUS)
+
+- TYPE — fixed, from the bag (potency/boost/heal/shield/stability; later
+  mirror, bomb, etc. — new types are just enum + brew-math additions, each
+  can have tiers + be boons).
+- TIER — basic → silver → gold, fixed per die, UPGRADEABLE. Tier sets the
+  VALUE RANGE the die rolls in (e.g. you may never roll a 4-potency until
+  silver). Code ALREADY has `PotionShopDieTier` + `tier.rollFace()` — it's
+  just bypassed today by the §32 override. The pivot reconnects it.
+- VALUE — rolled fresh each draw, WITHIN the tier's range. (Later: a
+  weighting table ties values to HP buckets/day — see §35.)
+- RULE BONUS — TYPE-WIDE flat add from boons/relics ("all boosts +2"),
+  applied to whatever value is rolled, on top, regardless of die. NOTE: this
+  is a CORRECTION to §41's per-die bonus — the user wants the rule to follow
+  the TYPE across every die of that type, not ride one physical die.
+
+### 42.3 Boons/relics under this model
+
+- Boon: ADD a die (type+tier) to the bag, or UPGRADE a die's TIER (raise its
+  value range), or apply a TYPE-WIDE rule ("all X +N").
+- Owning a die ≠ drawing it every turn — you still draw a random assortment;
+  the bag composition just makes some types more likely (they're physically
+  in the bag). e.g. 3 boost dice + "boost +2": you might draw 1, it rolls its
+  own value, +2 applies; the other 2 stay in the bag.
+- FOCUS (how many dice you can PLAY) becomes a run-level number boons/relics
+  can change (+1 focus, or +1 focus / −1 boost-value trade-offs). Run-state
+  layer, same as relics.
+
+### 42.4 Build implications
+
+- The §32 deal currently OVERRIDES type via `rollOutcome`. Pivot: on
+  unified-roll days the deal reads each drawn bag die's REAL type, rolls a
+  value via its tier, and the cube cosmetically spins to that die's own
+  type-face. Centralized gate already exists: `usesUnifiedDiceRoll` (Day 1 +
+  Day 2) — ONE place to change.
+- Everything downstream (place/brew/boon bonus) already works with a typed
+  die, so it mostly "just works" once the deal respects bag types.
+- Sequencing: Day 2 was made to MIRROR Day 1 first (done, §below) so there
+  are two comparable days before the pivot.
+
+### 42.5 Day 2 mirrors Day 1 (BUILT June 18, pre-pivot step)
+
+Day 2 now matches Day 1: all rounds feet-anchor + gmarker random pool +
+3/3/3/1 counts; `currentRoundUses3DDice` and `usesUnifiedDiceRoll` extended
+to day_2. Old Day-2 cast (sister_halla, bram, carmilla, royal_envoy…) no
+longer referenced but kept in the characters dict (Day 3+ / pickers use them).
+Files: PotionShopData.swift, PotionShopGameState.swift.
+## 43. JUNE 18, 2026 — DICE PIVOT BUILT + BOOST REBUILT (ADD) + type-wide boons — BUILT
+
+Implements the §42 pivot and reworks boost from multiply→add, plus type-wide
+boons. Files: PotionShopGameState.swift, PotionShopCauldronView.swift,
+PotionShopRunSystem.swift.
+
+### 43.1 Dice pivot — now BUILT (was §42 plan)
+
+On `usesUnifiedDiceRoll` days (Day 1 + Day 2), `drawFromBag` and `reroll3DDice`
+now build each die as: TYPE from the bag (`bd.type`, its own identity), VALUE
+from `bd.tier.rollFace()` (tier ranges: basic 1–4, silver 2–5, gold 3–6),
+and `faceValue = PotionShop3DDiceAssetMap.faceId(forType:)` so the cube
+COSMETICALLY spins to land on the die's OWN type. The §32 slot-machine
+(`rollOutcome` deciding type) is no longer called in dealing (function kept,
+unused). Reroll preserves type, only re-rolls value. Badge shows die.value
+(tier-rolled). Boons now target real types.
+
+### 43.2 BOOST rebuilt — ADD, not multiply (FINAL for now)
+
+computeBrew Stage 2 rewritten. THE MODEL (plain language):
+  STAGE 1 (the die's number) = rolled value + inspiring bonus + the die's own
+    per-die boon bonus (ruleBonus, which now also includes type-wide bonus).
+  STAGE 2 (boost) = every boost CONNECTED to the die adds its value; all
+    connected boosts SUM, then that sum is ADDED to the die's number.
+    • Boost AFFECTS EVERY TYPE now (potency, stability, heal, shield) — not
+      just damage.
+    • A boost does NOT boost another boost (boosts add to non-boost dice only).
+    • A boost's contribution = adjDie.value + adjDie.ruleBonus (so "all boosts
+      +2" makes a 4-boost add 6).
+  APPLY:
+    • potency → damage += total
+    • stability → damage += total × 0.5  (clean HALF of potency for now;
+      stability's real "stabilize the cauldron" role is UNDECIDED)
+    • heal → healing += total
+    • shield → shielding += total
+    • boost → contributes nothing itself
+  EXAMPLE (user's screenshot): 5-shield with two 3-boosts = 5 + (3+3) = 11 shield.
+
+HISTORY: boost was multiply (§32-era), then additive-to-multiplier (§38.5),
+now ADD-to-value (§43). This is the current/final-for-now model.
+
+### 43.3 Boons — per-die AND type-wide (both now exist)
+
+- PER-DIE (`.upgradeDie`): +N on a specific die in the deck (rides on that
+  die's rule.bonusValue). Already existed.
+- TYPE-WIDE (`.typeWideBonus`, NEW): +N to EVERY die of a type for the rest
+  of the run. Stored in `run.typeBonuses[type]`; applied in drawFromBag as
+  `combinedBonus = bd.rule.bonusValue + run.typeBonuses[bd.type]`. New pool
+  boons: Reinforced Shields (+2 shield), Healing Mastery (+1 heal), Amplified
+  Boosts (+2 boost), Potent Brew (+1 potency).
+- Both persist for the whole run; reset on new run (seedStartingDeck clears
+  typeBonuses).
+
+### 43.4 NOT yet built — trade-off boons need the EVENT SYSTEM
+
+User wants explicitly-worded boons WITH trade-offs, e.g. "+2 boost, lose 1
+health every time a boost die is used." The downside ("every time X is used")
+needs a TRIGGER/event system (same machinery relics need, §40.3). The simple
+additive type-wide boons (43.3) are built; the trade-off/triggered boons are
+the NEXT step (user said: test this first, then do the event system).
+## 44. JUNE 18, 2026 — BOON FREQUENCY set to EVERY DAY + tier-upgrade status
+
+### 44.1 Boon menu now fires per-DAY (was per-round)
+
+`boonFrequency` default changed `.everyRound` → `.everyDay` in
+PotionShopGameState. Flow now: play all rounds of a day → day clears → boon
+menu (1 of 3) → dayWon screen → next day. The everyDay path was already
+wired symmetrically (advanceRound day-boundary branch → offerBoons(
+thenAdvanceToDay: true) → chooseBoon → .dayWon), so this was a ONE-LINE
+flip, no rebuild. Effect: slower deck growth (one boon per full day).
+TO SWITCH BACK: flip the one default to .everyRound. (Could be wired to a
+debug-menu toggle later for self-serve playtesting — not done yet.)
+
+### 44.2 Tier-upgrade boon — NOT built (clarification)
+
+The tier system (basic/silver/gold → value ranges 1–4 / 2–5 / 3–6) is fully
+wired and the pivot (§43) USES it, but NOTHING currently promotes a die's
+tier. The existing `.upgradeDie` boon is a flat +N bonus (misleadingly
+named) — it does NOT change tier. A real `.upgradeTier(type:)` boon
+(basic→silver→gold, raising the value RANGE) is a small clean addition that
+does not yet exist. Seeded dice are all `.basic` and stay basic. Build when
+desired — slots next to the §43.3 type-wide boons.
 ---
 
 **End of CAULDRON_CONTEXT.md**

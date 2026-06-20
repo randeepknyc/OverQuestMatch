@@ -74,6 +74,10 @@ struct PotionShopCustomer: Identifiable, Equatable {
     var patience: Int
     let maxPatience: Int
     var status: PotionShopCustomerStatus
+    // JUNE 18, 2026: cosmetic flavor picked ONCE at spawn from this
+    // character's bags, held stable for its lifetime. Empty = fall back.
+    var chosenOrderPhrase: String = ""
+    var chosenTraitName: String = ""
 
     static func == (lhs: PotionShopCustomer, rhs: PotionShopCustomer) -> Bool {
         lhs.id == rhs.id
@@ -121,6 +125,17 @@ class PotionShopGameState {
     var bag: [PotionShopBagDie] = []
     var discardPile: [PotionShopBagDie] = []
     var hand: [PotionShopDie] = []
+
+    // ─── RUN SYSTEM (test, June 18, 2026 — see CAULDRON_CONTEXT §40) ────
+    /// The persistent run: deck + boons taken. Survives the whole run,
+    /// resets only on a new run (resetGame). The round bag is drawn FROM
+    /// this deck instead of being rebuilt each round.
+    var run = PotionShopRunState()
+    /// The 3 boons currently offered (set when entering .choosingBoon).
+    var boonOffer: [PotionShopBoon] = []
+    /// How often the boon menu appears — flag so both can be playtested
+    /// with no rebuild (§40.4). Default: every round, for testing.
+    var boonFrequency: PotionShopBoonFrequency = .everyDay
     /// Map from cauldron node id → die placed there.
     var placements: [Int: PotionShopDie] = [:]
     var selectedHandIndex: Int? = nil
@@ -291,8 +306,26 @@ class PotionShopGameState {
     /// tray render with a vertical reel-spin animation (3D-style) instead
     /// of the standard static face. Scoped so other rounds are untouched.
     /// Round 2 in non-flex days = roundIndex 1 (afternoon).
+    /// JUNE 12, 2026: the D2R2 dice + node behavior (3D reel-spin tray
+    /// dice, re-roll on every turn, drag-from-node-to-tray snap, the face
+    /// table, value badges, reach-preview glow) applies to EVERY round of
+    /// Day 1 as well as the original Day 2 Round 2 test round.
+    /// (This extension was lost in a file revert and restored June 13 —
+    /// it's why Day 1 dice showed correct numbers but no spin: the visual
+    /// 3D branch was off while the data path was already unified.)
+    ///   • All of Day 1  → dayId == "day_1"
+    ///   • Day 2 Round 2 → roundIndex 1 (afternoon)
     var currentRoundUses3DDice: Bool {
-        !isFlexDay && dayId == "day_2" && roundIndex == 1
+        if isFlexDay { return false }
+        if dayId == "day_1" { return true }
+        if dayId == "day_2" { return true }
+        return false
+    }
+
+    /// JUNE 18, 2026: which days use the §32 unified dice-outcome roll.
+    /// Day 1 and now Day 2. Centralized so the dice-model pivot has ONE knob.
+    var usesUnifiedDiceRoll: Bool {
+        dayId == "day_1" || dayId == "day_2"
     }
 
     /// Editor-only: when true, a floating "🎲 SPIN" button appears on the
@@ -304,17 +337,36 @@ class PotionShopGameState {
     /// scene-rebuild `.id()` on this so all 5 dice replay their spin.
     var spinTrigger3D: Int = 0
 
-    /// Re-roll every die in the hand: both brew-math `value` (from the tier
-    /// table) AND picture `faceValue` (from the uniform 1...6 roller). Then
-    /// bump `spinTrigger3D` so the 3D scene replays its drop/bounce/spin/settle.
-    /// Independent rolls per die — duplicates can occur, just like real dice.
+    /// Re-roll every die in the hand. JUNE 13, 2026 (ii-a): on Day 1 each
+    /// die rolls ONE unified outcome (type + value + face) from the odds
+    /// table, rebuilding the die so its `type` can change too — otherwise a
+    /// reroll would land a new picture/value but keep the old effect type
+    /// (a what-you-see ≠ what-you-get bug). Other days keep independent
+    /// value/face rerolls (type fixed by the bag, as before).
+    /// Then bump `spinTrigger3D` so the 3D scene replays drop/bounce/spin.
     func reroll3DDice() {
         // Fresh roll = every die SHOULD animate, even if it was previously
         // marked as "settled in the tray" by an unplace.
         settledDiceIds.removeAll()
         for i in hand.indices {
-            hand[i].value = hand[i].tier.rollFace()
-            hand[i].faceValue = PotionShopDie.rollFaceImageValue()
+            if usesUnifiedDiceRoll {
+                // PIVOT (§42): a die's TYPE is fixed (its own identity). A
+                // reroll only re-rolls the VALUE (within tier) and replays the
+                // cosmetic spin landing on the die's OWN type. Type unchanged.
+                let old = hand[i]
+                hand[i] = PotionShopDie(
+                    id: old.id,
+                    type: old.type,                          // type preserved
+                    tier: old.tier,
+                    value: old.tier.rollFace(),              // value re-rolls in tier
+                    faceValue: PotionShop3DDiceAssetMap.faceId(forType: old.type),
+                    trayIndex: old.trayIndex,
+                    ruleBonus: old.ruleBonus
+                )
+            } else {
+                hand[i].value = hand[i].tier.rollFace()
+                hand[i].faceValue = PotionShopDie.rollFaceImageValue()
+            }
         }
         spinTrigger3D += 1
     }
@@ -364,7 +416,8 @@ class PotionShopGameState {
                 customers = []
                 queue = []
                 inspectedId = nil
-                bag = buildStartingBag()
+                ensureRunDeck()
+                bag = run.deck.shuffled()
                 discardPile.removeAll()
                 drawFromBag()
                 placements.removeAll()
@@ -421,13 +474,16 @@ class PotionShopGameState {
                 maxHp: char.hp,
                 patience: char.patience,
                 maxPatience: char.patience,
-                status: .waiting
+                status: .waiting,
+                chosenOrderPhrase: char.orderPhrases.randomElement() ?? char.orderDialogue,
+                chosenTraitName: char.traitNames.randomElement() ?? ""
             )
         }
         queue = customers.map { $0.id }
         inspectedId = nil
 
-        bag = buildStartingBag()
+        ensureRunDeck()
+        bag = run.deck.shuffled()
         discardPile.removeAll()
         drawFromBag()
 
@@ -464,7 +520,9 @@ class PotionShopGameState {
             maxHp: char.hp,
             patience: char.patience,
             maxPatience: char.patience,
-            status: .waiting
+            status: .waiting,
+            chosenOrderPhrase: char.orderPhrases.randomElement() ?? char.orderDialogue,
+            chosenTraitName: char.traitNames.randomElement() ?? ""
         )
         // Replace IN PLACE so the customers array order matches what the
         // profile-button row expects (June 1, 2026). Previously we removed
@@ -518,9 +576,41 @@ class PotionShopGameState {
             ? PotionShopData.roundCount(forDayId: dayId)
             : PotionShopConfig.roundsPerDay
         if roundIndex >= totalRounds {
-            // Day complete
+            // Day complete — offer a boon here too if frequency is everyDay.
+            if boonFrequency == .everyDay {
+                offerBoons(thenAdvanceToDay: true)
+            } else {
+                phase = .dayWon
+            }
+        } else {
+            // Mid-day round boundary. Offer a boon if frequency is everyRound.
+            if boonFrequency == .everyRound {
+                offerBoons(thenAdvanceToDay: false)
+            } else {
+                startRound()
+            }
+        }
+    }
+
+    /// JUNE 18, 2026 (run system test): present a 3-boon choice. The chosen
+    /// boon is applied in `chooseBoon`, which then continues the flow.
+    private var boonLeadsToDay = false
+    func offerBoons(thenAdvanceToDay: Bool) {
+        boonLeadsToDay = thenAdvanceToDay
+        boonOffer = PotionShopBoonPool.draw(3)
+        phase = .choosingBoon
+    }
+
+    /// Apply the player's chosen boon to the run deck, then continue:
+    /// either start the next round or show the day-won screen.
+    func chooseBoon(_ boon: PotionShopBoon) {
+        ensureRunDeck()
+        run.apply(boon)
+        boonOffer = []
+        if boonLeadsToDay {
             phase = .dayWon
         } else {
+            phase = .playing
             startRound()
         }
     }
@@ -551,6 +641,10 @@ class PotionShopGameState {
         shield = 0
         potionsBrewed = 0
         flexDayGeneratedRounds = []
+        // JUNE 18: new run → fresh deck + cleared boons.
+        run = PotionShopRunState()
+        run.seedStartingDeck()
+        boonOffer = []
         startRound()
     }
 
@@ -871,28 +965,48 @@ class PotionShopGameState {
         var boostNodes: [Int] = []
 
         for (nodeId, die) in placements {
-            let baseValue = die.value + dieValueMod
-            // Reach now comes from PotionShopDieRules — edit that struct
-            // in PotionShopModels.swift to tune per-die behavior.
-            let reach = PotionShopDieRules.affectedNodes(for: die, placedAt: nodeId)
-            var multiplier: Double = 1.0
-            for rn in reach {
-                if let adjDie = placements[rn], adjDie.type == .boost {
-                    multiplier += Double(adjDie.value) * 0.5
-                    if !boostNodes.contains(rn) {
-                        boostNodes.append(rn)
+            // STAGE 1 — the die's number: rolled value + global inspiring
+            // bonus + this die's own per-die boon bonus (ruleBonus).
+            let baseValue = die.value + dieValueMod + die.ruleBonus
+            // STAGE 2 — BOOST (June 18, 2026, rebuilt): boosts ADD, they do
+            // NOT multiply. Every boost connected to this die contributes its
+            // value; all connected boosts SUM, then that sum is ADDED to the
+            // die's number. Boost now affects EVERY die type (potency,
+            // stability, heal, shield), not just damage. A boost does NOT
+            // boost another boost (boosts only add to non-boost dice).
+            // Example: a 5-shield with two 3-boosts = 5 + (3+3) = 11 shield.
+            // JUNE 20, 2026: a boost affects this die if the BOOST's OWN reach
+            // includes this die's node (not the other way around). So we ask
+            // each placed boost "do you reach me?" using the boost's reach
+            // rule (direct neighbors). This makes "connected" mean the boost's
+            // wired neighbors, independent of this die's own reach.
+            var boostSum = 0
+            if die.type != .boost {
+                for (boostNode, boostDie) in placements where boostDie.type == .boost {
+                    let boostReach = PotionShopDieRules.affectedNodes(for: boostDie, placedAt: boostNode)
+                    if boostReach.contains(nodeId) {
+                        // A boost's contribution includes its own ruleBonus
+                        // (so an "all boosts +2" boon makes a 4-boost add 6).
+                        boostSum += boostDie.value + boostDie.ruleBonus
+                        if !boostNodes.contains(boostNode) {
+                            boostNodes.append(boostNode)
+                        }
                     }
                 }
             }
+            let total = baseValue + boostSum
             switch die.type {
             case .potency:
-                damage += Double(baseValue) * multiplier
+                damage += Double(total)
             case .stability:
-                damage += Double(baseValue) * multiplier * 0.8
+                // Clean half of potency (June 18, 2026). Stability's real
+                // role ("stabilize the cauldron") is undecided — for now it's
+                // a half-strength damage die.
+                damage += Double(total) * 0.5
             case .heal:
-                healing += baseValue
+                healing += total
             case .shield:
-                shielding += baseValue
+                shielding += total
             case .boost:
                 break
             }
@@ -938,6 +1052,14 @@ class PotionShopGameState {
     }
 
     // MARK: - Bag / draw / discard
+
+    /// Seed the persistent run deck once, if it hasn't been yet (new run).
+    /// June 18, 2026 run system.
+    private func ensureRunDeck() {
+        if run.deck.isEmpty {
+            run.seedStartingDeck()
+        }
+    }
 
     private func buildStartingBag() -> [PotionShopBagDie] {
         // 8-die starting bag. Tunable. Move into PotionShopConfig if
@@ -985,14 +1107,48 @@ class PotionShopGameState {
         bag.removeFirst(count)
 
         hand = drawn.enumerated().map { (i, bd) in
-            PotionShopDie(
-                id: bd.id,
-                type: bd.type,
-                tier: bd.tier,
-                value: bd.tier.rollFace(),
-                faceValue: PotionShopDie.rollFaceImageValue(),
-                trayIndex: i
-            )
+            // JUNE 18, 2026: a die's total carried bonus = its own per-die
+            // boon bonus (bd.rule.bonusValue) + any TYPE-WIDE run bonus for
+            // its type ("all shield +2"). Both persist for the run.
+            let combinedBonus = bd.rule.bonusValue + (run.typeBonuses[bd.type] ?? 0)
+            // JUNE 13, 2026 (ii-a): on Day 1, the tray spin is a slot machine.
+            // ONE weighted roll against the face/odds table picks a whole
+            // outcome — type + value + which cube face — and the die stores
+            // all three so they AGREE. The cube shows it, the badge shows its
+            // value, and computeBrew uses its type+value. What-you-see equals
+            // what-you-get, locked from tray to node (no second roll on drag).
+            // ═══ DICE-MODEL PIVOT (June 18, 2026 — §42) ═══
+            // Dice-in-the-Dungeon model: the bag holds REAL TYPED+TIERED dice.
+            // The die's TYPE is its own identity (from the bag, bd.type) — the
+            // spin is now COSMETIC and lands on a face of that SAME type. Only
+            // the VALUE rolls, from the die's TIER range (bd.tier.rollFace()).
+            // This REPLACES the old §32 slot-machine where the spin decided
+            // the type. Boons work properly now: a boost die you added is a
+            // real boost die, drawn at random like any other.
+            // (The `usesUnifiedDiceRoll` branch is kept so non-pivot days, if
+            // any, still use the simple static path in `else`. Both now derive
+            // type from the bag — the only difference is the 3D cosmetic spin.)
+            if usesUnifiedDiceRoll {
+                return PotionShopDie(
+                    id: bd.id,
+                    type: bd.type,                       // TYPE from the bag (its own identity)
+                    tier: bd.tier,
+                    value: bd.tier.rollFace(),           // VALUE rolls within tier range
+                    faceValue: PotionShop3DDiceAssetMap.faceId(forType: bd.type), // spin lands on its own type
+                    trayIndex: i,
+                    ruleBonus: combinedBonus
+                )
+            } else {
+                return PotionShopDie(
+                    id: bd.id,
+                    type: bd.type,
+                    tier: bd.tier,
+                    value: bd.tier.rollFace(),
+                    faceValue: PotionShopDie.rollFaceImageValue(),
+                    trayIndex: i,
+                    ruleBonus: combinedBonus
+                )
+            }
         }
         selectedHandIndex = nil
         // Bump the 3D spin session so every cube REBUILDS its scene on the
@@ -1413,6 +1569,7 @@ class PotionShopGameState {
         switch p {
         case .playing:   return "playing"
         case .roundWon:  return "roundWon"
+        case .choosingBoon: return "choosingBoon"
         case .dayWon:    return "dayWon"
         case .lost:      return "lost"
         }

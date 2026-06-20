@@ -443,6 +443,7 @@ struct PotionShopDebugMenu: View {
         switch p {
         case .playing:  return "playing"
         case .roundWon: return "roundWon"
+        case .choosingBoon: return "choosingBoon"
         case .dayWon:   return "dayWon"
         case .lost:     return "lost"
         }
@@ -973,7 +974,12 @@ struct PotionShopDebugMenu: View {
             // Day 3 guides
             "guide_octo","guide_girl","guide_skull","guide_slug","guide_fishguy",
             "guide_bull","guide_traveler","guide_demon","guide_frog","guide_pig",
-            "guide_faun","guide_fox","guide_woman"
+            "guide_faun","guide_fox","guide_woman",
+            // gmarker characters
+            "gmarker_octo","gmarker_girl","gmarker_skull","gmarker_slug",
+            "gmarker_fishguy","gmarker_bull","gmarker_frog","gmarker_fox",
+            "gmarker_traveler","gmarker_demon","gmarker_goatguy","gmarker_oldlady",
+            "gmarker_bird","gmarker_dino","gmarker_puck"
         ]
         let charsWithOverrides = allCharacterIds.filter { key in
             let cs = cfg.characterScale(for: key)

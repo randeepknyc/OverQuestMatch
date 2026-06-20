@@ -230,6 +230,8 @@ struct PotionShopGameView: View {
                 buttonLabel: "Continue",
                 action: { gs.advanceRound() }
             )
+        case .choosingBoon:
+            PotionShopBoonMenuView(gs: gs)
         case .dayWon:
             if PotionShopData.isLastDay(gs.dayId) {
                 placeholderOverlay(
@@ -407,7 +409,8 @@ private let allGuideCharIds: [String] = [
     "gmarker_octo", "gmarker_girl", "gmarker_skull",
     "gmarker_slug", "gmarker_fishguy", "gmarker_bull",
     "gmarker_frog", "gmarker_fox", "gmarker_traveler",
-    "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady"
+    "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady",
+    "gmarker_bird", "gmarker_dino", "gmarker_puck"
 ]
 
 struct PotionShopLayoutOverlay: View {
@@ -2375,4 +2378,93 @@ struct PotionShopLayoutOverlay: View {
 
 #Preview {
     PotionShopGameView()
+}
+
+// MARK: - Boon menu (run system test, June 18, 2026)
+//
+// Shown between rounds: 3 boon cards, tap one to add/upgrade a die in your
+// run deck. Placeholder art (emoji) — the system is what's being tested.
+// Also shows a small current-deck summary so you can SEE the deck growing.
+
+struct PotionShopBoonMenuView: View {
+    @Bindable var gs: PotionShopGameState
+
+    /// Compact deck summary: count of each die type currently in the run deck,
+    /// so the player can watch it grow as boons are taken.
+    private var deckSummary: String {
+        let counts = Dictionary(grouping: gs.run.deck, by: { $0.type })
+            .mapValues { $0.count }
+            .sorted { $0.key.rawValue < $1.key.rawValue }
+        if counts.isEmpty { return "—" }
+        return counts.map { "\($0.value)× \($0.key.rawValue)" }.joined(separator: "  ")
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.78).ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text("Choose a Boon")
+                    .font(Font.gameScore(size: 30))
+                    .foregroundColor(.white)
+                Text("Pick one — it joins your deck for the rest of the run")
+                    .font(Font.gameUI(size: 16))
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+
+                HStack(spacing: 12) {
+                    ForEach(gs.boonOffer) { boon in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                gs.chooseBoon(boon)
+                            }
+                        } label: {
+                            VStack(spacing: 10) {
+                                Text(boon.emoji)
+                                    .font(.system(size: 40))
+                                Text(boon.name)
+                                    .font(Font.gameUI(size: 18))
+                                    .foregroundColor(PotionShopTheme.ink)
+                                    .multilineTextAlignment(.center)
+                                Text(boon.blurb)
+                                    .font(Font.gameUI(size: 13))
+                                    .foregroundColor(PotionShopTheme.muted)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(3)
+                            }
+                            .frame(width: 100, height: 150)
+                            .padding(10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(PotionShopTheme.accent.opacity(0.5), lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                // Current run deck summary (watch it grow)
+                VStack(spacing: 2) {
+                    Text("Your deck (\(gs.run.deck.count) dice)")
+                        .font(Font.gameUI(size: 14))
+                        .foregroundColor(.white.opacity(0.85))
+                    Text(deckSummary)
+                        .font(Font.gameUI(size: 13))
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 4)
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.black.opacity(0.55))
+            )
+            .padding(24)
+        }
+    }
 }

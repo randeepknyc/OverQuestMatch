@@ -1387,6 +1387,9 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "gmarker_demon",    height: .floater,    width: .medium)
         applyGuideCharacter(id: "gmarker_goatguy",  height: .medium,     width: .wide)
         applyGuideCharacter(id: "gmarker_oldlady",  height: .medium,     width: .medium)
+        applyGuideCharacter(id: "gmarker_bird",     height: .medium,     width: .medium)
+        applyGuideCharacter(id: "gmarker_dino",     height: .medium,     width: .medium)
+        applyGuideCharacter(id: "gmarker_puck",     height: .superShort, width: .skinny)
         applyGuideCharacter(id: "guide_slug",     height: .short,      width: .medium)
         applyGuideCharacter(id: "guide_fishguy",  height: .tallHat,    width: .medium)
         applyGuideCharacter(id: "guide_bull",     height: .tall,       width: .wide)
@@ -1436,10 +1439,11 @@ class PotionShopLayoutConfig {
         // ─── Per-cell overrides (June 2, 2026) ─────────────────────
         // 11 tuned (slot × height × width) cells for Day 3 R3 feet-anchor.
         // slot 0 = active, 1 = waiting1, 2 = waiting2.
-        bake(slot: 0, height: .medium,  width: .medium, size: nil,                x: -8.510637283325195,   y: nil)
+        bake(slot: 0, height: .medium,  width: .medium, size: nil,                x: 5.673766136169434,    y: nil)
         bake(slot: 0, height: .medium,  width: .skinny, size: 1.0512411206960677, x: -2.4822592735290527, y: -9.574472904205322)
         bake(slot: 0, height: .medium,  width: .wide,   size: 1.0045213103294373, x: -5.6737542152404785,  y: -4.255318641662598)
         bake(slot: 0, height: .superShort, width: .medium, size: 0.941223394870758, x: 4.964542388916016,    y: -1.4184355735778809)
+        bake(slot: 0, height: .superShort, width: .skinny, size: 1.0180851131677626, x: 16.666674613952637, y: -3.5460948944091797)
         bake(slot: 0, height: .tall,    width: .skinny, size: 1.0030142098665238, x: nil,                  y: -4.964542388916016)
         bake(slot: 1, height: .medium,  width: .skinny, size: 0.9705674469470977, x: 2.127671241760254,    y: -9.574472904205322)
         bake(slot: 1, height: .medium,  width: .medium, size: nil,                x: 9.219861030578613,    y: -6.3829779624938965)
@@ -1457,10 +1461,11 @@ class PotionShopLayoutConfig {
         // ─── HP badge per-cell overrides (June 3, 2026) ────────────
         // Keyed by (height × width) only — HP badge is head-anchored and already
         // scales with per-slot scale at render time.
+        bakeHp(height: .superShort, width: .skinny, size: nil,                 x: -62.606388330459595,  y: -42.81914234161377)
         bakeHp(height: .superShort, width: .medium, size: nil,                 x: -48.244696855545044,  y: -32.180845737457275)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
-        bakeHp(height: .medium,     width: .medium, size: nil,                 x: -49.574464559555054,  y: -18.794310092926025)
+        bakeHp(height: .medium,     width: .medium, size: nil,                 x: -55.95744252204895,   y: -34.397149085998535)
         bakeHp(height: .medium,     width: .wide,   size: nil,                 x: -44.78724002838135,   y: -18.794310092926025)
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
         bakeHp(height: .tall,       width: .medium, size: nil,                 x: -43.61702799797058,   y: 22.2517728805542)
@@ -1470,6 +1475,7 @@ class PotionShopLayoutConfig {
 
         // ─── HP badge per-SLOT overrides (June 3-4, 2026) ──────────
         // Slot-specific deltas — win over shared HxW field-by-field at resolve time.
+        bakeHpSlot(slot: 0, height: .superShort, width: .skinny, size: 49.95922267436981,   x: nil,                  y: nil)
         bakeHpSlot(slot: 0, height: .medium,    width: .wide,   size: nil,                x: -39.46809768676758,   y: nil)
         bakeHpSlot(slot: 0, height: .tallHat,   width: .medium, size: nil,                x: -40.42553901672363,   y: 25.08864402770996)
         bakeHpSlot(slot: 1, height: .medium,    width: .skinny, size: nil,                x: -11.808496713638306,  y: -33.33332538604736)
@@ -1499,6 +1505,10 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 10.63830852508545,   dy: -18.439722061157227, sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 31.20567798614502,   dy: -2.482271194458008,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 10.63830852508545,   dy: -15.2482271194458,   sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 100.35459995269775,  dy: -6.0283660888671875, sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 115.2482271194458,   dy: -6.7375898361206055, sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 50.0,                dy: 0.0,                 sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 7.801413536071777,   dy: -18.085110187530518, sizeMul: 1.0)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to

@@ -288,9 +288,12 @@ struct PotionShopCustomerSceneView: View {
                 // LAYER 1: BACKGROUND (always first = bottom layer)
                 backgroundLayer(geo: geo)
 
-                // LAYER 2: Floor line (Day 1/2 only — Day 3 hides it
-                // so the new template's safe-zone floor is the visual edge).
-                if !gs.isFlexDay {
+                // LAYER 2: Floor line (legacy non-feet-anchor rounds only —
+                // feet-anchor rounds, like Day 3 R3 and now Day 1, hide it so
+                // the template's safe-zone floor is the visual edge).
+                // JUNE 13, 2026: trigger is feet-anchor, not flex-day, so Day 1
+                // matches Day 3 R3 exactly.
+                if !gs.isFlexDay && !gs.currentRoundUsesFeetAnchor {
                     floorLine
                 }
 
@@ -392,9 +395,13 @@ struct PotionShopCustomerSceneView: View {
             
             // LAYER 2: Background image (above gradient)
             // Day 3 uses bgtest1 temporarily so you can preview the new
-            // drawn layout in-game (May 30, 2026). Day 1/2 keeps customerbg.
-            // Revert by changing the bgName below back to "customerbg" only.
-            let bgName: String = gs.isFlexDay ? "bgtest1" : "customerbg"
+            // drawn layout in-game (May 30, 2026). Legacy non-feet-anchor
+            // rounds keep customerbg.
+            // JUNE 13, 2026: the bgtest1 perspective-grid template now shows
+            // on ANY feet-anchor round (Day 3 R3 AND Day 1), not just flex
+            // days, so Day 1 matches Day 3 R3. Revert by changing bgName back
+            // to gs.isFlexDay ? ... or to "customerbg" only.
+            let bgName: String = (gs.isFlexDay || gs.currentRoundUsesFeetAnchor) ? "bgtest1" : "customerbg"
             if let backgroundImage = UIImage(named: bgName) {
                 let _ = print("✅ LOADED: \(bgName)")
                 Image(uiImage: backgroundImage)
@@ -569,6 +576,16 @@ struct PotionShopCustomerInSceneView: View {
     @State private var settleBoost: CGFloat = 1.0
     @State private var expireSlideX: CGFloat = 0
     @State private var expireOpacity: Double = 1.0
+    /// JUNE 13, 2026 fix — DEFEAT exit. A defeated customer used to get
+    /// yanked from the queue instantly; the queue re-index + the
+    /// matchedGeometryEffect then dragged its dying view toward the new
+    /// layout (the "snap to screen right" before it vanished). Now a
+    /// defeated customer FADES IN PLACE: we freeze its position at the spot
+    /// it was defeated and fade opacity to 0, opting out of the reposition.
+    @State private var defeatOpacity: Double = 1.0
+    @State private var defeatFrozen: Bool = false
+    @State private var defeatFrozenX: CGFloat = 0
+    @State private var defeatFrozenY: CGFloat = 0
     @State private var emojiOpacity: Double = 0.0
     @State private var emojiOffset: CGFloat = 0
 
@@ -594,16 +611,27 @@ struct PotionShopCustomerInSceneView: View {
         return true
     }
     private var scale: CGFloat {
-        // Use permutation-aware scale lookup (auto-layout on Day 3+).
-        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay, feetAnchor: gs.currentRoundUsesFeetAnchor)
+        // Use permutation-aware scale lookup. JUNE 13, 2026: the bucket-based
+        // auto-layout (the thing that sizes customers by their H×W bucket) is
+        // now driven by whether the ROUND uses feet-anchor — NOT by whether
+        // the day is a flex day. Feet-anchor IS the bucket system, so they
+        // travel together. This makes Day 1 (legacy day, but feet-anchor on)
+        // size its customers exactly like Day 3 R3 instead of falling back to
+        // untuned per-character defaults (the giant-minotaur bug). Non-feet-
+        // anchor rounds (Day 2, etc.) are unchanged.
+        let useAuto = gs.isFlexDay || gs.currentRoundUsesFeetAnchor
+        let scales = PotionShopSceneLayout.queueScales(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: useAuto, feetAnchor: gs.currentRoundUsesFeetAnchor)
         if queueIndex < scales.count {
             return scales[queueIndex]
         }
         return 0.7
     }
     private var xPos: CGFloat {
-        // Use permutation-aware X position lookup (auto-layout on Day 3+).
-        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: gs.isFlexDay, feetAnchor: gs.currentRoundUsesFeetAnchor)
+        // Use permutation-aware X position lookup. JUNE 13, 2026: auto-layout
+        // X spacing follows feet-anchor too (see `scale` above) so Day 1
+        // spreads customers by bucket like Day 3 R3.
+        let useAuto = gs.isFlexDay || gs.currentRoundUsesFeetAnchor
+        let fractions = PotionShopSceneLayout.queueXFractions(for: queueCount, characterKeys: characterKeys, config: layoutConfig, useAutoLayout: useAuto, feetAnchor: gs.currentRoundUsesFeetAnchor)
         let frac: CGFloat
         if queueIndex < fractions.count {
             frac = fractions[queueIndex]
@@ -1126,15 +1154,26 @@ struct PotionShopCustomerInSceneView: View {
             // handles its own fade and we want badges/emoji at full opacity).
             .opacity((dim && !useWhiteSilhouette) ? 0.55 : 1.0)
             .opacity(expireOpacity)
+            .opacity(defeatOpacity)   // JUNE 13: defeat fade-out
             .scaleEffect(scale * settleBoost)
-            .position(x: xPos + shakeOffset + expireSlideX, y: yPos)
-            .matchedGeometryEffect(
-                id: customer.id,
-                in: animationNamespace,
-                properties: [.position, .size]
+            // JUNE 13 fix: once defeated, hold the position FROZEN at the
+            // defeat spot so the queue re-index can't drag the dying view
+            // rightward. Until then, normal positioning.
+            .position(
+                x: defeatFrozen ? defeatFrozenX : (xPos + shakeOffset + expireSlideX),
+                y: defeatFrozen ? defeatFrozenY : yPos
             )
+            // Skip matchedGeometry while defeated — being in the namespace is
+            // what pulled the dying view toward the new layout.
+            .modifier(PotionShopConditionalMatchedGeometry(
+                active: !defeatFrozen,
+                id: customer.id,
+                namespace: animationNamespace
+            ))
             .animation(
-                .spring(response: 0.55, dampingFraction: 0.78),
+                // Freeze the queue-reposition spring while defeated so the
+                // fade plays cleanly in place.
+                defeatFrozen ? nil : .spring(response: 0.55, dampingFraction: 0.78),
                 value: queueIndex
             )
             // PHASE 7: shake when shake counter increments
@@ -1145,6 +1184,19 @@ struct PotionShopCustomerInSceneView: View {
             .onChange(of: gs.expiringCustomerIds.contains(customer.id)) { _, isExpiring in
                 if isExpiring {
                     runExpiration()
+                }
+            }
+            // JUNE 13 fix: when this customer becomes defeated, freeze it at
+            // its current spot and fade out in place (no snap, no slide).
+            .onChange(of: customer.status) { _, newStatus in
+                if newStatus == .defeated && !defeatFrozen {
+                    runDefeat()
+                }
+            }
+            .onAppear {
+                // Catch the case where the view appears already defeated.
+                if customer.status == .defeated && !defeatFrozen {
+                    runDefeat()
                 }
             }
             .onChange(of: arrivalCounter) {
@@ -1187,6 +1239,20 @@ struct PotionShopCustomerInSceneView: View {
         }
     }
 
+    /// JUNE 13, 2026 — DEFEAT exit. Freeze the customer at its current
+    /// on-screen spot (so the impending queue re-index can't drag it
+    /// rightward) and fade it out in place. The GameState removes it from
+    /// the queue shortly after (end-of-brew bookkeeping); by then it's
+    /// already invisible, so the removal is unseen and there's no snap.
+    private func runDefeat() {
+        defeatFrozenX = xPos + shakeOffset
+        defeatFrozenY = yPos
+        defeatFrozen = true
+        withAnimation(.easeIn(duration: 0.35)) {
+            defeatOpacity = 0.0
+        }
+    }
+
     private func runExpiration() {
         // 💢 emoji burst (if enabled)
         if PotionShopBrewAnimator.expirationShowEmoji {
@@ -1204,6 +1270,27 @@ struct PotionShopCustomerInSceneView: View {
         withAnimation(.easeIn(duration: PotionShopBrewAnimator.expirationDuration * 0.85)) {
             expireSlideX = PotionShopBrewAnimator.expirationSlideDistance
             expireOpacity = 0.0
+        }
+    }
+}
+
+// MARK: - Conditional matchedGeometryEffect (June 13, 2026)
+//
+// Applies matchedGeometryEffect ONLY when `active`. A defeated customer
+// sets active=false so its dying view leaves the shared-geometry group and
+// can't be pulled toward the re-indexed queue layout (the snap-right bug).
+struct PotionShopConditionalMatchedGeometry: ViewModifier {
+    let active: Bool
+    let id: UUID
+    let namespace: Namespace.ID
+
+    func body(content: Content) -> some View {
+        if active {
+            content.matchedGeometryEffect(
+                id: id, in: namespace, properties: [.position, .size]
+            )
+        } else {
+            content
         }
     }
 }
@@ -1281,9 +1368,20 @@ struct PotionShopProfileButtonView: View {
     }
     private var isActive: Bool { gs.queue.first == customer.id }
 
+    /// JUNE 15, 2026 fix — read LIVE patience from gs.customers (by id)
+    /// rather than the `let customer` copy passed into this view. The copy
+    /// could go stale, leaving the ring stuck at full even though the brew
+    /// sequence was decrementing the real array. Looking it up here forces
+    /// the ring to reflect the current value every render.
+    private var liveCustomer: PotionShopCustomer {
+        gs.customers.first(where: { $0.id == customer.id }) ?? customer
+    }
+    private var livePatience: Int { liveCustomer.patience }
+    private var liveMaxPatience: Int { liveCustomer.maxPatience }
+
     private var ringColor: Color {
-        if customer.maxPatience == 0 { return PotionShopTheme.muted }
-        let pct = Double(customer.patience) / Double(customer.maxPatience)
+        if liveMaxPatience == 0 { return PotionShopTheme.muted }
+        let pct = Double(livePatience) / Double(liveMaxPatience)
         if pct > 0.4 { return PotionShopTheme.composureGood }
         return PotionShopTheme.composureWarn
     }
@@ -1293,20 +1391,29 @@ struct PotionShopProfileButtonView: View {
             gs.tapProfile(customer.id)
         } label: {
             ZStack {
+                // JUNE 15, 2026: thicker (3→6) gray track + live-patience
+                // colored ring so the depletion is visible and actually moves.
+                Circle()
+                    .stroke(PotionShopTheme.muted.opacity(0.22),
+                            lineWidth: 6)
+                    .frame(
+                        width: PotionShopSceneLayout.profileDiameter + 8,
+                        height: PotionShopSceneLayout.profileDiameter + 8
+                    )
                 Circle()
                     .trim(
                         from: 0,
-                        to: customer.maxPatience > 0
-                            ? Double(customer.patience) / Double(customer.maxPatience)
+                        to: liveMaxPatience > 0
+                            ? Double(livePatience) / Double(liveMaxPatience)
                             : 0
                     )
-                    .stroke(ringColor, lineWidth: 3)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .frame(
                         width: PotionShopSceneLayout.profileDiameter + 8,
                         height: PotionShopSceneLayout.profileDiameter + 8
                     )
-                    .animation(.easeInOut(duration: 0.4), value: customer.patience)
+                    .animation(.easeInOut(duration: 0.4), value: livePatience)
 
                 Circle()
                     .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
@@ -1376,14 +1483,31 @@ struct PotionShopInspectStripView: View {
         return customer.hp
     }
 
+    /// JUNE 15, 2026 fix — read LIVE patience from gs.customers (by id)
+    /// rather than the `let customer` copy passed into this view, so the
+    /// ring reflects the brew-sequence decrement instead of sitting full.
+    private var liveCustomer: PotionShopCustomer {
+        gs.customers.first(where: { $0.id == customer.id }) ?? customer
+    }
+    private var livePatience: Int { liveCustomer.patience }
+    private var liveMaxPatience: Int { liveCustomer.maxPatience }
+
     private var attackForSubtitle: Int {
         guard let c = char else { return 0 }
         return isActive ? c.activeAttack : c.waitingAttack
     }
 
+    /// June 18, 2026: the order PHRASE shown on the banner's bottom row —
+    /// the random line picked at spawn; falls back to orderDialogue / orderName.
+    private var orderLineToShow: String {
+        if !customer.chosenOrderPhrase.isEmpty { return customer.chosenOrderPhrase }
+        if let c = char, !c.orderDialogue.isEmpty { return c.orderDialogue }
+        return char?.orderName ?? ""
+    }
+
     private var patienceRingColor: Color {
-        if customer.maxPatience == 0 { return PotionShopTheme.muted }
-        let pct = Double(customer.patience) / Double(customer.maxPatience)
+        if liveMaxPatience == 0 { return PotionShopTheme.muted }
+        let pct = Double(livePatience) / Double(liveMaxPatience)
         if pct > 0.4 { return PotionShopTheme.composureGood }
         return PotionShopTheme.composureWarn
     }
@@ -1400,22 +1524,36 @@ struct PotionShopInspectStripView: View {
                 // Main banner capsule (contains text + potion bottle value)
                 HStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(char.name)
-                            .font(Font.gameUI(size: 28))
-                            .foregroundColor(PotionShopTheme.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        HStack(spacing: 6) {
-                            Text(char.orderName)
-                                .font(Font.gameUI(size: 20))
-                                .foregroundColor(PotionShopTheme.muted)
+                        // TOP ROW (June 18, 2026): name • [trait] number.
+                        // The "Atk" word is dropped; the trait word stands in
+                        // for the label and the bare number is the attack value
+                        // (kept visible for testing). e.g. "Rex • Brave 2".
+                        HStack(spacing: 8) {
+                            Text(char.name)
+                                .font(Font.gameUI(size: 28))
+                                .foregroundColor(PotionShopTheme.ink)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                             Text("•")
                                 .foregroundColor(PotionShopTheme.muted)
-                            Text("Atk \(attackForSubtitle)")
-                                .font(Font.gameUI(size: 20))
-                                .foregroundColor(PotionShopTheme.muted)
+                            HStack(spacing: 5) {
+                                if !customer.chosenTraitName.isEmpty {
+                                    Text(customer.chosenTraitName)
+                                        .font(Font.gameUI(size: 18))
+                                        .foregroundColor(PotionShopTheme.accent)
+                                        .lineLimit(1)
+                                }
+                                Text("\(attackForSubtitle)")
+                                    .font(Font.gameUI(size: 18))
+                                    .foregroundColor(PotionShopTheme.muted)
+                            }
                         }
+                        // BOTTOM ROW: the order PHRASE the customer is saying.
+                        Text(orderLineToShow)
+                            .font(Font.gameUI(size: 20))
+                            .foregroundColor(PotionShopTheme.muted)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
                     }
                     .offset(x: isExpanded ? 0 : -40)
                     .opacity(isExpanded ? 1.0 : 0.0)
@@ -1507,21 +1645,25 @@ struct PotionShopInspectStripView: View {
             
             // Gray guide ring (shows full patience capacity)
             Circle()
-                .stroke(PotionShopTheme.muted.opacity(0.25), lineWidth: 3)
+                .stroke(PotionShopTheme.muted.opacity(0.25), lineWidth: 6)
                 .frame(width: 70, height: 70)
             
-            // Colored patience ring (shows remaining time)
+            // Colored patience ring (shows remaining time).
+            // JUNE 15, 2026: thickened 3→6pt with round caps, AND reads LIVE
+            // patience (livePatience/liveMaxPatience from gs.customers) so it
+            // actually depletes — the passed-in `customer` copy was stale,
+            // which is why the ring sat full no matter how many brews.
             Circle()
                 .trim(
                     from: 0,
-                    to: customer.maxPatience > 0
-                        ? Double(customer.patience) / Double(customer.maxPatience)
+                    to: liveMaxPatience > 0
+                        ? Double(livePatience) / Double(liveMaxPatience)
                         : 0
                 )
-                .stroke(patienceRingColor, lineWidth: 3)
+                .stroke(patienceRingColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: 70, height: 70)
-                .animation(.easeInOut(duration: 0.4), value: customer.patience)
+                .animation(.easeInOut(duration: 0.4), value: livePatience)
             
             // Portrait image (on top of everything)
             Circle()
