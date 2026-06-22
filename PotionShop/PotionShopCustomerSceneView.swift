@@ -627,6 +627,9 @@ struct PotionShopCustomerInSceneView: View {
     @State private var emojiOpacity: Double = 0.0
     // JUNE 20, 2026: damage particle burst (fires with the shake on brew hit).
     @State private var burstTick: Int = 0
+    // JUNE 20, 2026: true briefly while the active customer is being HIT by a
+    // brew (after Brew pressed), so the HP badge can swap to hp_damage.
+    @State private var takingDamage: Bool = false
     @State private var emojiOffset: CGFloat = 0
 
     private var char: PotionShopCharacter? {
@@ -1089,8 +1092,27 @@ struct PotionShopCustomerInSceneView: View {
 
                 // HP Badge (ABOVE character's head — shows for active AND waiting customers)
                 ZStack {
-                    // Custom HP badge graphic (background)
-                    if let hpBadgeImage = UIImage(named: "hp_badge") {
+                    // Custom HP badge graphic (background).
+                    // JUNE 20, 2026: use the RED badge when this is the ACTIVE
+                    // customer and the current board previews damage against
+                    // them (potion/stability dice placed) — signals "taking
+                    // damage". Otherwise the normal (purple) badge. Hidden
+                    // during the brew animation so it tracks placement only.
+                    // JUNE 20, 2026: badge asset by state, in priority order:
+                    //  1. hp_damage  — actively being HIT (brew landed), brief.
+                    //  2. hp_badge_red — active customer with staged damage
+                    //     (potion/stability dice placed, pre-brew).
+                    //  3. hp_badge   — normal (purple).
+                    let isActiveCustomer = (gs.queue.first == customer.id)
+                    let hasIncomingDamage = isActiveCustomer
+                        && !gs.isAnimating
+                        && gs.livePreview.damage > 0
+                    let badgeAsset: String = {
+                        if takingDamage { return "hp_damage" }
+                        if hasIncomingDamage { return "hp_badge_red" }
+                        return "hp_badge"
+                    }()
+                    if let hpBadgeImage = UIImage(named: badgeAsset) {
                         Image(uiImage: hpBadgeImage)
                             .resizable()
                             .scaledToFit()
@@ -1244,10 +1266,16 @@ struct PotionShopCustomerInSceneView: View {
             // PHASE 7: shake when shake counter increments
             .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
                 runShake()
-                // JUNE 20: damage burst only for the ACTIVE customer (the one
-                // taking the brew hit) — not waiting customers shaking on attack.
+                // JUNE 20: damage burst + hp_damage badge only for the ACTIVE
+                // customer (the one taking the brew hit) — not waiting
+                // customers shaking on attack.
                 if gs.queue.first == customer.id {
                     burstTick += 1
+                    // Show the hp_damage badge for a brief window around the hit.
+                    takingDamage = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        takingDamage = false
+                    }
                 }
             }
             // PHASE 7: slide off-screen when added to expiringCustomerIds
@@ -1766,25 +1794,26 @@ struct PotionShopRollingHPText: View {
 
     @State private var displayed: Int = 0
     @State private var spinTimer: Timer? = nil
+    @State private var rollTimer: Timer? = nil
     @State private var wasActive: Bool = false
     @State private var spinning: Bool = false
+    @State private var didInit: Bool = false
 
     var body: some View {
         Text("\(displayed)")
             .font(Font.gameScore(size: fontSize))
             .foregroundColor(.white)
             .onAppear {
+                guard !didInit else { return }
+                didInit = true
                 wasActive = isActive
-                // If the view is (re)created already active WITH board damage,
-                // that's a swap-in via recreation — spin from original HP.
-                // Otherwise just show the right number.
                 if isActive && target < realHP {
                     beginDelayedSpin(from: realHP, to: target)
                 } else {
                     displayed = isActive ? target : realHP
                 }
             }
-            .onDisappear { spinTimer?.invalidate() }
+            .onDisappear { spinTimer?.invalidate(); rollTimer?.invalidate() }
             // The ONLY trigger for the slot-machine spin: this customer just
             // became active (a SWAP). Start from their ORIGINAL HP (realHP)
             // and roll down to the board-adjusted target.
@@ -1797,18 +1826,25 @@ struct PotionShopRollingHPText: View {
                     }
                 } else if !nowActive {
                     spinTimer?.invalidate()
+                    rollTimer?.invalidate()
                     spinning = false
                     displayed = realHP              // demoted: show true HP
                 }
                 wasActive = nowActive
             }
-            // Placing/removing dice on the ALREADY-active customer updates the
-            // number INSTANTLY (no spin) — unless a spin is mid-flight, or a
-            // brew is animating (don't let target snap back up to the
-            // pre-damage hp; hold the previewed value, real hp catches up).
+            // Placing/removing dice on the ALREADY-active customer now SCROLLS
+            // the number to the new target (quick count) instead of snapping.
+            // Interruptible: each new placement restarts the short roll from
+            // the CURRENT displayed value, so rapid placing stays responsive.
+            // Skipped during the swap spin (spinning) or the brew (isAnimating).
             .onChange(of: target) { _, newTarget in
-                if isActive && !spinning && !isAnimating {
-                    displayed = newTarget
+                // Placement scroll always runs for the active customer (even
+                // if a swap-spin was mid-flight — cancel it and roll). Only
+                // the brew animation suppresses it.
+                if isActive && !isAnimating {
+                    spinTimer?.invalidate()
+                    spinning = false
+                    quickRoll(to: newTarget)
                 }
             }
             // Real HP changing keeps non-active honest. For the ACTIVE
@@ -1818,6 +1854,7 @@ struct PotionShopRollingHPText: View {
                 if !isActive {
                     displayed = newReal
                 } else if isAnimating {
+                    rollTimer?.invalidate()
                     displayed = newReal
                 }
             }
@@ -1840,6 +1877,33 @@ struct PotionShopRollingHPText: View {
     /// Delay before the become-active spin starts, so it waits out the
     /// customer-swap slide. Bump this up if the spin still overlaps the slide.
     static let spinStartDelay: Double = 0.60
+
+    /// JUNE 20, 2026: quick interruptible count from the CURRENT displayed
+    /// value to `to`, used when placing/removing dice on the active customer.
+    /// Steps one number at a time, fast (~28ms/step), capped so big jumps
+    /// don't drag. Restarting it (new placement) cancels the prior roll.
+    private func quickRoll(to: Int) {
+        rollTimer?.invalidate()
+        let from = displayed
+        guard from != to else { return }
+        let step = to > from ? 1 : -1
+        let stepInterval = 0.028
+        // Cap total duration ~0.32s: if the jump is large, move >1 per tick.
+        let distance = abs(to - from)
+        let maxTicks = 12
+        let perTick = max(1, Int(ceil(Double(distance) / Double(maxTicks))))
+        let t = Timer.scheduledTimer(withTimeInterval: stepInterval, repeats: true) { timer in
+            let remaining = to - displayed
+            if abs(remaining) <= perTick {
+                displayed = to
+                timer.invalidate()
+            } else {
+                displayed += step * perTick
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        rollTimer = t
+    }
 
     /// Slot-machine spin: flicker through rapidly-changing numbers, decelerate,
     /// land on `to`. Uses a repeating timer with easing on the step interval.
