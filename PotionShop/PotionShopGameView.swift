@@ -142,8 +142,6 @@ struct PotionShopGameView: View {
                     .allowsHitTesting(false)
 
                 phaseOverlay
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .ignoresSafeArea()
 
                 // Layout editor overlay (semi-transparent, floats over game)
                 if showLayoutOverlay {
@@ -2403,7 +2401,12 @@ struct PotionShopBoonMenuView: View {
 
     var body: some View {
         ZStack {
+            // JUNE 20, 2026: ignoresSafeArea on the COLOR only (not the outer
+            // ZStack) so the dim fills top-to-bottom WITHOUT changing the
+            // GeometryReader size that lays out the cauldron (that was the
+            // earlier rescale bug). Content below stays within safe bounds.
             Color.black.opacity(0.78)
+                .ignoresSafeArea()
 
             VStack(spacing: 16) {
                 Text("Choose a Boon")
