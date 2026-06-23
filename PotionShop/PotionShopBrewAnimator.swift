@@ -63,7 +63,10 @@ enum PotionShopBrewAnimator {
     static let preBrewDamageDelay: Double = 0.20
     static let preCustomerAttacksDelay: Double = 0.30
     /// Between active attack and waiter group attack
-    static let betweenActiveAndWaitersDelay: Double = 0.15
+    static let betweenActiveAndWaitersDelay: Double = 0.45
+    /// JUNE 20, 2026: gap between each waiter's attack shake, so the line
+    /// attacks in sequence (active → slot1 → slot2 …) instead of all at once.
+    static let waiterStaggerDelay: Double = 0.8
     static let prePatienceDelay: Double = 0.20
     static let preExpirationsDelay: Double = 0.20
     static let preDrainDelay: Double = 0.20

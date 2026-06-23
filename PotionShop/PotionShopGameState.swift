@@ -701,6 +701,7 @@ class PotionShopGameState {
         placements[nodeId] = die
         hand.remove(at: handIdx)
         selectedHandIndex = nil
+        emitPlacementFloatingNumber(nodeId: nodeId, die: die)
     }
 
     /// Move a placed die from a cauldron node back into the dice tray.
@@ -754,6 +755,40 @@ class PotionShopGameState {
         // Place the die
         placements[nodeId] = die
         clearDragState()
+        emitPlacementFloatingNumber(nodeId: nodeId, die: die)
+    }
+
+    /// JUNE 20, 2026: when a die is placed, float its REALIZED value up over
+    /// the active customer (damage dice) or Ednar (heal/shield), so the player
+    /// gets instant per-placement feedback — same floating-number system used
+    /// at brew time, just live. Reads the realized value from the live preview
+    /// (so boosts are reflected). Boost dice themselves emit nothing.
+    private func emitPlacementFloatingNumber(nodeId: Int, die: PotionShopDie) {
+        guard die.type != .boost else { return }
+        let preview = computeBrew()
+        guard let value = preview.nodeValues[nodeId], value != 0 else { return }
+        switch die.type {
+        case .potency, .stability:
+            emitFloatingNumber(
+                text: "-\(value) 🧪",
+                color: PotionShopFloatingNumber.damageCustomerColor,
+                at: activeCustomerPoint
+            )
+        case .heal:
+            emitFloatingNumber(
+                text: "+\(value)",
+                color: PotionShopFloatingNumber.healColor,
+                at: ednarOriginPoint
+            )
+        case .shield:
+            emitFloatingNumber(
+                text: "🛡 \(value)",
+                color: PotionShopFloatingNumber.shieldColor,
+                at: ednarOriginPoint
+            )
+        case .boost:
+            break
+        }
     }
     
     /// Cancel drag and return die to hand.
@@ -1324,7 +1359,9 @@ class PotionShopGameState {
             if phase == .lost { return }
         }
 
-        // ── 4b. Waiters attack as a group
+        // ── 4b. Waiters attack — STAGGERED (June 20, 2026) so the line
+        //         attacks in sequence (active already went, then slot1,
+        //         slot2, …) instead of all shaking at once.
         if waiterAttackTotal > 0 {
             try? await sleep(seconds: PotionShopBrewAnimator.betweenActiveAndWaitersDelay)
             for id in queue.dropFirst() {
@@ -1333,6 +1370,9 @@ class PotionShopGameState {
                       let char = PotionShopData.character(customers[cIdx].charKey),
                       char.waitingAttack > 0 else { continue }
                 triggerCustomerShake(id)
+                // Small gap before the next waiter shakes, for a rippling
+                // down-the-line feel. Tune via waiterStaggerDelay.
+                try? await sleep(seconds: PotionShopBrewAnimator.waiterStaggerDelay)
             }
             let result = applyDamage(waiterAttackTotal)
             if result.dealt > 0 {

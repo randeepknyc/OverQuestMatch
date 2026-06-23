@@ -611,6 +611,9 @@ struct PotionShopCustomerInSceneView: View {
     var customerWaiting2Y: Double = 0.0
 
     @State private var shakeOffset: CGFloat = 0
+    // JUNE 20, 2026: true briefly while this customer is attacking (shaking),
+    // so they pop to full opacity during their attack.
+    @State private var attacking: Bool = false
     @State private var settleBoost: CGFloat = 1.0
     @State private var expireSlideX: CGFloat = 0
     @State private var expireOpacity: Double = 1.0
@@ -1239,7 +1242,8 @@ struct PotionShopCustomerInSceneView: View {
             }
             // Skip global dim when silhouette mode is active (silhouette
             // handles its own fade and we want badges/emoji at full opacity).
-            .opacity((dim && !useWhiteSilhouette) ? 0.55 : 1.0)
+            .opacity((dim && !useWhiteSilhouette && !attacking) ? 0.55 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: attacking)
             .opacity(expireOpacity)
             .opacity(defeatOpacity)   // JUNE 13: defeat fade-out
             .scaleEffect(scale * settleBoost)
@@ -1266,12 +1270,16 @@ struct PotionShopCustomerInSceneView: View {
             // PHASE 7: shake when shake counter increments
             .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
                 runShake()
-                // JUNE 20: damage burst + hp_damage badge only for the ACTIVE
-                // customer (the one taking the brew hit) — not waiting
-                // customers shaking on attack.
+                // JUNE 20: pop to full opacity for the shake's duration (so a
+                // dimmed waiter is clearly visible while it attacks).
+                attacking = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    attacking = false
+                }
+                // damage burst + hp_damage badge only for the ACTIVE customer
+                // (the one taking the brew hit) — not waiting customers.
                 if gs.queue.first == customer.id {
                     burstTick += 1
-                    // Show the hp_damage badge for a brief window around the hit.
                     takingDamage = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         takingDamage = false
