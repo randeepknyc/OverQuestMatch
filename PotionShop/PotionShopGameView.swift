@@ -317,6 +317,8 @@ struct PotionShopFloatingNumberView: View {
         Text(number.text)
             .font(PotionShopBrewAnimator.numberFont())
             .foregroundColor(number.color)
+            .multilineTextAlignment(.center)
+            .frame(width: PotionShopBrewAnimator.floatWidth)
             .shadow(color: .white.opacity(0.7), radius: 1, x: 0, y: 0)
             .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
             .position(number.position)

@@ -1539,7 +1539,11 @@ class PotionShopGameState {
 
     /// Where the active customer's brew-damage number appears.
     var activeCustomerPoint: CGPoint {
-        CGPoint(x: 280, y: 270)
+        // JUNE 20, 2026: float origin = roughly the TOP of the active customer,
+        // near the HP badge. Not hugging each character's exact badge (that
+        // varies per character) — a fixed "head area" point that reads well
+        // for all of them. Lower y = higher on screen. Tune these two:
+        CGPoint(x: 200, y: 175)
     }
 
     // MARK: - Self-test (for Phase 3 verification)

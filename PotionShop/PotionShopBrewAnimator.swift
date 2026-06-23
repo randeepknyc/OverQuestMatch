@@ -63,10 +63,10 @@ enum PotionShopBrewAnimator {
     static let preBrewDamageDelay: Double = 0.20
     static let preCustomerAttacksDelay: Double = 0.30
     /// Between active attack and waiter group attack
-    static let betweenActiveAndWaitersDelay: Double = 0.45
+    static let betweenActiveAndWaitersDelay: Double = 0.70
     /// JUNE 20, 2026: gap between each waiter's attack shake, so the line
     /// attacks in sequence (active → slot1 → slot2 …) instead of all at once.
-    static let waiterStaggerDelay: Double = 0.8
+    static let waiterStaggerDelay: Double = 0.75
     static let prePatienceDelay: Double = 0.20
     static let preExpirationsDelay: Double = 0.20
     static let preDrainDelay: Double = 0.20
@@ -86,11 +86,15 @@ enum PotionShopBrewAnimator {
     // ─── 4. FLOATING NUMBER ────────────────────────────────────────────
 
     /// How far up a floating number drifts (pixels)
-    static let floatRiseDistance: CGFloat = 100
+    static let floatRiseDistance: CGFloat = 130
     /// How long it's visible
     static let floatDuration: Double = 0.80
     /// Font size for floating numbers
-    static let floatFontSize: CGFloat = 28
+    static let floatFontSize: CGFloat = 50
+    /// JUNE 20, 2026: fixed WIDTH for floating numbers (helps them stay
+    /// centered over the origin point regardless of digit count). Set to nil
+    /// to let the text size naturally.
+    static let floatWidth: CGFloat? = 80
 
     /// OverQuest font for floating numbers
     static func numberFont(size: CGFloat = floatFontSize) -> Font {
