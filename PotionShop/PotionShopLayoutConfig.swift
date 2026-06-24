@@ -1119,7 +1119,7 @@ class PotionShopLayoutConfig {
     /// Updated May 24, 2026 from Copy Layout Values export (post body-follow fix).
     /// Called after bucket assignment so these survive a fresh launch.
     private func applyTunedCharacterScales() {
-        // mildred
+        // mildred (updated June 24, 2026)
         var mildred = perCharacterScales["mildred"] ?? CharacterScale()
         mildred.x = -26.241135597229004
         mildred.y = 4.609918594360352
@@ -1462,7 +1462,7 @@ class PotionShopLayoutConfig {
         // Keyed by (height × width) only — HP badge is head-anchored and already
         // scales with per-slot scale at render time.
         bakeHp(height: .superShort, width: .skinny, size: nil,                 x: -62.606388330459595,  y: -42.81914234161377)
-        bakeHp(height: .superShort, width: .medium, size: nil,                 x: -48.244696855545044,  y: -32.180845737457275)
+        bakeHp(height: .superShort, width: .medium, size: 60.49113631248474,   x: -48.244696855545044,  y: -43.17375421524048)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
         bakeHp(height: .medium,     width: .medium, size: nil,                 x: -55.95744252204895,   y: -34.397149085998535)
@@ -1509,6 +1509,8 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 115.2482271194458,   dy: -6.7375898361206055, sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 50.0,                dy: 0.0,                 sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 7.801413536071777,   dy: -18.085110187530518, sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 22.34041690826416,   dy: -19.5035457611084,   sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .medium,  nbrWidth: .medium, dx: 16.666674613952637,  dy: -17.02127456665039,  sizeMul: 1.0)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to

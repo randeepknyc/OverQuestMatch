@@ -348,6 +348,10 @@ struct PotionShopCustomerSceneView: View {
                             customerWaiting2X: scale.waiting2X,
                             customerWaiting2Y: scale.waiting2Y
                         )
+                        // JUNE 24, 2026: layer front-to-back by queue position.
+                        // Active (idx 0) on top, slot1 (idx 1) behind it, slot2
+                        // (idx 2) furthest back. Higher index = lower zIndex.
+                        .zIndex(Double(gs.queue.count - idx))
                     }
                 }
 
@@ -932,8 +936,10 @@ struct PotionShopCustomerInSceneView: View {
         // a solid-white silhouette underneath + a faded character on top, so the
         // scene background doesn't show through the body. Active customer always
         // renders normally. Scoped to Wendelina + Crispin + Ardo for now.
-        let useWhiteSilhouette = !isActive &&
-            ["wendelina", "crispin", "ardo"].contains(customer.charKey)
+        // JUNE 24, 2026: white-silhouette backing now applies to ALL waiting
+        // (non-active) customers, so the background never shows through the
+        // dimmed art. (Was limited to wendelina/crispin/ardo.)
+        let useWhiteSilhouette = !isActive
 
         // Editor-selection state (May 26, 2026): when the layout editor is
         // open AND this customer is the currently-selected one, draw a thin
@@ -1103,34 +1109,35 @@ struct PotionShopCustomerInSceneView: View {
                     // during the brew animation so it tracks placement only.
                     // JUNE 20, 2026: badge asset by state, in priority order:
                     //  1. hp_damage  — actively being HIT (brew landed), brief.
-                    //  2. hp_badge_red — active customer with staged damage
-                    //     (potion/stability dice placed, pre-brew).
+                    //  2. PULSE between hp_badge_red ↔ hp_badge — active
+                    //     customer with STAGED damage (potion/stability dice
+                    //     placed, pre-brew). Pulses to draw the eye to the
+                    //     pending damage.
                     //  3. hp_badge   — normal (purple).
                     let isActiveCustomer = (gs.queue.first == customer.id)
                     let hasIncomingDamage = isActiveCustomer
                         && !gs.isAnimating
                         && gs.livePreview.damage > 0
-                    let badgeAsset: String = {
-                        if takingDamage { return "hp_damage" }
-                        if hasIncomingDamage { return "hp_badge_red" }
-                        return "hp_badge"
-                    }()
-                    if let hpBadgeImage = UIImage(named: badgeAsset) {
-                        Image(uiImage: hpBadgeImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(
-                                width: hpSize * scale,
-                                height: hpSize * scale
-                            )
-                    } else {
-                        // Fallback: red circle if image missing
-                        Circle()
-                            .fill(PotionShopTheme.composureBad)
-                            .frame(
-                                width: hpSize * scale,
-                                height: hpSize * scale
-                            )
+                    TimelineView(.animation) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        // Smooth 0→1 fade (sine), ~0.7s period, for a gentle
+                        // pulse rather than a hard flash. Shared phase with the
+                        // banner so they pulse in sync.
+                        let fade = 0.5 + 0.5 * sin(t * PotionShopBrewAnimator.damagePulseSpeed)
+                        ZStack {
+                            if takingDamage, let img = UIImage(named: "hp_damage") {
+                                Image(uiImage: img).resizable().scaledToFit()
+                                    .frame(width: hpSize * scale, height: hpSize * scale)
+                            } else {
+                                // Base normal badge
+                                badgeImage("hp_badge", hpSize: hpSize, scale: scale)
+                                // Red badge fades in/out on top when damage staged
+                                if hasIncomingDamage {
+                                    badgeImage("hp_badge_red", hpSize: hpSize, scale: scale)
+                                        .opacity(fade)
+                                }
+                            }
+                        }
                     }
 
                     // HP number — rolling counter. JUNE 20, 2026: when this
@@ -1155,6 +1162,11 @@ struct PotionShopCustomerInSceneView: View {
                     x: effectiveX + headOffsetX + hpOffX * scale,
                     y: effectiveY + headOffsetY + hpOffY * scale
                 )
+                // JUNE 24, 2026: badge follows the SAME front-to-back order as
+                // the customers (active in front, slot2 behind). The badge has
+                // transition/animation modifiers that can lift it out of normal
+                // z-flow, so it gets an explicit zIndex tied to queue position.
+                .zIndex(Double(queueCount - queueIndex))
                 .transition(.scale.combined(with: .opacity))
                 // Contextual nudges re-resolve when the lineup changes —
                 // ease the hop so it reads as intentional, not a glitch.
@@ -1316,6 +1328,19 @@ struct PotionShopCustomerInSceneView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// JUNE 20, 2026: helper to build a badge image (or red-circle fallback)
+    /// at the right size, used by the crossfade pulse.
+    @ViewBuilder
+    private func badgeImage(_ name: String, hpSize: Double, scale: CGFloat) -> some View {
+        if let img = UIImage(named: name) {
+            Image(uiImage: img).resizable().scaledToFit()
+                .frame(width: hpSize * scale, height: hpSize * scale)
+        } else {
+            Circle().fill(PotionShopTheme.composureBad)
+                .frame(width: hpSize * scale, height: hpSize * scale)
         }
     }
 
@@ -1577,6 +1602,9 @@ struct PotionShopInspectStripView: View {
     let customer: PotionShopCustomer
 
     @State private var isExpanded: Bool = false
+    // JUNE 20, 2026: true briefly while the inspected customer is being HIT by
+    // a brew, so the banner bottle can show hp_damage (synced to the HP badge).
+    @State private var takingDamage: Bool = false
 
     private var char: PotionShopCharacter? {
         PotionShopData.character(customer.charKey)
@@ -1587,6 +1615,17 @@ struct PotionShopInspectStripView: View {
     private var brewTargetForPill: Int {
         // Always show the inspected customer's HP — updates as HP changes.
         return customer.hp
+    }
+
+    /// JUNE 20, 2026: board-adjusted HP for the banner pill, so it can roll the
+    /// same way the HP badge does. If the inspected customer is the ACTIVE one
+    /// and not mid-brew, subtract the previewed board damage (clamped at 0).
+    private var bannerLiveTarget: Int {
+        let actual = liveCustomer.hp
+        if gs.queue.first == customer.id, !gs.isAnimating {
+            return max(0, actual - gs.livePreview.damage)
+        }
+        return actual
     }
 
     /// JUNE 15, 2026 fix — read LIVE patience from gs.customers (by id)
@@ -1629,14 +1668,14 @@ struct PotionShopInspectStripView: View {
                 
                 // Main banner capsule (contains text + potion bottle value)
                 HStack(spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         // TOP ROW (June 18, 2026): name • [trait] number.
                         // The "Atk" word is dropped; the trait word stands in
                         // for the label and the bare number is the attack value
                         // (kept visible for testing). e.g. "Rex • Brave 2".
                         HStack(spacing: 8) {
                             Text(char.name)
-                                .font(Font.gameUI(size: 28))
+                                .font(Font.gameUI(size: 48))
                                 .foregroundColor(PotionShopTheme.ink)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
@@ -1645,18 +1684,18 @@ struct PotionShopInspectStripView: View {
                             HStack(spacing: 5) {
                                 if !customer.chosenTraitName.isEmpty {
                                     Text(customer.chosenTraitName)
-                                        .font(Font.gameUI(size: 18))
+                                        .font(Font.gameUI(size: 28))
                                         .foregroundColor(PotionShopTheme.accent)
                                         .lineLimit(1)
                                 }
                                 Text("\(attackForSubtitle)")
-                                    .font(Font.gameUI(size: 18))
+                                    .font(Font.gameUI(size: 33))
                                     .foregroundColor(PotionShopTheme.muted)
                             }
                         }
                         // BOTTOM ROW: the order PHRASE the customer is saying.
                         Text(orderLineToShow)
-                            .font(Font.gameUI(size: 20))
+                            .font(Font.gameUI(size: 25))
                             .foregroundColor(PotionShopTheme.muted)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
@@ -1670,30 +1709,65 @@ struct PotionShopInspectStripView: View {
                     // Option C + D: Fixed size with number shrinking to fit, resizable via layout editor
                     ZStack {
                         // Bottle graphic (background)
-                        if let bottleImage = UIImage(named: "potion_bottle_outline") {
-                            Image(uiImage: bottleImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(
-                                    width: PotionShopLayoutConfig.shared.bannerBottleSize,
-                                    height: PotionShopLayoutConfig.shared.bannerBottleSize
+                        // JUNE 20, 2026: banner bottle + number, with a synced
+                        // staged-damage pulse. The bottle crossfades to
+                        // potion_bottle_damage and the number fades toward red,
+                        // both on the SAME sine phase as the HP badge.
+                        let bannerHasIncomingDamage = (gs.queue.first == customer.id)
+                            && !gs.isAnimating
+                            && gs.livePreview.damage > 0
+                        TimelineView(.animation) { timeline in
+                            let t = timeline.date.timeIntervalSinceReferenceDate
+                            let fade = 0.5 + 0.5 * sin(t * PotionShopBrewAnimator.damagePulseSpeed)
+                            let dmgFade = bannerHasIncomingDamage ? fade : 0.0
+                            let bottleSize = PotionShopLayoutConfig.shared.bannerBottleSize
+                            ZStack {
+                                // JUNE 20, 2026: during the HIT, hp_damage
+                                // REPLACES the bottle entirely. Otherwise show
+                                // the normal bottle + the staged-damage fade.
+                                if takingDamage, let hitImage = UIImage(named: "hp_damage") {
+                                    Image(uiImage: hitImage).resizable().scaledToFit()
+                                        .frame(width: bottleSize, height: bottleSize)
+                                        // JUNE 20, 2026: y-offset knob for the
+                                        // hp_damage banner image. Negative = up,
+                                        // positive = down. Adjust this number.
+                                        .offset(y: 5)
+                                } else {
+                                    // Base bottle outline
+                                    if let bottleImage = UIImage(named: "potion_bottle_outline") {
+                                        Image(uiImage: bottleImage).resizable().scaledToFit()
+                                            .frame(width: bottleSize, height: bottleSize)
+                                    } else {
+                                        Text("🧪").font(.system(size: bottleSize * 0.7))
+                                    }
+                                    // Damage bottle fades in/out on top when staged
+                                    if let dmgImage = UIImage(named: "potion_bottle_damage") {
+                                        Image(uiImage: dmgImage).resizable().scaledToFit()
+                                            .frame(width: bottleSize, height: bottleSize)
+                                            .opacity(dmgFade)
+                                    }
+                                }
+                                // Number stays WHITE (the bottle carries the
+                                // red pulse) so it never blends into the red,
+                                // and zIndex forces it above both bottle images.
+                                PotionShopRollingHPText(
+                                    target: bannerLiveTarget,
+                                    realHP: liveCustomer.hp,
+                                    isActive: gs.queue.first == customer.id,
+                                    isAnimating: gs.isAnimating,
+                                    fontSize: PotionShopLayoutConfig.shared.bannerBottleNumberSize,
+                                    color: .white
                                 )
-                        } else {
-                            // Fallback: emoji bottle if image missing
-                            Text("🧪")
-                                .font(.system(size: PotionShopLayoutConfig.shared.bannerBottleSize * 0.7))
+                                .shadow(color: .black.opacity(0.55), radius: 1, x: 0, y: 1)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+                                .offset(
+                                    x: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetX,
+                                    y: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetY
+                                )
+                                .zIndex(10)
+                            }
                         }
-                        
-                        // Number on top (white, shrinks to fit if needed)
-                        Text("\(brewTargetForPill)")
-                            .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
-                            .foregroundColor(.white)
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                            .offset(
-                                x: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetX,
-                                y: PotionShopLayoutConfig.shared.bannerBottleNumberOffsetY
-                            )
                     }
                     .offset(
                         x: (isExpanded ? 0 : -60) + PotionShopLayoutConfig.shared.bannerBottleOffsetX,
@@ -1736,6 +1810,17 @@ struct PotionShopInspectStripView: View {
             .onAppear {
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
                     isExpanded = true
+                }
+            }
+            // JUNE 20, 2026: when the inspected customer is the ACTIVE one and
+            // gets hit (shake counter ticks), flash hp_damage on the banner —
+            // same window/signal the HP badge uses, so they show together.
+            .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
+                if gs.queue.first == customer.id {
+                    takingDamage = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        takingDamage = false
+                    }
                 }
             }
         }
@@ -1799,6 +1884,7 @@ struct PotionShopRollingHPText: View {
     let isActive: Bool
     let isAnimating: Bool   // JUNE 20: true during a brew — hold value, don't snap
     let fontSize: Double
+    var color: Color = .white   // JUNE 20: tintable (banner pulses it red)
 
     @State private var displayed: Int = 0
     @State private var spinTimer: Timer? = nil
@@ -1810,7 +1896,7 @@ struct PotionShopRollingHPText: View {
     var body: some View {
         Text("\(displayed)")
             .font(Font.gameScore(size: fontSize))
-            .foregroundColor(.white)
+            .foregroundColor(color)
             .onAppear {
                 guard !didInit else { return }
                 didInit = true
@@ -1846,12 +1932,12 @@ struct PotionShopRollingHPText: View {
             // the CURRENT displayed value, so rapid placing stays responsive.
             // Skipped during the swap spin (spinning) or the brew (isAnimating).
             .onChange(of: target) { _, newTarget in
-                // Placement scroll always runs for the active customer (even
-                // if a swap-spin was mid-flight — cancel it and roll). Only
-                // the brew animation suppresses it.
-                if isActive && !isAnimating {
-                    spinTimer?.invalidate()
-                    spinning = false
+                // Placement scroll runs for the active customer — but NOT while
+                // a swap spin is in progress/pending (spinning), or it would
+                // cancel the spin and snap to the affected value (the bug where
+                // a swapped-in customer started at affected HP). The brew
+                // animation also suppresses it.
+                if isActive && !spinning && !isAnimating {
                     quickRoll(to: newTarget)
                 }
             }
@@ -2002,4 +2088,21 @@ struct PotionShopDamageBurst: View {
             }
         }
     }
+}
+
+// JUNE 20, 2026: linear interpolation between two SwiftUI Colors via UIColor
+// RGBA components. Used to fade the banner HP number white → red on the pulse.
+func PotionShopLerpColor(_ a: Color, _ b: Color, _ t: Double) -> Color {
+    let ua = UIColor(a); let ub = UIColor(b)
+    var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+    var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+    ua.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+    ub.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+    let f = CGFloat(max(0, min(1, t)))
+    return Color(
+        red: Double(ar + (br - ar) * f),
+        green: Double(ag + (bg - ag) * f),
+        blue: Double(ab + (bb - ab) * f),
+        opacity: Double(aa + (ba - aa) * f)
+    )
 }

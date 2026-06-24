@@ -63,7 +63,11 @@ enum PotionShopBrewAnimator {
     static let preBrewDamageDelay: Double = 0.20
     static let preCustomerAttacksDelay: Double = 0.30
     /// Between active attack and waiter group attack
-    static let betweenActiveAndWaitersDelay: Double = 0.70
+    static let betweenActiveAndWaitersDelay: Double = 0.40
+    /// JUNE 20, 2026: speed of the staged-damage pulse (HP badge red fade +
+    /// banner bottle/number). Shared so badge and banner pulse in sync.
+    /// Higher = faster. ~5.0 ≈ a gentle 0.8s in-out fade.
+    static let damagePulseSpeed: Double = 5.0
     /// JUNE 20, 2026: gap between each waiter's attack shake, so the line
     /// attacks in sequence (active → slot1 → slot2 …) instead of all at once.
     static let waiterStaggerDelay: Double = 0.75
@@ -86,11 +90,11 @@ enum PotionShopBrewAnimator {
     // ─── 4. FLOATING NUMBER ────────────────────────────────────────────
 
     /// How far up a floating number drifts (pixels)
-    static let floatRiseDistance: CGFloat = 130
+    static let floatRiseDistance: CGFloat = 100
     /// How long it's visible
     static let floatDuration: Double = 0.80
     /// Font size for floating numbers
-    static let floatFontSize: CGFloat = 50
+    static let floatFontSize: CGFloat = 40
     /// JUNE 20, 2026: fixed WIDTH for floating numbers (helps them stay
     /// centered over the origin point regardless of digit count). Set to nil
     /// to let the text size naturally.

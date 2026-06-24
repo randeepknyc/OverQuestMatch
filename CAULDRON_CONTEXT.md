@@ -3069,6 +3069,141 @@ these with IMAGE ASSETS later. Keep the values/positions easy to retarget.
 
 Moved to the placed die's upper-RIGHT corner (`.offset(x: 16, y: -16)`,
 zIndex 50) after it was hidden behind the node below at first.
+## 47. JUNE 20, 2026 — badge states, active-HP scroll, staggered attacks
+
+Follow-ups to §45/§46. Files: PotionShopCustomerSceneView.swift,
+PotionShopGameState.swift, PotionShopBrewAnimator.swift.
+
+### 47.1 HP badge — THREE image-asset states (priority order)
+
+The HP badge background swaps by state (PotionShopCustomerSceneView, badge
+ZStack). User adds the assets to the Xcode catalog by these exact names:
+  1. `hp_damage`    — active customer actively BEING HIT (brief window after
+     Brew, tied to the damage shake; `takingDamage` flag, ~0.6s).
+  2. `hp_badge_red` — active customer with STAGED damage (potion/stability
+     dice placed pre-brew; `hasIncomingDamage`).
+  3. `hp_badge`     — normal (purple) default.
+Missing asset → falls back to the red-circle fallback. All three are
+placeholder until final art (see §46.3 note — user is replacing these).
+
+### 47.2 Active-customer HP now SCROLLS on placement (not just on swap)
+
+Placing/removing dice on the active customer now quick-rolls the HP number
+(`quickRoll`, ~28ms/step, capped ~0.32s, interruptible) instead of snapping.
+The swap spin (slot-machine, §45.3) is separate. BUG FIXED along the way:
+the per-placement scroll was blocked because onAppear re-fired on re-render
+and a stuck `spinning` flag suppressed it — fixed with a one-shot `didInit`
+guard on onAppear and by letting placement rolls cancel any in-flight spin.
+
+### 47.3 Staggered waiter attacks
+
+Waiters used to all shake simultaneously (single loop, no gap). Now each
+waiter's attack shake is separated by `PotionShopBrewAnimator.waiterStaggerDelay`
+(0.18s) so the line attacks in sequence: active → slot1 → slot2 → …
+NOTE: only the SHAKE is staggered; waiter DAMAGE still applies as one total
+(`waiterAttackTotal`) at the end — per-waiter individual damage/floating
+numbers would be a deeper change, not done.
+## 48. JUNE 20, 2026 — live floating numbers + float origin/style knobs
+
+Files: PotionShopGameState.swift, PotionShopGameView.swift, PotionShopBrewAnimator.swift.
+
+### 48.1 Per-placement floating numbers
+
+`emitPlacementFloatingNumber(nodeId:die:)` (GameState) fires when a die is
+placed (both placement paths — placeDie tap, dropDieOnNode drag). Reads the
+die's REALIZED value from computeBrew().nodeValues (boosts reflected) and
+floats it up: damage dice (potency/stability) → "-X 🧪" over the active
+customer; heal → "+X" / shield → "🛡 X" over Ednar. Boost dice emit nothing.
+Reuses the existing floating-number system (same rise/fade as Ednar's brew
+numbers). NOTE: placing a boost raises neighbors' values but only the placed
+die floats — the realized-value board badges show the updated totals.
+
+### 48.2 Brew-total floating number — unchanged
+
+The combined "-X 🧪" total still floats over the active customer at the brew
+damage phase (doBrew). Both now coexist: per-die on placement, total on brew.
+
+### 48.3 Float origin + style knobs
+
+Active-customer float origin: `activeCustomerPoint` (GameState) — currently
+CGPoint(x: 265, y: 175), "top of character near badge." Fixed point (NOT
+per-character badge tracking — user chose simple). Lower y = higher on screen.
+Ednar origin: `ednarOriginPoint` (GameState).
+Style (PotionShopBrewAnimator): `floatFontSize` (28), `floatWidth` (80, nil =
+natural), `floatRiseDistance` (100), `floatDuration` (0.80).
+
+---
+
+## 49. TUNING LEGEND — where every knob lives (June 20, 2026)
+
+A map of the player-feel values added in §45–§48, so they can be found and
+changed without re-deriving. All are plain numbers editable in Xcode. Grouped
+by what they affect. (Layout/positions of art, badges, nodes, etc. live in
+the DEBUG MENU + PotionShopLayoutConfig.swift and are NOT repeated here — this
+legend is the animation/feedback feel layer.)
+
+### A. HP NUMBER — swap spin (slot-machine on customer switch)
+File: PotionShopCustomerSceneView.swift → PotionShopRollingHPText
+  • `spinStartDelay` (0.60) — wait after tapping a customer before the reel
+    starts, so it plays AFTER the swap slide. Higher = waits longer.
+  • `let ticks = min(10, 5 + span)` — reel length. Raise the 10/5 = longer reel.
+  • interval `0.018 + 0.085*(p*p)` — reel tick speed (fastest→slowest).
+
+### B. HP NUMBER — placement scroll (quick count as dice are placed)
+File: PotionShopCustomerSceneView.swift → quickRoll
+  • `stepInterval = 0.028` — seconds per step. Lower = snappier.
+  • `maxTicks = 12` — caps total length (~0.32s); big jumps move >1 per tick.
+
+### C. HP BADGE — image-asset states
+File: PotionShopCustomerSceneView.swift → badge ZStack (badgeAsset)
+  • Assets (Xcode catalog, exact names): `hp_badge` (normal), `hp_badge_red`
+    (staged damage while placing), `hp_damage` (active being hit).
+  • `hp_damage` show duration: asyncAfter `+ 0.6` (in the shake onChange).
+
+### D. DAMAGE FEEDBACK — burst + shake + badge flash
+File: PotionShopCustomerSceneView.swift
+  • Particle burst look: PotionShopDamageBurst (count=10, dist 34, dur 0.45).
+    Lives in the HP badge ZStack so it tracks the debug-menu badge position.
+  • Burst/flash fire only for ACTIVE customer (gs.queue.first == customer.id).
+  • Shake amplitude: PotionShopBrewAnimator.shakeAmplitude (6.0).
+
+### E. ATTACK SEQUENCE — stagger + opacity pop
+File: PotionShopBrewAnimator.swift + PotionShopCustomerSceneView.swift
+  • `betweenActiveAndWaitersDelay` (0.15) — gap active→slot1.
+  • `waiterStaggerDelay` (0.18) — gap between each waiter (slot1→slot2→…).
+    (Per-gap custom delays would need converting this to a list — not done.)
+  • Attacking opacity pop: `attacking` flag, full opacity for `+ 0.45`s,
+    fade `.easeInOut(0.2)`. Dimmed waiter = 0.55 opacity normally.
+
+### F. FLOATING NUMBERS — per-placement + brew total
+File: PotionShopGameState.swift (origins) + PotionShopBrewAnimator.swift (style)
+  • `activeCustomerPoint` CGPoint(265,175) — where active-customer numbers
+    float from (top-of-character/near badge). Lower y = higher.
+  • `ednarOriginPoint` — where Ednar's heal/shield/damage numbers float from.
+  • `floatFontSize` (28) — number font size.
+  • `floatWidth` (80, nil=natural) — fixed number width for centering.
+  • `floatRiseDistance` (100) — how far up it drifts.
+  • `floatDuration` (0.80) — how long the rise/fade lasts.
+
+### G. REALIZED-VALUE BADGE (per-die final number on the board)
+File: PotionShopCauldronView.swift → placed-die overlay
+  • Position: `.offset(x: 16, y: -16)` upper-right of node; font 18; zIndex 50.
+
+### H. EDNAR HEAL/SHIELD BUBBLE
+File: PotionShopCustomerSceneView.swift → PotionShopEdnarView overlay
+  • Anchor corner: `.overlay(alignment: .topTrailing)`.
+  • Nudge: `.offset(x: 30, y: 10)`.
+
+### I. BOOST CONNECTION LINES (gold pulse)
+File: PotionShopCauldronView.swift → PotionShopNodeConnectionLines
+  • Pulse: sine `sin(t*5.7)`, opacity 0.55→1.0, width 4→6. Green non-boost 2.5.
+
+### J. BOON FREQUENCY
+File: PotionShopGameState.swift
+  • `boonFrequency` (.everyRound) — toggle .everyRound ↔ .everyDay.
+
+⚠️ MANY of these (badge states, bubble, realized badges, shards) are
+PLACEHOLDER SwiftUI shapes/text — user plans to replace with IMAGE ASSETS.
 ---
 
 **End of CAULDRON_CONTEXT.md**

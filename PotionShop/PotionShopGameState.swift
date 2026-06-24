@@ -1254,6 +1254,13 @@ class PotionShopGameState {
         isAnimating = true
         defer { isAnimating = false }
 
+        // JUNE 20, 2026: if the banner is CLOSED when brew is hit, open it on
+        // the active customer so the player sees the HP banner during the
+        // attack sequence. (Banner = inspect strip; closed = inspectedId nil.)
+        if inspectedId == nil {
+            inspectedId = activeId
+        }
+
         try? await sleep(seconds: PotionShopBrewAnimator.initialDelay)
 
         // ─── PHASE 1: Heal + Shield apply to player ─────────────────
@@ -1543,7 +1550,7 @@ class PotionShopGameState {
         // near the HP badge. Not hugging each character's exact badge (that
         // varies per character) — a fixed "head area" point that reads well
         // for all of them. Lower y = higher on screen. Tune these two:
-        CGPoint(x: 200, y: 175)
+        CGPoint(x: 265, y: 175)
     }
 
     // MARK: - Self-test (for Phase 3 verification)
