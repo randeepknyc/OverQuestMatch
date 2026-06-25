@@ -782,6 +782,14 @@ struct PotionShopCustomerInSceneView: View {
     private func bodyXAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
         let key = customer.charKey
         let cfg = PotionShopLayoutConfig.shared
+        // JUNE 24, 2026: contextual write-mode — drag/sliders write the
+        // CONTEXTUAL character nudge dx for the current front+back context.
+        if cfg.editCharacterContextual {
+            let front = liveFrontNeighborKey(forSlot: slotIdx)
+            let back = liveBackNeighborKey(forSlot: slotIdx)
+            return ({ cfg.characterContextNudge(slot: slotIdx, myCharacterId: key, frontNeighborId: front, backNeighborId: back).dx },
+                    { cfg.setCharacterContextNudge(slot: slotIdx, myCharacterId: key, frontNeighborId: front, backNeighborId: back, dx: $0) })
+        }
         if gs.currentRoundUsesFeetAnchor {
             let cs = cfg.characterScale(for: key)
             let h = cs.heightBucket, w = cs.widthBucket
@@ -804,6 +812,13 @@ struct PotionShopCustomerInSceneView: View {
     private func bodyYAccessors(slotIdx: Int) -> (read: () -> Double, apply: (Double) -> Void) {
         let key = customer.charKey
         let cfg = PotionShopLayoutConfig.shared
+        // JUNE 24, 2026: contextual write-mode for character Y.
+        if cfg.editCharacterContextual {
+            let front = liveFrontNeighborKey(forSlot: slotIdx)
+            let back = liveBackNeighborKey(forSlot: slotIdx)
+            return ({ cfg.characterContextNudge(slot: slotIdx, myCharacterId: key, frontNeighborId: front, backNeighborId: back).dy },
+                    { cfg.setCharacterContextNudge(slot: slotIdx, myCharacterId: key, frontNeighborId: front, backNeighborId: back, dy: $0) })
+        }
         if gs.currentRoundUsesFeetAnchor {
             let cs = cfg.characterScale(for: key)
             let h = cs.heightBucket, w = cs.widthBucket
@@ -829,6 +844,15 @@ struct PotionShopCustomerInSceneView: View {
         guard slotIdx >= 1,
               slotIdx - 1 < gs.queue.count,
               let nbr = gs.customers.first(where: { $0.id == gs.queue[slotIdx - 1] })
+        else { return nil }
+        return nbr.charKey
+    }
+
+    /// The charKey of whoever stands one slot BEHIND (live queue), or nil.
+    /// Used by the character contextual nudge (front + back context).
+    private func liveBackNeighborKey(forSlot slotIdx: Int) -> String? {
+        guard slotIdx + 1 < gs.queue.count,
+              let nbr = gs.customers.first(where: { $0.id == gs.queue[slotIdx + 1] })
         else { return nil }
         return nbr.charKey
     }
@@ -911,10 +935,32 @@ struct PotionShopCustomerInSceneView: View {
         // can be slightly wider/taller. Outside feet-anchor the slot template
         // is identity (1.0 / 0) so per-character values pass through.
         let slotTemplate = slotTemplateForCurrentSlot
-        let effectiveWidth: Double = perCharWidth * slotTemplate.w * slotTemplate.scale
-        let effectiveHeight: Double = perCharHeight * slotTemplate.h * slotTemplate.scale
-        let effectiveX: Double = gs.currentRoundUsesFeetAnchor ? slotTemplate.x : perCharX
-        let effectiveY: Double = gs.currentRoundUsesFeetAnchor ? slotTemplate.y : perCharY
+        // JUNE 24, 2026: CHARACTER CONTEXTUAL NUDGE. Look up the front (one
+        // ahead in queue) and back (one behind) neighbors and apply a
+        // bucket-keyed nudge to this character's position + scale. Sparse —
+        // identity when no entry, so most characters are unaffected.
+        let charFrontNeighborKey: String? = {
+            guard queueIndex - 1 >= 0, queueIndex - 1 < gs.queue.count,
+                  let nbr = gs.customers.first(where: { $0.id == gs.queue[queueIndex - 1] })
+            else { return nil }
+            return nbr.charKey
+        }()
+        let charBackNeighborKey: String? = {
+            guard queueIndex + 1 < gs.queue.count,
+                  let nbr = gs.customers.first(where: { $0.id == gs.queue[queueIndex + 1] })
+            else { return nil }
+            return nbr.charKey
+        }()
+        let charContextNudge = layoutConfig.characterContextNudge(
+            slot: queueIndex,
+            myCharacterId: customer.charKey,
+            frontNeighborId: charFrontNeighborKey,
+            backNeighborId: charBackNeighborKey
+        )
+        let effectiveWidth: Double = perCharWidth * slotTemplate.w * slotTemplate.scale * charContextNudge.sizeMul
+        let effectiveHeight: Double = perCharHeight * slotTemplate.h * slotTemplate.scale * charContextNudge.sizeMul
+        let effectiveX: Double = (gs.currentRoundUsesFeetAnchor ? slotTemplate.x : perCharX) + charContextNudge.dx
+        let effectiveY: Double = (gs.currentRoundUsesFeetAnchor ? slotTemplate.y : perCharY) + charContextNudge.dy
 
         // Fix A (May 24, 2026): badge head-anchor uses unified waiting1 dimensions when the
         // character is in ANY waiting slot, so a "Share"-mode waiting badge override produces

@@ -1078,6 +1078,11 @@ struct PotionShopDebugMenu: View {
         ───────────────────────────────────────────────────────────────
         \(formatHpBadgeContextNudges())
 
+        ───────────────────────────────────────────────────────────────
+        🟢 CONTEXTUAL CHARACTER NUDGES (slot · myH×W · front · back)
+        ───────────────────────────────────────────────────────────────
+        \(formatCharacterContextNudges())
+
         """
 
         text += """
@@ -1104,6 +1109,19 @@ struct PotionShopDebugMenu: View {
         guard !nudges.isEmpty else { return "(none set)" }
         return nudges.map { key, n in
             "hpBadgeContextNudge[slot\(key.slot) \(key.myHeight.rawValue)·\(key.myWidth.rawValue) ← \(key.nbrHeight.rawValue)·\(key.nbrWidth.rawValue)]: dx=\(n.dx), dy=\(n.dy), sizeMul=\(n.sizeMul)"
+        }
+        .sorted()
+        .joined(separator: "\n")
+    }
+
+    /// June 24, 2026: one line per character contextual nudge entry, for
+    /// paste-back. Empty neighbor buckets render as "none".
+    private func formatCharacterContextNudges() -> String {
+        let nudges = PotionShopLayoutConfig.shared.characterContextNudges
+        guard !nudges.isEmpty else { return "(none set)" }
+        func d(_ h: String, _ w: String) -> String { h.isEmpty ? "none" : "\(h)·\(w)" }
+        return nudges.map { key, n in
+            "characterContextNudge[slot\(key.slot) \(key.myHeight.rawValue)·\(key.myWidth.rawValue) · front:\(d(key.frontHeight, key.frontWidth)) · back:\(d(key.backHeight, key.backWidth))]: dx=\(n.dx), dy=\(n.dy), sizeMul=\(n.sizeMul)"
         }
         .sorted()
         .joined(separator: "\n")

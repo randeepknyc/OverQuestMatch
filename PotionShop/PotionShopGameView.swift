@@ -2180,7 +2180,79 @@ struct PotionShopLayoutOverlay: View {
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.6))
             }
+
+            // ── CHARACTER contextual nudge (June 24, 2026) — moves the BODY
+            //    based on FRONT + BACK neighbor buckets. Scales to any cast.
+            Divider().background(Color.white.opacity(0.2))
+            Text("🟢 Character contextual nudge (front + back)")
+                .font(.caption2.bold())
+                .foregroundColor(.green)
+            Toggle(isOn: Binding(
+                get: { layoutConfig.editCharacterContextual },
+                set: { layoutConfig.editCharacterContextual = $0 }
+            )) {
+                Text("Character drag writes the nudge (not base values)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            .tint(.green)
+
+            if let liveMe = liveOccupantKey(slot: slotIdx) {
+                let meCS = layoutConfig.characterScale(for: liveMe)
+                let frontKey = liveOccupantKey(slot: slotIdx - 1)
+                let backKey = liveOccupantKey(slot: slotIdx + 1)
+                let frontDesc = frontKey.map { k in
+                    let c = layoutConfig.characterScale(for: k)
+                    return "\(c.heightBucket.rawValue)·\(c.widthBucket.rawValue)"
+                } ?? "none"
+                let backDesc = backKey.map { k in
+                    let c = layoutConfig.characterScale(for: k)
+                    return "\(c.heightBucket.rawValue)·\(c.widthBucket.rawValue)"
+                } ?? "none"
+                Text("Context now: \(meCS.heightBucket.rawValue)·\(meCS.widthBucket.rawValue) (\(liveMe))  •  front: \(frontDesc)  •  back: \(backDesc)")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                Text("Sliders tune THIS context (slot · my buckets · front buckets · back buckets). Any matching context gets the same nudge.")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.55))
+                sliderRow("Char ΔX", value: charContextNudgeBinding(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey, field: 0), range: -200...200, format: "%.0f pt",
+                          tier: charContextNudgeTier(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey))
+                sliderRow("Char ΔY", value: charContextNudgeBinding(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey, field: 1), range: -200...200, format: "%.0f pt",
+                          tier: charContextNudgeTier(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey))
+                sliderRow("Char size ×", value: charContextNudgeBinding(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey, field: 2), range: 0.3...2.0, format: "%.2f",
+                          tier: charContextNudgeTier(slot: slotIdx, myKey: liveMe, frontKey: frontKey, backKey: backKey))
+            }
         }
+    }
+
+    /// field: 0 = dx, 1 = dy, 2 = sizeMul. Character contextual nudge binding.
+    private func charContextNudgeBinding(slot: Int, myKey: String, frontKey: String?, backKey: String?, field: Int) -> Binding<Double> {
+        Binding(
+            get: {
+                let n = layoutConfig.characterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey)
+                return field == 0 ? n.dx : (field == 1 ? n.dy : n.sizeMul)
+            },
+            set: { v in
+                switch field {
+                case 0: layoutConfig.setCharacterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey, dx: v)
+                case 1: layoutConfig.setCharacterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey, dy: v)
+                default: layoutConfig.setCharacterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey, sizeMul: v)
+                }
+            }
+        )
+    }
+
+    /// Tier dot for the character context nudge (green when an entry exists,
+    /// with a clear action), mirroring contextNudgeTier for the badge.
+    private func charContextNudgeTier(slot: Int, myKey: String, frontKey: String?, backKey: String?) -> PotionShopTunerTier {
+        if layoutConfig.hasCharacterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey) {
+            return PotionShopTunerTier(
+                color: .green,
+                label: "character nudge set for this context",
+                onClear: { layoutConfig.clearCharacterContextNudge(slot: slot, myCharacterId: myKey, frontNeighborId: frontKey, backNeighborId: backKey) }
+            )
+        }
+        return PotionShopTunerTier(color: .gray, label: "no character nudge for this context", onClear: nil)
     }
 
     /// Live occupant of a queue slot (for contextual nudge pairing).

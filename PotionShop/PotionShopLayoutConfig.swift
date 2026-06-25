@@ -31,14 +31,14 @@ class PotionShopLayoutConfig {
     var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
     var trayPercent: Double = 19.3
     
-    // Ednar Art (ACTUAL SIZE - May 11, 2026)
+    // Ednar Art (ACTUAL SIZE - May 11, 2026; pose re-baked June 25, 2026)
     // All images drawn at same canvas size (1536×1024) and displayed uniformly
     // Scale multipliers at 1.0 = no distortion, images appear at natural proportions
     var ednarBaseScale: Double = 0.15  // Base scale to make 1536×1024 images visible
-    var ednarWidth: Double = 1.0598404221236706
-    var ednarHeight: Double = 1.0638297721743584
-    var ednarX: Double = 37.943267822265625
-    var ednarY: Double = -17.02127456665039
+    var ednarWidth: Double = 1.219414860010147
+    var ednarHeight: Double = 1.2234042435884476
+    var ednarX: Double = 24.11348819732666
+    var ednarY: Double = -10.638296604156494
     
     // Customer Scene Portraits (full-body standing characters)
     // BASE SCALE: Multiplier applied to ALL scene images before per-character scaling
@@ -914,6 +914,118 @@ class PotionShopLayoutConfig {
     /// current live pairing instead of the base tiers.
     var editHpBadgeContextual: Bool = false
 
+    // ═══════════════════════════════════════════════════════════════════
+    // CHARACTER CONTEXTUAL NUDGE (June 24, 2026)
+    // ═══════════════════════════════════════════════════════════════════
+    // Mirrors the HP badge contextual nudge, but moves the CHARACTER BODY
+    // (position + scale) based on bucket context. Keyed on the character's
+    // own bucket plus the FRONT and BACK neighbor buckets, so it scales to a
+    // random, growing cast (a finite set of bucket combos, not per-name).
+    // A neighbor bucket is nil when there's no neighbor on that side.
+    // SPARSE: only tuned combos get entries; everything else falls back to
+    // the plain auto-layout position.
+
+    struct CharacterContextKey: Hashable, Codable {
+        let slot: Int                              // 0 (active), 1, 2, …
+        let myHeight: CustomerHeightBucket
+        let myWidth: CustomerWidthBucket
+        // Optional neighbor buckets — encoded as "" (empty) when nil so the
+        // key stays Codable/Hashable cleanly.
+        let frontHeight: String   // CustomerHeightBucket.rawValue or ""
+        let frontWidth: String    // CustomerWidthBucket.rawValue or ""
+        let backHeight: String
+        let backWidth: String
+    }
+
+    struct CharacterContextNudge: Codable, Equatable {
+        var dx: Double = 0        // added to the character's X
+        var dy: Double = 0        // added to the character's Y
+        var sizeMul: Double = 1.0 // multiplies the character's scale
+        var isIdentity: Bool { dx == 0 && dy == 0 && sizeMul == 1.0 }
+    }
+
+    /// SPARSE — only problem combos ever get entries.
+    var characterContextNudges: [CharacterContextKey: CharacterContextNudge] = [:]
+
+    private func charBuckets(_ id: String?) -> (h: String, w: String) {
+        guard let id else { return ("", "") }
+        let s = characterScale(for: id)
+        return (s.heightBucket.rawValue, s.widthBucket.rawValue)
+    }
+
+    func characterContextKey(slot: Int, myCharacterId: String,
+                             frontNeighborId: String?, backNeighborId: String?) -> CharacterContextKey {
+        let me = characterScale(for: myCharacterId)
+        let f = charBuckets(frontNeighborId)
+        let b = charBuckets(backNeighborId)
+        return CharacterContextKey(
+            slot: slot,
+            myHeight: me.heightBucket, myWidth: me.widthBucket,
+            frontHeight: f.h, frontWidth: f.w,
+            backHeight: b.h, backWidth: b.w
+        )
+    }
+
+    /// The nudge for a live context — identity when no entry exists.
+    func characterContextNudge(slot: Int, myCharacterId: String,
+                               frontNeighborId: String?, backNeighborId: String?) -> CharacterContextNudge {
+        let key = characterContextKey(slot: slot, myCharacterId: myCharacterId,
+                                      frontNeighborId: frontNeighborId, backNeighborId: backNeighborId)
+        return characterContextNudges[key] ?? CharacterContextNudge()
+    }
+
+    /// Whether an entry exists for this live context (drives the editor dot).
+    func hasCharacterContextNudge(slot: Int, myCharacterId: String,
+                                  frontNeighborId: String?, backNeighborId: String?) -> Bool {
+        let key = characterContextKey(slot: slot, myCharacterId: myCharacterId,
+                                      frontNeighborId: frontNeighborId, backNeighborId: backNeighborId)
+        return characterContextNudges[key] != nil
+    }
+
+    func setCharacterContextNudge(slot: Int, myCharacterId: String,
+                                  frontNeighborId: String?, backNeighborId: String?,
+                                  dx: Double? = nil, dy: Double? = nil, sizeMul: Double? = nil) {
+        let key = characterContextKey(slot: slot, myCharacterId: myCharacterId,
+                                      frontNeighborId: frontNeighborId, backNeighborId: backNeighborId)
+        var nudge = characterContextNudges[key] ?? CharacterContextNudge()
+        if let dx { nudge.dx = dx }
+        if let dy { nudge.dy = dy }
+        if let sizeMul { nudge.sizeMul = sizeMul }
+        if nudge.isIdentity {
+            characterContextNudges.removeValue(forKey: key)
+        } else {
+            characterContextNudges[key] = nudge
+        }
+    }
+
+    func clearCharacterContextNudge(slot: Int, myCharacterId: String,
+                                    frontNeighborId: String?, backNeighborId: String?) {
+        let key = characterContextKey(slot: slot, myCharacterId: myCharacterId,
+                                      frontNeighborId: frontNeighborId, backNeighborId: backNeighborId)
+        characterContextNudges.removeValue(forKey: key)
+    }
+
+    /// Editor write-mode: when true, the focused editor's character drag +
+    /// nudge sliders write the CONTEXTUAL character nudge for the current
+    /// live context instead of the base per-character values.
+    var editCharacterContextual: Bool = false
+
+    /// Bake a tuned character-context nudge into defaults (paste-back from the
+    /// debug export, mirroring bakeHpContext). nil neighbor buckets = "".
+    func bakeCharacterContext(slot: Int,
+                              myHeight: CustomerHeightBucket, myWidth: CustomerWidthBucket,
+                              frontHeight: String, frontWidth: String,
+                              backHeight: String, backWidth: String,
+                              dx: Double, dy: Double, sizeMul: Double) {
+        let key = CharacterContextKey(
+            slot: slot, myHeight: myHeight, myWidth: myWidth,
+            frontHeight: frontHeight, frontWidth: frontWidth,
+            backHeight: backHeight, backWidth: backWidth
+        )
+        characterContextNudges[key] = CharacterContextNudge(dx: dx, dy: dy, sizeMul: sizeMul)
+    }
+
+
     // Active slot
     var autoLayoutSizeActiveSuperShort: Double = 1.0
     var autoLayoutSizeActiveShort: Double = 0.9065602868795395
@@ -1498,7 +1610,7 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 39.716315269470215,  dy: -27.304959297180176, sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .short,   nbrWidth: .wide,   dx: -38.65247964859009,  dy: 8.86523723602295,    sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .tallHat, nbrWidth: .medium, dx: -32.97872543334961,  dy: 6.0283660888671875,  sizeMul: 1.0)
-        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 37.58864402770996,   dy: -16.312050819396973, sizeMul: 1.0195922136306763)
+        bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 16.312050819396973,  dy: -27.304959297180176, sizeMul: 1.0195922136306763)
         bakeHpContext(slot: 1, myHeight: .tallHat,    myWidth: .medium, nbrHeight: .medium,  nbrWidth: .skinny, dx: -39.361703395843506, dy: 0.0,                 sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .medium,  nbrWidth: .wide,   dx: 3.191494941711426,   dy: -9.929072856903076,  sizeMul: 1.0286347657442092)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 42.19858646392822,   dy: -35.10638475418091,  sizeMul: 1.0617907732725143)
@@ -1511,6 +1623,25 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 7.801413536071777,   dy: -18.085110187530518, sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 22.34041690826416,   dy: -19.5035457611084,   sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .medium,  nbrWidth: .medium, dx: 16.666674613952637,  dy: -17.02127456665039,  sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .medium,  nbrWidth: .skinny, dx: 13.475179672241211,  dy: -15.2482271194458,   sizeMul: 1.0)
+
+        // ── CHARACTER contextual nudges (June 24, 2026) ──
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
+                             frontHeight: "medium", frontWidth: "wide",
+                             backHeight: "medium", backWidth: "medium",
+                             dx: 2.482271194458008, dy: -2.836883068084717, sizeMul: 1.0)
+        bakeCharacterContext(slot: 1, myHeight: .floater, myWidth: .medium,
+                             frontHeight: "tall", frontWidth: "skinny",
+                             backHeight: "medium", backWidth: "medium",
+                             dx: 14.539003372192383, dy: 0.0, sizeMul: 1.0)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .skinny,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "medium", backWidth: "wide",
+                             dx: 12.411355972290039, dy: 0.709223747253418, sizeMul: 1.0)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .wide,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "medium", backWidth: "medium",
+                             dx: 10.992908477783203, dy: 6.0283660888671875, sizeMul: 1.0)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to
