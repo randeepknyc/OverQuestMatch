@@ -2508,10 +2508,8 @@ struct PotionShopBoonMenuView: View {
 
     var body: some View {
         ZStack {
-            // JUNE 20, 2026: ignoresSafeArea on the COLOR only (not the outer
-            // ZStack) so the dim fills top-to-bottom WITHOUT changing the
-            // GeometryReader size that lays out the cauldron (that was the
-            // earlier rescale bug). Content below stays within safe bounds.
+            // Dim — ignoresSafeArea on the COLOR only (same proven pattern as
+            // the round-complete overlay).
             Color.black.opacity(0.78)
                 .ignoresSafeArea()
 
@@ -2524,28 +2522,34 @@ struct PotionShopBoonMenuView: View {
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
 
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     ForEach(gs.boonOffer) { boon in
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 gs.chooseBoon(boon)
                             }
                         } label: {
-                            VStack(spacing: 10) {
+                            VStack(spacing: 8) {
                                 Text(boon.emoji)
-                                    .font(.system(size: 40))
+                                    .font(.system(size: 36))
                                 Text(boon.name)
-                                    .font(Font.gameUI(size: 18))
+                                    .font(Font.gameUI(size: 16))
                                     .foregroundColor(PotionShopTheme.ink)
                                     .multilineTextAlignment(.center)
                                 Text(boon.blurb)
-                                    .font(Font.gameUI(size: 13))
+                                    .font(Font.gameUI(size: 12))
                                     .foregroundColor(PotionShopTheme.muted)
                                     .multilineTextAlignment(.center)
                                     .lineLimit(3)
                             }
-                            .frame(width: 100, height: 150)
-                            .padding(10)
+                            // Flexible width: the three cards split the row
+                            // evenly and can NEVER overflow the screen (the
+                            // old fixed 100pt cards did, which is what grew the
+                            // overlay past the GeometryReader and rescaled the
+                            // cauldron).
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 150)
+                            .padding(8)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(Color(red: 0.96, green: 0.92, blue: 0.84))
@@ -2576,7 +2580,13 @@ struct PotionShopBoonMenuView: View {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color.black.opacity(0.55))
             )
-            .padding(24)
+            // Cap the panel and keep side margins so it fits any phone and
+            // stays centered, instead of overflowing the edges.
+            .frame(maxWidth: 400)
+            .padding(.horizontal, 16)
         }
+        // Pin the overlay to EXACTLY the geometry it's given so it can never
+        // grow larger than the cauldron's GeometryReader and rescale it.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
