@@ -173,6 +173,15 @@ struct PotionShopGameView: View {
                 onEndGame: { dismiss() }
             )
         }
+        .onAppear {
+            gs.viewIsOnScreen = true
+            // Fire the initial-deal rattle now that the haptic engine has an
+            // active window. drawFromBag() already ran during init() but the
+            // generator silently no-ops before the view is on screen.
+            if gs.currentRoundUses3DDice {
+                HapticManager.shared.diceRollRattle()
+            }
+        }
         .onReceive(purgeTimer) { _ in
             gs.purgeExpiredFloatingNumbers()
         }
@@ -646,6 +655,17 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Height", value: $layoutConfig.ednarHeight, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("X", value: $layoutConfig.ednarX, range: -200...200, format: "%.0f")
                 sliderRow("Y", value: $layoutConfig.ednarY, range: -200...200, format: "%.0f")
+
+                Text("💬 Heal / Shield Bubble")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Bubble X", value: $layoutConfig.ednarBubbleX, range: -200...200, format: "%.0f")
+                sliderRow("Bubble Y", value: $layoutConfig.ednarBubbleY, range: -200...200, format: "%.0f")
+
+                Text("🖼 Background")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Opacity", value: $layoutConfig.bgTestOpacity, range: 0...1, format: "%.2f")
             }
         case .customers:
             VStack(alignment: .leading, spacing: 10) {
@@ -1164,6 +1184,16 @@ struct PotionShopLayoutOverlay: View {
                     .font(.system(size: 10).italic())
                     .foregroundColor(.cyan.opacity(0.8))
 
+                // 👁 CHARACTER OPACITY (debug) — June 26, 2026
+                Text("👁 Character Opacity (debug)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.yellow)
+                Text("Fades the whole character per slot. 1.00 = fully visible. Slot 1 = active (front), Slot 2 = waiting (behind).")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                sliderRow("Slot 1 Opacity (active)", value: $layoutConfig.slot1Opacity, range: 0.0...1.0, format: "%.2f")
+                sliderRow("Slot 2 Opacity (waiting)", value: $layoutConfig.slot2Opacity, range: 0.0...1.0, format: "%.2f")
+
                 // Feet-anchor mode (May 30, 2026) — Day 3 Round 2 only.
                 Text("👣 Feet-Anchor (Day 3 R2 only)")
                     .font(.caption2.bold())
@@ -1248,11 +1278,10 @@ struct PotionShopLayoutOverlay: View {
                             .frame(width: 75, alignment: .leading)
                         Picker("", selection: Binding(
                             get: {
-                                guard slotIdx < gs.queue.count,
-                                      let c = gs.customers.first(where: { $0.id == gs.queue[slotIdx] }) else {
-                                    return ""
-                                }
-                                return c.charKey
+                                let q = gs.queue
+                                guard slotIdx >= 0, slotIdx < q.count else { return "" }
+                                let id = q[slotIdx]
+                                return gs.customers.first(where: { $0.id == id })?.charKey ?? ""
                             },
                             set: { newKey in
                                 gs.swapCharacterAt(slotIndex: slotIdx, toCharKey: newKey)
@@ -2055,11 +2084,10 @@ struct PotionShopLayoutOverlay: View {
                     .foregroundColor(.green.opacity(0.8))
                 Picker("", selection: Binding(
                     get: {
-                        guard slotIdx < gs.queue.count,
-                              let c = gs.customers.first(where: { $0.id == gs.queue[slotIdx] }) else {
-                            return ""
-                        }
-                        return c.charKey
+                        let q = gs.queue
+                        guard slotIdx >= 0, slotIdx < q.count else { return "" }
+                        let id = q[slotIdx]
+                        return gs.customers.first(where: { $0.id == id })?.charKey ?? ""
                     },
                     set: { newKey in
                         gs.swapCharacterAt(slotIndex: slotIdx, toCharKey: newKey)
@@ -2257,9 +2285,14 @@ struct PotionShopLayoutOverlay: View {
 
     /// Live occupant of a queue slot (for contextual nudge pairing).
     private func liveOccupantKey(slot: Int) -> String? {
-        guard slot < gs.queue.count,
-              let c = gs.customers.first(where: { $0.id == gs.queue[slot] }) else { return nil }
-        return c.charKey
+        // Snapshot the queue into a local value (Swift arrays are value types)
+        // and bounds-check THAT, so the count check and the subscript can never
+        // disagree — the subscript happened inside the .first(where:) closure
+        // against the live property, which is what went out of range.
+        let q = gs.queue
+        guard slot >= 0, slot < q.count else { return nil }
+        let id = q[slot]
+        return gs.customers.first(where: { $0.id == id })?.charKey
     }
 
     /// field: 0 = dx, 1 = dy, 2 = sizeMul. June 12, 2026 (§28.9).

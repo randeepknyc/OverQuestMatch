@@ -1417,11 +1417,12 @@ struct PotionShopTrayDieValueBadge: View {
     let revealAfterSpin: Bool
 
     // ─── Tuning knobs ───────────────────────────────────────────
-    /// Seconds after a re-roll before the number fades in. Matches the
-    /// cube's full drop+spin+settle timeline (~1.22s) plus a hair.
-    static let revealDelay: Double = 1.30
+    /// Seconds after a re-roll before the number fades in.
+    /// Baked June 27, 2026 (was 1.30 → 1.10).
+    static let revealDelay: Double = 1.10
     /// Fade-in duration once the delay elapses.
-    static let revealFadeDuration: Double = 0.20
+    /// Baked June 27, 2026 (was 0.20 → 0.06).
+    static let revealFadeDuration: Double = 0.10
     // ────────────────────────────────────────────────────────────
 
     @State private var badgeOpacity: Double = 0.0

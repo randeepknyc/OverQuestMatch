@@ -10,7 +10,12 @@ import SwiftUI
 /// Centralized haptic feedback manager for game interactions
 @Observable
 class HapticManager {
-    
+
+    /// Shared instance so other games in the app (e.g. Ednar's Potion
+    /// Cauldron) can reuse this same prepared, known-working haptic engine
+    /// instead of standing up their own generators.
+    static let shared = HapticManager()
+
     // ═══════════════════════════════════════════════════════════════
     // ⚡ HAPTIC CUSTOMIZATION SETTINGS - ADJUST THESE!
     // ═══════════════════════════════════════════════════════════════
@@ -184,6 +189,61 @@ class HapticManager {
         }
     }
     
+    // MARK: - Dice Roll Rattle (Potion Cauldron)
+
+    /// Rapid-fire rigid impacts that simulate dice tumbling in a cup.
+    /// Fires for `duration` seconds, pulsing every `interval` seconds with
+    /// randomised intensity so the rattle feels organic, not mechanical.
+    /// The intensity ramps down toward the end (dice settling).
+    ///
+    /// Matches the 3D dice spin animation in Ednar's Potion Cauldron:
+    ///   drop 0.26s + spin 0.85s + settle 0.23s ≈ 1.34s total per die,
+    ///   with a 0.06s stagger per slot (5 dice → last one finishes ~1.58s).
+    func diceRollRattle(duration: Double = 1.5, interval: Double = 0.06) {
+        let startTime = CACurrentMediaTime()
+        let end = startTime + duration
+
+        func tick() {
+            let now = CACurrentMediaTime()
+            guard now < end else { return }
+
+            // Progress 0→1 over the duration
+            let progress = (now - startTime) / duration
+            // Ramp down: full intensity at the start, fading to ~0.3 at the end
+            let envelope = max(1.0, 1.0 - progress * 0.7)
+            // Randomise ±20% so each hit sounds/feels slightly different
+            let jitter = Double.random(in: 0.8...1.0)
+            let intensity = min(1.0, envelope * jitter)
+
+            impactRigid.impactOccurred(intensity: intensity)
+
+            // Schedule the next tick with a tiny random offset so the rhythm
+            // isn't perfectly metronomic (feels more like real dice bouncing).
+            let nextDelay = interval + Double.random(in: -0.015...0.015)
+            DispatchQueue.main.asyncAfter(deadline: .now() + nextDelay) {
+                tick()
+            }
+        }
+
+        impactRigid.prepare()
+        tick()
+    }
+
+    /// Single sharp tap when a die is placed onto a cauldron node.
+    func diePlaced() {
+        impactRigid.impactOccurred(intensity: 0.7)
+    }
+
+    /// Heavy thud when the brew damages the active customer.
+    func brewHit() {
+        impactHeavy.impactOccurred(intensity: 0.9)
+    }
+
+    /// Medium thud when a customer attacks Ednar.
+    func customerAttack() {
+        impactMedium.impactOccurred(intensity: 0.8)
+    }
+
     // MARK: - UI Events
     
     /// Button press (general)

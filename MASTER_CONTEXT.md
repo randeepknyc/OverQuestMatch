@@ -168,6 +168,23 @@ Later, when ready to connect games:
 - Fixed-size UI elements (buttons, badges)
 - Z-index layering for overlays
 
+### **Haptic Feedback System** ✨ (June 26, 2026)
+- `Shared/HapticManager.swift` owns ALL haptics for every game. It keeps
+  **retained, pre-prepared** `UIImpactFeedbackGenerator`s (light/medium/heavy/
+  rigid) and exposes `HapticManager.shared`.
+- ⚠️ LESSON: generators that are created + prepared + fired in the same instant
+  get dropped by the cold Taptic Engine and feel "dead." ALWAYS go through the
+  shared, pre-prepared instances — never spin up a one-off generator at the call
+  site.
+- Match-3 haptics: original, working, untouched.
+- Cauldron haptics: an additive "Ednar's Potion Cauldron" section in the same
+  file, with labeled knobs for three events — ROLL (tray dice tumble),
+  PLACE (die into a node), HIT (combat). Master switch:
+  `PotionShopHaptics.enabled` in `PotionShopGameState.swift`.
+  Full knob reference + call sites: see `CAULDRON_CONTEXT.md` §53.6 and the
+  non-coder cheat sheet PDF.
+- Device note: haptics fire only on a **physical iPhone** with System Haptics ON.
+
 ---
 
 ## 💾 ASSET REQUIREMENTS

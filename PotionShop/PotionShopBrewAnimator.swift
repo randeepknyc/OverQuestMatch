@@ -119,6 +119,31 @@ enum PotionShopBrewAnimator {
     /// Whether to show the 💢 emoji burst on expiration
     static let expirationShowEmoji: Bool = true
     static let expirationEmoji: String = "💢"
+
+    // ─── 7. EDNAR IDLE BREATH + REACTION POP (June 25, 2026) ───────────
+    //
+    // Gives Ednar a little life. Two effects, both applied to his ART only
+    // (the frame and his speech bubble don't move). Scoped to PotionShopEdnarView.
+    //
+    //   • BREATH: a slow, endless scale pulse — he gently swells and settles,
+    //     like breathing. Subtle on purpose.
+    //   • POP: a quick bump when his expression changes (calm→concerned, etc.)
+    //     so the mood change reads as a reaction instead of an instant snap.
+
+    /// Idle breath: Ednar scales between 1.0 and this value, forever.
+    /// 1.015 ≈ a 1.5% swell (barely-there, "alive"). Try 1.03 for more.
+    static let ednarBreathScale: CGFloat = 1.015
+    /// Seconds for one full breath out-and-back. Higher = slower/calmer.
+    static let ednarBreathDuration: Double = 2.6
+
+    /// Reaction pop: on expression change he bumps UP to this scale briefly,
+    /// then springs back to normal. 1.0 = no pop. 1.08 ≈ a gentle perk.
+    static let ednarPopScale: CGFloat = 1.08
+    /// How long the up-bump takes (seconds) before it springs back.
+    static let ednarPopRiseDuration: Double = 0.10
+    /// Spring settle on the way back down. Lower response = snappier.
+    static let ednarPopResponse: Double = 0.34
+    static let ednarPopDamping: Double = 0.55
 }
 
 // MARK: - FloatingNumber type

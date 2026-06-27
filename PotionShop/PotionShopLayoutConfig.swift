@@ -31,14 +31,29 @@ class PotionShopLayoutConfig {
     var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
     var trayPercent: Double = 19.3
     
-    // Ednar Art (ACTUAL SIZE - May 11, 2026; pose re-baked June 25, 2026)
+    // Ednar Art (ACTUAL SIZE - May 11, 2026; pose re-baked June 26, 2026)
     // All images drawn at same canvas size (1536×1024) and displayed uniformly
     // Scale multipliers at 1.0 = no distortion, images appear at natural proportions
     var ednarBaseScale: Double = 0.15  // Base scale to make 1536×1024 images visible
-    var ednarWidth: Double = 1.219414860010147
-    var ednarHeight: Double = 1.2234042435884476
-    var ednarX: Double = 24.11348819732666
+    var ednarWidth: Double = 1.3431382966041565
+    var ednarHeight: Double = 1.3351063802838326
+    var ednarX: Double = 35.81562042236328
     var ednarY: Double = -10.638296604156494
+
+    // Heal/shield preview bubble position (June 26, 2026). Moves the little
+    // bubble that shows +heal / 🛡shield during a brew, relative to Ednar's
+    // frame corner. Tunable live in the editor's Ednar tab.
+    var ednarBubbleX: Double = 30
+    var ednarBubbleY: Double = 10
+
+    // Background image opacity (June 26, 2026). 1.0 = fully opaque (default),
+    // 0.0 = invisible. Applies to the scene background (bgtest1 / customerbg).
+    var bgTestOpacity: Double = 1.0
+
+    // June 26, 2026 — debug: fade the whole character per slot. 1.0 = 100%.
+    // Slot 1 = active (front) customer; Slot 2 = waiting (behind) customers.
+    var slot1Opacity: Double = 1.0
+    var slot2Opacity: Double = 1.0
     
     // Customer Scene Portraits (full-body standing characters)
     // BASE SCALE: Multiplier applied to ALL scene images before per-character scaling
@@ -1614,6 +1629,7 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 1, myHeight: .tallHat,    myWidth: .medium, nbrHeight: .medium,  nbrWidth: .skinny, dx: -39.361703395843506, dy: 0.0,                 sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .medium,  nbrWidth: .wide,   dx: 3.191494941711426,   dy: -9.929072856903076,  sizeMul: 1.0286347657442092)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 42.19858646392822,   dy: -35.10638475418091,  sizeMul: 1.0617907732725143)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 28.368782997131348,  dy: -24.468088150024414,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 10.63830852508545,   dy: -18.439722061157227, sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 31.20567798614502,   dy: -2.482271194458008,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 10.63830852508545,   dy: -15.2482271194458,   sizeMul: 1.0)

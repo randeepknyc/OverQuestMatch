@@ -582,6 +582,11 @@ struct PotionShopDebugMenu: View {
         ednarHeight: \(cfg.ednarHeight)
         ednarX: \(cfg.ednarX)
         ednarY: \(cfg.ednarY)
+        ednarBubbleX: \(cfg.ednarBubbleX)
+        ednarBubbleY: \(cfg.ednarBubbleY)
+        bgTestOpacity: \(cfg.bgTestOpacity)
+        slot1Opacity: \(cfg.slot1Opacity)
+        slot2Opacity: \(cfg.slot2Opacity)
         
         ───────────────────────────────────────────────────────────────
         🧍 CUSTOMER SCENE PORTRAITS (per-character scaling)

@@ -223,6 +223,13 @@ class PotionShopGameState {
     /// animation. Using an Int (counter) means each shake is a
     /// distinct event even if the value was already > 0.
     var customerShakeCounters: [UUID: Int] = [:]
+    // June 26, 2026 — when the brew lands on a customer, this holds the damage
+    // amount so the hp_damage badge can show "−X" over them for the brew.
+    var brewDamageBadges: [UUID: Int] = [:]
+    // June 27, 2026 — set of customer IDs currently attacking Ednar
+    // (Phase 4a/4b). The customer view swaps its HP badge to hp_customer_atk
+    // while its id is in this set.
+    var customerAttackingIds: Set<UUID> = []
 
     /// Phase 7: Customer "leaves" trigger. When a customer expires,
     /// the id is set here and their view fades + slides off-screen.
@@ -337,6 +344,11 @@ class PotionShopGameState {
     /// scene-rebuild `.id()` on this so all 5 dice replay their spin.
     var spinTrigger3D: Int = 0
 
+    /// Set to true by the view's `.onAppear`. Haptics fired before the view
+    /// is on screen are silently swallowed by iOS (the generator has no
+    /// active window), so we gate the dice-rattle call on this flag.
+    var viewIsOnScreen = false
+
     /// Re-roll every die in the hand. JUNE 13, 2026 (ii-a): on Day 1 each
     /// die rolls ONE unified outcome (type + value + face) from the odds
     /// table, rebuilding the die so its `type` can change too — otherwise a
@@ -369,6 +381,8 @@ class PotionShopGameState {
             }
         }
         spinTrigger3D += 1
+        // Haptic rattle for the duration of the 3D dice spin animation
+        HapticManager.shared.diceRollRattle()
     }
 
     /// Die IDs whose 3D cube should appear at rest (no drop/spin animation)
@@ -701,6 +715,7 @@ class PotionShopGameState {
         placements[nodeId] = die
         hand.remove(at: handIdx)
         selectedHandIndex = nil
+        HapticManager.shared.diePlaced()
         emitPlacementFloatingNumber(nodeId: nodeId, die: die)
     }
 
@@ -755,6 +770,7 @@ class PotionShopGameState {
         // Place the die
         placements[nodeId] = die
         clearDragState()
+        HapticManager.shared.diePlaced()
         emitPlacementFloatingNumber(nodeId: nodeId, die: die)
     }
 
@@ -931,6 +947,7 @@ class PotionShopGameState {
                     placements[nodeId] = die
                     hand.remove(at: dieIndex)
                     selectedHandIndex = nil
+                    HapticManager.shared.diePlaced()
                     return true
                 }
             }
@@ -1210,6 +1227,13 @@ class PotionShopGameState {
         // when both are false. (No-op for non-3D-dice rounds; nothing reads
         // this token there.)
         spinTrigger3D &+= 1
+        // Haptic rattle matching the 3D dice spin (only on 3D-dice rounds).
+        // Gated on viewIsOnScreen because the init-time deal fires before
+        // iOS has an active window — the haptic generator silently no-ops.
+        // The view's .onAppear fires the initial rattle instead.
+        if currentRoundUses3DDice && viewIsOnScreen {
+            HapticManager.shared.diceRollRattle()
+        }
     }
 
     /// Move all placed and held dice to the discard pile. Called after each brew.
@@ -1253,6 +1277,7 @@ class PotionShopGameState {
 
         isAnimating = true
         defer { isAnimating = false }
+        defer { withAnimation(.easeOut(duration: 0.3)) { brewDamageBadges.removeAll() } }
 
         // JUNE 20, 2026: if the banner is CLOSED when brew is hit, open it on
         // the active customer so the player sees the HP banner during the
@@ -1312,7 +1337,11 @@ class PotionShopGameState {
             if customers[activeIdx].hp <= 0 {
                 customers[activeIdx].status = .defeated
             }
+            HapticManager.shared.brewHit()
             triggerCustomerShake(activeId)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                brewDamageBadges[activeId] = preview.damage
+            }
             emitFloatingNumber(
                 text: "-\(preview.damage) 🧪",
                 color: PotionShopFloatingNumber.damageCustomerColor,
@@ -1345,6 +1374,8 @@ class PotionShopGameState {
 
         // ── 4a. Active attacks (alone)
         if activeWillAttack > 0, customers[activeIdx].status == .waiting {
+            customerAttackingIds.insert(activeId)
+            HapticManager.shared.customerAttack()
             triggerCustomerShake(activeId)
             let result = applyDamage(activeWillAttack)
             if result.dealt > 0 {
@@ -1363,6 +1394,7 @@ class PotionShopGameState {
                 )
             }
             try? await sleep(seconds: PotionShopBrewAnimator.activeAttackDuration)
+            customerAttackingIds.remove(activeId)
             if phase == .lost { return }
         }
 
@@ -1376,10 +1408,14 @@ class PotionShopGameState {
                       customers[cIdx].status == .waiting,
                       let char = PotionShopData.character(customers[cIdx].charKey),
                       char.waitingAttack > 0 else { continue }
+                customerAttackingIds.insert(id)
+                HapticManager.shared.customerAttack()
                 triggerCustomerShake(id)
                 // Small gap before the next waiter shakes, for a rippling
                 // down-the-line feel. Tune via waiterStaggerDelay.
                 try? await sleep(seconds: PotionShopBrewAnimator.waiterStaggerDelay)
+                // Clear this waiter's badge before the next one starts.
+                customerAttackingIds.remove(id)
             }
             let result = applyDamage(waiterAttackTotal)
             if result.dealt > 0 {

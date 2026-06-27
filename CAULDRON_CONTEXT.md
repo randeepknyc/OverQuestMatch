@@ -3204,6 +3204,318 @@ File: PotionShopGameState.swift
 
 ⚠️ MANY of these (badge states, bubble, realized badges, shards) are
 PLACEHOLDER SwiftUI shapes/text — user plans to replace with IMAGE ASSETS.
+## 50. JUNE 20–24, 2026 — banner pulsing, hp_damage on banner, HP roll fixes, depth ordering, white backing
+
+Files: PotionShopCustomerSceneView.swift, PotionShopGameView.swift,
+PotionShopGameState.swift, PotionShopBrewAnimator.swift.
+
+### 50.1 Banner HP rolling + staged-damage PULSE (fade, synced with badge)
+
+The banner (PotionShopInspectStripView) HP number now uses the same rolling
+counter as the badge (spins full→board-adjusted on swap). While damage is
+STAGED (active customer, potion/stability placed pre-brew), the badge fades
+red↔normal (crossfade, NOT flash) AND the banner bottle crossfades to
+`potion_bottle_damage` — both on ONE shared sine phase
+(`PotionShopBrewAnimator.damagePulseSpeed`, 5.0). Knob: raise/lower that one
+value to speed/slow BOTH. Banner number stays WHITE on top (zIndex 10) with a
+shadow so it never blends into the red bottle. `PotionShopLerpColor` helper
+exists (color interp) but is currently unused (kept for later).
+
+### 50.2 hp_damage REPLACES the banner bottle during the hit
+
+During the actual brew hit, the banner bottle is REPLACED (not stacked) by
+`hp_damage`, synced to the HP badge's hp_damage via the active customer's
+shake counter (`takingDamage` flag in the strip, ~0.6s). The hp_damage banner
+image has its own y-offset knob: `.offset(y: 5)` (search "y-offset knob for the").
+
+### 50.3 HP roll bug fixes (active scroll + swap spin)
+
+- Active customer HP now SCROLLS on placement (quickRoll, ~28ms/step,
+  interruptible) not just on swap. Bug fixed: onAppear re-fired on re-render +
+  a stuck `spinning` flag blocked it → one-shot `didInit` guard.
+- Swap spin started at AFFECTED hp instead of full: the placement quickRoll was
+  cancelling the swap spin. Fixed by NOT letting quickRoll override a spin
+  (`!spinning` guard restored), so swap spins start fresh at the original HP.
+- HP "stays down" on brew (no flash back up): rolling text holds the previewed
+  value during isAnimating and follows realHP down.
+
+### 50.4 Brew opens the banner
+
+doBrew(): if the banner is closed (inspectedId == nil) when brew is hit, it
+opens on the active customer for the attack sequence.
+
+### 50.5 White-silhouette backing for ALL waiting customers
+
+`useWhiteSilhouette` was hardcoded to 3 characters; now it's simply `!isActive`
+— every waiting customer gets the opaque white silhouette under their dimmed
+art (0.55), so the background never shows through. Active customer = full art,
+no backing.
+
+### 50.6 Depth ordering (customers AND badges)
+
+Customers z-order front-to-back by queue position: `.zIndex(queue.count - idx)`
+(active in front, slot2 behind). HP badges have transition/animation modifiers
+that lifted them out of z-flow, so the badge ALSO gets an explicit
+`.zIndex(queueCount - queueIndex)` to match. NOTE: attack badges may need the
+same treatment if they show the issue (not yet done).
+
+### 50.7 Damage burst over HP badge, active-only
+
+PotionShopDamageBurst lives INSIDE the HP badge ZStack (inherits the debug-menu
+badge position). Fires only for the active customer (gs.queue.first ==
+customer.id). HP badge font size now `fontSize: 24 * scale` (user-tuned, was 18).
+
+---
+
+## 51. JUNE 24, 2026 — CHARACTER CONTEXTUAL NUDGE SYSTEM (bucket-keyed, front+back) — BUILT
+
+The big architectural addition. Purpose: as the cast scales up and lineups are
+RANDOM, the hand-tuned QUEUE PERMUTATIONS approach doesn't scale (can't
+enumerate every ordering). DEPRECATE permutations for new work. Instead, nudge
+the character BODY (position + scale) based on BUCKET context — a finite set of
+bucket combos, cast-agnostic. Directly mirrors the HP-badge contextual nudge
+system (which is also bucket-keyed) but targets the body and adds BACK neighbor.
+
+### 51.1 Architecture (mirrors HP badge context nudge)
+
+PotionShopLayoutConfig.swift:
+  • `CharacterContextKey` (Hashable, Codable): slot, myHeight, myWidth, and
+    front + back neighbor buckets as Strings ("" = no neighbor that side).
+    (Buckets are String-backed enums — sentinel is "", NOT -1.)
+  • `CharacterContextNudge` (Codable): dx, dy, sizeMul (identity = 0,0,1).
+  • `var characterContextNudges: [CharacterContextKey: CharacterContextNudge]`
+    — SPARSE; identity auto-deletes; no entry = plain auto-layout (fallback).
+  • Accessors: characterContextNudge(...), setCharacterContextNudge(...),
+    hasCharacterContextNudge(...), clearCharacterContextNudge(...),
+    characterContextKey(...), and `bakeCharacterContext(...)` for paste-back.
+  • `var editCharacterContextual: Bool` — editor write-mode flag.
+
+### 51.2 Application
+
+PotionShopCustomerSceneView.swift: at the effectiveX/Y/scale computation, it
+looks up front (queue[slot-1]) and back (queue[slot+1]) neighbor charKeys,
+gets the nudge, and applies dx→effectiveX, dy→effectiveY, sizeMul→effective
+W/H scale. Helpers `liveFrontNeighborKey` / `liveBackNeighborKey`.
+
+### 51.3 Editor (debug menu)
+
+PotionShopGameView.swift: a GREEN "Character contextual nudge (front + back)"
+block — write-mode toggle (`editCharacterContextual`), live context readout
+(my buckets • front • back), and ΔX/ΔY/size sliders bound via
+`charContextNudgeBinding` / `charContextNudgeTier`. When write-mode is ON, the
+body drag/sliders write the contextual nudge for the live context instead of
+base values (exactly like the badge editor's `editHpBadgeContextual`).
+Bodyaccessors (bodyXAccessors/bodyYAccessors) gained a contextual branch at top.
+
+### 51.4 Export + persistence
+
+PotionShopDebugMenu.swift: `formatCharacterContextNudges()` adds a "CONTEXTUAL
+CHARACTER NUDGES (slot · myH×W · front · back)" section to the export.
+PERSISTENCE NOTE: PotionShopLayoutConfig is NOT saved to disk — defaults live
+in code via bake* calls at init; the debug menu exports text; user pastes back;
+Claude bakes via bakeCharacterContext. Same flow as every other tuned value.
+
+### 51.5 Baked defaults so far (June 24)
+
+  • slot1 short·wide, front medium·wide, back medium·medium → dx 2.48 dy -2.84
+  • slot1 floater·medium, front tall·skinny, back medium·medium → dx 14.54
+  • slot1 medium·skinny, front tall·wide, back medium·wide → dx 12.41 dy 0.71
+  • slot1 medium·wide, front tall·wide, back medium·medium → dx 10.99 dy 6.03
+(Plus badge context re-tunes same session — see LayoutConfig bake block.)
+
+### 51.6 Caveat
+
+Adding BACK neighbor multiplies the number of distinct contexts vs the badge
+(front-only) system, so more combos to tune. Inherent to wanting back-context.
+If back rarely matters in practice, leaving it "none" is fine (sparse fallback).
+
+---
+
+## 52. HANDOFF — current state & open threads (June 24, 2026)
+
+**Working method reminder:** user has ZERO coding knowledge — deliver COMPLETE
+files, copy-paste ready, simple explanations. Balance-check every file
+(braces/parens/brackets/quotes) before delivering. Watch for STALE/PARTIAL
+uploads undoing cross-file work — when the user uploads, diff against the
+working copy and ADOPT their tuned values, don't overwrite. Treat the
+highest-numbered CAULDRON_CONTEXT.md as canonical. Latest working dir: psI
+(synced to psG). Build files live in /mnt/user-data/outputs.
+
+**Just-diagnosed, not resolved — EDNAR CANVAS:** user asked for new canvas
+dims for redrawing Ednar (saw "white space on the side"). DIAGNOSIS: the file
+(ps_ednar_concerned.png) is ALREADY 1024×1536 = exactly 2:3, content fills it,
+no padding. So it's NOT a dimension problem — it's COMPOSITIONAL (Ednar the
+figure sits left-of-center, the desk fills the rest, so empty space reads
+around the character). Ednar uses `.scaledToFit()` in a 2:3 frame
+(portraitDiameter 76 × 1.5). Pending: user to clarify whether they mean (a) a
+literal on-screen render gap [→ check frame/freeform-width math + want a
+screenshot] or (b) composition feels off [→ keep 1024×1536, redraw so Ednar
+fills more of the canvas]. Position values (ednarX/Y/Width/Height) should NOT
+change — only the art inside the frame.
+
+**Parked design conversation — NODE GROWTH:** user is interested in a board
+that STARTS at 8 nodes and GROWS back to 12 over a run (trigger TBD). This is
+essentially the dynamic-board idea (§39) + wants the event/trigger system
+(§40/§43). Discussed but NOT started. Recommended building "grow the board" as
+a BOON (reuses the run/boon system, gives a real choice). The growth-trigger
+question (boon vs auto every N rounds/days) is the open decision. Mechanical
+core (gate active nodes by `unlockedNodeCount`, render/placement/boost respect
+it, edges exist only when both endpoints unlocked) is a moderate build; the
+starting-8 layout + unlock order is design the user drives. Board = nodes[]/
+edges[] in PotionShopModels.swift (line ~475). 3 spots assume 12: the edges
+list, LayoutConfig.perNodeOffsets, CauldronView perNodeOffsets default.
+
+**Longstanding pending (from earlier sections):**
+  1. Event/trigger system for trade-off boons + relics (§40.3/§43.4) — the
+     agreed next big build; node-growth-as-boon would also want this.
+  2. Tier-upgrade boon (.upgradeTier basic→silver→gold) — small clean add (§44.2).
+  3. Spawn/HP-bucket difficulty system (§35), customer animation (§36) — design.
+  4. Replace placeholder boon content + write more customer flavor.
+  5. Replace placeholder SwiftUI feedback shapes (badge states, bubble, die
+     badges, shards) with IMAGE ASSETS — user is mid-migration (hp_badge_red,
+     hp_damage, potion_bottle_damage already added).
+  6. Per-gap custom attack delays (convert waiterStaggerDelay to a per-position
+     list) — user asked once, didn't confirm.
+
+**Character contextual nudge (§51) is live and proven** — user has tuned and
+baked several entries. As the cast grows, the workflow is: tune problem bucket-
+contexts in debug menu → export → paste back → Claude bakes. Permutations are
+being deprecated in favor of this.
+---
+
+## 53. JUNE 26, 2026 — HAPTICS, Ednar idle/pop, editor bubble+bg knobs, HP crossfade, brew "−X" on the hit flash
+
+This session added the cauldron's first real haptics, two Ednar life signs,
+two editor positioning knobs, an HP-number crossfade preview, and put the brew
+damage number onto the existing hit flash. A standalone **non-coder cheat
+sheet** (`CAULDRON_HAPTIC_CROSSFADE_CHEATSHEET.pdf`) covers the haptic + crossfade
+knobs in plain language — hand that to yourself when tuning.
+
+### 53.1 Ednar idle breath + reaction pop (`PotionShopBrewAnimator.swift` §7 / `PotionShopEdnarView`)
+Ednar now subtly **breathes** (a slow scale pulse) at idle, and **pops** (a quick
+spring scale-up) as a reaction. Both multiply onto his existing scale, so they
+never fight the layout. Tuning constants (section "7 — EDNAR IDLE" in
+`PotionShopBrewAnimator.swift`):
+- `ednarBreathScale` 1.015, `ednarBreathDuration` 2.6 (the breathe loop)
+- `ednarPopScale` 1.08, `ednarPopRiseDuration` 0.10, `ednarPopResponse` 0.34,
+  `ednarPopDamping` 0.55 (the reaction pop)
+Wiring: `@State breath/pop` + `.scaleEffect(... * breath * pop)`, `onAppear`/`onChange`,
+and `triggerEdnarPop()` in `PotionShopEdnarView`.
+⚠️ If a multi-file delivery ever omits `PotionShopBrewAnimator.swift`, the build
+breaks (the §7 constants live there) — always ship it with EdnarView changes.
+
+### 53.2 Editor: Ednar heal/shield bubble position + background opacity test
+Two knobs added to `PotionShopLayoutConfig.swift` and the Ednar tab of the
+debug editor:
+- `ednarBubbleX` (30), `ednarBubbleY` (10) — position of the heal/shield speech
+  bubble. NOTE: the bubble is pinned to a **frame corner** via `.offset`, not to
+  Ednar's drawn head, so it drifts as he scales — these knobs re-center it.
+- `bgTestOpacity` (1.0) — a quick background dimmer for art/contrast testing.
+While the layout editor is open, a dimmed **sample bubble** shows so it can be
+positioned without triggering a real heal/shield. Both export through the debug
+menu like every other layout value.
+
+### 53.3 Ednar pose bake (final values, in `PotionShopLayoutConfig.swift`)
+Baked from the editor: `ednarWidth` 1.3431382966041565, `ednarHeight`
+1.3351063802838326, `ednarX` 35.81562042236328, `ednarY` -10.638296604156494.
+(Reminder: Ednar's art canvas issue was COMPOSITIONAL, not dimensional — the
+file is exactly 1024×1536 / 2:3, `scaledToFit`, figure sits left-of-center.)
+
+### 53.4 HP number crossfade preview (`PotionShopRollingHPText`, `PotionShopCustomerSceneView.swift` ~line 2000)
+After the active customer's HP number settles on the **affected** value
+(current HP minus the damage your placed dice would deal), it gently
+**alternates** between that affected number and the customer's **current** HP,
+so the player sees both "what it is" and "what it'll become." Stops on brew,
+when the customer goes inactive, or when the board changes. Two knobs (static
+lets at the top of `PotionShopRollingHPText`):
+- `crossfadeHold` **0.9** — seconds each number is shown before fading to the other.
+- `crossfadeFade` **0.35** — seconds the fade itself takes.
+User approved this ("good yeah").
+
+### 53.5 Brew damage "−X" rides the EXISTING hp_damage flash (NOT a new badge)
+The HP badge already flashes to `hp_damage` for ~0.6s when the brew lands (see
+§47.1 / §50.2 — `takingDamage` true). During that flash, the number on the badge
+now reads **"−X"** (the brew's total damage to that customer) instead of the HP
+value, then snaps back to the HP number when the flash ends. No new art, no new
+position — it rides whatever position/size the HP badge already has.
+- The damage amount is stored per-customer in `gs.brewDamageBadges: [UUID: Int]`
+  (set in `doBrew` PHASE 3 inside a `withAnimation`, cleared via `defer` at the
+  end of `doBrew`). The view reads `gs.brewDamageBadges[customer.id]` while
+  `takingDamage` is true.
+- ⚠️ HISTORY / DO-NOT-REPEAT: an earlier attempt ADDED a *second* `hp_damage`
+  badge floating above the character (with its own `damageBadgeSize/OffsetX/OffsetY`
+  config + Badges-tab sliders + export) and a placement-time preview. That was
+  WRONG and has been fully removed. The damage number belongs on the existing
+  flash only.
+- The old floating **"−X 🧪"** number (drifts up on the hit, §48.2) still exists
+  separately. User offered to remove it as redundant; not yet confirmed.
+
+### 53.6 HAPTICS — four haptic events (June 27, 2026)
+
+All cauldron haptics route through the shared **`HapticManager`** in
+`Shared/HapticManager.swift` — the same singleton the match-3 game uses (with
+pre-prepared, retained generators so they fire reliably).
+
+#### 1. DICE ROLL RATTLE — `diceRollRattle()`
+
+Rapid-fire **rigid** impacts simulating dice tumbling. Fires every time the
+3D dice visually spin in the tray.
+
+- **Duration:** 1.5s · **Interval:** ~60ms · **Generator:** `impactRigid`
+- **Envelope:** constant 1.0 (user tuned; was ramping 1.0→0.3)
+- **Jitter:** ±20% intensity + ±15ms timing per tick
+- **Call sites:** `reroll3DDice()` (unconditional), `drawFromBag()` (gated on
+  `currentRoundUses3DDice && viewIsOnScreen`)
+- **Initial deal:** fired from `PotionShopGameView.onAppear` (not `init()`,
+  because iOS swallows haptics before the view is on screen)
+
+#### 2. DIE PLACED — `diePlaced()`
+
+Single sharp tap when a die lands on a cauldron node.
+
+- **Generator:** `impactRigid` · **Intensity:** 0.7
+- **Call sites:** `placeDie()` (tap path), `dropDieOnNode()` (drag path),
+  `tryDropDieAtPosition()` (drag hit-test path)
+
+#### 3. BREW HIT — `brewHit()`
+
+Heavy thud when the brew damages the active customer.
+
+- **Generator:** `impactHeavy` · **Intensity:** 0.9
+- **Call site:** Phase 3 of `doBrew()`, when `preview.damage > 0`
+
+#### 4. CUSTOMER ATTACK — `customerAttack()`
+
+Medium thud when a customer attacks Ednar.
+
+- **Generator:** `impactMedium` · **Intensity:** 0.8
+- **Call sites:** Phase 4a (active customer attacks — once), Phase 4b (each
+  waiter attacks individually during the stagger loop)
+
+#### Tuning cheat sheet
+
+| Event | Method | Generator | Intensity | File:Line |
+|-------|--------|-----------|-----------|-----------|
+| Dice rattle | `diceRollRattle()` | rigid | 1.0 (constant) | HapticManager.swift:202 |
+| Die placed | `diePlaced()` | rigid | 0.7 | HapticManager.swift:233 |
+| Brew hit | `brewHit()` | heavy | 0.9 | HapticManager.swift:238 |
+| Customer attack | `customerAttack()` | medium | 0.8 | HapticManager.swift:243 |
+
+#### Device requirements
+
+Haptics only fire on a **physical iPhone** (not the Simulator, not iPad) and
+require Settings → Sounds & Haptics → **System Haptics ON**.
+
+### 53.7 Tray die value badge timing (June 27, 2026)
+
+The number badge on each 3D die in the tray (`PotionShopTrayDieValueBadge` in
+`PotionShopCauldronView.swift`) was tuned:
+
+- **`revealDelay`:** 1.10s (was 1.30) — how long after a spin before the number
+  fades in. Now appears slightly before the cube fully settles.
+- **`revealFadeDuration`:** 0.06s (was 0.20) — near-instant pop instead of a
+  slow fade.
+
 ---
 
 **End of CAULDRON_CONTEXT.md**

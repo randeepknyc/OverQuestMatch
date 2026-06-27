@@ -417,6 +417,7 @@ struct PotionShopCustomerSceneView: View {
                     .frame(width: geo.size.width, height: geo.size.height,
                            alignment: .center)
                     .clipped()
+                    .opacity(layoutConfig.bgTestOpacity)
             } else {
                 let _ = print("❌ \(bgName) NOT FOUND - Using gradient only")
             }
@@ -450,6 +451,16 @@ struct PotionShopEdnarView: View {
     var ednarArtHeight: Double = 1.0   // FREEFORM - Independent height scale
     var ednarArtXOffset: Double = 0    // FREEFORM - X position offset (pts)
     var ednarArtYOffset: Double = 0    // FREEFORM - Y position offset (pts)
+
+    // June 25, 2026 — idle breath + reaction pop. Applied to the ART ONLY
+    // (multiplied into the image's scaleEffect below), so the frame and the
+    // speech bubble never move. Tuning lives in PotionShopBrewAnimator §7.
+    @State private var ednarBreathPhase: CGFloat = 1.0
+    @State private var ednarPopPhase: CGFloat = 1.0
+
+    // June 26, 2026 — observe layout config so the heal/shield bubble position
+    // (ednarBubbleX / ednarBubbleY) updates live from the editor sliders.
+    @Bindable var layoutConfig: PotionShopLayoutConfig = PotionShopLayoutConfig.shared
 
     private var expressionAssetName: String {
         let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
@@ -486,8 +497,8 @@ struct PotionShopEdnarView: View {
                         .scaledToFit()
                         .frame(width: placeholderW, height: placeholderH)
                         .scaleEffect(
-                            x: baseScale * ednarArtScale * ednarArtWidth,
-                            y: baseScale * ednarArtScale * ednarArtHeight,
+                            x: baseScale * ednarArtScale * ednarArtWidth * ednarBreathPhase * ednarPopPhase,
+                            y: baseScale * ednarArtScale * ednarArtHeight * ednarBreathPhase * ednarPopPhase,
                             anchor: .center
                         )
                         .offset(x: ednarArtXOffset, y: ednarArtYOffset)
@@ -530,15 +541,22 @@ struct PotionShopEdnarView: View {
         // shielding (🛡 #) as dice are placed.
         .overlay(alignment: .topTrailing) {
             let p = gs.livePreview
-            if !gs.isAnimating, p.healing > 0 || p.shielding > 0 {
+            // While the layout editor is open, show a SAMPLE bubble even with
+            // nothing brewing, so the Bubble X / Y sliders have something to
+            // position. Real brew values take over the moment they exist.
+            let editorPreview = layoutConfig.layoutEditorIsOpen
+            let healVal = p.healing > 0 ? p.healing : (editorPreview ? 5 : 0)
+            let shieldVal = p.shielding > 0 ? p.shielding : (editorPreview ? 3 : 0)
+            let isSampleOnly = editorPreview && p.healing == 0 && p.shielding == 0
+            if !gs.isAnimating, healVal > 0 || shieldVal > 0 {
                 VStack(alignment: .leading, spacing: 3) {
-                    if p.healing > 0 {
-                        Text("+\(p.healing)")
+                    if healVal > 0 {
+                        Text("+\(healVal)")
                             .font(Font.gameScore(size: 16))
                             .foregroundColor(PotionShopTheme.composureGood)
                     }
-                    if p.shielding > 0 {
-                        Text("🛡 \(p.shielding)")
+                    if shieldVal > 0 {
+                        Text("🛡 \(shieldVal)")
                             .font(Font.gameScore(size: 15))
                             .foregroundColor(Color(red: 0.45, green: 0.65, blue: 0.95))
                     }
@@ -554,11 +572,43 @@ struct PotionShopEdnarView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(PotionShopTheme.ink.opacity(0.3), lineWidth: 1)
                 )
+                .opacity(isSampleOnly ? 0.65 : 1.0)   // dim the editor-only sample
                 .fixedSize()
-                .offset(x: 30, y: 10)
+                .offset(x: layoutConfig.ednarBubbleX, y: layoutConfig.ednarBubbleY)
                 .zIndex(200)
                 .transition(.scale.combined(with: .opacity))
                 .allowsHitTesting(false)
+            }
+        }
+        // June 25, 2026 — start the endless idle breath when Ednar appears,
+        // and fire a quick reaction pop whenever his expression changes.
+        .onAppear {
+            withAnimation(
+                .easeInOut(duration: PotionShopBrewAnimator.ednarBreathDuration)
+                    .repeatForever(autoreverses: true)
+            ) {
+                ednarBreathPhase = PotionShopBrewAnimator.ednarBreathScale
+            }
+        }
+        .onChange(of: expressionAssetName) { _, _ in
+            triggerEdnarPop()
+        }
+    }
+
+    /// Reaction "pop": when Ednar's expression changes, bump the art UP
+    /// briefly, then spring it back to normal. Art-only — frame/bubble stay put.
+    private func triggerEdnarPop() {
+        withAnimation(.easeOut(duration: PotionShopBrewAnimator.ednarPopRiseDuration)) {
+            ednarPopPhase = PotionShopBrewAnimator.ednarPopScale
+        }
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + PotionShopBrewAnimator.ednarPopRiseDuration
+        ) {
+            withAnimation(
+                .spring(response: PotionShopBrewAnimator.ednarPopResponse,
+                        dampingFraction: PotionShopBrewAnimator.ednarPopDamping)
+            ) {
+                ednarPopPhase = 1.0
             }
         }
     }
@@ -841,20 +891,21 @@ struct PotionShopCustomerInSceneView: View {
     /// The charKey of whoever stands one slot in front (live queue), or
     /// nil for slot 0 / empty. Used by contextual nudges + their editor.
     private func liveFrontNeighborKey(forSlot slotIdx: Int) -> String? {
-        guard slotIdx >= 1,
-              slotIdx - 1 < gs.queue.count,
-              let nbr = gs.customers.first(where: { $0.id == gs.queue[slotIdx - 1] })
-        else { return nil }
-        return nbr.charKey
+        let q = gs.queue
+        let i = slotIdx - 1
+        guard i >= 0, i < q.count else { return nil }
+        let id = q[i]
+        return gs.customers.first(where: { $0.id == id })?.charKey
     }
 
     /// The charKey of whoever stands one slot BEHIND (live queue), or nil.
     /// Used by the character contextual nudge (front + back context).
     private func liveBackNeighborKey(forSlot slotIdx: Int) -> String? {
-        guard slotIdx + 1 < gs.queue.count,
-              let nbr = gs.customers.first(where: { $0.id == gs.queue[slotIdx + 1] })
-        else { return nil }
-        return nbr.charKey
+        let q = gs.queue
+        let i = slotIdx + 1
+        guard i >= 0, i < q.count else { return nil }
+        let id = q[i]
+        return gs.customers.first(where: { $0.id == id })?.charKey
     }
 
     /// Read/write closures for the HP badge X offset — same precedence the
@@ -940,16 +991,18 @@ struct PotionShopCustomerInSceneView: View {
         // bucket-keyed nudge to this character's position + scale. Sparse —
         // identity when no entry, so most characters are unaffected.
         let charFrontNeighborKey: String? = {
-            guard queueIndex - 1 >= 0, queueIndex - 1 < gs.queue.count,
-                  let nbr = gs.customers.first(where: { $0.id == gs.queue[queueIndex - 1] })
-            else { return nil }
-            return nbr.charKey
+            let q = gs.queue
+            let i = queueIndex - 1
+            guard i >= 0, i < q.count else { return nil }
+            let id = q[i]
+            return gs.customers.first(where: { $0.id == id })?.charKey
         }()
         let charBackNeighborKey: String? = {
-            guard queueIndex + 1 < gs.queue.count,
-                  let nbr = gs.customers.first(where: { $0.id == gs.queue[queueIndex + 1] })
-            else { return nil }
-            return nbr.charKey
+            let q = gs.queue
+            let i = queueIndex + 1
+            guard i >= 0, i < q.count else { return nil }
+            let id = q[i]
+            return gs.customers.first(where: { $0.id == id })?.charKey
         }()
         let charContextNudge = layoutConfig.characterContextNudge(
             slot: queueIndex,
@@ -986,6 +1039,12 @@ struct PotionShopCustomerInSceneView: View {
         // (non-active) customers, so the background never shows through the
         // dimmed art. (Was limited to wendelina/crispin/ardo.)
         let useWhiteSilhouette = !isActive
+
+        // June 26, 2026 — debug per-slot opacity. Slot 1 = active (front),
+        // Slot 2 = waiting (behind). These are the REAL character opacity now
+        // (1.0 = 100% fully opaque): slot1Opacity is applied to the active art,
+        // slot2Opacity drives the waiting art over its white backing (so 1.0
+        // fully hides the backing = solid character; lower fades over white).
 
         // Editor-selection state (May 26, 2026): when the layout editor is
         // open AND this customer is the currently-selected one, draw a thin
@@ -1034,7 +1093,7 @@ struct PotionShopCustomerInSceneView: View {
                                     y: customerSceneBaseScale * effectiveHeight,
                                     anchor: .center)
                         .offset(x: effectiveX, y: effectiveY)
-                        .opacity(0.55)
+                        .opacity(layoutConfig.slot2Opacity)   // was 0.55; now the Slot 2 slider (1.0 = solid)
                     } else {
                         PotionShopImageLoader.sceneImageOrFallback(
                             sceneAsset: char.scenePortrait,
@@ -1047,6 +1106,7 @@ struct PotionShopCustomerInSceneView: View {
                                     y: customerSceneBaseScale * effectiveHeight,
                                     anchor: .center)
                         .offset(x: effectiveX, y: effectiveY)
+                        .opacity(layoutConfig.slot1Opacity)   // Slot 1 (active) slider; 1.0 = solid
                     }
 
                     // Selected-character indicator (May 26, 2026): yellow ring
@@ -1121,11 +1181,12 @@ struct PotionShopCustomerInSceneView: View {
                 // Live from the current queue, so it re-resolves on swaps,
                 // defeats, and expirations. Identity when slot 0 / no entry.
                 let frontNeighborKey: String? = {
-                    guard badgeQueueSlot >= 1,
-                          badgeQueueSlot - 1 < gs.queue.count,
-                          let nbr = gs.customers.first(where: { $0.id == gs.queue[badgeQueueSlot - 1] })
-                    else { return nil }
-                    return nbr.charKey
+                    guard badgeQueueSlot >= 1 else { return nil }
+                    let q = gs.queue
+                    let i = badgeQueueSlot - 1
+                    guard i >= 0, i < q.count else { return nil }
+                    let id = q[i]
+                    return gs.customers.first(where: { $0.id == id })?.charKey
                 }()
                 let contextNudge = layoutConfig.hpBadgeContextNudge(
                     slot: badgeQueueSlot,
@@ -1154,16 +1215,18 @@ struct PotionShopCustomerInSceneView: View {
                     // damage". Otherwise the normal (purple) badge. Hidden
                     // during the brew animation so it tracks placement only.
                     // JUNE 20, 2026: badge asset by state, in priority order:
-                    //  1. hp_damage  — actively being HIT (brew landed), brief.
-                    //  2. PULSE between hp_badge_red ↔ hp_badge — active
+                    //  1. hp_damage       — actively being HIT (brew landed), brief.
+                    //  2. hp_customer_atk — customer attacking Ednar (Phase 4a/4b).
+                    //  3. PULSE between hp_badge_red ↔ hp_badge — active
                     //     customer with STAGED damage (potion/stability dice
                     //     placed, pre-brew). Pulses to draw the eye to the
                     //     pending damage.
-                    //  3. hp_badge   — normal (purple).
+                    //  4. hp_badge         — normal (purple).
                     let isActiveCustomer = (gs.queue.first == customer.id)
                     let hasIncomingDamage = isActiveCustomer
                         && !gs.isAnimating
                         && gs.livePreview.damage > 0
+                    let isAttackingEdnar = gs.customerAttackingIds.contains(customer.id)
                     TimelineView(.animation) { timeline in
                         let t = timeline.date.timeIntervalSinceReferenceDate
                         // Smooth 0→1 fade (sine), ~0.7s period, for a gentle
@@ -1173,6 +1236,9 @@ struct PotionShopCustomerInSceneView: View {
                         ZStack {
                             if takingDamage, let img = UIImage(named: "hp_damage") {
                                 Image(uiImage: img).resizable().scaledToFit()
+                                    .frame(width: hpSize * scale, height: hpSize * scale)
+                            } else if isAttackingEdnar, let atkImg = UIImage(named: "hp_customer_atk") {
+                                Image(uiImage: atkImg).resizable().scaledToFit()
                                     .frame(width: hpSize * scale, height: hpSize * scale)
                             } else {
                                 // Base normal badge
@@ -1190,13 +1256,21 @@ struct PotionShopCustomerInSceneView: View {
                     // customer BECOMES active, the number rolls down from their
                     // real HP to the board-adjusted value (real − board damage).
                     // While already active and placing dice, it tracks live.
-                    PotionShopRollingHPText(
-                        target: liveHP,
-                        realHP: gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp,
-                        isActive: gs.queue.first == customer.id,
-                        isAnimating: gs.isAnimating,
-                        fontSize: 18 * scale
-                    )
+                    // JUNE 26, 2026: during the hp_damage HIT flash, this same
+                    // spot shows "−X" (the brew damage) instead of the HP value.
+                    if takingDamage, let brewDmg = gs.brewDamageBadges[customer.id], brewDmg > 0 {
+                        Text("-\(brewDmg)")
+                            .font(Font.gameScore(size: 18 * scale))
+                            .foregroundColor(.white)
+                    } else {
+                        PotionShopRollingHPText(
+                            target: liveHP,
+                            realHP: gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp,
+                            isActive: gs.queue.first == customer.id,
+                            isAnimating: gs.isAnimating,
+                            fontSize: 18 * scale
+                        )
+                    }
 
                     // JUNE 20, 2026: damage burst CENTERED ON THE HP BADGE.
                     // Living inside the badge ZStack means it inherits the
@@ -1336,7 +1410,10 @@ struct PotionShopCustomerInSceneView: View {
                 }
                 // damage burst + hp_damage badge only for the ACTIVE customer
                 // (the one taking the brew hit) — not waiting customers.
-                if gs.queue.first == customer.id {
+                // JUNE 27: skip when the customer is ATTACKING (Phase 4a) —
+                // that shake is their attack, not a brew hit.
+                if gs.queue.first == customer.id,
+                   !gs.customerAttackingIds.contains(customer.id) {
                     burstTick += 1
                     takingDamage = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
@@ -1762,6 +1839,7 @@ struct PotionShopInspectStripView: View {
                         let bannerHasIncomingDamage = (gs.queue.first == customer.id)
                             && !gs.isAnimating
                             && gs.livePreview.damage > 0
+                        let bannerIsAttacking = gs.customerAttackingIds.contains(customer.id)
                         TimelineView(.animation) { timeline in
                             let t = timeline.date.timeIntervalSinceReferenceDate
                             let fade = 0.5 + 0.5 * sin(t * PotionShopBrewAnimator.damagePulseSpeed)
@@ -1778,6 +1856,9 @@ struct PotionShopInspectStripView: View {
                                         // hp_damage banner image. Negative = up,
                                         // positive = down. Adjust this number.
                                         .offset(y: 5)
+                                } else if bannerIsAttacking, let atkImg = UIImage(named: "potion_bottle_atk") {
+                                    Image(uiImage: atkImg).resizable().scaledToFit()
+                                        .frame(width: bottleSize, height: bottleSize)
                                 } else {
                                     // Base bottle outline
                                     if let bottleImage = UIImage(named: "potion_bottle_outline") {
@@ -1796,14 +1877,25 @@ struct PotionShopInspectStripView: View {
                                 // Number stays WHITE (the bottle carries the
                                 // red pulse) so it never blends into the red,
                                 // and zIndex forces it above both bottle images.
-                                PotionShopRollingHPText(
-                                    target: bannerLiveTarget,
-                                    realHP: liveCustomer.hp,
-                                    isActive: gs.queue.first == customer.id,
-                                    isAnimating: gs.isAnimating,
-                                    fontSize: PotionShopLayoutConfig.shared.bannerBottleNumberSize,
-                                    color: .white
-                                )
+                                // JUNE 26, 2026: during the hp_damage HIT, the
+                                // banner number reads "−X" (brew damage) too,
+                                // matching the HP badge.
+                                Group {
+                                    if takingDamage, let brewDmg = gs.brewDamageBadges[customer.id], brewDmg > 0 {
+                                        Text("-\(brewDmg)")
+                                            .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
+                                            .foregroundColor(.white)
+                                    } else {
+                                        PotionShopRollingHPText(
+                                            target: bannerLiveTarget,
+                                            realHP: liveCustomer.hp,
+                                            isActive: gs.queue.first == customer.id,
+                                            isAnimating: gs.isAnimating,
+                                            fontSize: PotionShopLayoutConfig.shared.bannerBottleNumberSize,
+                                            color: .white
+                                        )
+                                    }
+                                }
                                 .shadow(color: .black.opacity(0.55), radius: 1, x: 0, y: 1)
                                 .minimumScaleFactor(0.5)
                                 .lineLimit(1)
@@ -1861,8 +1953,11 @@ struct PotionShopInspectStripView: View {
             // JUNE 20, 2026: when the inspected customer is the ACTIVE one and
             // gets hit (shake counter ticks), flash hp_damage on the banner —
             // same window/signal the HP badge uses, so they show together.
+            // JUNE 27: skip when customer is ATTACKING (Phase 4a) — that
+            // shake is their attack, not a brew hit.
             .onChange(of: gs.customerShakeCounters[customer.id] ?? 0) {
-                if gs.queue.first == customer.id {
+                if gs.queue.first == customer.id,
+                   !gs.customerAttackingIds.contains(customer.id) {
                     takingDamage = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         takingDamage = false
@@ -1938,11 +2033,22 @@ struct PotionShopRollingHPText: View {
     @State private var wasActive: Bool = false
     @State private var spinning: Bool = false
     @State private var didInit: Bool = false
+    // June 26, 2026 — preview crossfade: after the count settles on the
+    // affected (post-brew) HP, gently alternate the number between the
+    // affected value and the current HP so the player sees both.
+    @State private var crossfadeTimer: Timer? = nil
+    @State private var crossfadeShowingAffected: Bool = true
+
+    /// Seconds each value is held before crossfading to the other.
+    static let crossfadeHold: Double = 0.9
+    /// How long each crossfade takes.
+    static let crossfadeFade: Double = 0.35
 
     var body: some View {
         Text("\(displayed)")
             .font(Font.gameScore(size: fontSize))
             .foregroundColor(color)
+            .contentTransition(.opacity)   // animated changes crossfade; the count stays instant
             .onAppear {
                 guard !didInit else { return }
                 didInit = true
@@ -1953,7 +2059,7 @@ struct PotionShopRollingHPText: View {
                     displayed = isActive ? target : realHP
                 }
             }
-            .onDisappear { spinTimer?.invalidate(); rollTimer?.invalidate() }
+            .onDisappear { spinTimer?.invalidate(); rollTimer?.invalidate(); crossfadeTimer?.invalidate() }
             // The ONLY trigger for the slot-machine spin: this customer just
             // became active (a SWAP). Start from their ORIGINAL HP (realHP)
             // and roll down to the board-adjusted target.
@@ -1967,6 +2073,7 @@ struct PotionShopRollingHPText: View {
                 } else if !nowActive {
                     spinTimer?.invalidate()
                     rollTimer?.invalidate()
+                    stopCrossfade()
                     spinning = false
                     displayed = realHP              // demoted: show true HP
                 }
@@ -1995,8 +2102,13 @@ struct PotionShopRollingHPText: View {
                     displayed = newReal
                 } else if isAnimating {
                     rollTimer?.invalidate()
+                    stopCrossfade()
                     displayed = newReal
                 }
+            }
+            // A brew starting stops the preview crossfade immediately.
+            .onChange(of: isAnimating) { _, animating in
+                if animating { stopCrossfade() }
             }
     }
 
@@ -2024,8 +2136,9 @@ struct PotionShopRollingHPText: View {
     /// don't drag. Restarting it (new placement) cancels the prior roll.
     private func quickRoll(to: Int) {
         rollTimer?.invalidate()
+        stopCrossfade()
         let from = displayed
-        guard from != to else { return }
+        guard from != to else { maybeStartCrossfade(); return }
         let step = to > from ? 1 : -1
         let stepInterval = 0.028
         // Cap total duration ~0.32s: if the jump is large, move >1 per tick.
@@ -2037,12 +2150,40 @@ struct PotionShopRollingHPText: View {
             if abs(remaining) <= perTick {
                 displayed = to
                 timer.invalidate()
+                maybeStartCrossfade()
             } else {
                 displayed += step * perTick
             }
         }
         RunLoop.main.add(t, forMode: .common)
         rollTimer = t
+    }
+
+    /// After the count settles, loop a gentle crossfade between the affected
+    /// (post-brew) HP and the current HP — but only for the ACTIVE customer,
+    /// when no brew is animating, and when the board actually lowers the HP
+    /// (i.e. there's damage to preview). Otherwise make sure it's stopped.
+    private func maybeStartCrossfade() {
+        guard isActive, !isAnimating, !spinning, target < realHP else {
+            stopCrossfade()
+            return
+        }
+        crossfadeTimer?.invalidate()
+        crossfadeShowingAffected = true
+        displayed = target
+        let t = Timer.scheduledTimer(withTimeInterval: Self.crossfadeHold, repeats: true) { _ in
+            crossfadeShowingAffected.toggle()
+            withAnimation(.easeInOut(duration: Self.crossfadeFade)) {
+                displayed = crossfadeShowingAffected ? target : realHP
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        crossfadeTimer = t
+    }
+
+    private func stopCrossfade() {
+        crossfadeTimer?.invalidate()
+        crossfadeTimer = nil
     }
 
     /// Slot-machine spin: flicker through rapidly-changing numbers, decelerate,
