@@ -29,8 +29,75 @@ class PotionShopLayoutConfig {
     var profilePercent: Double = 9.5
     var cauldronPercent: Double = 37.2
     var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
-    var trayPercent: Double = 19.3
+    var trayPercent: Double = 18.23616921901703
     
+    // Header text tuning (June 27, 2026)
+    // Composure label: font size and offset from default position
+    var headerComposureFontSize: Double = 25.00177276134491
+    var headerComposureOffsetX: Double = 16.489362716674805
+    var headerComposureOffsetY: Double = 7.375888824462891
+    // Focus label: font size and offset from default position
+    var headerFocusFontSize: Double = 24.9609934091568
+    var headerFocusOffsetX: Double = 259.7872281074524
+    var headerFocusOffsetY: Double = -22.76595711708069
+    var headerFocusPipSize: Double = 24.0
+    var headerFocusLabelOffsetY: Double = 1.7730498313903809
+    // Time-of-day icon size and vertical offset
+    var headerTodIconSize: Double = 49.44680881500244
+    var headerTodIconOffsetY: Double = 16.01063847541809
+    // Gear icon size and vertical offset
+    var headerGearSize: Double = 26.68085026741028
+    var headerGearOffsetY: Double = 16.436169147491455
+    // Day label font size and vertical offset (Row 2)
+    var headerDayFontSize: Double = 20.57092195749283
+    var headerDayOffsetX: Double = 6.702128648757935
+    var headerDayOffsetY: Double = 10.904256105422974
+    // Composure bar height and vertical offset
+    var headerBarHeight: Double = 25.709218978881836
+    var headerBarOffsetY: Double = 16.382979154586792
+
+    // ─── Stability fire meter (June 27, 2026) ──────────────────────────
+    // Flame positions/sizes under the cauldron. Edited live in the debug
+    // menu's "🔥 Fire Meter" panel; exported with the layout values and
+    // reset by "Restore Locked Defaults". Arrays are sized to the meter
+    // (PotionShopConfig.maxFire); short/extra entries fall back safely.
+    var fireMeterSize: Double = 90.0
+    var fireMeterSpacing: Double = 77.67375707626343
+    var fireMeterOffsetX: Double = 0
+    var fireMeterOffsetY: Double = -19.5035457611084
+    var fireMeterFPS: Double = 7
+    var fireFlameOffsetsX: [Double] = [0.0, 0.0, 12.765955924987793, 13.120555877685547, -1.7730474472045898]
+    var fireFlameOffsetsY: [Double] = [0.0, 4.964542388916016, 0.0, 0.0, -9.574472904205322]
+    var fireFlameScales:   [Double] = [1.0, 0.9976063549518586, 1.0, 1.0, 1.1268616586923599]
+
+    /// Per-flame safe accessors (arrays may be shorter/longer than maxFire).
+    func fireOffsetXAt(_ i: Int) -> Double { i < fireFlameOffsetsX.count ? fireFlameOffsetsX[i] : 0 }
+    func fireOffsetYAt(_ i: Int) -> Double { i < fireFlameOffsetsY.count ? fireFlameOffsetsY[i] : 0 }
+    func fireScaleAt(_ i: Int)   -> Double { i < fireFlameScales.count   ? fireFlameScales[i]   : 1 }
+    /// Default centered-row X for flame `i` of `shown` flames.
+    func fireDefaultRowX(_ i: Int, shown: Int) -> Double {
+        (Double(i) - Double(shown - 1) / 2.0) * fireMeterSpacing
+    }
+    /// Make sure the per-flame arrays are at least maxFire long (called when
+    /// the editor opens, so binding to each flame's slider is always safe).
+    func ensureFireArrays() {
+        let n = PotionShopConfig.maxFire
+        func pad(_ a: [Double], _ fill: Double) -> [Double] {
+            var r = a; if r.count < n { r += Array(repeating: fill, count: n - r.count) }; return r
+        }
+        fireFlameOffsetsX = pad(fireFlameOffsetsX, 0)
+        fireFlameOffsetsY = pad(fireFlameOffsetsY, 0)
+        fireFlameScales   = pad(fireFlameScales, 1)
+    }
+    /// Reset ONLY the fire-meter values (the panel's reset button).
+    func resetFireMeter() {
+        fireMeterSize = 90.0; fireMeterSpacing = 77.67375707626343
+        fireMeterOffsetX = 0; fireMeterOffsetY = -19.5035457611084; fireMeterFPS = 7
+        fireFlameOffsetsX = [0.0, 0.0, 12.765955924987793, 13.120555877685547, -1.7730474472045898]
+        fireFlameOffsetsY = [0.0, 4.964542388916016, 0.0, 0.0, -9.574472904205322]
+        fireFlameScales   = [1.0, 0.9976063549518586, 1.0, 1.0, 1.1268616586923599]
+    }
+
     // Ednar Art (ACTUAL SIZE - May 11, 2026; pose re-baked June 26, 2026)
     // All images drawn at same canvas size (1536×1024) and displayed uniformly
     // Scale multipliers at 1.0 = no distortion, images appear at natural proportions
@@ -43,12 +110,12 @@ class PotionShopLayoutConfig {
     // Heal/shield preview bubble position (June 26, 2026). Moves the little
     // bubble that shows +heal / 🛡shield during a brew, relative to Ednar's
     // frame corner. Tunable live in the editor's Ednar tab.
-    var ednarBubbleX: Double = 30
-    var ednarBubbleY: Double = 10
+    var ednarBubbleX: Double = 3.758859634399414
+    var ednarBubbleY: Double = 111.77303791046143
 
     // Background image opacity (June 26, 2026). 1.0 = fully opaque (default),
     // 0.0 = invisible. Applies to the scene background (bgtest1 / customerbg).
-    var bgTestOpacity: Double = 1.0
+    var bgTestOpacity: Double = 0.8463829660415649
 
     // June 26, 2026 — debug: fade the whole character per slot. 1.0 = 100%.
     // Slot 1 = active (front) customer; Slot 2 = waiting (behind) customers.
@@ -361,7 +428,7 @@ class PotionShopLayoutConfig {
     // Dice & Tray
     var dieScale: Double = 1.405301421880722
     var trayOffsetX: Double = 4.609942436218262
-    var trayOffsetY: Double = 6.2056779861450195
+    var trayOffsetY: Double = 2.65958309173584
     
     // Brew Zone
     var brewZoneX: Double = 0.8424113392829895
@@ -1577,9 +1644,10 @@ class PotionShopLayoutConfig {
         bake(slot: 1, height: .medium,  width: .wide,   size: nil,                x: 2.1276235580444336,   y: -7.446813583374023)
         bake(slot: 1, height: .short,   width: .wide,   size: nil,                x: nil,                  y: 4.255318641662598)
         bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
-        bake(slot: 1, height: .tall,    width: .wide,   size: nil,                x: -16.312050819396973,  y: -4.609930515289307)
+        bake(slot: 1, height: .tall,    width: .wide,   size: 0.9645390450954436, x: 4.255318641662598,    y: -6.0283660888671875)
         bake(slot: 1, height: .superShort, width: .medium, size: nil,              x: 19.5035457611084,     y: 5.3191423416137695)
         bake(slot: 1, height: .tallHat, width: .medium, size: nil,                x: 16.666674613952637,   y: 8.156037330627441)
+        bake(slot: 2, height: .medium,  width: .wide,   size: nil,                x: -34.148937463760376,  y: nil)
         bake(slot: 2, height: .medium,  width: .skinny, size: 0.8886525064706803, x: nil,                  y: nil)
         bake(slot: 2, height: .tall,    width: .skinny, size: 0.8841312557458878, x: -7.446813583374023,   y: 3.5460948944091797)
         bake(slot: 2, height: .tall,    width: .wide,   size: 0.9037234604358673, x: -13.120567798614502,  y: nil)
@@ -1596,7 +1664,7 @@ class PotionShopLayoutConfig {
         bakeHp(height: .medium,     width: .wide,   size: nil,                 x: -44.78724002838135,   y: -18.794310092926025)
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
         bakeHp(height: .tall,       width: .medium, size: nil,                 x: -43.61702799797058,   y: 22.2517728805542)
-        bakeHp(height: .tall,       width: .wide,   size: 52.193264067173004,  x: -63.297879695892334,  y: -16.046106815338135)
+        bakeHp(height: .tall,       width: .wide,   size: 50.0801956653595,    x: 82.44681358337402,    y: -9.249544143676758)
         bakeHp(height: .tallHat,    width: .medium, size: 59.852840304374695,  x: 18.085098266601562,   y: 7.003545761108398)
         bakeHp(height: .floater,    width: .medium, size: nil,                 x: -41.063833236694336,  y: -45.39005756378174)
 
@@ -1610,7 +1678,7 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 1, height: .short,     width: .wide,   size: nil,                x: -14.734035730361938,  y: -72.2517728805542)
         bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: nil,               x: -6.223422288894653,   y: -42.10991859436035)
         bakeHpSlot(slot: 1, height: .tall,      width: .medium, size: nil,                x: -43.61702799797058,   y: nil)
-        bakeHpSlot(slot: 1, height: .tall,      width: .wide,   size: 59.134753942489624, x: -60.106390714645386,  y: -23.847520351409912)
+        bakeHpSlot(slot: 1, height: .tall,      width: .wide,   size: 52.831562757492065,  x: -148.9361822605133,   y: -8.95390510559082)
         bakeHpSlot(slot: 2, height: .floater,   width: .medium, size: 61.12943232059479,  x: -43.19148659706116,   y: -52.127647399902344)
         bakeHpSlot(slot: 2, height: .medium,    width: .skinny, size: nil,                x: -26.17020606994629,   y: -33.33332538604736)
         bakeHpSlot(slot: 2, height: .short,     width: .wide,   size: 53.070925772190094, x: -32.819151878356934,  y: -66.22340679168701)
@@ -1631,7 +1699,7 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 42.19858646392822,   dy: -35.10638475418091,  sizeMul: 1.0617907732725143)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 28.368782997131348,  dy: -24.468088150024414,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 10.63830852508545,   dy: -18.439722061157227, sizeMul: 1.0)
-        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 31.20567798614502,   dy: -2.482271194458008,  sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 25.531911849975586,  dy: -2.482271194458008,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 10.63830852508545,   dy: -15.2482271194458,   sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 100.35459995269775,  dy: -6.0283660888671875, sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 115.2482271194458,   dy: -6.7375898361206055, sizeMul: 1.0)
@@ -1658,6 +1726,10 @@ class PotionShopLayoutConfig {
                              frontHeight: "tall", frontWidth: "wide",
                              backHeight: "medium", backWidth: "medium",
                              dx: 10.992908477783203, dy: 6.0283660888671875, sizeMul: 1.0)
+        bakeCharacterContext(slot: 2, myHeight: .medium, myWidth: .wide,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "", backWidth: "",
+                             dx: 8.156037330627441, dy: 0.0, sizeMul: 1.0)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to
@@ -1748,13 +1820,15 @@ class PotionShopLayoutConfig {
     /// Call this method to instantly return to the known-good baseline state.
     /// Usage: PotionShopLayoutConfig.shared.restoreLockedDefaults()
     func restoreLockedDefaults() {
+        // Stability fire meter (June 27, 2026)
+        resetFireMeter()
         // Section Heights
         headerPercent = 1.7198581993579865
         scenePercent = 27.27518081665039
         profilePercent = 9.5
         cauldronPercent = 37.2
         previewPercent = 0.0
-        trayPercent = 19.3
+        trayPercent = 18.23616921901703
         
         // Ednar Art
         ednarBaseScale = 0.15
@@ -1880,7 +1954,7 @@ class PotionShopLayoutConfig {
         // Dice & Tray
         dieScale = 1.405301421880722
         trayOffsetX = 4.609942436218262
-        trayOffsetY = 6.2056779861450195
+        trayOffsetY = 2.65958309173584
         
         // Brew Zone
         brewZoneX = 0.8424113392829895
@@ -1914,6 +1988,30 @@ class PotionShopLayoutConfig {
         bannerBottleNumberSize = 30.0
         bannerBottleNumberOffsetX = 1.3297855854034424
         bannerBottleNumberOffsetY = 8.865249156951904
+
+        // Ednar Bubble & Background
+        ednarBubbleX = 3.758859634399414
+        ednarBubbleY = 111.77303791046143
+        bgTestOpacity = 0.8463829660415649
+
+        // Header Text Tuning (June 27, 2026 — revision 3)
+        headerComposureFontSize = 25.00177276134491
+        headerComposureOffsetX = 16.489362716674805
+        headerComposureOffsetY = 7.375888824462891
+        headerFocusFontSize = 24.9609934091568
+        headerFocusOffsetX = 259.7872281074524
+        headerFocusOffsetY = -22.76595711708069
+        headerFocusPipSize = 24.0
+        headerFocusLabelOffsetY = 1.7730498313903809
+        headerTodIconSize = 49.44680881500244
+        headerTodIconOffsetY = 16.01063847541809
+        headerGearSize = 26.68085026741028
+        headerGearOffsetY = 16.436169147491455
+        headerDayFontSize = 20.57092195749283
+        headerDayOffsetX = 6.702128648757935
+        headerDayOffsetY = 10.904256105422974
+        headerBarHeight = 25.709218978881836
+        headerBarOffsetY = 16.382979154586792
 
         // Head Anchor Defaults
         headAnchorYShort = 0.20

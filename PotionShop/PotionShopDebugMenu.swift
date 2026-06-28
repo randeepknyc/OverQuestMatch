@@ -30,6 +30,7 @@ struct PotionShopDebugMenu: View {
     let onEndGame: () -> Void
 
     @State private var showLayoutEditor = false
+    @State private var showFireMeterEditor = false   // 🔥 fire meter editor
 
     // Live RAM tracking (May 29, 2026). The row updates every 0.5s, and
     // when you tap "Purge ALL caches" we capture a before-snapshot so you
@@ -75,6 +76,21 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Layout Editor (moved here June 1, 2026 for quicker access) ─
                 Section("Layout Tools") {
+                    Button {
+                        showFireMeterEditor = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "flame.fill")
+                                .foregroundColor(.orange)
+                            Text("🔥 Fire Meter (position + size)")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
                     Button {
                         isPresented = false  // Close debug menu
                         showLayoutOverlay = true  // Show overlay
@@ -391,6 +407,9 @@ struct PotionShopDebugMenu: View {
             .sheet(isPresented: $showLayoutEditor) {
                 PotionShopNewLayoutEditor(isPresented: $showLayoutEditor)
             }
+            .sheet(isPresented: $showFireMeterEditor) {
+                PotionShopFireMeterDebugView()
+            }
         }
     }
 
@@ -574,6 +593,27 @@ struct PotionShopDebugMenu: View {
         trayPercent: \(cfg.trayPercent)
         
         Total: \(cfg.headerPercent + cfg.scenePercent + cfg.profilePercent + cfg.cauldronPercent + cfg.previewPercent + cfg.trayPercent)%
+        
+        ───────────────────────────────────────────────────────────────
+        🔤 HEADER TEXT & ICONS (June 27, 2026)
+        ───────────────────────────────────────────────────────────────
+        headerComposureFontSize: \(cfg.headerComposureFontSize)
+        headerComposureOffsetX: \(cfg.headerComposureOffsetX)
+        headerComposureOffsetY: \(cfg.headerComposureOffsetY)
+        headerFocusFontSize: \(cfg.headerFocusFontSize)
+        headerFocusOffsetX: \(cfg.headerFocusOffsetX)
+        headerFocusOffsetY: \(cfg.headerFocusOffsetY)
+        headerFocusPipSize: \(cfg.headerFocusPipSize)
+        headerFocusLabelOffsetY: \(cfg.headerFocusLabelOffsetY)
+        headerTodIconSize: \(cfg.headerTodIconSize)
+        headerTodIconOffsetY: \(cfg.headerTodIconOffsetY)
+        headerGearSize: \(cfg.headerGearSize)
+        headerGearOffsetY: \(cfg.headerGearOffsetY)
+        headerDayFontSize: \(cfg.headerDayFontSize)
+        headerDayOffsetX: \(cfg.headerDayOffsetX)
+        headerDayOffsetY: \(cfg.headerDayOffsetY)
+        headerBarHeight: \(cfg.headerBarHeight)
+        headerBarOffsetY: \(cfg.headerBarOffsetY)
         
         ───────────────────────────────────────────────────────────────
         🧙 EDNAR ART (freeform scaling + positioning)
@@ -1087,6 +1127,22 @@ struct PotionShopDebugMenu: View {
         🟢 CONTEXTUAL CHARACTER NUDGES (slot · myH×W · front · back)
         ───────────────────────────────────────────────────────────────
         \(formatCharacterContextNudges())
+
+        """
+
+        text += """
+
+        ───────────────────────────────────────────────────────────────
+        🔥 STABILITY FIRE METER (June 27, 2026)
+        ───────────────────────────────────────────────────────────────
+        fireMeterSize: \(cfg.fireMeterSize)
+        fireMeterSpacing: \(cfg.fireMeterSpacing)
+        fireMeterOffsetX: \(cfg.fireMeterOffsetX)
+        fireMeterOffsetY: \(cfg.fireMeterOffsetY)
+        fireMeterFPS: \(cfg.fireMeterFPS)
+        fireFlameOffsetsX: \(cfg.fireFlameOffsetsX)
+        fireFlameOffsetsY: \(cfg.fireFlameOffsetsY)
+        fireFlameScales: \(cfg.fireFlameScales)
 
         """
 

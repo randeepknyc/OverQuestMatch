@@ -439,6 +439,14 @@ struct PotionShopCauldronView: View {
                         .zIndex(0)  // 🔧 EXPLICIT Z-INDEX: Bottom layer
                 }
 
+                // ── STABILITY FIRE METER (under the cauldron) ──────────────
+                PotionShopFireMeterView(current: gs.fire, maxPieces: PotionShopConfig.maxFire)
+                    .position(
+                        x: g.bowlCenterX,                 // centered under the bowl
+                        y: g.bowlOriginY + g.bowlH + 12   // 12 = gap below bowl; nudge to taste
+                    )
+                    .zIndex(4)   // ABOVE nodes (2) and BREW button (3) — flames on top
+
                 // LAYER 1: Connecting lines between nodes (BEHIND nodes, above cauldron)
                 PotionShopNodeConnectionLines(
                     nodeOriginX: g.nodeOriginX,
@@ -1061,38 +1069,7 @@ struct PotionShopBrewPreviewBar: View {
     }
 
     var body: some View {
-        HStack {
-            Text("Placed \(gs.placements.count) / \(PotionShopConfig.maxPlacementsPerBrew)\(atCap ? " (full)" : "")")
-                .font(Font.gameUI(size: 11))
-                .foregroundColor(atCap ? PotionShopTheme.composureBad : PotionShopTheme.muted)
-
-            Spacer()
-
-            if !gs.placements.isEmpty {
-                let target = gs.currentBrewTarget
-                let willKill = preview.damage >= target
-                Group {
-                    Text("Brew ")
-                        .foregroundColor(PotionShopTheme.muted)
-                    + Text("\(preview.damage)")
-                        .foregroundColor(willKill ? PotionShopTheme.composureGood : PotionShopTheme.composureBad)
-                        .fontWeight(.bold)
-                    + Text(" / \(target)")
-                        .foregroundColor(PotionShopTheme.muted)
-                    + Text(preview.healing > 0 ? "  +\(preview.healing)❤" : "")
-                        .foregroundColor(PotionShopTheme.composureGood)
-                    + Text(preview.shielding > 0 ? "  +\(preview.shielding)🛡" : "")
-                        .foregroundColor(PotionShopTheme.shield)
-                }
-                .font(Font.gameUI(size: 11))
-            } else {
-                Text("Place dice to preview")
-                    .font(Font.gameUI(size: 11))
-                    .foregroundColor(PotionShopTheme.muted.opacity(0.6))
-            }
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        EmptyView()
     }
 }
 

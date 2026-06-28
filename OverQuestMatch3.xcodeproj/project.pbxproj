@@ -93,6 +93,10 @@
 		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F60232C2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */; };
 		7F693B582FE6562900835FE2 /* PotionShopRunSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */; };
+		7F693B822FF0D53900835FE2 /* PotionShopFireMeterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B812FF0D53900835FE2 /* PotionShopFireMeterView.swift */; };
+		7F693B862FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B832FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift */; };
+		7F693B872FF0E27F00835FE2 /* PotionShopFireMeterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B852FF0E27F00835FE2 /* PotionShopFireMeterView.swift */; };
+		7F693B882FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B842FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift */; };
 		7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163252FC4068700DBF8B7 /* CardDatabase.swift */; };
 		7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163272FC4068700DBF8B7 /* CardGameView.swift */; };
 		7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */; };
@@ -252,6 +256,10 @@
 		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NODE_TO_NODE_DRAG_SESSION.md; sourceTree = "<group>"; };
 		7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopRunSystem.swift; sourceTree = "<group>"; };
+		7F693B812FF0D53900835FE2 /* PotionShopFireMeterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopFireMeterView.swift; sourceTree = "<group>"; };
+		7F693B832FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopFireMeterConfig.swift; sourceTree = "<group>"; };
+		7F693B842FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopFireMeterDebugView.swift; sourceTree = "<group>"; };
+		7F693B852FF0E27F00835FE2 /* PotionShopFireMeterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopFireMeterView.swift; sourceTree = "<group>"; };
 		7F7163252FC4068700DBF8B7 /* CardDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDatabase.swift; sourceTree = "<group>"; };
 		7F7163262FC4068700DBF8B7 /* CardGameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameModels.swift; sourceTree = "<group>"; };
 		7F7163272FC4068700DBF8B7 /* CardGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameView.swift; sourceTree = "<group>"; };
@@ -460,13 +468,6 @@
 			path = Navigation;
 			sourceTree = "<group>";
 		};
-		7F55747D2F785C8C00081E01 /* PotionSolitaireGame */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = PotionSolitaireGame;
-			sourceTree = "<group>";
-		};
 		7F55749E2F78708C00081E01 /* ArchiveDocs_DONOTREAD */ = {
 			isa = PBXGroup;
 			children = (
@@ -508,6 +509,10 @@
 		7F7908602FA725F900412002 /* PotionShop */ = {
 			isa = PBXGroup;
 			children = (
+				7F693B832FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift */,
+				7F693B842FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift */,
+				7F693B852FF0E27F00835FE2 /* PotionShopFireMeterView.swift */,
+				7F693B812FF0D53900835FE2 /* PotionShopFireMeterView.swift */,
 				7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */,
 				7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */,
 				7F79086F2FA81CF800412002 /* PotionShopDebugMenu.swift */,
@@ -583,7 +588,6 @@
 				7F7908472F99DF5200412002 /* CauldronGame */,
 				7F2ADE432F819B5B0078EF4E /* ShopOfOddities */,
 				7F55749E2F78708C00081E01 /* ArchiveDocs_DONOTREAD */,
-				7F55747D2F785C8C00081E01 /* PotionSolitaireGame */,
 				7F55747C2F785C1000081E01 /* Navigation */,
 				7F5574792F785BFC00081E01 /* CookingGame */,
 				7F5574782F785BF000081E01 /* PhysicsChainGame */,
@@ -821,6 +825,7 @@
 				7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */,
 				7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */,
 				7F7908722FA8395E00412002 /* PotionShopBrewAnimator.swift in Sources */,
+				7F693B822FF0D53900835FE2 /* PotionShopFireMeterView.swift in Sources */,
 				7FB075EC2F5EB3C500BD0591 /* FontExtensions.swift in Sources */,
 				7F2ADE5F2F81A6930078EF4E /* RepairResultOverlay.swift in Sources */,
 				7F2ADE632F81A69C0078EF4E /* NewRepairDiscoveredBanner.swift in Sources */,
@@ -828,6 +833,9 @@
 				7FB0753E2F5D2FF100BD0591 /* GameHUDview.swift in Sources */,
 				7FCBED112FDC7D030057AA22 /* AnimationCoordinator.swift in Sources */,
 				7FEC37882FDCF61D007BF757 /* PotionShopEditorKit.swift in Sources */,
+				7F693B862FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift in Sources */,
+				7F693B872FF0E27F00835FE2 /* PotionShopFireMeterView.swift in Sources */,
+				7F693B882FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift in Sources */,
 				7F5574952F786B4500081E01 /* PhysicsTileView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
 				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,

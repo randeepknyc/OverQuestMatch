@@ -79,7 +79,14 @@ struct PotionShopImageLoader {
     /// Attempts to load an image from the asset catalog.
     /// Returns the image if found, nil otherwise.
     static func loadImage(named name: String) -> UIImage? {
-        return UIImage(named: name)
+        // 1) Asset catalog (Assets.xcassets) — the reliable path.
+        if let img = UIImage(named: name) { return img }
+        // 2) Fallback: a loose PNG added to the app target but not in a catalog.
+        if let path = Bundle.main.path(forResource: name, ofType: "png"),
+           let img = UIImage(contentsOfFile: path) {
+            return img
+        }
+        return nil
     }
 
     /// Returns either a downsampled UIImage (if enabled) or the full asset.
@@ -309,6 +316,9 @@ struct PotionShopConfig {
     static let roundsPerDay = 4
     /// Hand has 5 dice; you can place at most this many before brewing.
     static let maxPlacementsPerBrew = 3
+    /// Stability fire meter: pieces shown under the cauldron. Starts full
+    /// each time-slot, burns 1 per brew, refilled by stability dice.
+    static let maxFire = 5
 }
 
 // MARK: - Dice

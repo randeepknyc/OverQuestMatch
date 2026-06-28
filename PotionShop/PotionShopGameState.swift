@@ -86,6 +86,11 @@ struct PotionShopCustomer: Identifiable, Equatable {
 
 // MARK: - The state machine
 
+/// Which Ednar pose to show, driven by the brew sequence (June 28, 2026).
+enum PotionShopEdnarPose {
+    case idle, brew, heal, defend
+}
+
 @Observable
 class PotionShopGameState {
 
@@ -109,6 +114,9 @@ class PotionShopGameState {
 
     var composure: Int = PotionShopConfig.startingComposure
     var shield: Int = 0
+    /// Stability fire meter (June 27, 2026). Full each time-slot; a brew
+    /// burns 1, UNLESS a stability die is placed — then it refills to full.
+    var fire: Int = PotionShopConfig.maxFire
     var potionsBrewed: Int = 0
 
     // MARK: - Customer queue
@@ -230,6 +238,9 @@ class PotionShopGameState {
     // (Phase 4a/4b). The customer view swaps its HP badge to hp_customer_atk
     // while its id is in this set.
     var customerAttackingIds: Set<UUID> = []
+    /// Ednar's current pose (June 28, 2026). Set during the brew sequence,
+    /// reset to .idle when the brew finishes.
+    var ednarPose: PotionShopEdnarPose = .idle
 
     /// Phase 7: Customer "leaves" trigger. When a customer expires,
     /// the id is set here and their view fades + slides off-screen.
@@ -251,6 +262,11 @@ class PotionShopGameState {
     /// True if the current dayId refers to a flex day (Day 3+).
     var isFlexDay: Bool {
         PotionShopData.isFlexDay(dayId)
+    }
+
+    /// Numeric day for display (e.g. "day_1" → 1, "day_2" → 2).
+    var dayNumber: Int {
+        Int(dayId.replacingOccurrences(of: "day_", with: "")) ?? 1
     }
 
     // MARK: - Init
@@ -468,6 +484,7 @@ class PotionShopGameState {
     /// Shared helper used by both legacy and flex paths to spawn customers
     /// and deal a fresh hand of dice.
     private func spawnCustomers(from round: PotionShopRound) {
+        fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -1278,6 +1295,7 @@ class PotionShopGameState {
         isAnimating = true
         defer { isAnimating = false }
         defer { withAnimation(.easeOut(duration: 0.3)) { brewDamageBadges.removeAll() } }
+        defer { ednarPose = .idle }   // back to idle when the brew finishes
 
         // JUNE 20, 2026: if the banner is CLOSED when brew is hit, open it on
         // the active customer so the player sees the HP banner during the
@@ -1288,11 +1306,23 @@ class PotionShopGameState {
 
         try? await sleep(seconds: PotionShopBrewAnimator.initialDelay)
 
+        // ─── STABILITY FIRE ──────────────────────────────────────────
+        // Check for a stability die FIRST. If one is placed this turn, the
+        // meter refills to full and NO flame goes out. Otherwise the brew
+        // burns one flame as normal.
+        let placedStability = placements.values.contains { $0.type == .stability }
+        if placedStability {
+            fire = PotionShopConfig.maxFire        // stability → stay/refill full, no dip
+        } else {
+            fire = max(0, fire - 1)                // normal brew burns one flame
+        }
+
         // ─── PHASE 1: Heal + Shield apply to player ─────────────────
         if preview.healing > 0 {
             let healed = min(PotionShopConfig.maxComposure - composure, preview.healing)
             composure = min(PotionShopConfig.maxComposure, composure + preview.healing)
             if healed > 0 {
+                ednarPose = .heal
                 emitFloatingNumber(
                     text: "+\(healed) ❤",
                     color: PotionShopFloatingNumber.healColor,
@@ -1333,6 +1363,7 @@ class PotionShopGameState {
         // ─── PHASE 3: Brew damage to active customer ────────────────
         if preview.damage > 0 {
             try? await sleep(seconds: PotionShopBrewAnimator.preBrewDamageDelay)
+            ednarPose = .brew
             customers[activeIdx].hp = max(0, customers[activeIdx].hp - preview.damage)
             if customers[activeIdx].hp <= 0 {
                 customers[activeIdx].status = .defeated
@@ -1375,6 +1406,7 @@ class PotionShopGameState {
         // ── 4a. Active attacks (alone)
         if activeWillAttack > 0, customers[activeIdx].status == .waiting {
             customerAttackingIds.insert(activeId)
+            ednarPose = .defend
             HapticManager.shared.customerAttack()
             triggerCustomerShake(activeId)
             let result = applyDamage(activeWillAttack)
@@ -1409,6 +1441,7 @@ class PotionShopGameState {
                       let char = PotionShopData.character(customers[cIdx].charKey),
                       char.waitingAttack > 0 else { continue }
                 customerAttackingIds.insert(id)
+                ednarPose = .defend
                 HapticManager.shared.customerAttack()
                 triggerCustomerShake(id)
                 // Small gap before the next waiter shakes, for a rippling

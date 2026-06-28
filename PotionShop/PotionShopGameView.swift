@@ -36,7 +36,7 @@ struct PotionShopGameView: View {
             let totalHeight = geo.size.height
             
             // Section height calculations (percentages from layout editor)
-            let headerH      = max(70,  totalHeight * (layoutConfig.headerPercent / 100))
+            let headerH      = max(90,  totalHeight * (layoutConfig.headerPercent / 100))
             let sceneH       = max(160, totalHeight * (layoutConfig.scenePercent / 100))
             let profileRowH  = max(74,  totalHeight * (layoutConfig.profilePercent / 100))
             let cauldronH    = max(240, totalHeight * (layoutConfig.cauldronPercent / 100))
@@ -442,12 +442,14 @@ struct PotionShopLayoutOverlay: View {
     // `layoutConfig.selectedCharacterId` everywhere it was used before.
     
     enum LayoutSection: String, CaseIterable {
+        case header = "🔤 Header"  // Header text & icon tuning (June 27)
         case sections = "📏 Sections"
         case ednar = "🧙 Ednar"
         case customers = "🧍 Customers"  // NEW: Customer scene portraits
         case badges = "🎨 Badges"  // NEW: HP/Attack badges + bottle graphic
         case permutations = "🎭 Permutations"  // NEW: 3-character queue spacing
         case autoLayout = "🎲 Auto-Layout"  // NEW (May 25): Day 3 auto-spacing
+        case fire = "🔥 Fire"  // Stability fire meter flames (June 28, 2026)
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
@@ -459,7 +461,7 @@ struct PotionShopLayoutOverlay: View {
     /// The everyday tabs (June 12, 2026). Everything else lives behind
     /// "More ▾". Move cases between these arrays to re-prioritize.
     static let primarySections: [LayoutSection] = [
-        .autoLayout, .badges, .customers, .fineTune, .nodes, .dice
+        .header, .autoLayout, .badges, .customers, .fire, .fineTune, .nodes, .dice
     ]
     static let legacySections: [LayoutSection] = [
         .sections, .ednar, .permutations, .cauldronArt, .cauldronBowl, .brewZone
@@ -626,6 +628,58 @@ struct PotionShopLayoutOverlay: View {
     @ViewBuilder
     private func sectionContent(for section: LayoutSection) -> some View {
         switch section {
+        case .header:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Composure Label")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Font", value: $layoutConfig.headerComposureFontSize, range: 10...36, format: "%.0f")
+                sliderRow("X", value: $layoutConfig.headerComposureOffsetX, range: -60...60, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.headerComposureOffsetY, range: -40...40, format: "%.0f")
+
+                Text("Focus Label")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Font", value: $layoutConfig.headerFocusFontSize, range: 10...36, format: "%.0f")
+                sliderRow("X", value: $layoutConfig.headerFocusOffsetX, range: -60...300, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.headerFocusOffsetY, range: -40...40, format: "%.0f")
+                sliderRow("Pip", value: $layoutConfig.headerFocusPipSize, range: 8...48, format: "%.0f")
+                sliderRow("Label Y", value: $layoutConfig.headerFocusLabelOffsetY, range: -20...20, format: "%.0f")
+
+                Text("Icons & Bar")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("ToD Icon", value: $layoutConfig.headerTodIconSize, range: 16...64, format: "%.0f")
+                sliderRow("ToD Y", value: $layoutConfig.headerTodIconOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Gear", value: $layoutConfig.headerGearSize, range: 16...64, format: "%.0f")
+                sliderRow("Gear Y", value: $layoutConfig.headerGearOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Day Font", value: $layoutConfig.headerDayFontSize, range: 10...36, format: "%.0f")
+                sliderRow("Day X", value: $layoutConfig.headerDayOffsetX, range: -60...300, format: "%.0f")
+                sliderRow("Day Y", value: $layoutConfig.headerDayOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Bar H", value: $layoutConfig.headerBarHeight, range: 10...50, format: "%.0f")
+                sliderRow("Bar Y", value: $layoutConfig.headerBarOffsetY, range: -30...30, format: "%.0f")
+            }
+        case .fire:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("🔥 Fire Meter (overall)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Size", value: $layoutConfig.fireMeterSize, range: 10...90, format: "%.0f")
+                sliderRow("Spacing", value: $layoutConfig.fireMeterSpacing, range: 0...140, format: "%.0f")
+                sliderRow("Row X", value: $layoutConfig.fireMeterOffsetX, range: -200...200, format: "%.0f")
+                sliderRow("Row Y", value: $layoutConfig.fireMeterOffsetY, range: -200...200, format: "%.0f")
+                sliderRow("Speed", value: $layoutConfig.fireMeterFPS, range: 1...20, format: "%.0f fps")
+
+                ForEach(0..<layoutConfig.fireFlameOffsetsX.count, id: \.self) { i in
+                    Text("Flame \(i + 1)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.cyan)
+                    sliderRow("X", value: $layoutConfig.fireFlameOffsetsX[i], range: -200...200, format: "%.0f")
+                    sliderRow("Y", value: $layoutConfig.fireFlameOffsetsY[i], range: -200...200, format: "%.0f")
+                    sliderRow("Size", value: $layoutConfig.fireFlameScales[i], range: 0.3...3.0, format: "%.2f×")
+                }
+            }
+            .onAppear { layoutConfig.ensureFireArrays() }
         case .sections:
             VStack(alignment: .leading, spacing: 10) {
                 sliderRow("Header", value: $layoutConfig.headerPercent, range: 0...20, format: "%.1f%%")

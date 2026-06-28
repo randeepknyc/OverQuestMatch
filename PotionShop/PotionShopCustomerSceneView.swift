@@ -457,25 +457,35 @@ struct PotionShopEdnarView: View {
     // speech bubble never move. Tuning lives in PotionShopBrewAnimator §7.
     @State private var ednarBreathPhase: CGFloat = 1.0
     @State private var ednarPopPhase: CGFloat = 1.0
+    // June 28, 2026 — random brew pose, chosen once each time Ednar brews.
+    @State private var brewPoseVariant: String = "ps_ednar_brew"
 
     // June 26, 2026 — observe layout config so the heal/shield bubble position
     // (ednarBubbleX / ednarBubbleY) updates live from the editor sliders.
     @Bindable var layoutConfig: PotionShopLayoutConfig = PotionShopLayoutConfig.shared
 
+    /// Low = at or below HALF of max composure (currently 15 of 30).
+    /// Becomes "≤ 50" automatically if maxComposure is raised to 100.
+    private var composureIsLow: Bool {
+        gs.composure <= PotionShopConfig.maxComposure / 2
+    }
+
     private var expressionAssetName: String {
-        let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
-        if pct < 0.3 { return "ps_ednar_alarmed" }
-        if pct < 0.7 { return "ps_ednar_concerned" }
-        if !gs.placements.isEmpty { return "ps_ednar_focused" }
-        return "ps_ednar_calm"
+        switch gs.ednarPose {
+        case .defend: return "ps_ednar_defend"
+        case .heal:   return "ps_ednar_heal"
+        case .brew:   return composureIsLow ? "ps_ednar_brew_50" : brewPoseVariant
+        case .idle:   return composureIsLow ? "ps_ednar_idle_50" : "ps_ednar_idle"
+        }
     }
     
     private var expressionEmojiFallback: String {
-        let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
-        if pct < 0.3 { return "😨" }
-        if pct < 0.7 { return "😟" }
-        if !gs.placements.isEmpty { return "🤨" }
-        return "🧙‍♂️"
+        switch gs.ednarPose {
+        case .defend: return "🛡️"
+        case .heal:   return "❤️"
+        case .brew:   return "🧪"
+        case .idle:   return composureIsLow ? "😟" : "🧙‍♂️"
+        }
     }
 
     var body: some View {
@@ -532,6 +542,12 @@ struct PotionShopEdnarView: View {
                     )
                     .blur(radius: 1)
                     .offset(y: ednarArtYOffset * 0.5)
+            }
+        }
+        .onChange(of: gs.ednarPose) {
+            // Pick a random brew pose once, the moment Ednar starts brewing.
+            if gs.ednarPose == .brew {
+                brewPoseVariant = Bool.random() ? "ps_ednar_brew" : "ps_ednar_brew2"
             }
         }
         // JUNE 20, 2026: HEAL/SHIELD PREVIEW BUBBLE. Ednar sits at the far
