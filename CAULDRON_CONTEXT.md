@@ -4244,6 +4244,29 @@ Per-node offsets are zero again after pasting.
 
 ---
 
+### 65.12 Composure-bar shield fixes + cauldron boil (July 2, later)
+- SHIELD AT FULL COMPOSURE: the shield slice was placed at compoPct with
+  width capped at the bar edge → invisible at 100%. The shield GROUP is
+  now right-anchored when out of room (overlays the fill's right end),
+  so shield always shows.
+- PREVIEW SHIELD: PotionShopComposureBarView gained previewShield (fed
+  gs.livePreview.shielding while placing, 0 during brew): renders as an
+  extra slice pulsing 0.30–0.75 opacity (sine, TimelineView) after the
+  solid actual-shield slice; solidifies when the brew applies the real
+  shield. Shared shieldSlice() builder (image-masked composure_bar_shield
+  or teal rect fallback).
+- CAULDRON BOIL: cauldron_boil1…N (SAME canvas as the "cauldron" PNG,
+  transparent except bubbles) loops during gs.isAnimating, rendered with
+  the identical frame/position/stretch chain as the cauldron art
+  (zIndex 0.5 — over cauldron, under nodes). PotionShopCauldronBoilAssets
+  (probe 12, cached) + PotionShopCauldronBoilTuning.boilFPS (8), both in
+  PotionShopCauldronView.swift. Asset sheet PDF updated (also corrected:
+  single "cauldron" image, not the old 3-layer back/liquid/front plan).
+- NOTE: built on top of the same round's weekly-attack-ramp / boss-
+  formula uploads (see §66) — those files were adopted untouched.
+
+---
+
 ## 66. WEEKLY ATTACK RAMP + BOSS-FROM-EVENING FORMULA — WIRED & COMPILING (July 2, 2026)
 
 > Wired in `PotionShopModels.swift`, `PotionShopGameState.swift`, `PotionShopCustomerSceneView.swift`. Mirrored in the balance lab (§67). Gives every week a "Day 1 very easy → Day 7 very challenging" arc and makes bosses structurally unable to be weaker than normal rounds.
@@ -4285,3 +4308,12 @@ Verdict with **failure diagnosis** (drain-vs-heal onset day; closing-day damage 
 3. **Rhythmic near-deaths need one-round percentage bursts.** The bar (30–45) is tiny vs late heal FLOW (150+/day): sustained pressure either bounces off or kills. The lab's **Rush days** (every N days, morning burst = % of current max nerve, verified at every-2-days/40–55%) is the working design if the game ever wants that texture — flat multipliers provably can't.
 4. **Bosses can't be tuned by flat multipliers** (1 attacker vs 3) — hence §66.3.
 5. Min column records the dip **after attacks, before heals** (when the player actually sweats); survival is still judged on the round's net.
+
+### 65.13 Live background color picker (July 2, later)
+Debug Menu → Layout Tools → "Background Color" (ColorPicker, no opacity):
+sets PotionShopLayoutConfig.bgColorHex (UserDefaults ps_bgColorHex,
+persists). When set, the flat color REPLACES the whole background —
+including the shop_background image — so auditions show the true color;
+"" = off (image → parchment fallback). Reset button (shows current hex)
+clears it; hex rides Copy Layout Values for baking a final choice into
+PotionShopTheme.bg. Hex↔Color helpers on PotionShopLayoutConfig.

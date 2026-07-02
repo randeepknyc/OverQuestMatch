@@ -459,6 +459,45 @@ class PotionShopLayoutConfig {
     var nodeLineModeRaw: String = UserDefaults.standard.string(forKey: "ps_nodeLineMode") ?? "smart" {
         didSet { UserDefaults.standard.set(nodeLineModeRaw, forKey: "ps_nodeLineMode") }
     }
+
+    // ─── LIVE BACKGROUND COLOR (JULY 2, 2026) ────────────────────────
+    // Debug Menu → Layout Tools → "Background Color" picker. Lets you
+    // try background colors LIVE, no rebuild. Stored as a hex string
+    // ("" = off → normal shop_background image / parchment fallback).
+    // When set, the flat color REPLACES the background entirely (image
+    // included) so what you see is exactly the color. Persists across
+    // launches; "Reset" in the menu clears it. Rides Copy Layout Values
+    // so a final pick can be baked as the new default.
+    var bgColorHex: String = UserDefaults.standard.string(forKey: "ps_bgColorHex") ?? "" {
+        didSet { UserDefaults.standard.set(bgColorHex, forKey: "ps_bgColorHex") }
+    }
+
+    /// The override as a Color (nil = no override, use image/parchment).
+    var bgColorOverride: Color? {
+        guard !bgColorHex.isEmpty else { return nil }
+        return PotionShopLayoutConfig.color(fromHex: bgColorHex)
+    }
+
+    /// "RRGGBB" hex → Color (nil for junk input).
+    static func color(fromHex hex: String) -> Color? {
+        var h = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if h.hasPrefix("#") { h.removeFirst() }
+        guard h.count == 6, let v = UInt64(h, radix: 16) else { return nil }
+        return Color(
+            red: Double((v >> 16) & 0xFF) / 255.0,
+            green: Double((v >> 8) & 0xFF) / 255.0,
+            blue: Double(v & 0xFF) / 255.0
+        )
+    }
+
+    /// Color → "RRGGBB" hex (sRGB).
+    static func hex(from color: Color) -> String {
+        let ui = UIColor(color)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        ui.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "%02X%02X%02X",
+                      Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
+    }
     
     // Dice & Tray
     var dieScale: Double = 1.405301421880722      // Controls NODE size (via effectiveNodeScale)

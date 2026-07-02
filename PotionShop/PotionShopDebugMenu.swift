@@ -132,6 +132,44 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Layout Editor (moved here June 1, 2026 for quicker access) ─
                 Section("Layout Tools") {
+                    // ─── LIVE BACKGROUND COLOR (JULY 2, 2026) ───────
+                    // Pick any color and the game background updates
+                    // INSTANTLY behind this menu — no rebuild. The color
+                    // replaces the background image while active so what
+                    // you see is the color itself. Reset returns to the
+                    // normal image/parchment. Persists across launches
+                    // and rides Copy Layout Values for baking.
+                    ColorPicker(selection: Binding(
+                        get: {
+                            PotionShopLayoutConfig.shared.bgColorOverride
+                                ?? PotionShopTheme.bg
+                        },
+                        set: { newColor in
+                            PotionShopLayoutConfig.shared.bgColorHex =
+                                PotionShopLayoutConfig.hex(from: newColor)
+                        }
+                    ), supportsOpacity: false) {
+                        HStack {
+                            Image(systemName: "paintpalette.fill")
+                                .foregroundColor(.pink)
+                            Text("Background Color")
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    if !PotionShopLayoutConfig.shared.bgColorHex.isEmpty {
+                        Button {
+                            PotionShopLayoutConfig.shared.bgColorHex = ""
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .foregroundColor(.secondary)
+                                Text("Reset Background (hex was \(PotionShopLayoutConfig.shared.bgColorHex))")
+                                    .foregroundColor(.primary)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+
                     // ─── CHALK LINES (JULY 2, 2026) ────────────────
                     // How the connection lines between nodes appear:
                     //   Smart  — invisible until dice are being placed,
@@ -1014,6 +1052,9 @@ struct PotionShopDebugMenu: View {
         // JULY 2, 2026: per-node size multipliers ride along too
         text += "\nnodeGlobalScale: \(cfg.nodeGlobalScale)"
         text += "\nnodeOccupiedScale: \(cfg.nodeOccupiedScale)"
+        if !cfg.bgColorHex.isEmpty {
+            text += "\nbgColorHex: \(cfg.bgColorHex)"
+        }
         text += "\n"
         for (idx, scale) in cfg.perNodeScales.enumerated() {
             text += "\nNode \(idx) size: \(scale)×"

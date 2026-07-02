@@ -50,8 +50,13 @@ struct PotionShopGameView: View {
             let trayH        = max(82,  totalHeight * (layoutConfig.trayPercent / 100))
 
             ZStack {
-                // Background image (or placeholder parchment color)
-                if let bgImage = PotionShopImageLoader.loadImage(named: "shop_background") {
+                // Background: live color override (Debug Menu → Layout
+                // Tools → Background Color) wins over everything, so you
+                // can audition colors without rebuilding; otherwise the
+                // shop_background image, then the parchment fallback.
+                if let liveColor = PotionShopLayoutConfig.shared.bgColorOverride {
+                    liveColor.ignoresSafeArea()
+                } else if let bgImage = PotionShopImageLoader.loadImage(named: "shop_background") {
                     Image(uiImage: bgImage)
                         .resizable()
                         .scaledToFill()
