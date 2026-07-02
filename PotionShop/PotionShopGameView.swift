@@ -17,9 +17,15 @@ import Combine
 
 struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var gs = PotionShopGameState()
     @State private var showDebugMenu = false
     @State private var showLayoutOverlay = false
+    @State private var tutorial = PotionShopTutorialState()
+
+    /// When true, the view restores from a saved run on appear
+    /// instead of starting fresh. Set by GameSelectorView.
+    var continueFromSave: Bool = false
     
     // Use shared layout config for live preview
     @Bindable var layoutConfig = PotionShopLayoutConfig.shared
@@ -36,7 +42,7 @@ struct PotionShopGameView: View {
             let totalHeight = geo.size.height
             
             // Section height calculations (percentages from layout editor)
-            let headerH      = max(70,  totalHeight * (layoutConfig.headerPercent / 100))
+            let headerH      = max(90,  totalHeight * (layoutConfig.headerPercent / 100))
             let sceneH       = max(160, totalHeight * (layoutConfig.scenePercent / 100))
             let profileRowH  = max(74,  totalHeight * (layoutConfig.profilePercent / 100))
             let cauldronH    = max(240, totalHeight * (layoutConfig.cauldronPercent / 100))
@@ -112,13 +118,10 @@ struct PotionShopGameView: View {
                     // cauldronArtXOffset: 6, cauldronArtYOffset: -40
                         .frame(height: cauldronH)
 
-                    PotionShopBrewPreviewBar(gs: gs)
-                        .frame(height: previewBarH)
-
                     PotionShopDiceTrayView(
                         gs: gs,
                         diceFlight: diceFlight,
-                        dieScale: layoutConfig.dieScale
+                        dieScale: layoutConfig.trayDieScale
                     )
                         .frame(height: trayH)
                         .offset(x: layoutConfig.trayOffsetX, y: layoutConfig.trayOffsetY)
@@ -158,6 +161,13 @@ struct PotionShopGameView: View {
                 if gs.show3DTestSpinButton && gs.currentRoundUses3DDice {
                     testSpinFloatingButton3D
                 }
+
+                // ── TUTORIAL OVERLAY (above everything) ──────────
+                if tutorial.isActive {
+                    PotionShopTutorialOverlay(tutorial: tutorial, gs: gs)
+                        .zIndex(999)
+                        .transition(.opacity)
+                }
             }
         }
         // Track when the layout editor is open so customer scene taps can
@@ -170,16 +180,37 @@ struct PotionShopGameView: View {
                 gs: gs,
                 isPresented: $showDebugMenu,
                 showLayoutOverlay: $showLayoutOverlay,
+                tutorial: tutorial,
                 onEndGame: { dismiss() }
             )
         }
         .onAppear {
             gs.viewIsOnScreen = true
+            // ── Restore from save if continuing ──────────────────
+            if continueFromSave, let save = PotionShopSave.load() {
+                save.restore(into: gs)
+            }
             // Fire the initial-deal rattle now that the haptic engine has an
             // active window. drawFromBag() already ran during init() but the
             // generator silently no-ops before the view is on screen.
             if gs.currentRoundUses3DDice {
                 HapticManager.shared.diceRollRattle()
+            }
+            // ── Tutorial first-run check ─────────────────────────
+            if !tutorial.hasSeenTutorial {
+                tutorial.start()
+            }
+        }
+        // ── Save on background ───────────────────────────────────
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background && gs.phase == .playing {
+                PotionShopSave.save(gs: gs)
+            }
+        }
+        // ── Tutorial step 4: finish when the player brews ────────
+        .onChange(of: gs.potionsBrewed) { _, _ in
+            if tutorial.isActive && tutorial.currentStep == 3 {
+                tutorial.finish()
             }
         }
         .onReceive(purgeTimer) { _ in
@@ -243,20 +274,28 @@ struct PotionShopGameView: View {
             PotionShopBoonMenuView(gs: gs)
         case .dayWon:
             if PotionShopData.isLastDay(gs.dayId) {
+                // Safety net: the last round normally goes straight to .runWon.
                 placeholderOverlay(
-                    title: "Success, Day Complete!",
-                    subtitle: "You've finished every available day.\nPotions brewed: \(gs.potionsBrewed)",
-                    buttonLabel: "Restart",
-                    action: { gs.resetGame() }
+                    title: "Day 30 Complete!",
+                    subtitle: "Potions brewed today: \(gs.potionsBrewed)",
+                    buttonLabel: "See how you did",
+                    action: { gs.advanceDay() }
                 )
             } else {
                 placeholderOverlay(
                     title: "Success, Day Complete!",
-                    subtitle: "Potions brewed today: \(gs.potionsBrewed)",
+                    subtitle: "Day \(gs.dayNumber) of 30\nPotions brewed today: \(gs.potionsBrewed)",
                     buttonLabel: "Re-open shop tomorrow",
                     action: { gs.advanceDay() }
                 )
             }
+        case .runWon:
+            placeholderOverlay(
+                title: "You Made It! 🧪",
+                subtitle: "You kept Ednar's shop open all 30 days.\nTotal potions brewed: \(gs.potionsBrewed)",
+                buttonLabel: "New Run",
+                action: { gs.resetGame() }
+            )
         case .lost:
             placeholderOverlay(
                 title: "You Collapsed",
@@ -279,10 +318,10 @@ struct PotionShopGameView: View {
 
             VStack(spacing: 18) {
                 Text(title)
-                    .font(Font.gameUI(size: 28))
+                    .font(Font.gameUI(size: 48))
                     .foregroundColor(.white)
                 Text(subtitle)
-                    .font(Font.gameUI(size: 14))
+                    .font(Font.gameUI(size: 32))
                     .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
 
@@ -290,7 +329,7 @@ struct PotionShopGameView: View {
                     action()
                 } label: {
                     Text(buttonLabel)
-                        .font(Font.gameUI(size: 15))
+                        .font(Font.gameUI(size: 28))
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)
@@ -442,12 +481,14 @@ struct PotionShopLayoutOverlay: View {
     // `layoutConfig.selectedCharacterId` everywhere it was used before.
     
     enum LayoutSection: String, CaseIterable {
+        case header = "🔤 Header"  // Header text & icon tuning (June 27)
         case sections = "📏 Sections"
         case ednar = "🧙 Ednar"
         case customers = "🧍 Customers"  // NEW: Customer scene portraits
         case badges = "🎨 Badges"  // NEW: HP/Attack badges + bottle graphic
         case permutations = "🎭 Permutations"  // NEW: 3-character queue spacing
         case autoLayout = "🎲 Auto-Layout"  // NEW (May 25): Day 3 auto-spacing
+        case fire = "🔥 Fire"  // Stability fire meter flames (June 28, 2026)
         case cauldronArt = "🍲 Cauldron"
         case cauldronBowl = "🥘 Bowl"
         case nodes = "🔵 Nodes"
@@ -459,7 +500,7 @@ struct PotionShopLayoutOverlay: View {
     /// The everyday tabs (June 12, 2026). Everything else lives behind
     /// "More ▾". Move cases between these arrays to re-prioritize.
     static let primarySections: [LayoutSection] = [
-        .autoLayout, .badges, .customers, .fineTune, .nodes, .dice
+        .header, .autoLayout, .badges, .customers, .fire, .fineTune, .nodes, .dice
     ]
     static let legacySections: [LayoutSection] = [
         .sections, .ednar, .permutations, .cauldronArt, .cauldronBowl, .brewZone
@@ -626,6 +667,58 @@ struct PotionShopLayoutOverlay: View {
     @ViewBuilder
     private func sectionContent(for section: LayoutSection) -> some View {
         switch section {
+        case .header:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Composure Label")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Font", value: $layoutConfig.headerComposureFontSize, range: 10...36, format: "%.0f")
+                sliderRow("X", value: $layoutConfig.headerComposureOffsetX, range: -60...60, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.headerComposureOffsetY, range: -40...40, format: "%.0f")
+
+                Text("Focus Label")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Font", value: $layoutConfig.headerFocusFontSize, range: 10...36, format: "%.0f")
+                sliderRow("X", value: $layoutConfig.headerFocusOffsetX, range: -60...300, format: "%.0f")
+                sliderRow("Y", value: $layoutConfig.headerFocusOffsetY, range: -40...40, format: "%.0f")
+                sliderRow("Pip", value: $layoutConfig.headerFocusPipSize, range: 8...48, format: "%.0f")
+                sliderRow("Label Y", value: $layoutConfig.headerFocusLabelOffsetY, range: -20...20, format: "%.0f")
+
+                Text("Icons & Bar")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("ToD Icon", value: $layoutConfig.headerTodIconSize, range: 16...64, format: "%.0f")
+                sliderRow("ToD Y", value: $layoutConfig.headerTodIconOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Gear", value: $layoutConfig.headerGearSize, range: 16...64, format: "%.0f")
+                sliderRow("Gear Y", value: $layoutConfig.headerGearOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Day Font", value: $layoutConfig.headerDayFontSize, range: 10...36, format: "%.0f")
+                sliderRow("Day X", value: $layoutConfig.headerDayOffsetX, range: -60...300, format: "%.0f")
+                sliderRow("Day Y", value: $layoutConfig.headerDayOffsetY, range: -30...30, format: "%.0f")
+                sliderRow("Bar H", value: $layoutConfig.headerBarHeight, range: 10...50, format: "%.0f")
+                sliderRow("Bar Y", value: $layoutConfig.headerBarOffsetY, range: -30...30, format: "%.0f")
+            }
+        case .fire:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("🔥 Fire Meter (overall)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Size", value: $layoutConfig.fireMeterSize, range: 10...90, format: "%.0f")
+                sliderRow("Spacing", value: $layoutConfig.fireMeterSpacing, range: 0...140, format: "%.0f")
+                sliderRow("Row X", value: $layoutConfig.fireMeterOffsetX, range: -200...200, format: "%.0f")
+                sliderRow("Row Y", value: $layoutConfig.fireMeterOffsetY, range: -200...200, format: "%.0f")
+                sliderRow("Speed", value: $layoutConfig.fireMeterFPS, range: 1...20, format: "%.0f fps")
+
+                ForEach(0..<layoutConfig.fireFlameOffsetsX.count, id: \.self) { i in
+                    Text("Flame \(i + 1)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.cyan)
+                    sliderRow("X", value: $layoutConfig.fireFlameOffsetsX[i], range: -200...200, format: "%.0f")
+                    sliderRow("Y", value: $layoutConfig.fireFlameOffsetsY[i], range: -200...200, format: "%.0f")
+                    sliderRow("Size", value: $layoutConfig.fireFlameScales[i], range: 0.3...3.0, format: "%.2f×")
+                }
+            }
+            .onAppear { layoutConfig.ensureFireArrays() }
         case .sections:
             VStack(alignment: .leading, spacing: 10) {
                 sliderRow("Header", value: $layoutConfig.headerPercent, range: 0...20, format: "%.1f%%")
@@ -1123,7 +1216,8 @@ struct PotionShopLayoutOverlay: View {
             }
         case .dice:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
+                sliderRow("Node Die Scale", value: $layoutConfig.dieScale, range: 0.5...5.0, format: "%.2f×")
+                sliderRow("Tray Die Scale", value: $layoutConfig.trayDieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
 
@@ -2496,14 +2590,12 @@ struct PotionShopLayoutOverlay: View {
 struct PotionShopBoonMenuView: View {
     @Bindable var gs: PotionShopGameState
 
-    /// Compact deck summary: count of each die type currently in the run deck,
-    /// so the player can watch it grow as boons are taken.
-    private var deckSummary: String {
+    /// Deck counts grouped by die type, sorted for stable display order.
+    private var deckCounts: [(type: PotionShopDieType, count: Int)] {
         let counts = Dictionary(grouping: gs.run.deck, by: { $0.type })
             .mapValues { $0.count }
             .sorted { $0.key.rawValue < $1.key.rawValue }
-        if counts.isEmpty { return "—" }
-        return counts.map { "\($0.value)× \($0.key.rawValue)" }.joined(separator: "  ")
+        return counts.map { (type: $0.key, count: $0.value) }
     }
 
     var body: some View {
@@ -2515,10 +2607,10 @@ struct PotionShopBoonMenuView: View {
 
             VStack(spacing: 16) {
                 Text("Choose a Boon")
-                    .font(Font.gameScore(size: 30))
+                    .font(Font.gameScore(size: 39))
                     .foregroundColor(.white)
                 Text("Pick one — it joins your deck for the rest of the run")
-                    .font(Font.gameUI(size: 16))
+                    .font(Font.gameUI(size: 30))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
 
@@ -2533,11 +2625,13 @@ struct PotionShopBoonMenuView: View {
                                 Text(boon.emoji)
                                     .font(.system(size: 36))
                                 Text(boon.name)
-                                    .font(Font.gameUI(size: 16))
+                                    .font(Font.gameUI(size: 24))
                                     .foregroundColor(PotionShopTheme.ink)
                                     .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text(boon.blurb)
-                                    .font(Font.gameUI(size: 12))
+                                    .font(Font.gameUI(size: 20))
                                     .foregroundColor(PotionShopTheme.muted)
                                     .multilineTextAlignment(.center)
                                     .lineLimit(3)
@@ -2563,15 +2657,45 @@ struct PotionShopBoonMenuView: View {
                     }
                 }
 
-                // Current run deck summary (watch it grow)
-                VStack(spacing: 2) {
-                    Text("Your deck (\(gs.run.deck.count) dice)")
+                // Skip boon
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        gs.skipBoon()
+                    }
+                } label: {
+                    Text("Skip Boon")
                         .font(Font.gameUI(size: 14))
-                        .foregroundColor(.white.opacity(0.85))
-                    Text(deckSummary)
-                        .font(Font.gameUI(size: 13))
                         .foregroundColor(.white.opacity(0.6))
-                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                }
+
+                // Current run deck summary with colored dice icons
+                VStack(spacing: 6) {
+                    Text("Your deck (\(gs.run.deck.count) dice)")
+                        .font(Font.gameUI(size: 22))
+                        .foregroundColor(.white.opacity(0.85))
+                    HStack(spacing: 10) {
+                        ForEach(deckCounts, id: \.type) { entry in
+                            HStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(entry.type.color)
+                                    .frame(width: 18, height: 18)
+                                    .overlay(
+                                        Text(entry.type.abbr)
+                                            .font(.system(size: 6, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+                                Text("×\(entry.count)")
+                                    .font(Font.gameUI(size: 14))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                        }
+                    }
                 }
                 .padding(.top, 4)
             }

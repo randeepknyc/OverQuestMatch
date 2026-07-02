@@ -25,11 +25,14 @@ struct PotionShopDebugMenu: View {
     @Bindable var gs: PotionShopGameState
     @Binding var isPresented: Bool
     @Binding var showLayoutOverlay: Bool
+    /// Tutorial state — used by the "Replay Tutorial" button.
+    var tutorial: PotionShopTutorialState
     /// Closure that exits the game (back to GameSelector). Provided
     /// by the parent view since dismiss happens at the parent level.
     let onEndGame: () -> Void
 
     @State private var showLayoutEditor = false
+    @State private var showFireMeterEditor = false   // 🔥 fire meter editor
 
     // Live RAM tracking (May 29, 2026). The row updates every 0.5s, and
     // when you tap "Purge ALL caches" we capture a before-snapshot so you
@@ -75,6 +78,21 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Layout Editor (moved here June 1, 2026 for quicker access) ─
                 Section("Layout Tools") {
+                    Button {
+                        showFireMeterEditor = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "flame.fill")
+                                .foregroundColor(.orange)
+                            Text("🔥 Fire Meter (position + size)")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
                     Button {
                         isPresented = false  // Close debug menu
                         showLayoutOverlay = true  // Show overlay
@@ -298,6 +316,7 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Combat shortcuts ─────────────────────────────
                 Section("Combat") {
+                    Stepper("🎯 Focus: \(gs.focus)", value: $gs.focus, in: 1...10)
                     Button {
                         gs.composure = PotionShopConfig.maxComposure
                         gs.shield = 0
@@ -363,6 +382,56 @@ struct PotionShopDebugMenu: View {
                     }
                 }
 
+                // ─── Tutorial ─────────────────────────────────────
+                Section("Tutorial") {
+                    Button {
+                        isPresented = false
+                        tutorial.start()
+                    } label: {
+                        HStack {
+                            Image(systemName: "book.fill")
+                                .foregroundColor(PotionShopTheme.accent)
+                            Text("Replay Tutorial")
+                                .foregroundColor(.primary)
+                        }
+                    }
+
+                    // Live tutorial preview — keep debug menu open so you
+                    // can step through and see the overlay behind the sheet.
+                    Toggle("Show Tutorial Overlay", isOn: Binding(
+                        get: { tutorial.isActive },
+                        set: { newVal in
+                            if newVal { tutorial.start() }
+                            else { tutorial.isActive = false }
+                        }
+                    ))
+
+                    if tutorial.isActive {
+                        HStack {
+                            Text("Step \(tutorial.currentStep + 1) of 4")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button("Prev") {
+                                if tutorial.currentStep > 0 {
+                                    tutorial.currentStep -= 1
+                                }
+                            }
+                            .disabled(tutorial.currentStep == 0)
+                            Button("Next") {
+                                tutorial.advance()
+                            }
+                        }
+                        .font(.caption)
+                    }
+
+                    Button("Reset First-Run Flag") {
+                        UserDefaults.standard.set(false, forKey: PotionShopTutorialState.hasSeenKey)
+                    }
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                }
+
                 // ─── Exit ─────────────────────────────────────────
                 Section {
                     Button {
@@ -390,6 +459,9 @@ struct PotionShopDebugMenu: View {
             }
             .sheet(isPresented: $showLayoutEditor) {
                 PotionShopNewLayoutEditor(isPresented: $showLayoutEditor)
+            }
+            .sheet(isPresented: $showFireMeterEditor) {
+                PotionShopFireMeterDebugView()
             }
         }
     }
@@ -445,6 +517,7 @@ struct PotionShopDebugMenu: View {
         case .roundWon: return "roundWon"
         case .choosingBoon: return "choosingBoon"
         case .dayWon:   return "dayWon"
+        case .runWon:   return "runWon"
         case .lost:     return "lost"
         }
     }
@@ -574,6 +647,27 @@ struct PotionShopDebugMenu: View {
         trayPercent: \(cfg.trayPercent)
         
         Total: \(cfg.headerPercent + cfg.scenePercent + cfg.profilePercent + cfg.cauldronPercent + cfg.previewPercent + cfg.trayPercent)%
+        
+        ───────────────────────────────────────────────────────────────
+        🔤 HEADER TEXT & ICONS (June 27, 2026)
+        ───────────────────────────────────────────────────────────────
+        headerComposureFontSize: \(cfg.headerComposureFontSize)
+        headerComposureOffsetX: \(cfg.headerComposureOffsetX)
+        headerComposureOffsetY: \(cfg.headerComposureOffsetY)
+        headerFocusFontSize: \(cfg.headerFocusFontSize)
+        headerFocusOffsetX: \(cfg.headerFocusOffsetX)
+        headerFocusOffsetY: \(cfg.headerFocusOffsetY)
+        headerFocusPipSize: \(cfg.headerFocusPipSize)
+        headerFocusLabelOffsetY: \(cfg.headerFocusLabelOffsetY)
+        headerTodIconSize: \(cfg.headerTodIconSize)
+        headerTodIconOffsetY: \(cfg.headerTodIconOffsetY)
+        headerGearSize: \(cfg.headerGearSize)
+        headerGearOffsetY: \(cfg.headerGearOffsetY)
+        headerDayFontSize: \(cfg.headerDayFontSize)
+        headerDayOffsetX: \(cfg.headerDayOffsetX)
+        headerDayOffsetY: \(cfg.headerDayOffsetY)
+        headerBarHeight: \(cfg.headerBarHeight)
+        headerBarOffsetY: \(cfg.headerBarOffsetY)
         
         ───────────────────────────────────────────────────────────────
         🧙 EDNAR ART (freeform scaling + positioning)
@@ -848,6 +942,7 @@ struct PotionShopDebugMenu: View {
         🎲 DICE & TRAY
         ───────────────────────────────────────────────────────────────
         dieScale: \(cfg.dieScale)
+        trayDieScale: \(cfg.trayDieScale)
         trayOffsetX: \(cfg.trayOffsetX)
         trayOffsetY: \(cfg.trayOffsetY)
         
@@ -1087,6 +1182,22 @@ struct PotionShopDebugMenu: View {
         🟢 CONTEXTUAL CHARACTER NUDGES (slot · myH×W · front · back)
         ───────────────────────────────────────────────────────────────
         \(formatCharacterContextNudges())
+
+        """
+
+        text += """
+
+        ───────────────────────────────────────────────────────────────
+        🔥 STABILITY FIRE METER (June 27, 2026)
+        ───────────────────────────────────────────────────────────────
+        fireMeterSize: \(cfg.fireMeterSize)
+        fireMeterSpacing: \(cfg.fireMeterSpacing)
+        fireMeterOffsetX: \(cfg.fireMeterOffsetX)
+        fireMeterOffsetY: \(cfg.fireMeterOffsetY)
+        fireMeterFPS: \(cfg.fireMeterFPS)
+        fireFlameOffsetsX: \(cfg.fireFlameOffsetsX)
+        fireFlameOffsetsY: \(cfg.fireFlameOffsetsY)
+        fireFlameScales: \(cfg.fireFlameScales)
 
         """
 

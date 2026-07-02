@@ -15,6 +15,10 @@ struct ShopOfOdditiesView: View {
     @State private var repairsDiscoveredBeforeGame: Set<String> = []
     @State private var showingAssetsDebug = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// When true, restores from a saved session on appear.
+    var continueFromSave: Bool = false
     
     // MARK: - Animation State
     
@@ -140,11 +144,20 @@ struct ShopOfOdditiesView: View {
             }
         }
         .onAppear {
+            // ── Restore from save if continuing ──────────────────
+            if continueFromSave, let save = ShopOfOdditiesSave.load() {
+                save.restore(into: gameState)
+            }
             // Track repairs known before this game started
             repairsDiscoveredBeforeGame = gameState.discoveredRepairNames
             
             // Start opening animations
             startOpeningAnimations()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background && !gameState.gameOver {
+                ShopOfOdditiesSave.save(gs: gameState)
+            }
         }
         .onChange(of: dragState?.currentPosition) { oldValue, newValue in
             // Update hover insert index when drag position changes

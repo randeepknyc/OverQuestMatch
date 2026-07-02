@@ -86,6 +86,11 @@ struct PotionShopCustomer: Identifiable, Equatable {
 
 // MARK: - The state machine
 
+/// Which Ednar pose to show, driven by the brew sequence (June 28, 2026).
+enum PotionShopEdnarPose {
+    case idle, brew, heal, defend
+}
+
 @Observable
 class PotionShopGameState {
 
@@ -109,6 +114,13 @@ class PotionShopGameState {
 
     var composure: Int = PotionShopConfig.startingComposure
     var shield: Int = 0
+    /// Stability fire meter (June 27, 2026). Full each time-slot; a brew
+    /// burns 1, UNLESS a stability die is placed — then it refills to full.
+    var fire: Int = PotionShopConfig.maxFire
+    /// Focus = how many dice you may place per brew (June 28, 2026). Starts
+    /// at maxPlacementsPerBrew; grows later via boons/relics. Was a frozen
+    /// constant before.
+    var focus: Int = PotionShopConfig.maxPlacementsPerBrew
     var potionsBrewed: Int = 0
 
     // MARK: - Customer queue
@@ -230,6 +242,9 @@ class PotionShopGameState {
     // (Phase 4a/4b). The customer view swaps its HP badge to hp_customer_atk
     // while its id is in this set.
     var customerAttackingIds: Set<UUID> = []
+    /// Ednar's current pose (June 28, 2026). Set during the brew sequence,
+    /// reset to .idle when the brew finishes.
+    var ednarPose: PotionShopEdnarPose = .idle
 
     /// Phase 7: Customer "leaves" trigger. When a customer expires,
     /// the id is set here and their view fades + slides off-screen.
@@ -251,6 +266,11 @@ class PotionShopGameState {
     /// True if the current dayId refers to a flex day (Day 3+).
     var isFlexDay: Bool {
         PotionShopData.isFlexDay(dayId)
+    }
+
+    /// Numeric day for display (e.g. "day_1" → 1, "day_2" → 2).
+    var dayNumber: Int {
+        Int(dayId.replacingOccurrences(of: "day_", with: "")) ?? 1
     }
 
     // MARK: - Init
@@ -323,16 +343,15 @@ class PotionShopGameState {
     ///   • All of Day 1  → dayId == "day_1"
     ///   • Day 2 Round 2 → roundIndex 1 (afternoon)
     var currentRoundUses3DDice: Bool {
+        // Every campaign day runs the modern 3D reel-spin tray (Day 1's path).
         if isFlexDay { return false }
-        if dayId == "day_1" { return true }
-        if dayId == "day_2" { return true }
-        return false
+        return true
     }
 
-    /// JUNE 18, 2026: which days use the §32 unified dice-outcome roll.
-    /// Day 1 and now Day 2. Centralized so the dice-model pivot has ONE knob.
+    /// JUNE 28, 2026: every generated campaign day uses the §32 unified
+    /// dice-outcome roll (was gated to Day 1 / Day 2 only).
     var usesUnifiedDiceRoll: Bool {
-        dayId == "day_1" || dayId == "day_2"
+        !isFlexDay
     }
 
     /// Editor-only: when true, a floating "🎲 SPIN" button appears on the
@@ -468,6 +487,7 @@ class PotionShopGameState {
     /// Shared helper used by both legacy and flex paths to spawn customers
     /// and deal a fresh hand of dice.
     private func spawnCustomers(from round: PotionShopRound) {
+        fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -481,11 +501,17 @@ class PotionShopGameState {
                 print("⚠️ PotionShop: Unknown character id \(id)")
                 return nil
             }
+            // HP BUCKETING (June 28, 2026): scale order-size by the day curve
+            // (~7%/day, first week), snapped to a clean bucket. Day 1 = ×1.0
+            // so Day 1 is unchanged. Reuses existing customers (repeats OK).
+            let scaledHP = PotionShopConfig.bucketedHP(
+                Int((Double(char.hp) * PotionShopConfig.hpDayMultiplier(forDay: dayNumber)).rounded())
+            )
             return PotionShopCustomer(
                 id: UUID(),
                 charKey: id,
-                hp: char.hp,
-                maxHp: char.hp,
+                hp: scaledHP,
+                maxHp: scaledHP,
                 patience: char.patience,
                 maxPatience: char.patience,
                 status: .waiting,
@@ -590,8 +616,11 @@ class PotionShopGameState {
             ? PotionShopData.roundCount(forDayId: dayId)
             : PotionShopConfig.roundsPerDay
         if roundIndex >= totalRounds {
-            // Day complete — offer a boon here too if frequency is everyDay.
-            if boonFrequency == .everyDay {
+            // JUNE 28: finishing the night round of Day 30 wins the whole run.
+            if PotionShopData.isLastDay(dayId) {
+                phase = .runWon
+                PotionShopSave.deleteSave()
+            } else if boonFrequency == .everyDay {
                 offerBoons(thenAdvanceToDay: true)
             } else {
                 phase = .dayWon
@@ -603,6 +632,10 @@ class PotionShopGameState {
             } else {
                 startRound()
             }
+        }
+        // Save progress at every round boundary (unless terminal)
+        if phase != .runWon && phase != .lost {
+            PotionShopSave.save(gs: self)
         }
     }
 
@@ -627,6 +660,20 @@ class PotionShopGameState {
             phase = .playing
             startRound()
         }
+        // Save after boon choice (deck has changed)
+        PotionShopSave.save(gs: self)
+    }
+
+    /// Skip the boon offer without adding anything to the deck.
+    func skipBoon() {
+        boonOffer = []
+        if boonLeadsToDay {
+            phase = .dayWon
+        } else {
+            phase = .playing
+            startRound()
+        }
+        PotionShopSave.save(gs: self)
     }
 
     /// Move to the next day in PotionShopData.allDays. If we're already
@@ -637,18 +684,25 @@ class PotionShopGameState {
             PotionShopConfig.maxComposure,
             composure + PotionShopConfig.composureRestBetweenDays
         )
-        if let nextId = PotionShopData.nextDayId(after: dayId) {
-            dayId = nextId
+        guard let nextId = PotionShopData.nextDayId(after: dayId) else {
+            // No day after this one — campaign complete. (Safety net; the last
+            // round normally routes straight to .runWon in advanceRound.)
+            phase = .runWon
+            PotionShopSave.deleteSave()
+            return
         }
+        dayId = nextId
         roundIndex = 0
-        // Clear any stale flex-day rounds so they regenerate (with a fresh
-        // RNG draw) when the new day starts.
         flexDayGeneratedRounds = []
         startRound()
+        // Save at the start of the new day
+        PotionShopSave.save(gs: self)
     }
 
     /// Restart from Day 1, Morning.
     func resetGame() {
+        // Delete any existing save — this is a fresh run
+        PotionShopSave.deleteSave()
         dayId = "day_1"
         roundIndex = 0
         composure = PotionShopConfig.startingComposure
@@ -709,7 +763,7 @@ class PotionShopGameState {
 
     func placeDie(handIdx: Int, nodeId: Int) {
         if placements[nodeId] != nil { return }
-        if placements.count >= PotionShopConfig.maxPlacementsPerBrew { return }
+        if placements.count >= focus { return }
         guard handIdx < hand.count else { return }
         let die = hand[handIdx]
         placements[nodeId] = die
@@ -762,7 +816,7 @@ class PotionShopGameState {
             returnDraggedDie()
             return
         }
-        if placements.count >= PotionShopConfig.maxPlacementsPerBrew {
+        if placements.count >= focus {
             // At cap - return die to hand
             returnDraggedDie()
             return
@@ -933,7 +987,7 @@ class PotionShopGameState {
         guard dieIndex < hand.count else { return false }
         
         // Check if at cap
-        if placements.count >= PotionShopConfig.maxPlacementsPerBrew {
+        if placements.count >= focus {
             return false
         }
         
@@ -1115,6 +1169,7 @@ class PotionShopGameState {
         composure = max(0, composure - remaining)
         if composure <= 0 {
             phase = .lost
+            PotionShopSave.deleteSave()
         }
         return (absorbed, dealt)
     }
@@ -1278,6 +1333,7 @@ class PotionShopGameState {
         isAnimating = true
         defer { isAnimating = false }
         defer { withAnimation(.easeOut(duration: 0.3)) { brewDamageBadges.removeAll() } }
+        defer { ednarPose = .idle }   // back to idle when the brew finishes
 
         // JUNE 20, 2026: if the banner is CLOSED when brew is hit, open it on
         // the active customer so the player sees the HP banner during the
@@ -1288,11 +1344,24 @@ class PotionShopGameState {
 
         try? await sleep(seconds: PotionShopBrewAnimator.initialDelay)
 
+        // ─── STABILITY FIRE (refill → check; the burn happens at the END) ─
+        // A stability die placed this turn tops the meter back to full.
+        let placedStability = placements.values.contains { $0.type == .stability }
+        if placedStability {
+            fire = PotionShopConfig.maxFire
+        }
+        // If the meter is EMPTY going into this brew (and you didn't
+        // restabilize), the cauldron is unstable → the potion's POTENCY
+        // (damage) comes out HALVED. (Heals/shields unchanged for now.)
+        let weakBrew = (fire == 0)
+        let effDamage = weakBrew ? preview.damage / 2 : preview.damage
+
         // ─── PHASE 1: Heal + Shield apply to player ─────────────────
         if preview.healing > 0 {
             let healed = min(PotionShopConfig.maxComposure - composure, preview.healing)
             composure = min(PotionShopConfig.maxComposure, composure + preview.healing)
             if healed > 0 {
+                ednarPose = .heal
                 emitFloatingNumber(
                     text: "+\(healed) ❤",
                     color: PotionShopFloatingNumber.healColor,
@@ -1314,9 +1383,9 @@ class PotionShopGameState {
         }
 
         // ─── PHASE 2: Volatile pre-defense (overbrew retaliation) ───
-        if activeChar.trait == "volatile" && preview.damage > target {
+        if activeChar.trait == "volatile" && effDamage > target {
             try? await sleep(seconds: PotionShopBrewAnimator.preVolatileDelay)
-            let overflow = preview.damage - target
+            let overflow = effDamage - target
             let result = applyDamage(overflow)
             if result.dealt > 0 {
                 emitFloatingNumber(
@@ -1331,19 +1400,27 @@ class PotionShopGameState {
         }
 
         // ─── PHASE 3: Brew damage to active customer ────────────────
-        if preview.damage > 0 {
+        if effDamage > 0 {
             try? await sleep(seconds: PotionShopBrewAnimator.preBrewDamageDelay)
-            customers[activeIdx].hp = max(0, customers[activeIdx].hp - preview.damage)
+            ednarPose = .brew
+            customers[activeIdx].hp = max(0, customers[activeIdx].hp - effDamage)
             if customers[activeIdx].hp <= 0 {
                 customers[activeIdx].status = .defeated
+                // Close the banner immediately so the profile row reappears.
+                // Without this, the inspect strip condition (.waiting) hides
+                // the banner but inspectedId stays non-nil, leaving both the
+                // banner AND profiles invisible until end of brew.
+                withAnimation(.easeOut(duration: 0.25)) {
+                    inspectedId = nil
+                }
             }
             HapticManager.shared.brewHit()
             triggerCustomerShake(activeId)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                brewDamageBadges[activeId] = preview.damage
+                brewDamageBadges[activeId] = effDamage
             }
             emitFloatingNumber(
-                text: "-\(preview.damage) 🧪",
+                text: "-\(effDamage) 🧪",
                 color: PotionShopFloatingNumber.damageCustomerColor,
                 at: activeCustomerPoint
             )
@@ -1375,6 +1452,7 @@ class PotionShopGameState {
         // ── 4a. Active attacks (alone)
         if activeWillAttack > 0, customers[activeIdx].status == .waiting {
             customerAttackingIds.insert(activeId)
+            ednarPose = .defend
             HapticManager.shared.customerAttack()
             triggerCustomerShake(activeId)
             let result = applyDamage(activeWillAttack)
@@ -1409,6 +1487,7 @@ class PotionShopGameState {
                       let char = PotionShopData.character(customers[cIdx].charKey),
                       char.waitingAttack > 0 else { continue }
                 customerAttackingIds.insert(id)
+                ednarPose = .defend
                 HapticManager.shared.customerAttack()
                 triggerCustomerShake(id)
                 // Small gap before the next waiter shakes, for a rippling
@@ -1460,6 +1539,12 @@ class PotionShopGameState {
                 guard let cIdx = customers.firstIndex(where: { $0.id == id }),
                       let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
                 customers[cIdx].status = .expired
+                // Close banner if this expired customer is the inspected one
+                if inspectedId == id {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        inspectedId = nil
+                    }
+                }
                 expiringCustomerIds.insert(id)
                 triggerCustomerShake(id)
                 let result = applyDamage(char.expireDamage)
@@ -1512,6 +1597,12 @@ class PotionShopGameState {
         }
         // Clear the expiring set so views stop slide-out animations
         expiringCustomerIds.removeAll()
+
+        // Burn one flame now the brew is resolved — unless a stability die
+        // was placed (which already topped the meter up and spares the burn).
+        if !placedStability {
+            fire = max(0, fire - 1)
+        }
 
         discardAllDice()
         drawFromBag()
@@ -1674,6 +1765,7 @@ class PotionShopGameState {
         case .roundWon:  return "roundWon"
         case .choosingBoon: return "choosingBoon"
         case .dayWon:    return "dayWon"
+        case .runWon:    return "runWon"
         case .lost:      return "lost"
         }
     }
@@ -1701,5 +1793,6 @@ class PotionShopGameState {
         composure = 0
         shield = 0
         phase = .lost
+        PotionShopSave.deleteSave()
     }
 }

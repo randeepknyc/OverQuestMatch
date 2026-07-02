@@ -439,6 +439,14 @@ struct PotionShopCauldronView: View {
                         .zIndex(0)  // 🔧 EXPLICIT Z-INDEX: Bottom layer
                 }
 
+                // ── STABILITY FIRE METER (under the cauldron) ──────────────
+                PotionShopFireMeterView(current: gs.fire, maxPieces: PotionShopConfig.maxFire)
+                    .position(
+                        x: g.bowlCenterX,                 // centered under the bowl
+                        y: g.bowlOriginY + g.bowlH + 12   // 12 = gap below bowl; nudge to taste
+                    )
+                    .zIndex(4)   // ABOVE nodes (2) and BREW button (3) — flames on top
+
                 // LAYER 1: Connecting lines between nodes (BEHIND nodes, above cauldron)
                 PotionShopNodeConnectionLines(
                     nodeOriginX: g.nodeOriginX,
@@ -584,7 +592,7 @@ struct PotionShopNodeButtonView: View {
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
-    private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
+    private var atCap: Bool { gs.placements.count >= gs.focus }
     private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil && !isDraggingFromHere }
     private var isDraggingDie: Bool { gs.draggedDie != nil }
     private var canReceiveDrop: Bool {
@@ -956,6 +964,7 @@ struct PotionShopPlacedDieView: View {
                     .font(Font.gameScore(size: 13 * visualScale))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 1, x: 0, y: 1)
+                    .offset(y: 3 * visualScale)
             }
         } else {
             // Placeholder colored square with value
@@ -973,6 +982,7 @@ struct PotionShopPlacedDieView: View {
                     Text("\(die.value)")
                         .font(Font.gameScore(size: 13 * visualScale))
                         .foregroundColor(.white)
+                        .offset(y: 3 * visualScale)
                 )
         }
     }
@@ -1044,55 +1054,6 @@ struct PotionShopBrewSignView: View {
         }
         .disabled(!canBrew)
         .animation(.easeInOut(duration: 0.2), value: canBrew)
-    }
-}
-
-// MARK: - Brew preview bar
-
-struct PotionShopBrewPreviewBar: View {
-    @Bindable var gs: PotionShopGameState
-
-    private var preview: PotionShopGameState.BrewPreview {
-        gs.computeBrew()
-    }
-
-    private var atCap: Bool {
-        gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew
-    }
-
-    var body: some View {
-        HStack {
-            Text("Placed \(gs.placements.count) / \(PotionShopConfig.maxPlacementsPerBrew)\(atCap ? " (full)" : "")")
-                .font(Font.gameUI(size: 11))
-                .foregroundColor(atCap ? PotionShopTheme.composureBad : PotionShopTheme.muted)
-
-            Spacer()
-
-            if !gs.placements.isEmpty {
-                let target = gs.currentBrewTarget
-                let willKill = preview.damage >= target
-                Group {
-                    Text("Brew ")
-                        .foregroundColor(PotionShopTheme.muted)
-                    + Text("\(preview.damage)")
-                        .foregroundColor(willKill ? PotionShopTheme.composureGood : PotionShopTheme.composureBad)
-                        .fontWeight(.bold)
-                    + Text(" / \(target)")
-                        .foregroundColor(PotionShopTheme.muted)
-                    + Text(preview.healing > 0 ? "  +\(preview.healing)❤" : "")
-                        .foregroundColor(PotionShopTheme.composureGood)
-                    + Text(preview.shielding > 0 ? "  +\(preview.shielding)🛡" : "")
-                        .foregroundColor(PotionShopTheme.shield)
-                }
-                .font(Font.gameUI(size: 11))
-            } else {
-                Text("Place dice to preview")
-                    .font(Font.gameUI(size: 11))
-                    .foregroundColor(PotionShopTheme.muted.opacity(0.6))
-            }
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1239,11 +1200,11 @@ struct PotionShopDieButtonView: View {
     @State private var landPopScale: CGFloat = 1.0
 
     private var isSelected: Bool { gs.selectedHandIndex == index }
-    private var atCap: Bool { gs.placements.count >= PotionShopConfig.maxPlacementsPerBrew }
+    private var atCap: Bool { gs.placements.count >= gs.focus }
 
     var body: some View {
         let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
-        let scaledFontSize = 18 * dieScale
+        let scaledFontSize = 28 * dieScale
         
         // Day 2 Round 2 uses a vertical reel-spin animation (3D-style).
         // All other rounds use the original static face render.
@@ -1298,6 +1259,7 @@ struct PotionShopDieButtonView: View {
                             .font(Font.gameScore(size: scaledFontSize))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+                            .offset(y: 3 * dieScale)
                     }
                 } else {
                     // Placeholder colored square with text
@@ -1432,6 +1394,7 @@ struct PotionShopTrayDieValueBadge: View {
             .font(Font.gameScore(size: fontSize))
             .foregroundColor(.white)
             .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
+            .offset(y: 10)
             .opacity(badgeOpacity)
             .onAppear { runReveal() }
             .onChange(of: spinToken) {

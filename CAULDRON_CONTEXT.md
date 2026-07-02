@@ -4,6 +4,12 @@
 > **Last Updated:** June 10, 2026 — Big additions since May 25: feet-anchor mode for Day 3 R2, 18-cell bucket×slot size matrix, per-cell sparse overrides for character size+X+Y, two-tier HP badge override system (HxW shared + per-slot), focused per-slot editor in the layout overlay, AND a real 3D dice slot-machine spin (SceneKit) gated to Day 2 R2 with custom face textures, motion blur, per-die stagger, and a floating test SPIN button. See **§26** for the full block of post-May-25 work. Earlier (May 25 PM) Day 3 flex-day RNG test, §25. May 25 AM: art template floor shifted to y=1500, §24. May 24 eve: badge body-follow + waiting2 overrides, §23.17.
 > **Status:** Phase 7 complete + partial Phase 8. Game is playable end-to-end for Day 1 → Day 2 → Day 3. Art assets pending. Day 2 R2 now visually demonstrates 3D-cube dice with placeholder textures from Assets.xcassets (`die_face_1`…`die_face_6`).
 > **Read this file FIRST when continuing work in a new chat or in Claude in Xcode.**
+>
+> ---
+>
+> **⚠️ JUNE 27, 2026 — CURRENT TOP-LEVEL STATUS (the June 10 line above is now historical):**
+> **MAJOR DESIGN PIVOT.** The game is now a **FINITE 30-DAY CAMPAIGN** — weekly bosses on Days 7/14/21/28 + a finale on Day 30, gentle bounded growth (~×1.07/day), no automatic Composure refills, and Die-in-the-Dungeon-style **bounded D6 dice** (faces never exceed 6). The combat model is LOCKED as the **queue / line-of-3** the code already has. Dice are now **SIX**: Mirror added (NOT built yet) and **Stability promoted to a real die with a fire meter (BUILT — §56).** Focus becomes a real, growing stat. "Endless" is now only an optional post-Day-30 mode.
+> **➡ Read §55 (full canonical model & balance) and §56–§62 before touching systems or balance:** §56–§57 stability fire meter; §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
 
 ---
 
@@ -3515,6 +3521,455 @@ The number badge on each 3D die in the tray (`PotionShopTrayDieValueBadge` in
   fades in. Now appears slightly before the cube fully settles.
 - **`revealFadeDuration`:** 0.06s (was 0.20) — near-instant pop instead of a
   slow fade.
+
+---
+
+## §54 — Header UI Redesign (June 27, 2026)
+
+Full rewrite of `PotionShopHeaderView.swift`. The old coded-rectangle composure
+bar and plain text labels were replaced with a hand-drawn asset-based header.
+
+### 54.1 Layout (3-row)
+
+```
+Row 1: [tod icon]  [═══ composure bar ═══]  [gear icon]
+Row 2: [Day #]  [Composure ##]  (+shield)
+Row 3:                          [Focus ✦ ✦ ✦]  ← offset far right via headerFocusOffsetX
+```
+
+- **Row 1 left:** Time-of-day icon (`tod_morning`, `tod_afternoon`, `tod_evening`,
+  `tod_night`) mapped from `gs.currentRoundTimeOfDay`.
+- **Row 1 center:** Composure bar using hand-drawn image assets with percentage
+  masking.
+- **Row 1 right:** Gear icon (`header_gear` asset, opens debug menu).
+- **Row 2:** "Day #" + "Composure ##" + optional shield text.
+- **Row 3:** Focus pips (✦ filled / ✧ empty). Focus tracks dice placements:
+  `focusRemaining = maxPlacementsPerBrew - placements.count`. Each die placed
+  removes one pip; returning a die to the tray restores it.
+
+### 54.2 Composure bar — image-based fill with thresholds
+
+The bar uses full-width fill images masked by a `Rectangle` whose width =
+`barWidth * compoPct`. Four fill assets per composure-percentage threshold:
+
+| Threshold | Asset name |
+|-----------|-----------|
+| >65% | `composure_bar_fill` (green) |
+| 40–65% | `composure_bar_65` (yellow) |
+| 20–40% | `composure_bar_40` (orange) |
+| ≤20% | `composure_bar_20` (red) |
+
+The background frame (`composure_bar_bg`) is drawn ON TOP of fills so the
+hand-drawn outline sits over them. Shield overlay (`composure_bar_shield`)
+masks to `shieldPct` and offsets to attach at the right edge of the composure
+fill. Flash overlay (Phase 7) unchanged.
+
+### 54.3 Art assets added
+
+- `composure_bar_bg` — empty bar frame (hand-drawn outline)
+- `composure_bar_fill` — green fill
+- `composure_bar_65` — yellow fill
+- `composure_bar_40` — orange fill
+- `composure_bar_20` — red fill
+- `composure_bar_shield` — teal shield fill
+- `header_gear` — hand-drawn gear icon
+- `tod_morning`, `tod_afternoon`, `tod_evening`, `tod_night` — time-of-day icons
+
+### 54.4 Layout config properties (live-tunable)
+
+All header text/icon sizes and positions are driven by
+`PotionShopLayoutConfig.shared` and adjustable via the Layout Editor overlay
+("🔤 Header" tab). Included in Copy Layout Values / Copy Changed Values export.
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| `headerComposureFontSize` | 23.5 | Composure label font |
+| `headerComposureOffsetX` | 7.8 | Composure label X nudge |
+| `headerComposureOffsetY` | 1.3 | Composure label Y nudge |
+| `headerFocusFontSize` | 25.0 | Focus label + pips font |
+| `headerFocusOffsetX` | 259.8 | Focus row X (far right) |
+| `headerFocusOffsetY` | -26.1 | Focus row Y (pulls up) |
+| `headerTodIconSize` | 40.1 | Time-of-day icon size |
+| `headerGearSize` | 26.7 | Gear icon size |
+| `headerDayFontSize` | 20.1 | "Day #" font in Row 2 |
+| `headerBarHeight` | 22.7 | Composure bar height |
+| `headerBarOffsetY` | 8.6 | Composure bar Y offset |
+
+All values restored by `restoreLockedDefaults()`.
+
+### 54.5 Focus mechanic
+
+Focus tracks how many dice the player can still place this brew. No new state
+property was needed — it reads the existing `placements` dictionary:
+
+```swift
+private var focusRemaining: Int {
+    max(0, PotionShopConfig.maxPlacementsPerBrew - gs.placements.count)
+}
+```
+
+### 54.6 dayNumber computed property
+
+Added to `PotionShopGameState`:
+
+```swift
+var dayNumber: Int {
+    Int(dayId.replacingOccurrences(of: "day_", with: "")) ?? 1
+}
+```
+
+### 54.7 Customer attack badge system (hp_customer_atk)
+
+When customers attack Ednar (Phase 4a active, Phase 4b waiters), their HP badge
+shows `hp_customer_atk.png` and the banner bottle shows `potion_bottle_atk.png`.
+
+- **State:** `customerAttackingIds: Set<UUID>` on GameState — tracks which
+  customers are currently in their attack animation.
+- **Phase 4a:** `insert(activeId)` before attack, `remove(activeId)` after
+  `activeAttackDuration`.
+- **Phase 4b:** `insert(id)` per waiter at their stagger offset, `remove(id)`
+  after each individual waiter's attack duration (no bulk removeAll).
+- **HP badge priority:** `hp_damage` (brew hit) → `hp_customer_atk` (attacking)
+  → `hp_badge_red` pulse → `hp_badge` (normal).
+- **Banner priority:** `hp_damage` → `potion_bottle_atk` → `potion_bottle_outline`.
+- **Guard:** Both HP badge and banner `.onChange` handlers skip `takingDamage`
+  when `customerAttackingIds.contains(customer.id)` to prevent double-flash
+  during Phase 4a.
+
+### 54.8 Haptics added (HapticManager.swift)
+
+| Event | Method | Generator | Intensity |
+|-------|--------|-----------|-----------|
+| Die placed on node | `diePlaced()` | rigid | 0.7 |
+| Brew damages customer | `brewHit()` | heavy | 0.9 |
+| Customer attacks Ednar | `customerAttack()` | medium | 0.8 |
+| Dice roll rattle | `diceRollRattle()` | rigid | ramped 1.0→0.3 |
+
+## 55. CANONICAL MODEL & 30-DAY CAMPAIGN PIVOT (June 27, 2026) — DESIGN LOCKED
+
+> **This section is the source of truth for the game's SYSTEMS and BALANCE.**
+> Where it disagrees with older sections (especially §5, §6, §29, §35, §39, §40),
+> **THIS WINS.** Most of it is DESIGN, not yet built — see §55.13 for the built/not-built
+> split. The first piece shipped is the Stability fire meter (§56).
+>
+> Companion deliverables (whole files, given to the user): `CANONICAL_MODEL_AND_GENERATOR_SPEC.md`
+> (full plain-language design) and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx` (live balance
+> workbook with a 30-day calendar, dice curve, survival curve, boss check, and dials).
+
+### 55.1 The locked decisions, in one place
+1. **Combat = the queue / line-of-attackers the code already has.** Daytime slots are a LINE OF 3 customers on screen; waiters attack while they wait. (Confirms §5; the old turn-timer design doc is dead.)
+2. **Dice = SIX bounded D6s:** Potion, Boost, **Mirror (NEW — not built)**, Shield, Heal, **Stability (promoted to a real die — §56)**. Faces never exceed 6.
+3. **Focus is a real stat, starts at 3**, climbs to ~6–7 across the run.
+4. **FINITE 30-DAY CAMPAIGN** with weekly bosses (Days 7/14/21/28) + a finale (Day 30).
+5. **Bounded growth ≈ ×1.07/day** (NOT runaway). Day-1 power ~8 → ~57 by Day 30.
+6. **No automatic Composure refills.** Recovery = Heal dice + the Patch-Up boon only.
+7. **Save-and-continue per day** (each in-game day is a save point / session).
+8. **A customer who leaves deals damage = attack + 1.**
+9. **Player chooses the active customer by tapping a profile picture** (already coded).
+10. **"STIR" → "BREW"** everywhere (already true in code; the design's "STIR order" is now "BREW order").
+11. **Relics after each boss. No gold / Night Market / economy.**
+12. **Order-size reframe:** a customer's "HP" is now their **ORDER SIZE / target potency** (Balatro-style threshold). Mechanically identical to chipping HP to 0; just reads as a shop.
+
+### 55.2 Campaign structure (FINITE — supersedes the "endless" framing and §25/§35 as the long-term shape)
+- 30 days. Each day = 4 slots: **Morning / Afternoon / Evening** (lines of 3) + **Night** (1 customer).
+- **Weekly bosses** = the Night of Days 7/14/21/28 (use Enrage). **Finale** = Day 30 Night.
+- **Ordinary nights** = a single tougher "closing customer," no Enrage.
+- Difficulty climbs gently (×1.07/day); the **bosses** are the felt difficulty staircase.
+- **Beat Day 30 → optional Endless mode** (flat post-game scaling). NOT built.
+
+### 55.3 Why this shape — the Die-in-the-Dungeon rationale
+Bounded D6 dice (faces ≤ 6, slow tier upgrades) can't chase runaway scaling. A workbook check showed ×1.31/day needs per-die bonuses of +14 by Day 12 — impossible for tidy dice. DitD avoids this with **bounded dice + a finite run + slow upgrades + growth via combos/positioning/relics**. We adopted that: ×1.07/day over 30 days keeps the needed average die value right around the cap of 6 at the finale — the cap becomes the finish line, not a wall. Endless + bounded dice are in genuine tension; we chose **bounded + finite**, with endless as an unlocked post-game.
+
+### 55.4 Dice — six bounded D6s + BREW order (UPDATES §6)
+- Faces never exceed 6. Power above 6 comes from **Boosts + boons**, never bigger faces.
+- **Mirror (NEW, not built):** becomes a copy of the best die it's wired to — can copy a Boost. Resolves BEFORE boosts so boosts can amplify it.
+- **Stability (promoted, BUILT as a fire meter — §56).**
+- **BREW order each turn:** Stability refill → Stability check (halve all output if meter still 0) → Heals → Shields → Mirrors → Boosts → Potions → Fire burn (1; 2 on a big brew).
+
+### 55.5 Focus — real stat (UPDATES §6/§7; replaces the frozen `maxPlacementsPerBrew`)
+Placements/turn. Starts 3, raised by rare boons/relics to ~6–7. The single biggest lever on output; the strongest reward type (make it rare, never doubled). Flavor dice (future) don't cost Focus.
+
+### 55.6 Composure — NO automatic refills (SUPERSEDES `composureRestBetweenRounds`/`Days`)
+Only recovery is Heal dice + the **Patch-Up boon**. The current `PotionShopConfig.composureRestBetweenRounds = 5` and `composureRestBetweenDays = 30` must be set to 0 / removed when the campaign is wired. Survival is meant to be tight, which is why heal output and the Patch-Up boon matter most when balancing.
+
+### 55.7 Traits — three-layer split (UPDATES §4.2)
+Split the old single "trait" into three clean things:
+- **Attack value** — the real per-turn Composure hit (from the weighted attack budget).
+- **Trait name** — pure flavor, pulled from the customer's labeled bucket; does NOT change the number.
+- **Quirk** — mechanical twists (node-block, −Focus, retaliate, drain). **OFF in v1.**
+Buckets are labeled **positive / negative / quirk**; the generator picks role+value first, then pulls a NAME from the matching label. **v1 uses NEGATIVE (attackers) only.** The two stubbed traits (`loud`, `hexer`) become future quirks — leave them off, don't half-wire them.
+
+### 55.8 The customer generator (UPDATES §29/§35)
+- Per slot: a **order-size budget** and an **attack budget**, both scaling ×1.07/day (from the workbook's CALENDAR tab).
+- Each budget is **split into 3 unevenly** with a **20% floor**: each customer gets ≥20% of the total, the rest sprinkled randomly, re-rolled every spawn (so the same slot is 8/7/5 one run and 4/8/8 the next). Tighten the floor to 25% if too swingy, 15% if too samey.
+- Per customer: **expire damage = attack + 1**; **patience ≈ order-size-scaled + small spread** (so each line has an early-leaver and a patient one → triage gameplay).
+- Stats are GENERATED; cosmetics (art + fixed name + negative trait name + order phrase) are dressed on top. A **boss/night-only art flag** is wired (all art can appear anywhere for now).
+
+### 55.9 Rewards (UPDATES §40)
+- **Boon** after each daytime slot (M/A/E); **Relic** after each boss (Days 7/14/21/28/30). No economy.
+- **NEW — Patch-Up (heal) boon:** heals a big chunk of Composure; if already healthy, converts to **+Max Composure** (DitD's rest model). The no-refill safety valve so a bad week isn't an instant death.
+- **NEW — Sharpen-the-Shelf (remove-die) boon:** offered as **"add a die OR remove a die"** (grow vs thin). Guard rails: a **deck-size floor (~5)** so you can't thin into a soft-lock; don't force a removal at the floor.
+- Plus **Focus boon** (rare) and **Max-Composure boon**.
+- Lesson carried from DitD reviews: with no gold to fall back on, **every offer must feel exciting**, and keep individual customers FAST (DitD's loudest complaint is drawn-out fights).
+
+### 55.10 Events / story nodes (NEW design, NOT built)
+Choice-with-teeth beats placed at known calendar spots (Festival, Health Inspector, Shady Shipment, Rival Shop, **Skip Ahead**). Both options should tempt. **"Skip Ahead"** is DitD's trick: skip a day to dodge its damage, but lose its rewards and arrive UNDER-GEARED for the coming boss.
+
+### 55.11 Future dice categories (wire the flags now, content later)
+- **Flavor dice:** a variant of any die that does NOT cost Focus (flag `costsFocus = false`).
+- **Salty dice:** one use per round; not drawn again that round (flag `oneShotPerRound`).
+Neither ships in v1 — just the plumbing so nothing needs re-architecting later.
+
+### 55.12 The workbook is the brain
+`POTION_CAULDRON_WORKBOOK_30DAY.xlsx` sets all budgets and curves; the code partitions what it hands over. Yellow = input, blue = calculated, red = a boss day. Day-1 Power is a direct input (default 8) because summing the deck's potion can't predict per-turn output when you only place Focus dice. The old workbook's "Impatience timer = round-up(Target ÷ power)" idea is DEAD (we use patience POOLS, not turn-timers).
+
+### 55.13 BUILT vs DESIGN (status of this pivot)
+- **BUILT:** Stability fire meter (§56). The order-size relabel is conceptual (HP math unchanged).
+- **DESIGN, NOT BUILT:** Mirror die, Focus-as-a-stat, the 30-day calendar/campaign loop, the budget→split generator, weekly bosses + Enrage, events/story nodes, Patch-Up & Sharpen boons, no-refill change, endless post-game.
+
+---
+
+## 56. STABILITY FIRE METER — BUILT (June 27, 2026)
+
+> **→ Evolved June 28, 2026: now animated with per-flame art and integrated into the live layout editor. §56 is the original simple version; see §57 for the current state.**
+
+> First piece of the §55 pivot to ship. **FIVE fire pieces under the cauldron.** Built simple
+> and asset-swappable so the user can draw the flame art and play with it immediately.
+> (Per §0: all four files were delivered as COMPLETE files, not snippets.)
+
+### 56.1 Files touched
+- **NEW `PotionShopFireMeterView.swift`** — self-contained row of fire pieces. Asset-driven, with an SF-Symbol fallback so it's visible before the art exists. Tunable `pieceSize` / `spacing`.
+- **`PotionShopModels.swift`** — added `PotionShopConfig.maxFire = 5`.
+- **`PotionShopGameState.swift`** — added `var fire`, the per-slot reset, and the burn/refill logic.
+- **`PotionShopCauldronView.swift`** — renders the meter under the bowl (its own layer in the cauldron ZStack, positioned at `bowlCenterX`, `bowlOriginY + bowlH + 12`).
+
+### 56.2 Behavior (current, intentionally simple)
+- Meter = 5 pieces; **refills to full at the start of every time-slot** (set in `spawnCustomers`).
+- In `doBrew` (right after `initialDelay`): **detect a stability die FIRST.**
+  - If a stability die is placed this turn → `fire = maxFire` (meter goes/stays full, **no flame goes out, no dip**).
+  - Otherwise → `fire -= 1` (one flame goes out).
+- Net: a stability die both **spares the burn and tops the meter to full**, with no jarring "goes out then comes back" double-move. (Earlier iterations burned-then-refilled, which at the cap produced only a useless one-icon flicker — fixed by checking for the stability die before touching the meter.)
+
+### 56.3 Assets to draw
+Add `fire_lit` and `fire_spent` to `Assets.xcassets`. Until they exist, the view falls back to SF Symbols (orange `flame.fill` lit / grey `flame` spent) so it's testable now; the art swaps in automatically with no code change.
+
+### 56.4 NOT wired yet (next steps, in priority)
+- **"At 0 fire, the next brew's output is halved"** (BREW-order step 1) — NOT implemented. This is the natural next pass and touches the brew math.
+- **"Last flame flashes red" telegraph** before the meter empties — NOT implemented.
+- **Big brew burns 2** — NOT implemented (always burns 1 right now).
+- **Stability die still also adds half-potency damage** (the old §6.4 placeholder behavior) on top of refilling — decide later whether Stability becomes a pure fire-refill die.
+- **Refill model:** currently refills to FULL on any stability die. A comment in `PotionShopGameState.swift` shows the one-line swap to value-based (`fire = min(maxFire, fire + value)`) if more resource-y strategy is wanted later.
+
+### 56.5 Where to tune
+- Piece count: `PotionShopConfig.maxFire`.
+- Piece size / gap: `pieceSize` / `spacing` in `PotionShopFireMeterView.swift`.
+- Position under the bowl: the `x:` and `+ 12` in the fire-meter block in `PotionShopCauldronView.swift`.
+
+---
+
+## 57. FIRE METER — ANIMATION, PER-FLAME ART & LAYOUT-EDITOR INTEGRATION (June 28, 2026)
+
+> Builds directly on §56. The meter is now animated, each flame can have its
+> own art, and all its position/size/speed values live in the normal layout
+> editor instead of a side system. Behavior was also corrected so a stability
+> die reads clearly.
+
+### 57.1 What changed since §56
+- **Behavior fix (stability reads clearly):** the brew now checks for a stability die FIRST. If one is placed, the meter stays/refills to FULL and **no flame goes out**; otherwise the brew burns one. This killed the earlier "flame flickers but nothing changes" confusion (a small value-refill was being cancelled by the same-turn burn at the cap).
+- **Animation:** each flame loops an idle set of frames while lit; when burned it plays a smoke set ONCE and then goes empty (the user's chosen "empty after smoke").
+- **Per-flame art:** each of the 5 flames can have its own images; falls back to a shared set, then to a placeholder flame icon if no art exists yet.
+- **Editor integration:** flame values moved into `PotionShopLayoutConfig` and now appear as a **🔥 Fire tab** in the live layout-editor overlay, ride the debug menu's **Copy Layout Values**, and reset with **Restore Locked Defaults**.
+- **Layering:** the meter now renders at `zIndex 4` in the cauldron stack — ABOVE the nodes (2) and BREW button (3).
+- **Tuned defaults baked in:** `fireMeterSize ≈ 49.99`, `fireMeterSpacing ≈ 66.75` (from a live-tuning pass).
+
+### 57.2 Files (current fire-meter set)
+- **`PotionShopFireMeterView.swift`** — holds `PotionShopFlameAssets` (asset resolver), `PotionShopFireMeterView` (the row), and `PotionShopFlameView` (one animated flame). Reads values from `PotionShopLayoutConfig.shared`. The positioning math is split into small typed locals (see 57.7).
+- **`PotionShopLayoutConfig.swift`** — now owns the flame values: `fireMeterSize`, `fireMeterSpacing`, `fireMeterOffsetX/Y`, `fireMeterFPS`, and arrays `fireFlameOffsetsX/Y` + `fireFlameScales`, plus helpers `fireOffsetXAt / fireOffsetYAt / fireScaleAt / fireDefaultRowX(_:shown:) / ensureFireArrays() / resetFireMeter()`. `restoreLockedDefaults()` calls `resetFireMeter()`.
+- **`PotionShopGameView.swift`** — the live overlay. `LayoutSection` enum gained `case fire = "🔥 Fire"`; `.fire` added to `primarySections`; a `case .fire:` block in `sectionContent(for:)` builds the sliders (overall + per-flame, via the existing `sliderRow`).
+- **`PotionShopDebugMenu.swift`** — has a secondary **🔥 Fire Meter** button + sheet (`PotionShopFireMeterDebugView`) and appends a "🔥 STABILITY FIRE METER" block to `generateLayoutValuesText()` (so flame values are in the copy/export and the changed-only diff).
+- **`PotionShopFireMeterDebugView.swift`** — the sheet panel (sliders bound to `PotionShopLayoutConfig.shared`; "Reset flames" → `resetFireMeter()`). A convenience door to the same values as the Fire tab.
+- **`PotionShopCauldronView.swift`** — renders `PotionShopFireMeterView(current: gs.fire, maxPieces: PotionShopConfig.maxFire)` at `zIndex 4`.
+- **`PotionShopGameState.swift` / `PotionShopModels.swift`** — unchanged from §56 (the `fire` state, per-slot reset, and detect-stability-first burn live in GameState; `maxFire` in Models).
+- **`PotionShopFireMeterConfig.swift`** — **now intentionally EMPTY** (just a comment + `import SwiftUI`). Its old contents merged into LayoutConfig/View; it was emptied rather than deleted to avoid the "delete file" step and a duplicate-symbol error.
+
+### 57.3 Art naming (Assets.xcassets, transparent PNGs)
+- Per flame N (1–5): idle `flameN_lit1`, `flameN_lit2`, `flameN_lit3`; smoke `flameN_out1`, `flameN_out2`, `flameN_out3`.
+- Shared alternative (one set for all): `flame_lit1/2/3` + `flame_out1/2/3`.
+- **Count-agnostic & frame-agnostic:** the resolver probes `…1, …2, …` and uses however many frames exist (1 = static, 3 = looped). Number of flames follows `PotionShopConfig.maxFire` (set it to 3 for a 3-flame meter). Until art exists, a placeholder flame icon shows so positioning works now.
+
+### 57.4 How to tune (the normal layout workflow)
+Open the live overlay → **🔥 Fire** tab. Overall: Size, Spacing, Row X/Y, Speed. Then a block per flame: X, Y, Size. Drag → updates live. To persist: **Copy Layout Values** (or Copy Changed Only) in the debug menu, paste back to Claude, Claude updates the defaults in `PotionShopLayoutConfig` (exactly how 57.1's size/spacing were baked).
+
+### 57.5 STILL NOT wired (next steps, unchanged from §56.4)
+- "At 0 fire, next brew output halved" (BREW-order step 1).
+- "Last flame flashes red" telegraph; big brew burns 2.
+- Whether Stability also stops adding half-potency damage (old §6.4 placeholder).
+- Flames as DRAG-on-screen handles in the overlay (like nodes/characters) instead of sliders — offered, not yet built.
+
+### 57.6 Debugging lessons (carry forward)
+- **"The compiler is unable to type-check this expression in reasonable time"** → almost always one long calculation inside a view body. Fix: split it into small named `let`s (done for the flame offset math).
+- **"Invalid redeclaration of X"** → the same type is defined in two files. Here `PotionShopFlameAssets` existed in both the old config and the new view; fixed by emptying the old file. For a non-coder, REPLACING a file with an empty version is safer than deleting it.
+- **A new editor tab/button won't appear until the app BUILDS CLEAN and runs** — a failing build keeps the previous working app on screen, which looks like "my change did nothing."
+
+---
+
+## 58. EDNAR POSE SYSTEM (June 28, 2026) — BUILT
+
+> Ednar's portrait now swaps art based on what's happening in the brew, plus a
+> low-composure variant. Replaces the old expression names
+> (calm/concerned/focused/alarmed), which are GONE.
+
+### 58.1 Pose → art mapping
+- **Idle (resting):** `ps_ednar_idle`, or `ps_ednar_idle_50` when composure is LOW.
+- **Brewing (potion thrown at a customer):** `ps_ednar_brew_50` if LOW, else a coin-flip between `ps_ednar_brew` and `ps_ednar_brew2` (re-rolled each brew).
+- **Heal lands on Ednar:** `ps_ednar_heal`.
+- **Customers attacking Ednar:** `ps_ednar_defend`.
+- **"LOW" = at or below HALF of max composure** (`gs.composure <= PotionShopConfig.maxComposure / 2`). maxComposure is 30, so LOW = ≤15 today. Written as "half of max" on purpose: if maxComposure is ever raised to 100, LOW automatically becomes ≤50 (matching the user's original "50 or lower" phrasing). The literal-50 reading was impossible since max is 30.
+
+### 58.2 How it's driven
+- New top-level `enum PotionShopEdnarPose { case idle, brew, heal, defend }` + `var ednarPose: PotionShopEdnarPose = .idle` on `PotionShopGameState`.
+- `doBrew` sets it at each phase: heal block → `.heal`; brew-damage → `.brew`; `customerAttackingIds.insert(...)` (active + waiters) → `.defend`. A `defer { ednarPose = .idle }` resets it when the brew finishes (covers early returns too).
+- Net: ONE brew visibly sequences **heal → brew → defend → idle** as its phases play (the awaits between phases let each pose render).
+- View (`PotionShopCustomerSceneView`): `expressionAssetName` is now a `switch gs.ednarPose` (+ the LOW check). The random brew variant is chosen once via `.onChange(of: gs.ednarPose)` storing `brewPoseVariant`. The emoji fallback switch was updated to match.
+
+### 58.3 Files
+`PotionShopGameState.swift` (enum + `ednarPose` + the four pose-sets in `doBrew`), `PotionShopCustomerSceneView.swift` (mapping + random brew pick + emoji fallback).
+
+### 58.4 Assets needed (Assets.xcassets, exact names)
+`ps_ednar_idle`, `ps_ednar_idle_50`, `ps_ednar_brew`, `ps_ednar_brew2`, `ps_ednar_brew_50`, `ps_ednar_heal`, `ps_ednar_defend`.
+
+---
+
+## 59. FIRE METER — ART PIPELINE, ASSET LOADING & FINAL TUNED VALUES (June 28, 2026)
+
+### 59.1 Art naming + source spec
+- Per flame N (1–5): idle `flameN_lit1/2/3`, smoke `flameN_out1/2/3`. Shared fallback: `flame_lit1/2/3` + `flame_out1/2/3`.
+- **Source size:** ~256–300 px **square**, transparent background, the flame **centered and filling most of the frame**, every frame the SAME canvas size, and a flame's frames aligned to each other so the loop doesn't jump.
+
+### 59.2 Asset loading (important)
+- Images must live in **`Assets.xcassets`** — `UIImage(named:)` is only reliable there. Loose PNGs dragged into the project are hit-or-miss.
+- `PotionShopImageLoader.loadImage(named:)` was upgraded with a fallback: try the catalog, then a loose bundle PNG via `Bundle.main.path(forResource:ofType:"png")`. The catalog is still the reliable path.
+
+### 59.3 LESSON — the first flame art (what went wrong)
+The first `flameN_lit1` set came in as **RGB with a solid BLACK background (no alpha)** and a small flame floating in a different corner of a huge 2326×2000 canvas. Symptom in-game: black squares (or emoji/placeholder icons). Root causes: (a) the export flattened transparency to black; (b) the app scales each image to FIT a small square, so a tiny off-center flame renders tiny and misplaced. **Fix:** export with real transparency; one flame per frame, centered, filling the frame; all frames the same size. (In a pinch Claude can strip black→alpha and crop/center the PNGs — done once already.)
+
+### 59.4 FINAL tuned values (baked into LayoutConfig defaults, June 28, 2026 ~3:29 AM)
+- `fireMeterSize = 90`, `fireMeterSpacing ≈ 77.67`, `fireMeterOffsetY ≈ -19.5` (row nudged up).
+- Per-flame: `fireFlameOffsetsX ≈ [0, 0, 12.8, 13.1, -1.8]`, `fireFlameOffsetsY ≈ [0, 5.0, 0, 0, -9.6]`, `fireFlameScales ≈ [1, 1, 1, 1, 1.13]` (flames 3 & 4 nudged right, flame 5 left/up + scaled up, flame 2 down a hair).
+- `restoreLockedDefaults()` updated to match, so reset returns to this arrangement. Workflow as always: tune in the 🔥 Fire tab → Copy (Changed) Layout Values → paste back → Claude bakes them in.
+
+---
+
+## 60. CANONICAL MODEL — FIRST SLICE BUILT: FOCUS · WEAK-BREW · HP BUCKETING (June 28, 2026)
+
+> First real step toward the §55 model, built overnight from a locked-in
+> request. Three contained features; the big campaign spine (calendar, generator,
+> bosses, save/continue) is still NOT built.
+>
+> **Decisions locked this session:** the **tutorial** will be a SEPARATE pre-Day-1
+> layer (build later) — **never amend Day 1 with tutorial content**. **Mirror** die
+> deferred. **Focus** grows later via boons/relics (and maybe a die-power).
+
+### 60.1 Focus — now a real stat (BUILT)
+- Was a frozen constant (`PotionShopConfig.maxPlacementsPerBrew = 3`). Now a live `var focus: Int` on `PotionShopGameState`, initialised to that constant (still 3 to start).
+- Every placement gate and the header "Focus pips" now read `gs.focus` (GameState gates ×3, `PotionShopCauldronView` `atCap` ×3, `PotionShopHeaderView` remaining-count + pip `ForEach`).
+- The old `maxPlacementsPerBrew` constant is kept ONLY as Focus's starting value.
+- **Debug:** a `🎯 Focus` stepper (1–10) added to the debug menu's Combat section, so you can test raising it before boons exist.
+- Growth via boons/relics = the next Focus step (not wired yet).
+
+### 60.2 Stability — weak-brew halving (BUILT)
+- The fire logic in `doBrew` was reordered to match the §55 BREW order: **refill → check → … → burn at the END** (previously it burned up-front).
+- **Rule:** if the meter is EMPTY going into a brew **and** no stability die was placed (so it wasn't restabilised), the potion is WEAK — its **potency (damage) is halved** (`effDamage = preview.damage / 2`, integer floor; a 1-damage brew whiffs to 0). Heals and shields are **unchanged** for now (judgment call; easy to extend).
+- The flame still burns one at the end unless a stability die was placed (which tops it to full and spares the burn) — same feel as before, just correctly ordered so the "empty → weak" check is meaningful.
+- **Still NOT done:** the "last flame flashes red" telegraph; big-brew-burns-2.
+
+### 60.3 HP bucketing — Days 1–7 (BUILT)
+- New in `PotionShopConfig`: `hpGrowthPerDay = 1.07`, `hpBucketStep = 2`, `hpDayMultiplier(forDay:)` = `pow(1.07, day-1)` clamped to days 1–7, and `bucketedHP(_:)` (snap to nearest 2).
+- Applied in `spawnCustomers`: each customer's base HP is scaled by the day multiplier and bucketed → `hp`/`maxHp`. **Day 1 multiplier is exactly ×1.0, so Day 1 is unchanged.** Days 2–7 climb ~7%/day.
+- **Reuses existing customers** (repeats are fine for now, per the request) — this is NOT the full random budget+split generator yet; it's the day-scaling/bucketing layer.
+- **Reachability note:** it's keyed on `dayNumber`, so it scales whatever days exist. The game currently reaches ~Day 3; Days 4–7 scaling is latent until the campaign loop (the spine) is built.
+
+### 60.4 Files touched
+`PotionShopGameState.swift` (focus var + gates, fire reorder + weakBrew/effDamage + end-burn, HP scaling in spawn), `PotionShopModels.swift` (HP-bucket config), `PotionShopCauldronView.swift` + `PotionShopHeaderView.swift` (focus gates/pips), `PotionShopDebugMenu.swift` (focus stepper).
+
+### 60.5 To verify in-app
+- Focus: raise it with the debug stepper → you can place more dice; header pips update.
+- Weak-brew: burn the fire meter to empty (brew a few times without a stability die), then brew → the potion hit is halved. Place a stability die → full strength again.
+- HP bucketing: use "Skip to Day" in the debug menu — later days' customers should have larger orders (Day 1 identical to before).
+
+---
+
+## 61. BUILD PLAN — HOOK UP ALL 30 DAYS (THE CAMPAIGN SPINE) (June 28, 2026) — PLAN, NOT BUILT
+
+> An ordered, concrete checklist to go from the current 3 authored days to the
+> full 30-day finite campaign of §55 — driven by VALUES instead of hand-authoring
+> each day. **None of this is built yet.** Build in the order below; each step is
+> testable on its own and should be delivered as whole files (the owner doesn't code).
+
+### 61.1 Why it's only 3 days today
+Not an engine cap — just the edge of hand-authored CONTENT. `PotionShopData` defines `day1` + `day2` (curated `PotionShopDay`) and `day3` (`PotionShopFlexDay`, RNG from a pool). `PotionShopData.nextDayId(after:)` walks a small `allDays` list and returns nil past the end. `advanceDay()` advances `dayId`, resets the round, regenerates flex rounds, and (today) refills composure. `PotionShopConfig.roundsPerDay = 4` (morning/afternoon/evening/night). The difficulty BRAIN already exists: customer HP scales by `dayNumber` via `PotionShopConfig.hpDayMultiplier` (§60), currently clamped to day 7.
+
+### 61.2 The principle
+One curve + a few dials → 30 days fall out. After the spine exists you tune the whole game from VALUES (growth rate, boss multipliers, bucket sizes, patience) — not by writing each day. The workbook (`POTION_CAULDRON_WORKBOOK_30DAY.xlsx`) is the intended source for those values.
+
+### 61.3 Build order (each step its own testable hand-off)
+
+**Step 1 — 30-day calendar definition (mostly data).** Replace the tiny day registry with a 30-entry calendar. Each entry knows: day number, kind (`normal` / `boss` / `finale`), and that its slots are generated. Boss = the NIGHT of Days 7/14/21/28; finale = Day 30. Keep `day1` (and maybe `day2`) authored if desired (see 61.4); everything else generated. Touches: `PotionShopData` (the calendar), possibly a small `PotionShopCalendar` type. **Test:** `nextDayId` returns day_1…day_30 in order.
+
+**Step 2 — progression to 30 + run end.** `advanceDay()` / `nextDayId` walk to Day 30, then fire a new run-complete state (extend `PotionShopPhase`, e.g. `.runWon`) instead of looping. Decide the composure-refill question here (§55 = NO auto refills → likely remove `composureRestBetweenRounds/Days`). Touches: `PotionShopGameState`, `PotionShopModels` (phase), a simple win screen. **Test:** play/skip through 30 days → win screen; losing still works as now.
+
+**Step 3 — populate every day from the generator.** Point each generated day's 4 slots at the existing flex-style spawner, with the §60 HP bucketing feeding ALL 30 days. Widen the `min(7, day)` clamp in `hpDayMultiplier` to 30. Reuse customers (repeats fine for v1). Touches: `PotionShopGameState` (spawn path), `PotionShopConfig` (clamp). **Test:** later days visibly have bigger orders; Day 1 unchanged.
+
+**Step 4 — save / continue (the one genuinely new subsystem).** Persist the run so closing the app resumes mid-campaign: `dayId`, `roundIndex`, `composure`, `shield`, `focus`, `fire`, and the run deck/boons (`PotionShopRunState` already carries the persistent run). Save on day/slot boundaries; load on launch; "New Run" clears it (extend `resetGame()`). Mechanism: Codable snapshot → `UserDefaults` (confirm with owner). Touches: `PotionShopGameState`, a small save type. **Test:** quit mid-run, reopen, resume the same day.
+
+**Step 5 — bosses + Enrage + finale (content on top of the spine).** Boss nights (7/14/21/28) = a single tougher "closing customer" with Enrage (escalating pressure); Day 30 = finale. The calendar already flags these from Step 1; this step gives them teeth. Touches: spawn (boss customer), brew/turn loop (Enrage). **Test:** Day 7 night is a distinct, harder fight.
+
+**Step 6 — end-of-run polish / Endless (lowest priority).** Win screen on Day 30 clear; optional Endless post-game (flat scaling past Day 30).
+
+### 61.4 Decisions to LOCK before building
+- **Save/continue mechanism** — UserDefaults Codable snapshot is the simple default; and granularity (per day vs per slot).
+- **Day 1 / Day 2:** stay hand-authored as the opening, or also generated? (The tutorial is a SEPARATE pre-Day-1 layer — never merged into Day 1.)
+- **Composure between days:** remove auto-refills entirely (per §55, recovery = heal dice + the Patch-Up boon), or keep a small refill until Patch-Up exists?
+- **Generator depth for v1:** keep reusing existing customers (current bucketing), or add the budget + 20%-split random allocation now?
+- **Enrage:** what it actually does mechanically (scope for Step 5).
+
+### 61.5 Sequencing / risk
+Steps 1–3 are the spine and unlock "tune from values" — do them first, in order. Step 4 (save) is isolated; slot it in after 3. Step 5 (bosses) is content on top. **Biggest risk:** breaking the currently-playable early days while the registry/progression changes — build the generated path alongside the existing `day1`/`day2` so they keep working until the new path is proven, then switch over.
+
+---
+
+## 62. CAMPAIGN SPINE — BUILT (June 28, 2026)
+
+> §61 Steps 1–3 are now **BUILT and delivered** (whole files). The game is a real, playable, finite 30-day campaign where **every day is generated**. Save (Step 4) and the tutorial are delivered as **Claude Code prompts**, not code (see end). Bosses/Enrage (Step 5) and Endless (Step 6) remain follow-ons.
+
+### 62.1 The two key corrections
+**(a) Don't downgrade dice.** "Make every day a flex day" would have regressed the dice: the modern 3D reel-spin + §32 unified roll was gated to `day_1`/`day_2`, and flex days used the OLD dice. So the build routes ALL 30 days through the Day-1 modern `PotionShopDay` path; flex is retired.
+
+**(b) ⭐️ STAGE LIKE DAY 1 (the visual fix — June 28, after a bad first pass).** The first generator made customers render on a flat floor plane because it (i) omitted `useFeetAnchor: true` on its rounds and (ii) drew arbitrary characters. Day 1 looks correct because **every authored Day 1/2 round sets `useFeetAnchor: true`**, which routes customers through the bucket-based floor system that sizes/places any *bucketed* character correctly. Fix: the generator now sets `useFeetAnchor: true` on **every** round and draws only from `campaignCast` — the 15 finished `gmarker_` customers that have height/width buckets. Day 1 is the visual source of truth; every generated day inherits its floor.
+
+### 62.2 What changed, by file (all delivered to outputs)
+- **`PotionShopModels.swift`** — (a) `PotionShopPhase` gains `.runWon` (campaign victory). (b) **Composure auto-refill removed:** `composureRestBetweenRounds` and `composureRestBetweenDays` set to **0** (kept as labeled live dials — raise to re-enable). (c) HP day-curve clamp widened from `min(7,…)` to `min(30,…)`; `hpGrowthPerDay` (1.07) is called out as the master difficulty dial.
+- **`PotionShopData.swift`** — the 30-day campaign machinery. `campaignLength = 30`, `dayNumber/dayId`, `isBossDay` (7/14/21/28), `isFinaleDay` (30). **`campaignCast`** = the 15 finished `gmarker_` customers (the only ones the generator uses; they have floor buckets). `generatedDay(_ n:)` builds a deterministic 4-round `PotionShopDay` (seeded by day number via `PotionShopSeededRNG`) — **3/3/3/1 counts, and `useFeetAnchor: true` on EVERY round** so customers stage on Day 1's floor. Difficulty rises via `difficultyWindow` (tougher cast members enter later) + the HP curve, never crowd size. **Boss nights:** the lone night closer is a labeled gmarker STAND-IN (`weeklyBossStandIns` / `finaleBossStandIn`) until the real bosses (carmilla/grimdrek/royal_envoy) are drawn + bucketed. A big **"HOW TO ADD A NEW CUSTOMER"** comment block at the bottom of the file documents the 4 steps (art → roster → bucket → add to `campaignCast`). Resolvers rewritten numeric (`day`/`nextDayId`/`isLastDay`/`allDays`); flex retired (`allFlexDays = []`).
+- **`PotionShopGameState.swift`** — `currentRoundUses3DDice` and `usesUnifiedDiceRoll` now true for ALL campaign days (was day_1/day_2 only). `advanceRound()`: final day's last round → `.runWon`. `advanceDay()`: no next day → `.runWon` (safety net, no replay). `phaseLabel` gains `.runWon`.
+- **`PotionShopGameView.swift`** — `.runWon` victory overlay ("You Made It! 🧪 … New Run" → `resetGame()`); day-won subtitle shows "Day N of 30".
+- **`PotionShopDebugMenu.swift`** — `phaseLabel` gains `.runWon`. The "Skip to Day & Round" jumper now lists all 30 days (via computed `allDays`). The `reshuffleFlexDay` button is now inert (flex retired) — harmless.
+
+Determinism note: `generatedDay` is seeded by day number, so a day always rebuilds the same lineup (no respawn flicker; save-friendly). Run-to-run variety can be added later by folding a per-run seed into the generator — and that seed is what the save system should own.
+
+### 62.3 In-app TEST CHECKLIST (owner)
+Replace the 5 files in Xcode, **Clean Build Folder (Shift-Cmd-K)**, run. Verify: progression Day 1→30 (debug jumper shows 30 days); `.runWon` victory screen after Day 30's night; bosses on nights 7/14/21/28 and royal_envoy on Day 30; Day 1 still uses the modern 3D dice (and now so does every later day); composure no longer auto-refills between rounds/days.
+
+### 62.4 ⚠️ Honest balance warning
+At ×1.07/day, **Day 30 ≈ 7× Day 1 HP**, and with composure auto-refill removed, late days are **brutal** until the player-power side (Focus growth, boons, relics) exists. This is expected for a first spine. Two one-line dials soften it immediately: lower `hpGrowthPerDay` (e.g. 1.04) and/or raise the two `composureRestBetween…` constants above 0. Tune from the workbook.
+
+### 62.5 Save + tutorial = Claude Code prompts (delivered)
+- **`TASK_Cross_Game_Save_System.md`** — generalizes the owner's `SaveManager` to generic key-based (one JSON file per game: match3/shop/potionshop/tavern); each game owns its own Codable snapshot. Includes the **exact PotionShop snapshot spec** (dayId, roundIndex, composure, shield, focus, fire, potionsBrewed + run deck/boons; regenerate customers/queue/bag; save at round/day boundaries + on background; delete on `.lost`/`.runWon` and in `resetGame()`; Continue in `GameSelectorView`). Cross-game wiring needs the other games' live files → Claude Code.
+- **`TASK_PotionShop_Tutorial_Overlay.md`** — the owner's tutorial spec **retargeted** from the legacy `Cauldron*` names to the real `PotionShop*` files. New `PotionShopTutorialOverlay.swift` + `PotionShopTutorialState`, boot gate on `ps_hasSeenTutorial` in `PotionShopGameView.onAppear`, Replay button in `PotionShopDebugMenu`, 4-step MIX-MODE, skippable, scripted setup (Day 1 is now deterministic so the patron is stable). Layer on top — real game untouched.
+
+### 62.6 Deferred (next layers)
+Boss **Enrage** mechanic (not locked — bosses are currently just tougher tier-5 night closers + the HP curve); Mirror die; Focus growth via boons/relics; "last flame flashes red" telegraph; big-brew-burns-2; extend weak-brew halving to heals/shields; Endless post-Day-30. Cleanup (optional, harmless): remove the orphaned `day1`/`day2`/`day3` constants and the inert `reshuffleFlexDay` button.
+
+---
 
 ---
 

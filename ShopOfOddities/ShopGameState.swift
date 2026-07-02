@@ -59,6 +59,7 @@ class ShopGameState {
     
     /// Start a new game session
     func startNewGame() {
+        ShopOfOdditiesSave.deleteSave()
         print("🏪 Starting new Shop of Oddities game...")
         
         // Generate and shuffle all 4 decks (13 cards each)
@@ -260,7 +261,7 @@ class ShopGameState {
             } else {
                 gameOverReason = "Negative repair score: \(result.totalScore)"
             }
-            
+            ShopOfOdditiesSave.deleteSave()
             print("   ❌ FAILURE! Game Over. Reason: \(gameOverReason ?? "Unknown")")
         }
     }
@@ -297,7 +298,7 @@ class ShopGameState {
             gameOver = true
             gameWon = true
             gameOverReason = "All customers served!"
-            
+            ShopOfOdditiesSave.deleteSave()
             print("   🎉 ALL CUSTOMERS SERVED! Game Won!")
         }
     }

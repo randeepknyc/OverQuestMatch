@@ -13,7 +13,11 @@ struct Match3ContentView: View {
     @State private var showPauseMenu = false
     @State private var currentGameMode: GameMode = .swap
     @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// When true, restores from a saved battle on appear.
+    var continueFromSave: Bool = false
+
     var body: some View {
         GameScreen(
             viewModel: viewModel,
@@ -28,6 +32,16 @@ struct Match3ContentView: View {
             // ✨ Wire up haptics to ViewModel and BattleManager
             viewModel.hapticManager = hapticManager
             viewModel.battleManager.hapticManager = hapticManager
+            // ── Restore from save if continuing ──────────────────
+            if continueFromSave, let save = Match3Save.load() {
+                save.restore(into: viewModel)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background &&
+               viewModel.battleManager.gameState == .playing {
+                Match3Save.save(vm: viewModel)
+            }
         }
     }
 }

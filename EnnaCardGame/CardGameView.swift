@@ -15,7 +15,11 @@ import SwiftUI
 struct CardGameView: View {
     @State private var viewModel = CardGameViewModel()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showDebugMenu: Bool = false
+
+    /// When true, restores from a saved session on appear.
+    var continueFromSave: Bool = false
 
     var body: some View {
         ZStack {
@@ -85,6 +89,16 @@ struct CardGameView: View {
                 onEndGame: { dismiss() },
                 viewModel: viewModel
             )
+        }
+        .onAppear {
+            if continueFromSave, let save = CardGameSave.load() {
+                save.restore(into: viewModel)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background && !viewModel.isGameOver {
+                CardGameSave.save(vm: viewModel)
+            }
         }
     }
 }

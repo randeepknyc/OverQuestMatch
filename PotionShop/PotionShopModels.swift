@@ -79,7 +79,14 @@ struct PotionShopImageLoader {
     /// Attempts to load an image from the asset catalog.
     /// Returns the image if found, nil otherwise.
     static func loadImage(named name: String) -> UIImage? {
-        return UIImage(named: name)
+        // 1) Asset catalog (Assets.xcassets) — the reliable path.
+        if let img = UIImage(named: name) { return img }
+        // 2) Fallback: a loose PNG added to the app target but not in a catalog.
+        if let path = Bundle.main.path(forResource: name, ofType: "png"),
+           let img = UIImage(contentsOfFile: path) {
+            return img
+        }
+        return nil
     }
 
     /// Returns either a downsampled UIImage (if enabled) or the full asset.
@@ -148,6 +155,7 @@ enum PotionShopPhase {
     case roundWon      // round complete overlay shown
     case choosingBoon  // JUNE 18: boon menu shown (run system test)
     case dayWon        // day complete overlay shown
+    case runWon        // JUNE 28: finished all 30 days — campaign victory
     case lost          // composure hit 0 — game over
 }
 
@@ -301,14 +309,36 @@ struct PotionShopDay {
 struct PotionShopConfig {
     static let startingComposure = 30
     static let maxComposure = 30
-    /// +N composure between rounds within a day. Set to 0 once the
-    /// game's harder for full-day endurance.
-    static let composureRestBetweenRounds = 5
-    /// +N composure between days (basically, full refill).
-    static let composureRestBetweenDays = 30
+    /// +N composure recovered between rounds within a day.
+    /// JUNE 28, 2026: set to 0 — the canonical model has NO automatic
+    /// composure refills (recovery comes from heal dice / the Patch-Up boon).
+    /// Live dial: raise it (e.g. 5) if the early game proves too punishing.
+    static let composureRestBetweenRounds = 0
+    /// +N composure recovered between days. JUNE 28, 2026: set to 0 (was a
+    /// near-full refill). Raise it to soften day-to-day difficulty if needed.
+    static let composureRestBetweenDays = 0
     static let roundsPerDay = 4
     /// Hand has 5 dice; you can place at most this many before brewing.
     static let maxPlacementsPerBrew = 3
+    /// Stability fire meter: pieces shown under the cauldron. Starts full
+    /// each time-slot, burns 1 per brew, refilled by stability dice.
+    static let maxFire = 5
+
+    // ─── HP bucketing / day scaling ───────────────────────────────────
+    // Order-size (HP) grows ~7%/day across the whole 30-day campaign, snapped
+    // to buckets. Day 1 = ×1.0. NOTE: at ×1.07/day, Day 30 ≈ 7× Day 1 — late
+    // days are brutal until player-power growth (Focus/boons/relics) exists.
+    // `hpGrowthPerDay` is the master dial: lower to ~1.04 for a gentler curve.
+    static let hpGrowthPerDay: Double = 1.07
+    static let hpBucketStep = 2
+    static func hpDayMultiplier(forDay day: Int) -> Double {
+        let d = max(1, min(30, day))   // full 30-day campaign curve
+        return pow(hpGrowthPerDay, Double(d - 1))
+    }
+    static func bucketedHP(_ raw: Int) -> Int {
+        let snapped = Int((Double(raw) / Double(hpBucketStep)).rounded()) * hpBucketStep
+        return max(hpBucketStep, snapped)
+    }
 }
 
 // MARK: - Dice
@@ -316,7 +346,7 @@ struct PotionShopConfig {
 // Five dice types. The face value (1-6) is rolled each turn. Boost
 // dice multiply neighbors; the rest contribute directly.
 
-enum PotionShopDieType: String, CaseIterable, Identifiable {
+enum PotionShopDieType: String, CaseIterable, Identifiable, Codable {
     case potency
     case stability
     case boost
@@ -364,7 +394,7 @@ enum PotionShopDieType: String, CaseIterable, Identifiable {
 
 /// Tier system kept dormant for v1. Every die is created at .basic.
 /// Silver/gold tiers will activate when multi-day progression is built.
-enum PotionShopDieTier: String {
+enum PotionShopDieTier: String, Codable {
     case basic, silver, gold
 
     func rollFace() -> Int {
@@ -437,7 +467,7 @@ struct PotionShopDie: Identifiable, Equatable {
 }
 
 /// A die in the bag (no face value rolled yet).
-struct PotionShopBagDie {
+struct PotionShopBagDie: Codable {
     let id: String
     let type: PotionShopDieType
     let tier: PotionShopDieTier

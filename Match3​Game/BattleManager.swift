@@ -460,6 +460,7 @@ class BattleManager {
         if let pending = pendingGameOver {
             gameState = pending
             pendingGameOver = nil
+            Match3Save.deleteSave()
         }
     }
 }

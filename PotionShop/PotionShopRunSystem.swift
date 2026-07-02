@@ -24,7 +24,7 @@ import SwiftUI
 
 // MARK: - Boon frequency (toggle — see §40.4)
 
-enum PotionShopBoonFrequency {
+enum PotionShopBoonFrequency: String, Codable {
     case everyRound   // boon menu after every round (default for testing)
     case everyDay     // boon menu only when a day is cleared
 }
@@ -71,7 +71,7 @@ struct PotionShopBoon: Identifiable {
 // deck and the boons taken. Resets only on a new run. (Relics list will be
 // added here later — that's why this is its own container.)
 
-struct PotionShopRunState {
+struct PotionShopRunState: Codable {
     /// The persistent deck — the dice the player has accumulated. Built ONCE
     /// at run start (seedStartingDeck) and changed ONLY by boons thereafter.
     var deck: [PotionShopBagDie] = []

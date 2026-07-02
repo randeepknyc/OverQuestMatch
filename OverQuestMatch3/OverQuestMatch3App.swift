@@ -10,9 +10,6 @@ import SwiftUI
 @main
 struct OverQuestMatch3App: App {
     
-    // Cauldron game data loader (Phase 1 - loads JSON at app launch)
-    @StateObject private var cauldronGameData = CauldronGameData()
-    
     @State private var showSplash = GameConfig.enableDeveloperSplash
     @State private var showTitleScreen = false
     @State private var showMapScreen = false
@@ -74,14 +71,11 @@ struct OverQuestMatch3App: App {
 
 enum GameType: CaseIterable {
     case match3
-    case physicsChain
     case shopOfOddities
-    case cooking
     case potionSolitaire
     case mapNavigation
     case ennaCardGame
     case ednarsPotionShop  // ← Ednar's Potion Cauldron (the working game in PotionShop/ folder)
-    // Note: .cauldron case removed - legacy CauldronGame/ folder deprecated (May 13, 2026)
 }
 
 // MARK: - Placeholder View (for unfinished games)

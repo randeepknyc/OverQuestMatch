@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "dh.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -9,7 +10,6 @@
       "scale" : "2x"
     },
     {
-      "filename" : "die_heal.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

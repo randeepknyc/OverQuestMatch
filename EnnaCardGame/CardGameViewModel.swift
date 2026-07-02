@@ -132,6 +132,7 @@ class CardGameViewModel {
             if threshold.isGameOver {
                 isGameOver = true
                 gameOverMessage = threshold.message
+                CardGameSave.deleteSave()
                 return
             }
 
@@ -182,6 +183,7 @@ class CardGameViewModel {
     // RESTART
     // ============================================================
     func restart() {
+        CardGameSave.deleteSave()
         resetMeters()
         currentAct = 1
         cardsPlayedCount = 0

@@ -893,6 +893,8 @@ class GameViewModel {
     }
     
     func resetGame() {
+        // Delete any existing save — this is a fresh game
+        Match3Save.deleteSave()
         // ✅ FIX: Clear selection state FIRST (prevents phantom selection box)
         selectedPosition = nil
         isSelectingGemToClear = false

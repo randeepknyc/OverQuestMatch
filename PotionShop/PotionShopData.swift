@@ -1143,79 +1143,190 @@ enum PotionShopData {
         randomRoundSizes: [3, 3, 2]
     )
 
-    // MARK: ─── ALL DAYS ─────────────────────────────────────────────
+    // MARK: ─── 30-DAY CAMPAIGN (June 28, 2026 — rebuilt) ────────────
     //
-    // Day 1 and Day 2 use the legacy 4-round PotionShopDay. Day 3 uses
-    // the flexible PotionShopFlexDay. They live in different lists.
+    // Finite 30-day run. EVERY day is generated as a 4-round PotionShopDay
+    // (morning/afternoon/evening = 3 patrons, night = 1 closer). The crowd
+    // shape is fixed; difficulty rises only through the HP curve + a rising
+    // difficulty window (owner decision).
+    //
+    // ⭐️ VISUAL SOURCE OF TRUTH = DAY 1. Every generated round sets
+    // `useFeetAnchor: true` (exactly like the authored Day 1/2 rounds) so
+    // customers stage on Day 1's floor plane via the bucket system, instead of
+    // the flat default. The cast is restricted to the `campaignCast` below —
+    // the customers that have been drawn AND given height/width buckets in
+    // PotionShopLayoutConfig. See "HOW TO ADD A NEW CUSTOMER" at the bottom.
 
-    static let allDays: [PotionShopDay] = [day1, day2]
-    static let allFlexDays: [PotionShopFlexDay] = [day3]
+    static let campaignLength = 30
 
-    /// Returns true if the given day id refers to a flex day (Day 3+).
-    static func isFlexDay(_ id: String) -> Bool {
-        allFlexDays.contains { $0.id == id }
+    /// ⭐️ THE CAMPAIGN CAST — the only customers the generator uses.
+    /// These are the finished `gmarker_` customers that have height/width
+    /// buckets (so feet-anchor sizes them correctly on Day 1's floor).
+    /// ➕ TO ADD A NEW CUSTOMER: draw it, add it to `characters`, give it a
+    /// bucket via `applyGuideCharacter(...)` in PotionShopLayoutConfig, then
+    /// add its id to THIS list. That's all — it then appears automatically.
+    static let campaignCast: [String] = [
+        "gmarker_octo", "gmarker_girl", "gmarker_skull", "gmarker_slug",
+        "gmarker_fishguy", "gmarker_bull", "gmarker_frog", "gmarker_fox",
+        "gmarker_traveler", "gmarker_demon", "gmarker_bird", "gmarker_dino",
+        "gmarker_goatguy", "gmarker_oldlady", "gmarker_puck"
+    ]
+
+    /// Boss-night closers. These are STAND-INS (tough cast members) until the
+    /// real bosses (carmilla / grimdrek / royal_envoy) are drawn + bucketed.
+    /// 🔁 When those are ready, add them to campaignCast and swap them in here.
+    static let weeklyBossStandIns = ["gmarker_bull", "gmarker_skull", "gmarker_fox"]
+    static let finaleBossStandIn  = "gmarker_fishguy"   // biggest order in the cast
+
+    /// Parse "day_7" → 7. Returns nil for malformed ids.
+    static func dayNumber(fromId id: String) -> Int? {
+        Int(id.replacingOccurrences(of: "day_", with: ""))
     }
+    static func dayId(forNumber n: Int) -> String { "day_\(n)" }
+    static func isBossDay(_ n: Int) -> Bool { [7, 14, 21, 28].contains(n) }
+    static func isFinaleDay(_ n: Int) -> Bool { n == campaignLength }
 
-    /// Look up a flex day by id (e.g. "day_3"). Returns nil if not found.
-    static func flexDay(_ id: String) -> PotionShopFlexDay? {
-        allFlexDays.first { $0.id == id }
-    }
-
-    /// Total round count for a given day id (handles both legacy + flex days).
-    static func roundCount(forDayId id: String) -> Int {
-        if let day = day(id) {
-            return day.allRounds.count
+    /// Difficulty window allowed on a given day (ramps across the campaign).
+    /// Tougher cast members (higher base HP) enter on later days.
+    private static func difficultyWindow(forDay n: Int) -> ClosedRange<Int> {
+        switch n {
+        case ...7:    return 2...2
+        case 8...14:  return 2...3
+        case 15...21: return 2...3
+        default:      return 2...4
         }
-        if let flex = flexDay(id) {
-            return flex.totalRoundCount
-        }
-        return 4  // safe fallback
     }
+
+    /// Cast members eligible on a given day (within the difficulty window).
+    /// Always non-empty (falls back to the whole cast if a window is too tight).
+    private static func pool(difficulty window: ClosedRange<Int>) -> [String] {
+        let eligible = campaignCast.filter {
+            if let d = characters[$0]?.difficulty { return window.contains(d) }
+            return false
+        }
+        return eligible.count >= 3 ? eligible.sorted() : campaignCast.sorted()
+    }
+
+    /// Generate the full 4-round day. DETERMINISTIC (seeded by day number) so a
+    /// day always rebuilds the same lineup — no respawn flicker, save-friendly.
+    /// ⭐️ Every round sets useFeetAnchor: true so customers stage exactly like
+    /// the authored Day 1 (the visual source of truth).
+    static func generatedDay(_ n: Int) -> PotionShopDay {
+        var rng = PotionShopSeededRNG(seed: UInt64(max(1, n)) &* 2654435761)
+        let window = difficultyWindow(forDay: n)
+
+        func makeRound(_ idx: Int, _ tod: PotionShopTimeOfDay) -> PotionShopRound {
+            var ids: [String] = []
+
+            // Night (idx 3): a SINGLE closer. On boss/finale nights it's the
+            // boss stand-in; otherwise one cast member.
+            if idx == 3 {
+                if isFinaleDay(n) {
+                    ids = [finaleBossStandIn]
+                } else if isBossDay(n) {
+                    ids = [weeklyBossStandIns[((n / 7) - 1) % weeklyBossStandIns.count]]
+                } else {
+                    var cand = pool(difficulty: window).shuffled(using: &rng)
+                    ids = [cand.first ?? campaignCast[0]]
+                }
+                return PotionShopRound(timeOfDay: tod, customerIds: ids, useFeetAnchor: true)
+            }
+
+            // Daytime: 3 cast members, no repeats within the round.
+            var cand = pool(difficulty: window).shuffled(using: &rng)
+            for _ in 0..<3 {
+                if cand.isEmpty { cand = pool(difficulty: window).shuffled(using: &rng) }
+                if let pick = cand.first { ids.append(pick); cand.removeFirst() }
+            }
+            return PotionShopRound(timeOfDay: tod, customerIds: ids, useFeetAnchor: true)
+        }
+
+        return PotionShopDay(
+            id: dayId(forNumber: n),
+            name: "Day \(n)",
+            subtitle: isFinaleDay(n) ? "The Final Night"
+                    : isBossDay(n)   ? "A Dangerous Customer"
+                    : "Brewing",
+            morning:   makeRound(0, .morning),
+            afternoon: makeRound(1, .afternoon),
+            evening:   makeRound(2, .evening),
+            night:     makeRound(3, .night)
+        )
+    }
+
+    // MARK: ─── DAY REGISTRY / RESOLVERS ─────────────────────────────
+
+    /// All 30 generated days — used by the debug "Skip to Day & Round" jumper.
+    static var allDays: [PotionShopDay] {
+        (1...campaignLength).map { generatedDay($0) }
+    }
+    /// Flex days retired in the campaign. Empty so the old flex code paths
+    /// (isFlexDay / flexDay) cleanly resolve to "none".
+    static let allFlexDays: [PotionShopFlexDay] = []
+    static func isFlexDay(_ id: String) -> Bool { false }
+    static func flexDay(_ id: String) -> PotionShopFlexDay? { nil }
+    static func roundCount(forDayId id: String) -> Int { PotionShopConfig.roundsPerDay }
 
     // MARK: ─── LOOKUPS ──────────────────────────────────────────────
 
-    /// Look up a character by id, returning nil if it doesn't exist.
-    static func character(_ id: String) -> PotionShopCharacter? {
-        characters[id]
-    }
+    static func character(_ id: String) -> PotionShopCharacter? { characters[id] }
+    static func trait(_ id: String) -> PotionShopTrait? { traits[id] }
 
-    /// Look up a trait by id, returning nil if it doesn't exist.
-    static func trait(_ id: String) -> PotionShopTrait? {
-        traits[id]
-    }
-
-    /// Get a day by id (e.g. "day_1"). Returns nil if not found.
+    /// Get a day by id. Generates any day in 1...30; nil outside the campaign.
     static func day(_ id: String) -> PotionShopDay? {
-        allDays.first { $0.id == id }
+        guard let n = dayNumber(fromId: id), n >= 1, n <= campaignLength else { return nil }
+        return generatedDay(n)
     }
-
-    /// Returns the id of the day after the given one in allDays, or nil
-    /// if the given day is the last (or unknown).
-    /// Updated May 25, 2026: day_2 chains to day_3 (the flex test day).
+    /// The day after the given one, or nil once Day 30 is finished.
     static func nextDayId(after currentId: String) -> String? {
-        // Legacy day chain: day_1 → day_2
-        if let idx = allDays.firstIndex(where: { $0.id == currentId }) {
-            let nextIdx = idx + 1
-            if nextIdx < allDays.count {
-                return allDays[nextIdx].id
-            }
-            // Last legacy day → first flex day
-            return allFlexDays.first?.id
-        }
-        // Flex day chain
-        if let idx = allFlexDays.firstIndex(where: { $0.id == currentId }) {
-            let nextIdx = idx + 1
-            return nextIdx < allFlexDays.count ? allFlexDays[nextIdx].id : nil
-        }
-        return nil
+        guard let n = dayNumber(fromId: currentId) else { return nil }
+        return n < campaignLength ? dayId(forNumber: n + 1) : nil
+    }
+    /// True if the given day id is the final day (Day 30).
+    static func isLastDay(_ id: String) -> Bool {
+        dayNumber(fromId: id) == campaignLength
     }
 
-    /// True if the given day id is the last day overall (legacy + flex).
-    static func isLastDay(_ id: String) -> Bool {
-        if let lastFlex = allFlexDays.last {
-            return lastFlex.id == id
-        }
-        return allDays.last?.id == id
+    // ═══════════════════════════════════════════════════════════════════
+    // 📋 HOW TO ADD A NEW CUSTOMER TO THE CAMPAIGN ROTATION
+    // ═══════════════════════════════════════════════════════════════════
+    // The generator only uses customers that are visually finished (drawn +
+    // placed on the floor). To bring a newly-drawn customer into the rotation,
+    // do these THREE things, then it appears automatically:
+    //
+    //   1) ADD THE ART: put the customer's image(s) in Assets.xcassets.
+    //
+    //   2) ADD TO THE ROSTER: add a PotionShopCharacter entry to `characters`
+    //      (scroll up to the characters dictionary). Set its id, hp, patience,
+    //      difficulty (2 = normal … 4 = tough), and timeOfDay.
+    //
+    //   3) GIVE IT A FLOOR BUCKET: in PotionShopLayoutConfig, add a line like
+    //         applyGuideCharacter(id: "gmarker_newguy", height: .medium, width: .medium)
+    //      Pick the height/width that matches the art. THIS is what lets the
+    //      customer stand correctly on Day 1's floor (feet-anchor needs it).
+    //
+    //   4) ADD ITS ID to `campaignCast` above.
+    //
+    // To make a real boss (carmilla / grimdrek / royal_envoy) appear: finish
+    // steps 1–3 for it, add it to campaignCast, then swap its id into
+    // `weeklyBossStandIns` / `finaleBossStandIn` above.
+    // ═══════════════════════════════════════════════════════════════════
+}
+
+// MARK: - PotionShopSeededRNG (June 28, 2026)
+//
+// Deterministic SplitMix64 RNG used by the day generator so each day number
+// always yields the same lineup (reproducible; keeps re-entering a round from
+// reshuffling and makes saved runs resume identically).
+struct PotionShopSeededRNG: RandomNumberGenerator {
+    private var state: UInt64
+    init(seed: UInt64) { state = (seed == 0) ? 0x9E3779B97F4A7C15 : seed }
+    mutating func next() -> UInt64 {
+        state = state &+ 0x9E3779B97F4A7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
+        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
+        return z ^ (z >> 31)
     }
 }
 

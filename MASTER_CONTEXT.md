@@ -1,8 +1,8 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** June 12, 2026 (Session 25)  
-> **Project Status:** Active Development - Multi-Game Architecture Complete
+> **Last Updated:** June 28, 2026  
+> **Project Status:** Active Development — current focus is **Ednar's Potion Cauldron** (a dice-roguelite in `PotionShop/`). That game has its own authoritative doc, `CAULDRON_CONTEXT.md`.
 
 ---
 
@@ -15,10 +15,12 @@
 
 ### **Current Games:**
 1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
-2. **Physics Chain Game** - ⚠️ CODE COMPLETE - Debugging tile display issue
-3. **Cooking Game** - 📋 Planned
-4. **Potion Solitaire** - 📋 Planned
-5. **Map Navigation System** - 📋 Planned
+2. **Ednar's Potion Cauldron** - 🔨 ACTIVE DEVELOPMENT (current focus) — a dice-roguelite in `PotionShop/`. Full, authoritative docs: **`CAULDRON_CONTEXT.md`**
+3. **Shop of Oddities** - module present in the project (`ShopOfOddities/`); see `ShopOfOddities_CONTEXT.md`
+4. **Physics Chain Game** - ⚠️ CODE COMPLETE - Debugging tile display issue
+5. **Cooking Game** - 📋 Planned
+6. **Potion Solitaire** - 📋 Planned
+7. **Map Navigation System** - 📋 Planned
 
 ---
 
@@ -27,7 +29,8 @@
 **Root Level:**
 ```
 OverQuestMatch3/ (ROOT)
-├─ OverQuestMatch3App.swift ✨ Main app entry with dev switcher system
+├─ OverQuestMatch3App.swift ✨ Main app entry (dev switcher + GameType enum)
+├─ GameSelectorView.swift ✨ Runtime game selector (routes to each game)
 │
 ├─ Match3Game/ ✅ (All Match-3 specific files)
 │  ├─ Match3ContentView.swift (renamed from ContentView)
@@ -66,6 +69,26 @@ OverQuestMatch3/ (ROOT)
 │  ├─ PhysicsTileType.swift
 │  └─ PhysicsGameConfig.swift
 │
+├─ PotionShop/ 🔨 (Ednar's Potion Cauldron — ACTIVE; authoritative doc: CAULDRON_CONTEXT.md)
+│  ├─ PotionShopModels.swift          (data types + PotionShopConfig + image loader)
+│  ├─ PotionShopData.swift            (customers, traits, day/round content)
+│  ├─ PotionShopGameState.swift       (@Observable engine: queue, dice, brewing, ednarPose)
+│  ├─ PotionShopGameView.swift        (root view + live layout-editor overlay w/ tabs)
+│  ├─ PotionShopHeaderView.swift
+│  ├─ PotionShopCustomerSceneView.swift (Ednar poses + customer line + inspect strip)
+│  ├─ PotionShopCauldronView.swift    (bowl, nodes, BREW, dice tray, fire meter)
+│  ├─ PotionShopDebugMenu.swift
+│  ├─ PotionShopBrewAnimator.swift    (animation timing — single source of truth)
+│  ├─ PotionShopLayoutConfig.swift    (@Observable live-tunable layout values)
+│  ├─ PotionShopRunSystem.swift
+│  ├─ PotionShopEditorKit.swift
+│  ├─ PotionShopFireMeterView.swift / PotionShopFireMeterDebugView.swift
+│  └─ PotionShopFireMeterConfig.swift (now an empty stub — merged into LayoutConfig)
+│   └─ (full current file list lives in CAULDRON_CONTEXT.md §2.1)
+│
+├─ ShopOfOddities/ ✅ (separate game module; see ShopOfOddities_CONTEXT.md)
+├─ CauldronGame/ ⚠️ (LEGACY original Cauldron — NOT wired in; slated for deletion)
+│
 ├─ CookingGame/ ✅ (Empty - ready for development)
 ├─ PotionSolitaireGame/ ✅ (Empty - ready for development)
 ├─ Navigation/ ✅ (Empty - ready for development)
@@ -86,10 +109,13 @@ private let currentGame: GameType = .match3
 
 **Available Game Types:**
 - `.match3` - Match-3 RPG Battle Game (✅ WORKING)
+- `.ednarsPotionShop` - Ednar's Potion Cauldron (🔨 active focus)
 - `.physicsChain` - Physics Chain Game (⚠️ CODE COMPLETE - tiles not rendering)
 - `.cooking` - Cooking Game (coming soon)
 - `.potionSolitaire` - Potion Solitaire Game (coming soon)
 - `.mapNavigation` - Map Navigation System (coming soon)
+
+> **Note (June 28, 2026):** a runtime `GameSelectorView.swift` now also routes between games. Ednar's Potion Cauldron is reached from the selector ("Ednar's Potion Cauldron" → launches straight into Day 1 / Morning). "End Game" in its debug menu returns to the selector.
 
 **How to Switch Games:**
 1. Open `OverQuestMatch3App.swift`
@@ -108,6 +134,7 @@ Each game is built as a completely independent module:
 - ✅ Has its own ViewModel and logic files
 - ✅ Can be tested independently via dev switcher
 - ✅ Uses shared resources from `Shared/` folder
+- ✅ **Prefixes its own types to avoid cross-game name collisions.** The Cauldron prefixes everything `PotionShop` after real build breaks (`Customer` collided with `ShopOfOddities/Customer`; `CauldronBoardView` with `CauldronGame/`). See `CAULDRON_CONTEXT.md` §3.
 
 ### **Shared Resources**
 Common code used by ALL games lives in `Shared/`:
@@ -294,6 +321,7 @@ Each game has its own image sets:
 - ✅ Physics Chain Game code complete
 
 ### **What's In Progress:**
+- 🔨 **Ednar's Potion Cauldron** — active development (dice/brewing core playable; recently: stability fire meter w/ live editor, Ednar pose art system). Authoritative status in `CAULDRON_CONTEXT.md`.
 - ⚠️ Physics Chain Game - Debugging tile display issue
 
 ### **What's Planned:**
@@ -307,8 +335,10 @@ Each game has its own image sets:
 ## 📚 RELATED DOCUMENTATION
 
 **Detailed Game Context:**
+- `CAULDRON_CONTEXT.md` - **Ednar's Potion Cauldron — authoritative & current** (read first when working on that game)
 - `MATCH3_CONTEXT.md` - Complete Match-3 game documentation
 - `PHYSICS_CONTEXT.md` - Physics Chain Game documentation
+- `ShopOfOddities_CONTEXT.md` - Shop of Oddities documentation
 
 **Project Organization:**
 - `STRUCTURE_CONTEXT.md` - Reorganization tracker and guide

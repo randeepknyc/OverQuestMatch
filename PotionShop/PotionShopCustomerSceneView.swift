@@ -457,25 +457,35 @@ struct PotionShopEdnarView: View {
     // speech bubble never move. Tuning lives in PotionShopBrewAnimator §7.
     @State private var ednarBreathPhase: CGFloat = 1.0
     @State private var ednarPopPhase: CGFloat = 1.0
+    // June 28, 2026 — random brew pose, chosen once each time Ednar brews.
+    @State private var brewPoseVariant: String = "ps_ednar_brew"
 
     // June 26, 2026 — observe layout config so the heal/shield bubble position
     // (ednarBubbleX / ednarBubbleY) updates live from the editor sliders.
     @Bindable var layoutConfig: PotionShopLayoutConfig = PotionShopLayoutConfig.shared
 
+    /// Low = at or below HALF of max composure (currently 15 of 30).
+    /// Becomes "≤ 50" automatically if maxComposure is raised to 100.
+    private var composureIsLow: Bool {
+        gs.composure <= PotionShopConfig.maxComposure / 2
+    }
+
     private var expressionAssetName: String {
-        let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
-        if pct < 0.3 { return "ps_ednar_alarmed" }
-        if pct < 0.7 { return "ps_ednar_concerned" }
-        if !gs.placements.isEmpty { return "ps_ednar_focused" }
-        return "ps_ednar_calm"
+        switch gs.ednarPose {
+        case .defend: return "ps_ednar_defend"
+        case .heal:   return "ps_ednar_heal"
+        case .brew:   return composureIsLow ? "ps_ednar_brew_50" : brewPoseVariant
+        case .idle:   return composureIsLow ? "ps_ednar_idle_50" : "ps_ednar_idle"
+        }
     }
     
     private var expressionEmojiFallback: String {
-        let pct = Double(gs.composure) / Double(PotionShopConfig.maxComposure)
-        if pct < 0.3 { return "😨" }
-        if pct < 0.7 { return "😟" }
-        if !gs.placements.isEmpty { return "🤨" }
-        return "🧙‍♂️"
+        switch gs.ednarPose {
+        case .defend: return "🛡️"
+        case .heal:   return "❤️"
+        case .brew:   return "🧪"
+        case .idle:   return composureIsLow ? "😟" : "🧙‍♂️"
+        }
     }
 
     var body: some View {
@@ -532,6 +542,12 @@ struct PotionShopEdnarView: View {
                     )
                     .blur(radius: 1)
                     .offset(y: ednarArtYOffset * 0.5)
+            }
+        }
+        .onChange(of: gs.ednarPose) {
+            // Pick a random brew pose once, the moment Ednar starts brewing.
+            if gs.ednarPose == .brew {
+                brewPoseVariant = Bool.random() ? "ps_ednar_brew" : "ps_ednar_brew2"
             }
         }
         // JUNE 20, 2026: HEAL/SHIELD PREVIEW BUBBLE. Ednar sits at the far
@@ -1258,17 +1274,23 @@ struct PotionShopCustomerInSceneView: View {
                     // While already active and placing dice, it tracks live.
                     // JUNE 26, 2026: during the hp_damage HIT flash, this same
                     // spot shows "−X" (the brew damage) instead of the HP value.
+                    // JUNE 29, 2026: black text on hp_customer_atk; show attack
+                    // value instead of HP when customer is attacking Ednar.
                     if takingDamage, let brewDmg = gs.brewDamageBadges[customer.id], brewDmg > 0 {
                         Text("-\(brewDmg)")
                             .font(Font.gameScore(size: 18 * scale))
                             .foregroundColor(.white)
+                    } else if isAttackingEdnar {
+                        Text("\(attack)")
+                            .font(Font.gameScore(size: 18 * scale))
+                            .foregroundColor(.black)
                     } else {
                         PotionShopRollingHPText(
                             target: liveHP,
                             realHP: gs.customers.first(where: { $0.id == customer.id })?.hp ?? customer.hp,
                             isActive: gs.queue.first == customer.id,
                             isAnimating: gs.isAnimating,
-                            fontSize: 18 * scale
+                            fontSize: 24 * scale
                         )
                     }
 
@@ -1353,10 +1375,10 @@ struct PotionShopCustomerInSceneView: View {
                                 )
                         }
 
-                        // Attack number (white text on top)
+                        // Attack number on badge
                         Text("\(attack)")
                             .font(Font.gameScore(size: 15 * scale))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                     }
                     .offset(
                         x: effectiveX + headOffsetX + PotionShopLayoutConfig.shared.attackBadgeOffsetX(for: customer.charKey, queueSlot: badgeQueueSlot) * scale,
@@ -1874,25 +1896,28 @@ struct PotionShopInspectStripView: View {
                                             .opacity(dmgFade)
                                     }
                                 }
-                                // Number stays WHITE (the bottle carries the
-                                // red pulse) so it never blends into the red,
-                                // and zIndex forces it above both bottle images.
+                                // zIndex forces the number above both bottle images.
                                 // JUNE 26, 2026: during the hp_damage HIT, the
                                 // banner number reads "−X" (brew damage) too,
                                 // matching the HP badge.
+                                // JUNE 29, 2026: on potion_bottle_atk, show the
+                                // customer's attack value (black) instead of HP.
                                 Group {
                                     if takingDamage, let brewDmg = gs.brewDamageBadges[customer.id], brewDmg > 0 {
                                         Text("-\(brewDmg)")
                                             .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
                                             .foregroundColor(.white)
+                                    } else if bannerIsAttacking {
+                                        Text("\(attackForSubtitle)")
+                                            .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
+                                            .foregroundColor(.black)
                                     } else {
                                         PotionShopRollingHPText(
                                             target: bannerLiveTarget,
                                             realHP: liveCustomer.hp,
                                             isActive: gs.queue.first == customer.id,
                                             isAnimating: gs.isAnimating,
-                                            fontSize: PotionShopLayoutConfig.shared.bannerBottleNumberSize,
-                                            color: .white
+                                            fontSize: PotionShopLayoutConfig.shared.bannerBottleNumberSize
                                         )
                                     }
                                 }
