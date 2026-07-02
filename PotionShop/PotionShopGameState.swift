@@ -103,6 +103,10 @@ class PotionShopGameState {
         didSet {
             if dayId != oldValue {
                 flexDayGeneratedRounds = []
+                // JULY 2, 2026: keep the ACTIVE BOARD in sync with the day —
+                // the board library's schedule (PotionShopBoard.schedule)
+                // decides which node layout is in play from which day.
+                PotionShopBoard.setActiveBoard(forDay: dayNumber)
             }
         }
     }
@@ -114,9 +118,14 @@ class PotionShopGameState {
 
     var composure: Int = PotionShopConfig.startingComposure
     var shield: Int = 0
-    /// Stability fire meter (June 27, 2026). Full each time-slot; a brew
-    /// burns 1, UNLESS a stability die is placed — then it refills to full.
+    /// Stability fire meter (June 27; ECONOMY REDESIGNED June 29, 2026).
+    /// Full each time-slot. Ticks down 1 every fireTickEveryNTurns brews;
+    /// big single attacks (≥ fireBigHitThreshold) knock an extra flame;
+    /// stability dice refill it by their FACE VALUE (capped).
     var fire: Int = PotionShopConfig.maxFire
+    /// Counts brews within the current time-slot, driving the fire tick.
+    /// Reset alongside the fire refill in spawnCustomers.
+    var fireBrewCounter: Int = 0
     /// Focus = how many dice you may place per brew (June 28, 2026). Starts
     /// at maxPlacementsPerBrew; grows later via boons/relics. Was a frozen
     /// constant before.
@@ -276,6 +285,9 @@ class PotionShopGameState {
     // MARK: - Init
 
     init() {
+        // JULY 2, 2026: pick the right board for the starting day before
+        // the first round builds (didSet doesn't fire for the default value).
+        PotionShopBoard.setActiveBoard(forDay: dayNumber)
         startRound()
         // Memory pressure observer (May 26, 2026): when iOS warns us, drop
         // the downsampled image cache so we have headroom to keep running
@@ -389,13 +401,13 @@ class PotionShopGameState {
                     id: old.id,
                     type: old.type,                          // type preserved
                     tier: old.tier,
-                    value: old.tier.rollFace(),              // value re-rolls in tier
+                    value: old.tier.rollFace(for: old.type), // value re-rolls in tier (stability = its own ladder)
                     faceValue: PotionShop3DDiceAssetMap.faceId(forType: old.type),
                     trayIndex: old.trayIndex,
                     ruleBonus: old.ruleBonus
                 )
             } else {
-                hand[i].value = hand[i].tier.rollFace()
+                hand[i].value = hand[i].tier.rollFace(for: hand[i].type)
                 hand[i].faceValue = PotionShopDie.rollFaceImageValue()
             }
         }
@@ -488,6 +500,7 @@ class PotionShopGameState {
     /// and deal a fresh hand of dice.
     private func spawnCustomers(from round: PotionShopRound) {
         fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
+        fireBrewCounter = 0               // fresh tick counter each time-slot
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -838,11 +851,19 @@ class PotionShopGameState {
         let preview = computeBrew()
         guard let value = preview.nodeValues[nodeId], value != 0 else { return }
         switch die.type {
-        case .potency, .stability:
+        case .potency:
             emitFloatingNumber(
                 text: "-\(value) 🧪",
                 color: PotionShopFloatingNumber.damageCustomerColor,
                 at: activeCustomerPoint
+            )
+        case .stability:
+            // JUNE 29, 2026: stability = fire refill, not damage. Show the
+            // refill over Ednar (the meter sits under the cauldron nearby).
+            emitFloatingNumber(
+                text: "+\(value) 🔥",
+                color: Color(red: 0.95, green: 0.55, blue: 0.15),
+                at: ednarOriginPoint
             )
         case .heal:
             emitFloatingNumber(
@@ -1056,6 +1077,10 @@ class PotionShopGameState {
         var healing: Int
         var shielding: Int
         var boostNodes: [Int]
+        /// JUNE 29, 2026: total flames the placed stability dice refill this
+        /// brew (their face values summed, boosts included). Stability no
+        /// longer deals damage — it is a PURE fire-refill die.
+        var stabilityRefill: Int = 0
         /// JUNE 20, 2026: per-node FINAL value after boosts/bonuses, so the
         /// board can show each die's realized number (clean "7", not "3+4").
         /// Keyed by node id. Boost dice are omitted (they have no output).
@@ -1072,6 +1097,7 @@ class PotionShopGameState {
         var damage: Double = 0
         var healing = 0
         var shielding = 0
+        var stabilityRefill = 0
         var boostNodes: [Int] = []
         var nodeValues: [Int: Int] = [:]
 
@@ -1111,11 +1137,11 @@ class PotionShopGameState {
                 damage += Double(total)
                 nodeValues[nodeId] = total
             case .stability:
-                // Clean half of potency (June 18, 2026). Stability's real
-                // role ("stabilize the cauldron") is undecided — for now it's
-                // a half-strength damage die.
-                damage += Double(total) * 0.5
-                nodeValues[nodeId] = Int((Double(total) * 0.5).rounded())
+                // JUNE 29, 2026: stability is now a PURE FIRE-REFILL die.
+                // Its full value (boosts included) refills the fire meter —
+                // it no longer deals any damage. The node shows the refill.
+                stabilityRefill += total
+                nodeValues[nodeId] = total
             case .heal:
                 healing += total
                 nodeValues[nodeId] = total
@@ -1132,6 +1158,7 @@ class PotionShopGameState {
             healing: healing,
             shielding: shielding,
             boostNodes: boostNodes,
+            stabilityRefill: stabilityRefill,
             nodeValues: nodeValues
         )
     }
@@ -1256,7 +1283,7 @@ class PotionShopGameState {
                     id: bd.id,
                     type: bd.type,                       // TYPE from the bag (its own identity)
                     tier: bd.tier,
-                    value: bd.tier.rollFace(),           // VALUE rolls within tier range
+                    value: bd.tier.rollFace(for: bd.type), // VALUE rolls within tier range (stability = all-1s ladder)
                     faceValue: PotionShop3DDiceAssetMap.faceId(forType: bd.type), // spin lands on its own type
                     trayIndex: i,
                     ruleBonus: combinedBonus
@@ -1266,7 +1293,7 @@ class PotionShopGameState {
                     id: bd.id,
                     type: bd.type,
                     tier: bd.tier,
-                    value: bd.tier.rollFace(),
+                    value: bd.tier.rollFace(for: bd.type),
                     faceValue: PotionShopDie.rollFaceImageValue(),
                     trayIndex: i,
                     ruleBonus: combinedBonus
@@ -1344,11 +1371,13 @@ class PotionShopGameState {
 
         try? await sleep(seconds: PotionShopBrewAnimator.initialDelay)
 
-        // ─── STABILITY FIRE (refill → check; the burn happens at the END) ─
-        // A stability die placed this turn tops the meter back to full.
-        let placedStability = placements.values.contains { $0.type == .stability }
-        if placedStability {
-            fire = PotionShopConfig.maxFire
+        // ─── STABILITY FIRE (refill → check; the tick happens at the END) ─
+        // JUNE 29, 2026: VALUE-BASED refill. Stability dice add their face
+        // values (boosts included) to the meter, capped at maxFire. A basic
+        // stability die is all 1s — it refills exactly 1 flame; upgrading
+        // the lane is how refills grow.
+        if preview.stabilityRefill > 0 {
+            fire = min(PotionShopConfig.maxFire, fire + preview.stabilityRefill)
         }
         // If the meter is EMPTY going into this brew (and you didn't
         // restabilize), the cauldron is unstable → the potion's POTENCY
@@ -1471,6 +1500,12 @@ class PotionShopGameState {
                     at: ednarShieldPoint
                 )
             }
+            // JUNE 29, 2026: a BIG single hit shakes the cauldron — any one
+            // attack ≥ fireBigHitThreshold knocks an extra flame out. Early
+            // attacks (2–4) never trigger this; late-game double digits do.
+            if activeWillAttack >= PotionShopConfig.fireBigHitThreshold {
+                fire = max(0, fire - 1)
+            }
             try? await sleep(seconds: PotionShopBrewAnimator.activeAttackDuration)
             customerAttackingIds.remove(activeId)
             if phase == .lost { return }
@@ -1490,6 +1525,11 @@ class PotionShopGameState {
                 ednarPose = .defend
                 HapticManager.shared.customerAttack()
                 triggerCustomerShake(id)
+                // JUNE 29, 2026: a waiter whose OWN single hit is huge also
+                // shakes the cauldron (same big-hit rule as the active).
+                if char.waitingAttack >= PotionShopConfig.fireBigHitThreshold {
+                    fire = max(0, fire - 1)
+                }
                 // Small gap before the next waiter shakes, for a rippling
                 // down-the-line feel. Tune via waiterStaggerDelay.
                 try? await sleep(seconds: PotionShopBrewAnimator.waiterStaggerDelay)
@@ -1598,9 +1638,13 @@ class PotionShopGameState {
         // Clear the expiring set so views stop slide-out animations
         expiringCustomerIds.removeAll()
 
-        // Burn one flame now the brew is resolved — unless a stability die
-        // was placed (which already topped the meter up and spares the burn).
-        if !placedStability {
+        // JUNE 29, 2026: the SLOW TICK. One flame goes out every
+        // fireTickEveryNTurns brews (default 2), regardless of what was
+        // placed — refills and the tick are independent now, so a 1-value
+        // stability die on a tick turn nets exactly zero (that's the
+        // economy: one basic die every other turn holds the line).
+        fireBrewCounter += 1
+        if fireBrewCounter % PotionShopConfig.fireTickEveryNTurns == 0 {
             fire = max(0, fire - 1)
         }
 

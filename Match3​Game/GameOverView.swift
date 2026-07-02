@@ -2,6 +2,9 @@
 //  GameOverView.swift
 //  OverQuestMatch3
 //
+//  🆕 MULTI-ENEMY UPDATE: victory/defeat text now uses the name of
+//  whichever enemy you were actually fighting.
+//
 
 import SwiftUI
 
@@ -35,7 +38,10 @@ struct GameOverView: View {
                         .font(.gameScore(size: 65))
                         .foregroundStyle(.white)
                     
-                    Text(gameState == .victory ? "Ramp beats Ednar!" : "Womp womp, you lose, Ramp!")
+                    // 🆕 Uses the current enemy's name
+                    Text(gameState == .victory
+                         ? "Ramp beats \(EnemyRoster.current.name)!"
+                         : "\(EnemyRoster.current.name) wins! Womp womp, Ramp!")
                         .font(.gameUI(size: 50))
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)

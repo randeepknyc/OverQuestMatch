@@ -14,6 +14,9 @@ struct ShopOfOdditiesSave: Codable {
     var customers: [Customer]
     var score: Int
     var customersServed: Int
+    // Optional so older save files (from before the skip feature) still load;
+    // if missing, the player simply gets a full set of skips.
+    var bootsRemaining: Int?
 
     static let saveKey = "shop"
 
@@ -23,7 +26,8 @@ struct ShopOfOdditiesSave: Codable {
             repairSlots: gs.repairSlots,
             customers: gs.customers,
             score: gs.score,
-            customersServed: gs.customersServed
+            customersServed: gs.customersServed,
+            bootsRemaining: gs.bootsRemaining
         )
     }
 
@@ -33,6 +37,7 @@ struct ShopOfOdditiesSave: Codable {
         gs.customers = customers
         gs.score = score
         gs.customersServed = customersServed
+        gs.bootsRemaining = bootsRemaining ?? ShopLayoutConfig.bootsPerGame
         gs.currentCustomer = customers.first
         gs.nextCustomer = customers.count > 1 ? customers[1] : nil
         gs.gameOver = false

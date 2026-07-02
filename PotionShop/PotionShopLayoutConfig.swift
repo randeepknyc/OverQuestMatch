@@ -398,31 +398,57 @@ class PotionShopLayoutConfig {
     var cauldronBowlX: Double = 44.709229469299316
     var cauldronBowlY: Double = 58.0
     
-    // Nodes
-    var nodeScale: Double = 2.070478707551956
-    var nodeXOffset: Double = 112.05673217773438
-    var nodeYOffset: Double = 122.69504070281982
-    var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
+    // Nodes (JULY 2, 2026 afternoon: tuned in the layout editor and baked
+    // in — per-node nudges were folded into the chalk9 board coordinates
+    // in PotionShopModels.swift, so perNodeOffsets start clean at zero)
+    var nodeScale: Double = 1.3844081982970238
+    var nodeXOffset: Double = 74.82268810272217
+    var nodeYOffset: Double = 75.5319356918335
+    var nodeSpacingMultiplier: Double = 1.7340425252914429  // ⚠️ EXPERIMENTAL: Changes visual spacing between nodes (does NOT affect boost reach)
     
-    // Per-Node Fine-Tuning (12 nodes, each with X/Y offset)
-    var perNodeOffsets: [CGPoint] = [
-        CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
-        CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
-        CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-        CGPoint(x: -7.446807622909546, y: -11.879432201385498),   // Node 3
-        CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
-        CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
-        CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
-        CGPoint(x: -53.014183044433594, y: 35.638296604156494),  // Node 7
-        CGPoint(x: -91.13475382328033, y: 28.19148302078247),    // Node 8
-        CGPoint(x: -38.1205677986145, y: 60.10638475418091),     // Node 9
-        CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
-        CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
-    ]
+    // Per-Node Fine-Tuning (JULY 2, 2026 — sized to the board library's
+    // biggest board via PotionShopBoard.maxNodeCount; currently 9).
+    // The old 12-node dialed offsets were retired with the old board —
+    // the new chalk9 positions live in PotionShopModels.swift and start
+    // clean at zero offset. Fine-tune per node in the layout editor.
+    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)
+
+    // Per-Node SIZE (JULY 2, 2026) — individual size multiplier for each
+    // node, on top of the global Node Scale. 1.0 = normal. Edited in the
+    // layout editor's Fine Tune tab ("Size ×" slider). Everything on the
+    // node scales together: chalk art, glow frames, the placed die, and
+    // the tap/hit area — so a bigger node still hugs its die correctly.
+    var perNodeScales: [Double] = Array(repeating: 1.0, count: PotionShopBoard.maxNodeCount)
+
+    /// Safe read of a node's size multiplier (1.0 if out of range).
+    func nodeScaleAt(_ index: Int) -> Double {
+        guard index >= 0, index < perNodeScales.count else { return 1.0 }
+        return perNodeScales[index]
+    }
+
+    // GLOBAL Node Size (JULY 2, 2026 evening) — resizes EVERY node
+    // uniformly, multiplied on top of the per-node sizes. 1.0 = normal.
+    // Lives in Fine Tune ("All Nodes Size ×") next to the per-node slider.
+    var nodeGlobalScale: Double = 1.0
     
     // Helper method to reset all per-node offsets
     func resetAllNodeOffsets() {
-        perNodeOffsets = Array(repeating: .zero, count: 12)
+        perNodeOffsets = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)
+        perNodeScales = Array(repeating: 1.0, count: PotionShopBoard.maxNodeCount)
+        nodeGlobalScale = 1.0
+    }
+
+    // ─── CHALK CONNECTION LINES (JULY 2, 2026) ─────────────────────
+    // How the lines between nodes are shown. Three modes:
+    //   "always" — lines permanently visible (old behavior)
+    //   "hidden" — never drawn (boost reach still works invisibly)
+    //   "smart"  — invisible until they matter: fade in while you're
+    //              dragging/placing dice, stay while dice are on the
+    //              board, and light up during the brew.
+    // Changed via Debug Menu → Layout Tools → Chalk Lines.
+    // Persists across app launches (saved to the device).
+    var nodeLineModeRaw: String = UserDefaults.standard.string(forKey: "ps_nodeLineMode") ?? "smart" {
+        didSet { UserDefaults.standard.set(nodeLineModeRaw, forKey: "ps_nodeLineMode") }
     }
     
     // Dice & Tray
@@ -1930,27 +1956,17 @@ class PotionShopLayoutConfig {
         cauldronBowlX = 44.709229469299316
         cauldronBowlY = 58.0
         
-        // Nodes
-        nodeScale = 2.070478707551956
-        nodeXOffset = 112.05673217773438
-        nodeYOffset = 122.69504070281982
-        nodeSpacingMultiplier = 1.0
+        // Nodes (JULY 2, 2026 afternoon — tuned values baked in)
+        nodeScale = 1.3844081982970238
+        nodeXOffset = 74.82268810272217
+        nodeYOffset = 75.5319356918335
+        nodeSpacingMultiplier = 1.7340425252914429
         
-        // Per-Node Offsets (all 12 nodes)
-        perNodeOffsets = [
-            CGPoint(x: -38.297873735427856, y: -37.94326186180115),  // Node 0
-            CGPoint(x: 24.290776252746582, y: -37.41135001182556),   // Node 1
-            CGPoint(x: -86.70212775468826, y: 5.6737542152404785),   // Node 2
-            CGPoint(x: -7.446807622909546, y: -11.879432201385498),   // Node 3
-            CGPoint(x: 83.68793725967407, y: 6.2056779861450195),    // Node 4
-            CGPoint(x: -28.723400831222534, y: 28.19148302078247),   // Node 5
-            CGPoint(x: 71.45389318466187, y: 7.0922017097473145),    // Node 6
-            CGPoint(x: -53.014183044433594, y: 35.638296604156494),  // Node 7
-            CGPoint(x: -91.13475382328033, y: 28.19148302078247),    // Node 8
-            CGPoint(x: -38.1205677986145, y: 60.10638475418091),     // Node 9
-            CGPoint(x: 20.567357540130615, y: 60.283684730529785),   // Node 10
-            CGPoint(x: 83.51064920425415, y: 38.29786777496338)      // Node 11
-        ]
+        // Per-Node Offsets (JULY 2, 2026: new chalk9 board starts clean —
+        // node positions live in PotionShopModels.swift, offsets at zero)
+        perNodeOffsets = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)
+        perNodeScales = Array(repeating: 1.0, count: PotionShopBoard.maxNodeCount)
+        nodeGlobalScale = 1.0
         
         // Dice & Tray
         dieScale = 1.405301421880722

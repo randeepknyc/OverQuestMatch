@@ -476,6 +476,19 @@ struct PotionShopLayoutOverlay: View {
     @State private var selectedNodeIndex: Int = 0  // For fine-tune section
     /// June 12, 2026: legacy/one-time-setup tabs hidden behind "More ▾".
     @State private var showLegacySections: Bool = false
+
+    // ─── DRAWER MODES (JULY 2, 2026) ─────────────────────────────────
+    // The editor no longer has to be closed to get out of the way.
+    //   .full    — the whole editor (header tools + tab strip + sliders)
+    //   .compact — a slim drawer: JUST the active tab's sliders (or
+    //              nothing but a thin bar if no tab is active)
+    //   .handle  — tucked away to a tiny 🔧 pill in the corner
+    // The editor stays OPEN in all three modes, so tap-a-node-to-select
+    // and drag-a-node-to-move keep working while it's collapsed. Tapping
+    // a node while tucked away pops the drawer back up to .compact with
+    // that node's sliders showing.
+    enum DrawerMode { case full, compact, handle }
+    @State private var drawerMode: DrawerMode = .full
     // selectedCharacterId moved to PotionShopLayoutConfig (May 25, 2026)
     // so the customer-scene tap can sync with the editor. Use
     // `layoutConfig.selectedCharacterId` everywhere it was used before.
@@ -511,20 +524,105 @@ struct PotionShopLayoutOverlay: View {
             ? Self.primarySections + Self.legacySections
             : Self.primarySections
     }
+
+    // ─── COMPACT DRAWER (JULY 2, 2026) ───────────────────────────────
+    // A slim bar + only the active tab's sliders. No header tools, no
+    // tab strip — switch tabs by tapping things in the scene (nodes,
+    // characters, badges) or expand back to full with the ▲ button.
+    private var compactPanel: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                Text(activeSection?.rawValue ?? "🔧 Editor")
+                    .font(.caption.bold())
+                    .foregroundColor(.white)
+                Spacer()
+                // ▲ back to the full editor
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        drawerMode = .full
+                    }
+                } label: {
+                    Image(systemName: "chevron.up.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.cyan)
+                }
+                // ▼ tuck away to the pill
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        drawerMode = .handle
+                    }
+                } label: {
+                    Image(systemName: "chevron.down.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+            .background(Color.black.opacity(0.7))
+
+            if let section = activeSection {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionContent(for: section)
+                    }
+                    .padding()
+                }
+                .frame(maxHeight: 230)
+                .background(Color.black.opacity(0.8))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding()
+    }
+
+    // ─── HANDLE PILL (JULY 2, 2026) ──────────────────────────────────
+    // The editor tucked all the way down: just a small pill in the
+    // corner. The game is fully visible and node tap/drag still works.
+    private var handlePill: some View {
+        HStack {
+            Spacer()
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    drawerMode = .compact
+                }
+            } label: {
+                Label("Editor", systemImage: "chevron.up")
+                    .font(.caption.bold())
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Color.cyan))
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 6)
+    }
     
     var body: some View {
         ZStack {
             // Semi-transparent background (20% opacity) — taps pass through to the game.
             // Use the X button at the top of the floating panel to close the editor.
-            Color.black.opacity(0.2)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            // JULY 2, 2026: only dimmed in FULL mode — compact/handle leave
+            // the game at full brightness so you can judge the layout.
+            if drawerMode == .full {
+                Color.black.opacity(0.2)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
 
             // Floating control panel at bottom
             VStack {
                 Spacer()
                     .allowsHitTesting(false)
-                
+
+                // JULY 2, 2026 DRAWER: pick which face of the editor shows.
+                switch drawerMode {
+                case .compact:
+                    compactPanel
+                case .handle:
+                    handlePill
+                case .full:
                 VStack(spacing: 0) {
                     // Header row: Undo + A/B tools (June 12, 2026) + close.
                     HStack(spacing: 10) {
@@ -567,6 +665,18 @@ struct PotionShopLayoutOverlay: View {
                         }
 
                         Spacer()
+                        // JULY 2, 2026: ▼ minimize to the slim drawer
+                        // (sliders only). The editor stays open — this
+                        // just slides it out of the way.
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                drawerMode = .compact
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.cyan)
+                        }
                         Button {
                             isPresented = false
                         } label: {
@@ -636,14 +746,20 @@ struct PotionShopLayoutOverlay: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding()
+                }  // end of switch drawerMode (JULY 2, 2026)
             }
         }
         // Tap-anything-to-jump (June 12, 2026): characters, HP badges, and
         // cauldron nodes post a jump request when tapped while the editor
         // is open; the editor switches to the matching tab here.
+        // JULY 2, 2026: if the drawer is tucked to the handle pill, a tap
+        // pops it back up to COMPACT so the right sliders appear instantly.
         .onChange(of: PotionShopEditorHistory.shared.jumpRequest) { _, request in
             guard let request else { return }
             withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                if drawerMode == .handle {
+                    drawerMode = .compact
+                }
                 switch request.target {
                 case .autoLayout: activeSection = .autoLayout
                 case .badges:     activeSection = .badges
@@ -1160,13 +1276,19 @@ struct PotionShopLayoutOverlay: View {
             }
         case .fineTune:
             VStack(alignment: .leading, spacing: 12) {
+                // JULY 2, 2026 (evening): GLOBAL size — resizes every node
+                // uniformly. Per-node "Size ×" below stacks on top of this.
+                sliderRow("All Nodes Size ×", value: $layoutConfig.nodeGlobalScale, range: 0.5...2.0, format: "%.2f×")
+
                 // Node picker
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Select Node")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
                     Picker("Node", selection: $selectedNodeIndex) {
-                        ForEach(0..<12) { idx in
+                        // JULY 2, 2026: follows the active board's node count
+                        // instead of a hardcoded 12.
+                        ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
                             Text("Node \(idx)").tag(idx)
                         }
                     }
@@ -1190,11 +1312,28 @@ struct PotionShopLayoutOverlay: View {
                     )
                     sliderRow("Y Offset", value: binding, range: -100...100, format: "%.0f pt")
                 }
+
+                // JULY 2, 2026: per-node SIZE — this node's own size
+                // multiplier, on top of the global Node Scale. The whole
+                // node scales together (chalk, glow, placed die, hit area).
+                VStack(alignment: .leading, spacing: 10) {
+                    let binding = Binding<Double>(
+                        get: { layoutConfig.nodeScaleAt(selectedNodeIndex) },
+                        set: {
+                            guard selectedNodeIndex < layoutConfig.perNodeScales.count else { return }
+                            layoutConfig.perNodeScales[selectedNodeIndex] = $0
+                        }
+                    )
+                    sliderRow("Size ×", value: binding, range: 0.5...2.0, format: "%.2f×")
+                }
                 
                 // Reset buttons
                 HStack(spacing: 8) {
                     Button("Reset This Node") {
                         layoutConfig.perNodeOffsets[selectedNodeIndex] = .zero
+                        if selectedNodeIndex < layoutConfig.perNodeScales.count {
+                            layoutConfig.perNodeScales[selectedNodeIndex] = 1.0
+                        }
                     }
                     .font(.caption)
                     .foregroundColor(.white)

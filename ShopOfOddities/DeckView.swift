@@ -25,6 +25,7 @@ struct DeckView: View {
     let type: ComponentType
     let topCard: ComponentCard?
     let cardsRemaining: Int
+    let cursedRemaining: Int // Cursed cards still hidden beneath the top card
     let canDraw: Bool
     let rotationDegrees: Double // Per-deck rotation from config
     let onTap: (Int?) -> Void // Now accepts optional insert index
@@ -83,9 +84,22 @@ struct DeckView: View {
                 .offset(y: dealOffset) // Deal animation offset
             
             // Card count badge (does NOT rotate, stays horizontal)
-            Text("\(cardsRemaining)")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.6))
+            HStack(spacing: 5) {
+                Text("\(cardsRemaining)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
+                
+                // Cursed-card early warning (only shown if 1+ curses remain unseen)
+                if cursedRemaining > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "skull.fill")
+                            .font(.system(size: 9))
+                        Text("\(cursedRemaining)")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(.red.opacity(0.8))
+                }
+            }
         }
         .onChange(of: animationPhase) { _, newPhase in
             handleAnimationPhaseChange(newPhase)
@@ -544,6 +558,7 @@ enum DeckAnimationPhase {
                     name: "Oak Plank"
                 ),
                 cardsRemaining: 5,
+                cursedRemaining: 1,
                 canDraw: true,
                 rotationDegrees: 0,
                 onTap: { _ in print("Tapped structural deck") },
@@ -565,6 +580,7 @@ enum DeckAnimationPhase {
                     name: "Arcane Dust"
                 ),
                 cardsRemaining: 2,
+                cursedRemaining: 1,
                 canDraw: true,
                 rotationDegrees: 0,
                 onTap: { _ in print("Tapped enchantment deck") },
@@ -586,6 +602,7 @@ enum DeckAnimationPhase {
                     name: "Whispered Echo"
                 ),
                 cardsRemaining: 1,
+                cursedRemaining: 0,
                 canDraw: true,
                 rotationDegrees: 0,
                 onTap: { _ in print("Tapped memory deck") },
@@ -601,6 +618,7 @@ enum DeckAnimationPhase {
                 type: .wildcraft,
                 topCard: nil,
                 cardsRemaining: 0,
+                cursedRemaining: 0,
                 canDraw: false,
                 rotationDegrees: 0,
                 onTap: { _ in print("Empty deck tapped") },

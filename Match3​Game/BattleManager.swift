@@ -2,6 +2,10 @@
 //  BattleManager.swift
 //  OverQuestMatch3
 //
+//  🆕 MULTI-ENEMY UPDATE: the enemy is now built from EnemyRoster.current
+//  (set by the selection screen). The old fire gem is now the enemy's
+//  SIGNATURE GEM — its damage and messages come from the enemy profile.
+//
 
 import Foundation
 
@@ -14,7 +18,10 @@ class BattleManager {
     var comboCount: Int = 0
     var turnCount: Int = 0
     var hapticManager: HapticManager?  // ✨ NEW: Haptic feedback
-    
+
+    // 🆕 The full profile of who we're fighting (health, attacks, signature gem)
+    var enemyProfile: EnemyProfile
+
     var gameState: GameState = .playing
     var pendingGameOver: GameState? = nil  // ✨ NEW: Holds victory/defeat until animations finish
     
@@ -47,13 +54,17 @@ class BattleManager {
             currentHealth: BattleMechanicsConfig.playerStartingHealth
         )
 
+        // 🆕 Build the enemy from whoever the selection screen chose.
+        // (If the game is opened directly, this defaults to Ednar.)
+        let profile = EnemyRoster.current
         let enemyCharacter = Character(
-            name: "Toad King",
-            imageName: GameAssets.toadImage,
-            maxHealth: BattleMechanicsConfig.enemyStartingHealth,
-            currentHealth: BattleMechanicsConfig.enemyStartingHealth
+            name: profile.name,
+            imageName: profile.portraitAsset,
+            maxHealth: profile.maxHealth,
+            currentHealth: profile.maxHealth
         )
 
+        self.enemyProfile = profile
         self.player = playerCharacter
         self.enemy = enemyCharacter
         self.playerAnimator = AnimationCoordinator(character: playerCharacter)
@@ -98,10 +109,13 @@ class BattleManager {
                 playerAnimator.play(.attack, message: barbarianAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .fire:
-                let damage = Int(Double(BattleMechanicsConfig.fireDamagePerGem * matchCount) * multiplier)
+                // 🆕 SIGNATURE GEM! Damage comes from the enemy's profile —
+                // this is the MAIN damage source (sword is the small backup)
+                let perGem = enemyProfile.signature.damagePerGem
+                let damage = Int(Double(perGem * matchCount) * multiplier)
                 totalDamage += damage
                 
-                playerAnimator.play(.attack, message: magicAttackMessage(damage: damage, isCombo: isCombo))
+                playerAnimator.play(.attack, message: signatureAttackMessage(damage: damage, isCombo: isCombo))
                 
             case .shield:
                 let shield = BattleMechanicsConfig.shieldPerGem * matchCount
@@ -179,7 +193,8 @@ class BattleManager {
     func enemyTurn() {
         guard gameState == .playing else { return }
         
-        let damage = Int.random(in: BattleMechanicsConfig.enemyMinDamage...BattleMechanicsConfig.enemyMaxDamage)
+        // 🆕 Attack strength comes from the enemy's profile
+        let damage = Int.random(in: enemyProfile.attackMin...enemyProfile.attackMax)
         
         // Apply damage and effects
         player.takeDamage(damage)
@@ -258,8 +273,15 @@ class BattleManager {
     func reset() {
         player.currentHealth = player.maxHealth
         player.shield = 0
-        enemy.currentHealth = enemy.maxHealth
+
+        // 🆕 Re-sync with the roster in case a different enemy was chosen
+        enemyProfile = EnemyRoster.current
+        enemy.name = enemyProfile.name
+        enemy.imageName = enemyProfile.portraitAsset
+        enemy.maxHealth = enemyProfile.maxHealth
+        enemy.currentHealth = enemyProfile.maxHealth
         enemy.shield = 0
+
         mana = 0
         recentEvents.removeAll()
         comboCount = 0
@@ -315,8 +337,9 @@ class BattleManager {
                     }
                     
                 case .fire:
+                    // 🆕 Signature gem clear uses the enemy's own damage number
                     if BattleMechanicsConfig.gemClearApplyFireDamage {
-                        totalDamage = gemCount * BattleMechanicsConfig.fireDamagePerGem
+                        totalDamage = gemCount * enemyProfile.signature.damagePerGem
                         enemy.takeDamage(totalDamage)
                     }
                     
@@ -420,11 +443,11 @@ class BattleManager {
         return BattleEvent(text: text, type: .playerAttack)
     }
     
-    private func magicAttackMessage(damage: Int, isCombo: Bool) -> BattleEvent {
-        // Pick random message from config
-        let template = BattleMechanicsConfig.magicAttackMessages.randomElement()!
-        let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
-        let text = isCombo ? "🔥 COMBO! " + message : message
+    // 🆕 Signature gem attack message — comes from the enemy's profile
+    private func signatureAttackMessage(damage: Int, isCombo: Bool) -> BattleEvent {
+        let message = EnemyRoster.signatureMessage(damage: damage)
+        let emoji = enemyProfile.signature.emoji
+        let text = isCombo ? "\(emoji) COMBO! " + message : message
         return BattleEvent(text: text, type: .playerMagic)
     }
     
@@ -448,10 +471,9 @@ class BattleManager {
         return BattleEvent(text: message, type: .playerCharge)
     }
     
+    // 🆕 Enemy attack message — comes from the enemy's profile
     private func enemyAttackMessage(damage: Int) -> BattleEvent {
-        // Pick random message from config
-        let template = BattleMechanicsConfig.enemyAttackMessages.randomElement()!
-        let message = template.replacingOccurrences(of: "{damage}", with: "\(damage)")
+        let message = EnemyRoster.enemyAttackMessage(damage: damage)
         return BattleEvent(text: message, type: .enemyAttack)
     }
     

@@ -201,6 +201,15 @@ struct PotionShopCauldronLayout {
 
     static let dieSize:     CGFloat = 44
 
+    // ─── CHALK HUG (JULY 2, 2026) ────────────────────────────────
+    // A placed die renders slightly SMALLER than its node art, so the
+    // chalk circle ("potion_node" asset) peeks out around the die's
+    // edges and looks like it's hugging it. 1.0 = die fills the node
+    // edge-to-edge (old behavior). 0.86 = chalk visible all around.
+    // Only applies when the potion_node asset exists — the plain
+    // fallback rectangles keep the old edge-to-edge sizing.
+    static let placedDieHugScale: CGFloat = 0.86
+
     // ─── REQUEST 1 (June 12): nodes render at the SAME SIZE as the dice
     // in the tray. When this is true, the node visual scale passed down
     // from PotionShopGameView is computed so that
@@ -358,7 +367,7 @@ struct PotionShopCauldronView: View {
     var nodeXOffset: Double = 0           // Independent node X offset (pts)
     var nodeYOffset: Double = 0           // Independent node Y offset (pts)
     var nodeSpacingMultiplier: Double = 1.0  // ⚠️ EXPERIMENTAL: Visual spacing multiplier (affects appearance only, NOT boost reach)
-    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: 12)  // Per-node fine-tuning offsets
+    var perNodeOffsets: [CGPoint] = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)  // Per-node fine-tuning offsets (JULY 2, 2026: sized from the board library)
     var brewXOffset: Double = -50         // BREW button X from right edge
     var brewYPercent: Double = 0.30       // BREW button Y as % of cauldron height
     var showBrewButton: Bool = true       // Toggle to hide BREW button
@@ -461,11 +470,16 @@ struct PotionShopCauldronView: View {
                 ForEach(0..<PotionShopBoard.nodes.count, id: \.self) { idx in
                     let node = PotionShopBoard.nodes[idx]
                     let perNodeOffset = idx < perNodeOffsets.count ? perNodeOffsets[idx] : .zero
+                    // JULY 2, 2026: size = global multiplier ("All Nodes
+                    // Size ×") × per-node multiplier ("Size ×"). Both scale
+                    // the whole node — art, glow, die, hit area.
+                    let cfgShared = PotionShopLayoutConfig.shared
+                    let perNodeScale = cfgShared.nodeGlobalScale * cfgShared.nodeScaleAt(idx)
                     PotionShopNodeButtonView(
                         gs: gs,
                         nodeIndex: idx,
                         diceFlight: diceFlight,
-                        visualScale: nodeScale  // Pass visual scale separately
+                        visualScale: nodeScale * perNodeScale  // Pass visual scale separately
                     )
                         .position(
                             x: g.nodeOriginX + CGFloat(node.x) * g.nodeSpacingMultiplier + perNodeOffset.x,
@@ -572,6 +586,42 @@ struct PotionShopNodeGlowTuning {
 
     /// Base glow radius for preview nodes (pre-pulse).
     static let previewGlowRadius: CGFloat = 16
+
+    // ─── HAND-DRAWN GLOW FRAMES (JULY 2, 2026) ──────────────────────
+    // Draw a numbered PNG sequence in Assets.xcassets named
+    //     node_glow1, node_glow2, node_glow3, …  (any frame count)
+    // — transparent background, same square canvas as your potion_node
+    // chalk image. When at least node_glow1 exists, preview nodes play
+    // this sequence on loop INSTEAD of the built-in cyan shadow glow.
+    // Delete the assets (or never add them) and the cyan glow returns.
+
+    /// Frames per second for the node_glow sequence.
+    static let glowFrameFPS: Double = 8
+    /// How much bigger than the node art the glow frames render
+    /// (1.0 = same size; 1.35 = glow spills past the chalk edges).
+    static let glowArtScale: CGFloat = 1.35
+}
+
+// MARK: - Node glow frame resolver (JULY 2, 2026)
+//
+// Auto-detects how many node_glow frames you've drawn, exactly like the
+// fire meter's flame resolver. Cached so it's not re-probed every frame.
+
+enum PotionShopNodeGlowAssets {
+    private static var cachedCount: Int? = nil
+
+    /// Number of frames drawn ("node_glow1", "node_glow2", …). 0 = none.
+    static func frameCount(maxProbe: Int = 12) -> Int {
+        if let c = cachedCount { return c }
+        var n = 0
+        for k in 1...maxProbe {
+            if UIImage(named: "node_glow\(k)") != nil { n = k } else { break }
+        }
+        cachedCount = n
+        return n
+    }
+
+    static func clearCache() { cachedCount = nil }
 }
 
 // MARK: - One node on the cauldron
@@ -613,10 +663,20 @@ struct PotionShopNodeButtonView: View {
     //   4. Has die locked in           → subtle die-tinted glow
     //   5. Nothing                     → no glow
 
+    /// JULY 2, 2026: true when the player has drawn node_glow1… frames.
+    /// When frames exist, the reach preview plays THEM and the built-in
+    /// cyan shadow glow steps aside (for the preview state only — the
+    /// yellow drop-target and placed-die glows are unaffected).
+    private var hasGlowFrames: Bool {
+        PotionShopNodeGlowAssets.frameCount() > 0
+    }
+
     private var glowColor: Color {
         if isHovered && canReceiveDrop { return Color.yellow }
         if canBePlacedOn               { return Color.yellow }
         if isInPreview {
+            // Hand-drawn glow frames replace the shadow glow (July 2).
+            if hasGlowFrames { return .clear }
             // Reach-preview color (Request 7) — tunable in
             // PotionShopNodeGlowTuning, optionally tinted by the die.
             if PotionShopNodeGlowTuning.tintPreviewWithDieColor,
@@ -632,7 +692,7 @@ struct PotionShopNodeButtonView: View {
     private var glowRadius: CGFloat {
         if isHovered && canReceiveDrop { return 20 }
         if canBePlacedOn               { return 12 }
-        if isInPreview                 { return PotionShopNodeGlowTuning.previewGlowRadius }
+        if isInPreview                 { return hasGlowFrames ? 0 : PotionShopNodeGlowTuning.previewGlowRadius }
         if placedDie != nil            { return 9 }
         return 0
     }
@@ -688,17 +748,47 @@ struct PotionShopNodeButtonView: View {
                 .animation(.easeInOut(duration: 0.18), value: isInPreview)
                 .allowsHitTesting(false)  // Gestures live on the outer ZStack
 
+            // ━━━ HAND-DRAWN GLOW FRAMES (JULY 2, 2026) ━━━━━━━━━━━
+            // While this node is in the hovered die's reach preview,
+            // loop the node_glow1…N sequence ON TOP of the node art
+            // (moved above the art July 2 evening — behind it, opaque
+            // chalk could hide the glow entirely). The placed die still
+            // renders above this, so glow rings around dice read fine.
+            // Only renders when frames exist (see PotionShopNodeGlowAssets).
+            if isInPreview, hasGlowFrames {
+                TimelineView(.animation) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let count = PotionShopNodeGlowAssets.frameCount()
+                    let frame = Int(t * max(0.1, PotionShopNodeGlowTuning.glowFrameFPS)) % count
+                    Image("node_glow\(frame + 1)")
+                        .resizable()
+                        .scaledToFit()
+                }
+                .frame(
+                    width: PotionShopCauldronLayout.nodeVisible * visualScale * PotionShopNodeGlowTuning.glowArtScale,
+                    height: PotionShopCauldronLayout.nodeVisible * visualScale * PotionShopNodeGlowTuning.glowArtScale
+                )
+                .allowsHitTesting(false)
+            }
+
             // ━━━ DIE ON TOP (visual only — no gestures here) ━━━━━━
+            // JULY 2, 2026: when the chalk node art exists, the placed die
+            // renders at placedDieHugScale so the chalk circle peeks out
+            // around it ("hugging" the die). Without chalk art, dice keep
+            // the old edge-to-edge sizing.
+            let hug: Double = PotionShopImageLoader.loadImage(named: "potion_node") != nil
+                ? Double(PotionShopCauldronLayout.placedDieHugScale)
+                : 1.0
             if let die = placedDie {
                 Group {
                     if isDraggingFromHere {
                         // Drag origin: ghosted die stays put
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0, useFaceAsset: gs.currentRoundUses3DDice)
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
                             .opacity(0.3)
                     } else {
                         // Locked-in die, scaled down so node frame shows
                         // around it as a "socket".
-                        PotionShopPlacedDieView(die: die, visualScale: visualScale * 1.0, useFaceAsset: gs.currentRoundUses3DDice)
+                        PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
                             .matchedGeometryEffect(
                                 id: die.id,
                                 in: diceFlight,
@@ -1744,6 +1834,20 @@ struct DieSceneView3D: UIViewRepresentable {
 // Draws lines connecting nodes based on PotionShopBoard.edges topology.
 // These lines appear BEHIND the nodes (z-index 1) but above the cauldron (z-index 0).
 // Lines automatically connect to the actual node positions including all offsets.
+//
+// JULY 2, 2026 — VISIBILITY MODES (Debug Menu → Layout Tools → Chalk Lines):
+//   .always — lines permanently visible (the old behavior)
+//   .hidden — never drawn; boost reach and glow still work invisibly
+//   .smart  — the default. Lines are invisible until they matter:
+//             they fade in while a die is being dragged or dice are on
+//             the board, and go full-strength during the brew. Boost
+//             edges pulse gold as before — that's the "light up".
+
+enum PotionShopNodeLineMode: String {
+    case always
+    case hidden
+    case smart
+}
 
 struct PotionShopNodeConnectionLines: View {
     let nodeOriginX: CGFloat
@@ -1753,6 +1857,32 @@ struct PotionShopNodeConnectionLines: View {
     /// JUNE 20, 2026: pass game state so we can LIGHT UP edges where a boost
     /// is feeding a connected die. Optional so previews/other callers work.
     var gs: PotionShopGameState? = nil
+
+    /// Current visibility mode (read live from the layout config).
+    private var mode: PotionShopNodeLineMode {
+        PotionShopNodeLineMode(rawValue: PotionShopLayoutConfig.shared.nodeLineModeRaw) ?? .smart
+    }
+
+    /// Overall line-layer opacity for the current moment.
+    ///   always → 1, hidden → 0.
+    ///   smart  → 0 when the board is idle; 0.75 (soft chalk) while
+    ///            dragging or while dice sit on the board; 1.0 during
+    ///            the brew animation.
+    private var layerOpacity: Double {
+        switch mode {
+        case .always: return 1.0
+        case .hidden: return 0.0
+        case .smart:
+            guard let gs = gs else { return 1.0 }
+            // JULY 2, 2026 (evening): lines only matter when TWO dice can
+            // interact. One lone die on the board = no lines. A dragged
+            // die counts as the second when one is already placed.
+            let placed = gs.placements.count
+            if gs.isAnimating { return placed >= 2 ? 1.0 : 0.0 }   // brewing — full strength
+            if gs.draggedDie != nil { return placed >= 1 ? 0.75 : 0.0 }  // dragging toward a pair
+            return placed >= 2 ? 0.75 : 0.0                        // two+ on board — stay
+        }
+    }
 
     /// Set of edges (as ordered pairs, both directions) that are active boost
     /// connections: one end is a boost, the other is a non-boost die that the
@@ -1776,9 +1906,11 @@ struct PotionShopNodeConnectionLines: View {
 
     var body: some View {
         let boosted = boostEdges
+        let visibility = layerOpacity
         // JUNE 20, 2026: TimelineView drives a continuous pulse for the gold
         // boost lines (opacity + width oscillate). Only animates when there
         // ARE boost lines; otherwise it's a static draw.
+        // JULY 2, 2026: the whole layer fades with `visibility` (smart mode).
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             // 0..1 sine pulse, ~1.1s period
@@ -1821,5 +1953,10 @@ struct PotionShopNodeConnectionLines: View {
                 }
             }
         }
+        // JULY 2, 2026: smart-mode fade. The layer eases in when a drag
+        // starts / dice are placed, and eases out when the board clears.
+        .opacity(visibility)
+        .animation(.easeInOut(duration: 0.35), value: visibility)
+        .allowsHitTesting(false)
     }
 }

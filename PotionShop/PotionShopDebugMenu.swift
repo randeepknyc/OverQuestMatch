@@ -78,6 +78,28 @@ struct PotionShopDebugMenu: View {
 
                 // ─── Layout Editor (moved here June 1, 2026 for quicker access) ─
                 Section("Layout Tools") {
+                    // ─── CHALK LINES (JULY 2, 2026) ────────────────
+                    // How the connection lines between nodes appear:
+                    //   Smart  — invisible until dice are being placed,
+                    //            then fade in; light up during the brew.
+                    //   Always — permanently visible (old behavior).
+                    //   Hidden — never drawn (reach still works).
+                    Picker(selection: Binding(
+                        get: { PotionShopLayoutConfig.shared.nodeLineModeRaw },
+                        set: { PotionShopLayoutConfig.shared.nodeLineModeRaw = $0 }
+                    )) {
+                        Text("Smart").tag("smart")
+                        Text("Always").tag("always")
+                        Text("Hidden").tag("hidden")
+                    } label: {
+                        HStack {
+                            Image(systemName: "scribble.variable")
+                                .foregroundColor(.cyan)
+                            Text("Chalk Lines")
+                                .foregroundColor(.primary)
+                        }
+                    }
+
                     Button {
                         showFireMeterEditor = true
                     } label: {
@@ -926,13 +948,20 @@ struct PotionShopDebugMenu: View {
         nodeSpacingMultiplier: \(cfg.nodeSpacingMultiplier)
         
         ───────────────────────────────────────────────────────────────
-        🔧 PER-NODE FINE-TUNING (individual offsets for all 12 nodes)
+        🔧 PER-NODE FINE-TUNING (individual offsets, one per board node)
         ───────────────────────────────────────────────────────────────
         """
         
         // Add per-node offsets
         for (idx, offset) in cfg.perNodeOffsets.enumerated() {
             text += "\nNode \(idx): x=\(offset.x), y=\(offset.y)"
+        }
+
+        // JULY 2, 2026: per-node size multipliers ride along too
+        text += "\nnodeGlobalScale: \(cfg.nodeGlobalScale)"
+        text += "\n"
+        for (idx, scale) in cfg.perNodeScales.enumerated() {
+            text += "\nNode \(idx) size: \(scale)×"
         }
         
         text += """

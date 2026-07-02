@@ -5,6 +5,11 @@
 //  Created on April 6, 2026
 //  Temporary testing screen to switch between games on device
 //
+//  🆕 MULTI-ENEMY UPDATE:
+//    • "New Game" on Match-3 now opens the CHOOSE YOUR FOE screen
+//    • "Continue" skips it and resumes the saved battle directly
+//      (the save file remembers which enemy you were fighting)
+//
 
 import SwiftUI
 
@@ -217,7 +222,13 @@ struct GameSelectorView: View {
     private func gameView(for launch: GameLaunch) -> some View {
         switch launch.game {
         case .match3:
-            Match3ContentView(continueFromSave: launch.continueFromSave)
+            // 🆕 New Game → pick your enemy first!
+            //    Continue → resume the saved battle directly
+            if launch.continueFromSave {
+                Match3ContentView(continueFromSave: true)
+            } else {
+                EnemySelectView()
+            }
         case .shopOfOddities:
             ShopOfOdditiesView(continueFromSave: launch.continueFromSave)
         case .ednarsPotionShop:

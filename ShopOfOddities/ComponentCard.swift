@@ -54,39 +54,70 @@ struct ComponentCard: Identifiable, Codable, Equatable {
 extension ComponentCard {
     
     /// Generate a full deck (13 cards) for a component type
+    ///
+    /// Cursed cards are spread out deliberately (not fully random) so that a
+    /// single pile can never hand you two cursed cards back-to-back, and the
+    /// very first card or two you draw from a fresh pile is guaranteed safe.
+    /// This softens unlucky streaks without removing randomness entirely —
+    /// the exact spacing between cursed cards still varies game to game.
     static func generateDeck(for type: ComponentType) -> [ComponentCard] {
-        var deck: [ComponentCard] = []
-        
         // 10 normal cards (values 1-4, distributed)
         // Distribution: 3x value-1, 3x value-2, 2x value-3, 2x value-4
         let normalCardValues = [1, 1, 1, 2, 2, 2, 3, 3, 4, 4]
         
-        for value in normalCardValues {
-            let card = ComponentCard(
+        var normalCards: [ComponentCard] = normalCardValues.map { value in
+            ComponentCard(
                 type: type,
                 value: value,
                 isCursed: false,
                 adjacencyBonus: randomAdjacentType(excluding: type),
                 name: randomCardName(for: type, value: value, isCursed: false)
             )
-            deck.append(card)
         }
+        normalCards.shuffle()
         
         // 3 cursed cards (negative values -1 to -3)
         let cursedCardValues = [-1, -2, -3]
         
-        for value in cursedCardValues {
-            let card = ComponentCard(
+        var cursedCards: [ComponentCard] = cursedCardValues.map { value in
+            ComponentCard(
                 type: type,
                 value: value,
                 isCursed: true,
                 adjacencyBonus: nil, // Cursed cards don't give adjacency bonuses
                 name: randomCardName(for: type, value: value, isCursed: true)
             )
-            deck.append(card)
+        }
+        cursedCards.shuffle()
+        
+        // Split the 10 normal cards into 3 random-sized groups (min 2 each)
+        // and slot one cursed card after each group. This guarantees:
+        //  - At least 2 safe draws before the first cursed card appears
+        //  - At least 2 normal cards between any two cursed cards
+        let minGroupSize = 2
+        let groupCount = 3
+        var groupSizes = Array(repeating: minGroupSize, count: groupCount)
+        var remaining = normalCards.count - (minGroupSize * groupCount) // extra cards to distribute
+        while remaining > 0 {
+            groupSizes[Int.random(in: 0..<groupCount)] += 1
+            remaining -= 1
         }
         
-        return deck.shuffled()
+        var deck: [ComponentCard] = []
+        var cursedIndex = 0
+        
+        for size in groupSizes {
+            let group = normalCards.prefix(size)
+            deck.append(contentsOf: group)
+            normalCards.removeFirst(size)
+            
+            if cursedIndex < cursedCards.count {
+                deck.append(cursedCards[cursedIndex])
+                cursedIndex += 1
+            }
+        }
+        
+        return deck
     }
     
     /// Randomly assign an adjacency bonus type (30% chance)

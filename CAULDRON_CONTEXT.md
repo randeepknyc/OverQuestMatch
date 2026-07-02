@@ -9,7 +9,7 @@
 >
 > **⚠️ JUNE 27, 2026 — CURRENT TOP-LEVEL STATUS (the June 10 line above is now historical):**
 > **MAJOR DESIGN PIVOT.** The game is now a **FINITE 30-DAY CAMPAIGN** — weekly bosses on Days 7/14/21/28 + a finale on Day 30, gentle bounded growth (~×1.07/day), no automatic Composure refills, and Die-in-the-Dungeon-style **bounded D6 dice** (faces never exceed 6). The combat model is LOCKED as the **queue / line-of-3** the code already has. Dice are now **SIX**: Mirror added (NOT built yet) and **Stability promoted to a real die with a fire meter (BUILT — §56).** Focus becomes a real, growing stat. "Endless" is now only an optional post-Day-30 mode.
-> **➡ Read §55 (full canonical model & balance) and §56–§62 before touching systems or balance:** §56–§57 stability fire meter; §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
+> **➡ Read §55 (full canonical model & balance) and §56–§63 before touching systems or balance:** §56–§57 stability fire meter (⚠️ §56.2's simple economy is SUPERSEDED by **§63**); §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** **§63 the STABILITY FIRE ECONOMY — WIRED (June 29): tick every 2 brews, big-hit knocks (dormant at today's attack values), value-based refill, stability = pure fire die with all-1s starting faces + its own tier ladder.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
 
 ---
 
@@ -3974,3 +3974,27 @@ Boss **Enrage** mechanic (not locked — bosses are currently just tougher tier-
 ---
 
 **End of CAULDRON_CONTEXT.md**
+
+---
+
+## 63. STABILITY FIRE ECONOMY — REDESIGNED & WIRED (June 29, 2026)
+
+> Replaces §56.2's simple model (burn-1-per-brew / any stability die refills to FULL)
+> and RESOLVES §56.4's open items + the "stability's real role is undecided" question.
+> Wired in `PotionShopModels.swift` + `PotionShopGameState.swift`. Also modeled in the
+> balance lab (`cauldron_balance_lab.html`, "Stability fire" panel + 🔥 column).
+
+### 63.1 The economy (as built)
+- **Slow tick:** 1 flame goes out every `fireTickEveryNTurns` brews (default **2**; set 1 for the old harsh burn). Counter (`fireBrewCounter`) resets each time-slot; meter still refills to full each slot.
+- **Big-hit knock:** any SINGLE attack ≥ `fireBigHitThreshold` (default **10**) knocks 1 extra flame — checked for the active attacker AND each individual waiter. ⚠️ **Dormant at today's cast values** (max single attack ≈ 6 even on Day 30). Becomes live via bigger boss attack multipliers, higher attack level, or lowering the threshold to ~5–6. Intentional: it's a free late-game ramp waiting for attack values to grow.
+- **Value-based refill:** stability dice refill the meter by their **face value** (boosts included), capped at maxFire. Replaces refill-to-full.
+- **Stability = PURE fire-refill die.** The half-potency damage placeholder (§6.4/§55) is REMOVED. Placement float shows "+X 🔥" over Ednar instead of damage.
+- **All-1s starting faces:** stability has its OWN tier ladder in `PotionShopDieTier.rollFace(for:)` — basic [1,1,1,1,1,1], silver [1,2,2,2,3,3], gold [2,3,3,4,4,5]. A basic die always refills exactly 1; upgrading the lane is the only way refills grow. (Supersedes the shared 1,2,2,3,3,4 faces for stability in §55.)
+- **At 0 fire going into a brew: potion damage HALVED** (already existed; unchanged).
+- Net identity: *one basic stability die every other turn holds the line* — a 1-value refill on a tick turn nets exactly zero.
+
+### 63.2 Balance-lab findings (bare game, no rewards)
+Default economy (tick 2, one basic die/round): fire fine through ~Day 15, then dark ~57–60% of turns by Days 20–25 → the stability lane NEEDS upgrades late, exactly the intended pressure. Harsh (tick 1, no dice): dark 29% on Day 1 → unplayable; don't ship tick 1 without buffing refills.
+
+### 63.3 Files touched
+`PotionShopModels.swift` (fireTickEveryNTurns, fireBigHitThreshold, rollFace(for:)), `PotionShopGameState.swift` (fireBrewCounter, value refill, tick, big-hit knocks, BrewPreview.stabilityRefill, stability case in computeBrew + placement float). Independent of the node-layout work (LayoutConfig/EditorKit untouched).

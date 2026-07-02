@@ -320,6 +320,23 @@ struct PotionShopConfig {
     static let roundsPerDay = 4
     /// Hand has 5 dice; you can place at most this many before brewing.
     static let maxPlacementsPerBrew = 3
+    /// ─── STABILITY FIRE ECONOMY (June 29, 2026 redesign) ────────────
+    /// The meter no longer burns 1 every brew / refills to full on any
+    /// stability die. New model:
+    ///   • Burns 1 flame every `fireTickEveryNTurns` brews (the slow tick).
+    ///   • Any SINGLE customer attack ≥ `fireBigHitThreshold` knocks 1 extra
+    ///     flame (the cauldron shakes). Early-game attacks (2–4) never
+    ///     trigger this; late-game double-digit hits do — a free ramp.
+    ///   • A stability die refills the meter by its FACE VALUE (capped),
+    ///     and stability dice START AT ALL 1s — upgrading the lane is the
+    ///     only way they grow (see PotionShopDieTier.rollFace(for:)).
+    ///   • At 0 fire going into a brew, potion damage is HALVED (unchanged).
+    /// TUNING: raise fireTickEveryNTurns to 3 for a gentler tick, set it to
+    /// 1 for the old harsh burn-every-turn. Raise the threshold to make big
+    /// hits rarer.
+    static let fireTickEveryNTurns = 2
+    static let fireBigHitThreshold = 10
+
     /// Stability fire meter: pieces shown under the cauldron. Starts full
     /// each time-slot, burns 1 per brew, refilled by stability dice.
     static let maxFire = 5
@@ -406,6 +423,25 @@ enum PotionShopDieTier: String, Codable {
         }
         return faces.randomElement()!
     }
+
+    /// JUNE 29, 2026 — type-aware roll. STABILITY has its own face ladder:
+    /// its value = flames refilled, so a basic stability die is ALL 1s
+    /// (always refills exactly 1) and upgrading the lane is the only way it
+    /// grows. Every other type uses the shared tier table above.
+    /// Ladder (raise-the-floor, Die-in-the-Dungeon style, faces ≤ 6):
+    ///   basic  [1,1,1,1,1,1]  → always 1
+    ///   silver [1,2,2,2,3,3]  → avg ~2.2
+    ///   gold   [2,3,3,4,4,5]  → avg ~3.5
+    func rollFace(for type: PotionShopDieType) -> Int {
+        guard type == .stability else { return rollFace() }
+        let faces: [Int]
+        switch self {
+        case .basic:  faces = [1, 1, 1, 1, 1, 1]
+        case .silver: faces = [1, 2, 2, 2, 3, 3]
+        case .gold:   faces = [2, 3, 3, 4, 4, 5]
+        }
+        return faces.randomElement()!
+    }
 }
 
 /// A live die in the player's hand or placed on the cauldron.
@@ -477,66 +513,149 @@ struct PotionShopBagDie: Codable {
     var rule: PotionShopDieRule = PotionShopDieRule()
 }
 
-// MARK: - Cauldron board topology
+// MARK: - Cauldron board topology (JULY 2, 2026 — BOARD LIBRARY SYSTEM)
 //
-// 12 nodes laid out in a custom positioning the user dialed in
-// previously. Edges connect nearby nodes — used to compute "reach"
-// for brewing math (a die affects nodes within `value` hops).
+// The board is no longer one hardcoded layout. It's a LIBRARY of board
+// definitions plus a DAY SCHEDULE that picks which board is active.
+// Every existing call site (PotionShopBoard.nodes, .edges, neighbors,
+// neighborsWithin) still works — they now read from the ACTIVE board.
 //
-// (These positions match the existing CauldronBoard from the old
-// CauldronGame so the user's debug positioning work is preserved.)
+// ─── HOW TO EDIT THE BOARD (plain-English guide) ─────────────────────
+//   • Move a node: change its x/y in the board definition below.
+//     Coordinates live in a ~0–110 wide × ~0–145 tall design space
+//     (same space the old 12-node board used, so the dialed-in layout
+//     editor values still frame the board correctly in the bowl).
+//   • Change the wiring: edit `edges`. (0,1) means "a line between
+//     node 0 and node 1". Boost reach, hover glow, and the drawn
+//     chalk lines ALL follow this list automatically.
+//   • Change mirror partners: edit `mirrorPairs`. [0: 8, 8: 0] means
+//     node 0 and node 8 are opposite each other. A node missing from
+//     this table (like the center node) has no mirror.
+//   • Add a bigger board for later days: copy the definition, give it
+//     a new id, and add a row to `schedule` below (e.g. (fromDay: 8,
+//     boardId: "chalk10")). Nothing else needs touching.
+//
+// ─── NODE NUMBERING NOTE ─────────────────────────────────────────────
+// Code counts from 0, the design sketch counted from 1. So sketch
+// node "1" = code node 0, sketch "2" = code 1, … sketch "9" = code 8.
+// Comments below show both.
+
+/// One complete board layout: node positions + wiring + mirror pairs.
+struct PotionShopBoardDef {
+    let id: String
+    let nodes: [PotionShopBoard.Node]
+    let edges: [(Int, Int)]
+    /// Point-symmetry partners: node → the node directly OPPOSITE it
+    /// through the center of the cauldron. Used by the (future) mirror
+    /// die: a mirror doubles whatever die sits at its partner node.
+    /// The dead-center node has no partner and is absent from this table.
+    let mirrorPairs: [Int: Int]
+}
 
 struct PotionShopBoard {
-    // ─── CHANGING THE NODE COUNT (Request 5 context, June 12 — NOT
-    // executed, just a map for later):
-    //   1. Add/remove entries in `nodes` below (positions) and update
-    //      `edges` so reach/boost math knows the new topology.
-    //   2. PotionShopLayoutConfig.perNodeOffsets is sized to 12 — update
-    //      its default array (and the saved-values reset) to the new count.
-    //   3. PotionShopCauldronView's `perNodeOffsets` default parameter is
-    //      also `count: 12` — update to match.
-    //   Everything else (node views, connection lines, drag targets) loops
-    //   over `nodes.count` and adapts automatically.
     struct Node {
         let x: Double
         let y: Double
     }
 
-    static let nodes: [Node] = [
-        Node(x: 36.0, y: 7.4),    // 0
-        Node(x: 70.9, y: 7.2),    // 1
-        Node(x: 6.1, y: 34.4),    // 2
-        Node(x: 56.5, y: 51.7),   // 3
-        Node(x: 100.3, y: 35.0),  // 4
-        Node(x: 5.4, y: 82.3),    // 5
-        Node(x: 56.1, y: 103.4),  // 6
-        Node(x: 104.3, y: 83.9),  // 7
-        Node(x: 2.5, y: 128.1),   // 8
-        Node(x: 39.2, y: 139.0),  // 9
-        Node(x: 79.3, y: 139.3),  // 10
-        Node(x: 109.7, y: 126.8), // 11
+    // ─── THE BOARD LIBRARY ───────────────────────────────────────────
+    // All boards the game knows about. v1 ships with ONE (chalk9).
+
+    /// The 9-node chalk board (from the user's July 2 sketch).
+    /// Wiring: an OUTER RING (1-2-5-6-9-7-8-4-1 in sketch numbers)
+    /// plus the center (sketch 3) connected to the four diagonals
+    /// (sketch 2, 4, 6, 7). The center does NOT connect to sketch 1
+    /// or 9 — no central hub.
+    /// Check: a boost on sketch-1 with "exactly 2 spaces" reach hits
+    /// sketch 5, 3, and 8 — the user's example, reproduced exactly.
+    static let chalk9 = PotionShopBoardDef(
+        id: "chalk9",
+        nodes: [
+            // JULY 2, 2026 (afternoon): positions BAKED from the user's
+            // layout-editor tuning (per-node nudges folded in; the editor's
+            // nodeScale/offset/spacing values moved to the config defaults).
+            // Coordinates can sit outside the old 0–110 envelope — that's
+            // the wider spread the user dialed in.
+            Node(x: 55.0,   y: 13.98),   // 0  (sketch 1 — top center)
+            Node(x: -3.88,  y: 26.43),   // 1  (sketch 2 — upper left)
+            Node(x: 55.0,   y: 68.43),   // 2  (sketch 3 — center)
+            Node(x: 114.09, y: 26.4),    // 3  (sketch 4 — upper right)
+            Node(x: -28.82, y: 75.48),   // 4  (sketch 5 — mid left)
+            Node(x: 4.88,   y: 116.54),  // 5  (sketch 6 — lower left)
+            Node(x: 105.32, y: 116.34),  // 6  (sketch 7 — lower right)
+            Node(x: 138.92, y: 75.68),   // 7  (sketch 8 — mid right)
+            Node(x: 55.0,   y: 135.62),  // 8  (sketch 9 — bottom center)
+        ],
+        edges: [
+            // Outer ring (clockwise from the top)
+            (0, 3),   // sketch 1–4
+            (3, 7),   // sketch 4–8
+            (7, 6),   // sketch 8–7
+            (6, 8),   // sketch 7–9
+            (8, 5),   // sketch 9–6
+            (5, 4),   // sketch 6–5
+            (4, 1),   // sketch 5–2
+            (1, 0),   // sketch 2–1
+            // Center spokes (center to the four diagonals only)
+            (2, 1),   // sketch 3–2
+            (2, 3),   // sketch 3–4
+            (2, 5),   // sketch 3–6
+            (2, 6),   // sketch 3–7
+        ],
+        mirrorPairs: [
+            0: 8, 8: 0,   // sketch 1 ↔ 9  (top ↔ bottom)
+            1: 6, 6: 1,   // sketch 2 ↔ 7  (upper-left ↔ lower-right)
+            3: 5, 5: 3,   // sketch 4 ↔ 6  (upper-right ↔ lower-left)
+            4: 7, 7: 4,   // sketch 5 ↔ 8  (mid-left ↔ mid-right)
+            // sketch 3 (code 2) is dead center — no mirror partner.
+        ]
+    )
+
+    /// Every board the game can use. Add new boards here.
+    static let library: [PotionShopBoardDef] = [chalk9]
+
+    // ─── THE DAY SCHEDULE ────────────────────────────────────────────
+    // Which board is active from which day. The LAST row whose
+    // `fromDay` is ≤ the current day wins. One row = same board
+    // forever. To grow the board on day 8, add e.g.:
+    //     (fromDay: 8, boardId: "chalk10"),
+    static let schedule: [(fromDay: Int, boardId: String)] = [
+        (fromDay: 1, boardId: "chalk9"),
     ]
 
-    static let edges: [(Int, Int)] = [
-        // Row 1 (top): 0, 1
-        (0,1), (0,2), (0,3),
-        (1,3), (1,4),
-        
-        // Row 2: 2, 3, 4
-        (2,3), (2,5), (2,8),
-        (3,4), (3,5), (3,6), (3,7),
-        (4,6), (4,11),
-        
-        // Row 3 (middle): 5, 7, 6
-        (5,7), (5,8), (5,9),
-        (6,7), (6,10), (6,11),
-        (7,9), (7,10),
-        
-        // Row 4 (bottom): 8, 9, 10, 11
-        (8,9),
-        (9,10),
-        (10,11),
-    ]
+    /// The board currently in play. PotionShopGameState keeps this in
+    /// sync with the day; everything else just reads it.
+    static private(set) var active: PotionShopBoardDef = chalk9
+
+    /// Largest node count across the library — used to size offset
+    /// arrays so they never come up short when a bigger board loads.
+    static var maxNodeCount: Int {
+        library.map { $0.nodes.count }.max() ?? chalk9.nodes.count
+    }
+
+    /// Pick the active board for a given day number (1-based).
+    /// Called by PotionShopGameState whenever the day changes.
+    static func setActiveBoard(forDay day: Int) {
+        var chosenId = schedule.first?.boardId ?? chalk9.id
+        for row in schedule where row.fromDay <= day {
+            chosenId = row.boardId
+        }
+        if let def = library.first(where: { $0.id == chosenId }) {
+            active = def
+        }
+    }
+
+    // ─── ACTIVE-BOARD ACCESSORS (existing call sites use these) ─────
+
+    static var nodes: [Node] { active.nodes }
+    static var edges: [(Int, Int)] { active.edges }
+
+    /// The node directly opposite `index` through the cauldron's center
+    /// (nil for the dead-center node). This is the hook for the future
+    /// MIRROR die: "double whatever die sits at my mirror node."
+    static func mirrorNode(of index: Int) -> Int? {
+        active.mirrorPairs[index]
+    }
 
     /// Returns immediate neighbors (1 hop away).
     static func neighbors(of index: Int) -> [Int] {
@@ -567,6 +686,16 @@ struct PotionShopBoard {
         }
         visited.remove(index)
         return Array(visited)
+    }
+
+    /// Returns nodes EXACTLY `hops` away (skips everything closer).
+    /// JULY 2, 2026: this powers the new boost rule — a boost skips its
+    /// direct neighbors and lands on the ring exactly 2 steps out.
+    static func neighborsExactly(_ index: Int, hops: Int) -> [Int] {
+        guard hops > 0 else { return [] }
+        let within = Set(neighborsWithin(index, hops: hops))
+        let closer = Set(neighborsWithin(index, hops: hops - 1))
+        return Array(within.subtracting(closer))
     }
 }
 
@@ -603,13 +732,15 @@ struct PotionShopDieRules {
 
         // ─── BOOST ──────────────────────────────────────────────
         case .boost:
-            // JUNE 20, 2026: a boost affects its DIRECTLY CONNECTED neighbors
-            // (1 hop) — the nodes it's literally wired to on the board. The
-            // boost's VALUE controls how MUCH it adds (in computeBrew), NOT
-            // how far it reaches. (Previously reach = die.value hops, which
-            // confusingly made bigger boosts reach farther.) So "connected"
-            // now means exactly what you see: the lines from this node.
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: 1)
+            // JULY 2, 2026: a boost affects nodes EXACTLY 2 spaces away —
+            // it SKIPS its direct neighbors and lands on the ring two
+            // steps out (Die in the Dungeon-style spacing puzzle). The
+            // boost's VALUE controls how MUCH it adds (in computeBrew),
+            // NOT how far it reaches.
+            // Example on the chalk9 board: a boost on sketch-node 1
+            // affects sketch nodes 5, 3, and 8.
+            // (Previously: 1 hop / direct neighbors — June 20, 2026.)
+            return PotionShopBoard.neighborsExactly(nodeIndex, hops: 2)
 
         // ─── HEAL ───────────────────────────────────────────────
         case .heal:

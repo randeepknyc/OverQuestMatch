@@ -234,6 +234,26 @@ struct ShopOfOdditiesView: View {
                         .minimumScaleFactor(0.7)
                 }
                 
+                // Skip / boot button — sends current customer to back of the line
+                if gameState.currentCustomer != nil && !gameState.gameOver {
+                    Button(action: {
+                        gameState.bootCurrentCustomer()
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.uturn.right.circle.fill")
+                                .font(.system(size: 16))
+                            Text("\(gameState.bootsRemaining)")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(canBoot ? .white.opacity(0.85) : .white.opacity(0.25))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.3))
+                        .cornerRadius(8)
+                    }
+                    .disabled(!canBoot)
+                }
+                
                 Spacer()
                 
                 // Customers served count (moved from center)
@@ -346,6 +366,7 @@ struct ShopOfOdditiesView: View {
                 type: .structural,
                 topCard: gameState.topCard(of: .structural),
                 cardsRemaining: gameState.cardsRemaining(in: .structural),
+                cursedRemaining: gameState.cursedCardsRemaining(in: .structural),
                 canDraw: gameState.canDraw(from: .structural),
                 rotationDegrees: ShopLayoutConfig.deckRotations[0],
                 onTap: { insertIndex in
@@ -366,6 +387,7 @@ struct ShopOfOdditiesView: View {
                 type: .enchantment,
                 topCard: gameState.topCard(of: .enchantment),
                 cardsRemaining: gameState.cardsRemaining(in: .enchantment),
+                cursedRemaining: gameState.cursedCardsRemaining(in: .enchantment),
                 canDraw: gameState.canDraw(from: .enchantment),
                 rotationDegrees: ShopLayoutConfig.deckRotations[1],
                 onTap: { insertIndex in
@@ -386,6 +408,7 @@ struct ShopOfOdditiesView: View {
                 type: .memory,
                 topCard: gameState.topCard(of: .memory),
                 cardsRemaining: gameState.cardsRemaining(in: .memory),
+                cursedRemaining: gameState.cursedCardsRemaining(in: .memory),
                 canDraw: gameState.canDraw(from: .memory),
                 rotationDegrees: ShopLayoutConfig.deckRotations[2],
                 onTap: { insertIndex in
@@ -406,6 +429,7 @@ struct ShopOfOdditiesView: View {
                 type: .wildcraft,
                 topCard: gameState.topCard(of: .wildcraft),
                 cardsRemaining: gameState.cardsRemaining(in: .wildcraft),
+                cursedRemaining: gameState.cursedCardsRemaining(in: .wildcraft),
                 canDraw: gameState.canDraw(from: .wildcraft),
                 rotationDegrees: ShopLayoutConfig.deckRotations[3],
                 onTap: { insertIndex in
@@ -437,6 +461,11 @@ struct ShopOfOdditiesView: View {
     }
     
     // MARK: - Helper Methods
+    
+    /// Whether the skip/boot button should currently be tappable
+    private var canBoot: Bool {
+        gameState.bootsRemaining > 0 && gameState.repairSlots.filledCount == 0
+    }
     
     /// Check if all slots are filled (ready to complete repair)
     private func checkIfRepairReady() {

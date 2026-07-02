@@ -130,6 +130,12 @@ struct ShopLayoutConfig {
     /// Bottom ledge line opacity (line below repair cards, between counter and decks)
     static let counterBottomLedgeOpacity: Double = 0.2
     
+    // MARK: - Customer Boot / Skip
+
+    /// How many times the player can send a customer to the back of the line per game.
+    /// Set to 0 to disable the boot feature entirely.
+    static let bootsPerGame: Int = 3
+
     // MARK: - Deal Animation (game start)
     
     /// Enable/disable deal animation at game start

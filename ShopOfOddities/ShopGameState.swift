@@ -28,6 +28,9 @@ class ShopGameState {
     var gameWon: Bool = false
     var gameOverReason: String?
     
+    /// How many times the player can still skip a customer this game
+    var bootsRemaining: Int = ShopLayoutConfig.bootsPerGame
+    
     // UI State (for overlays and animations)
     var showingResultOverlay: Bool = false
     var showingNewRepairDiscovered: Bool = false
@@ -87,6 +90,7 @@ class ShopGameState {
         gameOver = false
         gameWon = false
         gameOverReason = nil
+        bootsRemaining = ShopLayoutConfig.bootsPerGame
         
         // Reset UI state
         showingResultOverlay = false
@@ -268,6 +272,30 @@ class ShopGameState {
     
     // MARK: - Customer Management
     
+    /// Send the current customer to the back of the line instead of serving them now.
+    /// Only allowed before any cards have been placed for them, and limited to
+    /// `bootsRemaining` uses per game so it stays a real decision, not a free stall.
+    func bootCurrentCustomer() {
+        guard !gameOver else { return }
+        guard bootsRemaining > 0 else { return }
+        guard repairSlots.filledCount == 0 else { return } // Don't strand placed cards
+        guard customers.count > 1 else { return } // No point booting the last customer
+        guard let booted = currentCustomer else { return }
+        
+        bootsRemaining -= 1
+        
+        // Move current customer to the back of the queue
+        customers.removeFirst()
+        customers.append(booted)
+        
+        currentCustomer = customers.first
+        nextCustomer = customers.count > 1 ? customers[1] : nil
+        
+        print("👢 Booted \(booted.name) to the back of the line. Boots remaining: \(bootsRemaining)")
+        
+        triggerCustomerArrivalCommentary()
+    }
+    
     /// Force a specific customer to be the current customer (for debugging)
     func forceCustomer(_ customer: Customer) {
         currentCustomer = customer
@@ -352,6 +380,14 @@ class ShopGameState {
     /// Cards remaining in a specific deck
     func cardsRemaining(in type: ComponentType) -> Int {
         decks[type]?.count ?? 0
+    }
+    
+    /// Number of cursed cards still hidden beneath the visible top card in a deck.
+    /// Shown to the player as an early-warning badge (the top card itself is
+    /// already visible, so it isn't counted here).
+    func cursedCardsRemaining(in type: ComponentType) -> Int {
+        guard let deck = decks[type], deck.count > 1 else { return 0 }
+        return deck.dropFirst().filter { $0.isCursed }.count
     }
     
     /// Get count of discovered repair names
