@@ -98,9 +98,21 @@ struct PotionShopImageLoader {
     }
 
     /// Creates a view showing either the asset image or emoji fallback
+    /// JULY 2, 2026 (late night): HEAD PORTRAIT convention. Circular
+    /// profile spots try "<assetName>_head" FIRST (e.g. gmarker_octo_head)
+    /// so a character whose single asset is a full body gets a proper
+    /// head shot the moment one is drawn — zero data changes needed.
+    /// Until the head exists, the full asset shows circle-cropped,
+    /// exactly as before.
     @ViewBuilder
     static func imageOrEmoji(assetName: String, fallbackEmoji: String, size: CGFloat) -> some View {
-        if let uiImage = loadDisplayImage(named: assetName, displaySize: size) {
+        if let headImage = loadDisplayImage(named: "\(assetName)_head", displaySize: size) {
+            Image(uiImage: headImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        } else if let uiImage = loadDisplayImage(named: assetName, displaySize: size) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -616,15 +628,15 @@ struct PotionShopBoard {
             // nodeScale/offset/spacing values moved to the config defaults).
             // Coordinates can sit outside the old 0–110 envelope — that's
             // the wider spread the user dialed in.
-            Node(x: 55.0,   y: 13.98),   // 0  (sketch 1 — top center)
-            Node(x: -3.88,  y: 26.43),   // 1  (sketch 2 — upper left)
-            Node(x: 55.0,   y: 68.43),   // 2  (sketch 3 — center)
-            Node(x: 114.09, y: 26.4),    // 3  (sketch 4 — upper right)
-            Node(x: -28.82, y: 75.48),   // 4  (sketch 5 — mid left)
-            Node(x: 4.88,   y: 116.54),  // 5  (sketch 6 — lower left)
-            Node(x: 105.32, y: 116.34),  // 6  (sketch 7 — lower right)
-            Node(x: 138.92, y: 75.68),   // 7  (sketch 8 — mid right)
-            Node(x: 55.0,   y: 135.62),  // 8  (sketch 9 — bottom center)
+            Node(x: 53.46, y: 13.98),   // 0  (sketch 1 — top center)
+            Node(x: 2.46, y: 43.35),   // 1  (sketch 2 — upper left)
+            Node(x: 55.77, y: 72.85),   // 2  (sketch 3 — center)
+            Node(x: 106.02, y: 41.78),   // 3  (sketch 4 — upper right)
+            Node(x: -38.24, y: 82.59),   // 4  (sketch 5 — mid left)
+            Node(x: 4.88, y: 116.54),   // 5  (sketch 6 — lower left)
+            Node(x: 105.32, y: 116.34),   // 6  (sketch 7 — lower right)
+            Node(x: 150.65, y: 83.95),   // 7  (sketch 8 — mid right)
+            Node(x: 54.81, y: 129.66),   // 8  (sketch 9 — bottom center)
         ],
         edges: [
             // Outer ring (clockwise from the top)

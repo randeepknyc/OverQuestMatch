@@ -977,23 +977,22 @@ class PotionShopGameState {
         
         for (nodeId, rect) in nodePositions {
             if rect.contains(position) {
-                // If dragging from a node, don't count the source node as a collision
+                // JULY 2, 2026 (late night) FIX: hovering back over the
+                // die's OWN source node now COUNTS as hovering, so the
+                // reach preview lights up again when you drag the die
+                // home ("what happens if I leave it here"). Previously
+                // the source node was skipped entirely, so the preview
+                // died the moment the finger returned. Safe for drops:
+                // the node-drag's release logic uses findNodeAtPosition
+                // + its own target != source guard, not hoveredNodeIndex,
+                // so releasing over the source still just snaps back.
                 if let sourceNode = draggedFromNode, nodeId == sourceNode {
-                    // This is the source node - skip it (don't show as hovered)
-                    continue
+                    foundNode = nodeId
+                    break
                 }
                 
-                // Check if target node is empty (ignore source node's die if we're moving it)
-                let nodeIsEmpty: Bool
-                if let sourceNode = draggedFromNode {
-                    // When dragging node-to-node, ignore the die on the source node
-                    nodeIsEmpty = (placements[nodeId] == nil)
-                } else {
-                    // When dragging from tray, just check if node is empty
-                    nodeIsEmpty = (placements[nodeId] == nil)
-                }
-                
-                if nodeIsEmpty {
+                // Any other node must be empty to hover.
+                if placements[nodeId] == nil {
                     foundNode = nodeId
                     break
                 }
@@ -1060,13 +1059,37 @@ class PotionShopGameState {
               let hovered = hoveredNodeIndex
         else { return [] }
 
-        // Only preview reach for empty targets (no point previewing
-        // a drop that would fail anyway)
-        guard placements[hovered] == nil else { return [] }
+        // Only preview reach for empty targets — EXCEPT the die's own
+        // source node (JULY 2 late-night fix): dragging a placed die back
+        // home previews its reach again, as if (re)placed there.
+        guard placements[hovered] == nil || hovered == draggedFromNode else { return [] }
 
         let reach = PotionShopDieRules.affectedNodes(for: die, placedAt: hovered)
         var result = Set(reach)
         result.remove(hovered)  // the target gets its own glow
+        return result
+    }
+
+    /// JULY 2, 2026 (late night): nodes CHARGED by placed boosts — every
+    /// EMPTY node inside a placed boost die's reach. These keep pulsing
+    /// (same glow as the hover preview) after the boost is placed, until
+    /// a die fills them: a standing invitation showing where the boost's
+    /// power is waiting. Occupied nodes drop out automatically.
+    var boostChargedNodes: Set<Int> {
+        var result = Set<Int>()
+        for (node, die) in placements where die.type == .boost {
+            // JULY 2 (later): while a placed boost is being DRAGGED, its
+            // standing charge LIFTS — mid-drag the die still sits in
+            // `placements` at its old node, so without this the old
+            // charge and the hover preview both glowed (additive). The
+            // hover preview alone speaks for wherever the finger is;
+            // the charge resumes on drop (home or elsewhere).
+            if node == draggedFromNode { continue }
+            for target in PotionShopDieRules.affectedNodes(for: die, placedAt: node)
+            where placements[target] == nil {
+                result.insert(target)
+            }
+        }
         return result
     }
 

@@ -4062,13 +4062,15 @@ Default economy (tick 2, one basic die/round): fire fine through ~Day 15, then d
   at `placedDieHugScale` (0.86, PotionShopCauldronLayout) so the chalk
   peeks out and "hugs" the die. No asset = old edge-to-edge + parchment
   rect fallback.
-- `node_glow1…N` — reach-preview animation frames, ANY count (probed to
-  12 by `PotionShopNodeGlowAssets`, cached). Plays at
-  `PotionShopNodeGlowTuning.glowFrameFPS` (8), size ×`glowArtScale` (1.35),
-  rendered ON TOP of node art (moved above it July 2 evening — behind,
-  opaque chalk could hide it), still under the placed die. When frames
-  exist the built-in cyan preview shadow is suppressed (preview state
-  only); no frames = cyan unchanged.
+- `node_glow1…N` — a GLOWING VERSION of the chalk circle (same canvas as
+  potion_node). While a node is lit (hover reach OR boost charge) the
+  frames REPLACE potion_node in its exact slot — same frame, same size
+  treatments (global ×, per-node ×, occupied growth, breathing) — at
+  `glowFrameFPS` (8). Unlit = normal chalk. glowArtScale is RETIRED
+  (July 2 later; frames were briefly an oversized overlay ON TOP of the
+  chalk — user's assets are full replacements, so stacked art doubled
+  up). Cyan preview shadow still suppressed when frames exist; no
+  frames = cyan fallback unchanged.
 - ✅ HOVER-GLOW BUG — DIAGNOSED & FIXED (July 2, end of session): tray→node
   drags showed NO glow (no yellow target, no reach preview) while
   node→node drags worked. Cause: the offset-based tray-drag rewrite (the
@@ -4132,7 +4134,10 @@ export additions).
   The white silhouette underlay stays static.
 - Asset names built from each character's scenePortrait:
   `<scenePortrait>_boil1…N` and `<scenePortrait>_attack1…N` (probe max 12,
-  cached by PotionShopCustomerAnimAssets). e.g. mildred_scene_boil1.
+  cached by PotionShopCustomerAnimAssets). The ACTIVE cast is the gmarker_
+  set (portrait = scenePortrait = e.g. "gmarker_octo"), so frames are
+  gmarker_octo_boil1, gmarker_octo_attack1, etc. Legacy mildred-cast
+  characters would use mildred_scene_boil1 — same rule, their asset name.
   Draw frames at the SAME canvas as the scenePortrait so they register.
   A single _attack1 = held attack POSE. FPS knobs:
   PotionShopCustomerAnimTuning (boilFPS 6, attackFPS 10).
@@ -4199,3 +4204,40 @@ by moving the growth to a dedicated @State (occupiedPop) flipped inside
 its own withAnimation transaction, so only the scaleEffect springs.
 LESSON: never attach `.animation(value:)` to a container whose subtree
 has matchedGeometryEffect children — scope animations to dedicated state.
+
+### 65.9 Chalk lines v2 — per-edge, cosmetic (July 2, late night)
+Smart mode redesigned: an edge draws ONLY when BOTH endpoints hold placed
+dice (placing a 2nd die draws just the line(s) connecting the dice — never
+the whole wiring; dragging draws nothing new). During the brew those
+dice-connecting lines pulse potion-green (0.65–1.0 opacity, 3.5–5pt);
+boost-fed edges keep their gold pulse and win over the green. Always/
+Hidden modes unchanged (Always = full wiring). Layer-level smart fade
+removed — visibility is per-edge inside the Canvas now, so lines appear
+crisply at the moment the second die snaps in.
+
+### 65.10 Boost charge glow, source-node preview fix, head portraits (July 2, late night)
+- BOOST CHARGE: GameState.boostChargedNodes = empty nodes in any PLACED
+  boost's reach; NodeButtonView.isInPreview ORs it in, so those nodes keep
+  the preview pulse (frames or cyan) after placement until dice fill them.
+  While a placed boost is being node-dragged its charge LIFTS (skip
+  node == draggedFromNode) — otherwise the old charge + hover preview
+  glowed additively; charge resumes on drop.
+- SOURCE-NODE PREVIEW FIX: dragging a placed die back over its OWN node
+  now hovers (updateDragHoverPosition returns the source; the old code
+  skipped it, killing the preview on return) and previewAffectedNodes
+  allows hovered == draggedFromNode. Drop behavior unchanged — the node
+  drag's release path uses findNodeAtPosition + target != source, not
+  hoveredNodeIndex.
+- HEAD PORTRAITS: imageOrEmoji probes "<portrait>_head" first (e.g.
+  gmarker_octo_head, square ~1024) before the base asset; gmarker chars'
+  circular spots show circle-cropped full body until heads are drawn.
+
+### 65.11 Layout bake #2 (July 2, ~4:17 PM export)
+User-tuned per-node offsets for nodes 0,1,2,3,4,7,8 folded into the
+chalk9 definition (÷ spacing 1.7340425252914429; nodes 5,6 untouched).
+New baked coords: 0(53.46,13.98) 1(2.46,43.35) 2(55.77,72.85)
+3(106.02,41.78) 4(-38.24,82.59) 5(4.88,116.54) 6(105.32,116.34)
+7(150.65,83.95) 8(54.81,129.66). nodeOccupiedScale BAKED =
+1.2491134881973267 (default + locked defaults + Reset All Nodes all
+restore this value now — resets return to the TUNED look, not 1.0).
+Per-node offsets are zero again after pasting.

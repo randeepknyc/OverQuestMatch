@@ -597,8 +597,9 @@ struct PotionShopNodeGlowTuning {
 
     /// Frames per second for the node_glow sequence.
     static let glowFrameFPS: Double = 8
-    /// How much bigger than the node art the glow frames render
-    /// (1.0 = same size; 1.35 = glow spills past the chalk edges).
+    /// RETIRED (July 2, later): glow frames now REPLACE the chalk art in
+    /// its exact slot, so they always render at node size — this knob no
+    /// longer does anything. Kept so old pasted files still compile.
     static let glowArtScale: CGFloat = 1.35
 }
 
@@ -656,7 +657,12 @@ struct PotionShopNodeButtonView: View {
         gs.hoveredNodeIndex == nodeIndex && !isDraggingFromHere
     }
     private var isInPreview: Bool {
+        // Hover reach preview OR (JULY 2, late night) a placed boost's
+        // standing charge: empty nodes in a placed boost's reach keep
+        // pulsing until dice fill them. Same glow/frames, same pulse —
+        // the onChange(of: isInPreview) loop drives both automatically.
         gs.previewAffectedNodes.contains(nodeIndex)
+            || gs.boostChargedNodes.contains(nodeIndex)
     }
 
     // ─── GLOW APPEARANCE ─────────────────────────────────────────
@@ -743,48 +749,45 @@ struct PotionShopNodeButtonView: View {
                     height: PotionShopCauldronLayout.nodeHitArea * visualScale
                 )
 
-            // ━━━ NODE BACKGROUND ART (always visible) ━━━━━━━━━━━━
-            // Uses your "potion_node" asset if present, otherwise
-            // falls back to a plain rounded rectangle.
-            nodeBackground
-                .frame(
-                    width: PotionShopCauldronLayout.nodeVisible * visualScale,
-                    height: PotionShopCauldronLayout.nodeVisible * visualScale
-                )
-                // Reach-preview breathing (Request 7): node art gently
-                // grows/shrinks while in the hovered die's reach.
-                .scaleEffect(previewScale)
-                // Two stacked shadows = a thicker, softer glow
-                .shadow(color: glowColor.opacity(glowOpacity), radius: glowRadius)
-                .shadow(color: glowColor.opacity(glowOpacity * 0.55), radius: glowRadius * 0.5)
-                .animation(.easeInOut(duration: 0.22), value: isHovered)
-                .animation(.easeInOut(duration: 0.22), value: canBePlacedOn)
-                .animation(.easeInOut(duration: 0.30), value: placedDie?.id)
-                .animation(.easeInOut(duration: 0.18), value: isInPreview)
-                .allowsHitTesting(false)  // Gestures live on the outer ZStack
-
-            // ━━━ HAND-DRAWN GLOW FRAMES (JULY 2, 2026) ━━━━━━━━━━━
-            // While this node is in the hovered die's reach preview,
-            // loop the node_glow1…N sequence ON TOP of the node art
-            // (moved above the art July 2 evening — behind it, opaque
-            // chalk could hide the glow entirely). The placed die still
-            // renders above this, so glow rings around dice read fine.
-            // Only renders when frames exist (see PotionShopNodeGlowAssets).
-            if isInPreview, hasGlowFrames {
-                TimelineView(.animation) { timeline in
-                    let t = timeline.date.timeIntervalSinceReferenceDate
-                    let count = PotionShopNodeGlowAssets.frameCount()
-                    let frame = Int(t * max(0.1, PotionShopNodeGlowTuning.glowFrameFPS)) % count
-                    Image("node_glow\(frame + 1)")
-                        .resizable()
-                        .scaledToFit()
+            // ━━━ NODE ART: chalk OR glow frames (JULY 2, re-rigged) ━━
+            // Your node_glow1…N frames are a GLOWING VERSION of the
+            // chalk circle, so while this node is lit (hover reach or a
+            // placed boost's charge) the frames REPLACE potion_node —
+            // rendered in the exact same slot, same frame, same
+            // scaling — instead of stacking on top of it. Empty/unlit
+            // moments show the normal chalk art. Because both live in
+            // this one slot, every size treatment (All Nodes ×,
+            // per-node ×, Occupied Growth spring, preview breathing)
+            // applies to chalk and glow identically.
+            Group {
+                if isInPreview, hasGlowFrames {
+                    TimelineView(.animation) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        let count = PotionShopNodeGlowAssets.frameCount()
+                        let frame = Int(t * max(0.1, PotionShopNodeGlowTuning.glowFrameFPS)) % count
+                        Image("node_glow\(frame + 1)")
+                            .resizable()
+                            .scaledToFit()
+                    }
+                } else {
+                    nodeBackground
                 }
-                .frame(
-                    width: PotionShopCauldronLayout.nodeVisible * visualScale * PotionShopNodeGlowTuning.glowArtScale,
-                    height: PotionShopCauldronLayout.nodeVisible * visualScale * PotionShopNodeGlowTuning.glowArtScale
-                )
-                .allowsHitTesting(false)
             }
+            .frame(
+                width: PotionShopCauldronLayout.nodeVisible * visualScale,
+                height: PotionShopCauldronLayout.nodeVisible * visualScale
+            )
+            // Reach-preview breathing (Request 7): node art gently
+            // grows/shrinks while in the hovered die's reach.
+            .scaleEffect(previewScale)
+            // Two stacked shadows = a thicker, softer glow
+            .shadow(color: glowColor.opacity(glowOpacity), radius: glowRadius)
+            .shadow(color: glowColor.opacity(glowOpacity * 0.55), radius: glowRadius * 0.5)
+            .animation(.easeInOut(duration: 0.22), value: isHovered)
+            .animation(.easeInOut(duration: 0.22), value: canBePlacedOn)
+            .animation(.easeInOut(duration: 0.30), value: placedDie?.id)
+            .animation(.easeInOut(duration: 0.18), value: isInPreview)
+            .allowsHitTesting(false)  // Gestures live on the outer ZStack
 
             // ━━━ DIE ON TOP (visual only — no gestures here) ━━━━━━
             // JULY 2, 2026: when the chalk node art exists, the placed die
@@ -1928,25 +1931,31 @@ struct PotionShopNodeConnectionLines: View {
         PotionShopNodeLineMode(rawValue: PotionShopLayoutConfig.shared.nodeLineModeRaw) ?? .smart
     }
 
-    /// Overall line-layer opacity for the current moment.
-    ///   always → 1, hidden → 0.
-    ///   smart  → 0 when the board is idle; 0.75 (soft chalk) while
-    ///            dragging or while dice sit on the board; 1.0 during
-    ///            the brew animation.
+    /// Overall line-layer opacity: always → 1, hidden → 0, smart → 1
+    /// (in smart mode, visibility is decided PER EDGE — see body).
     private var layerOpacity: Double {
         switch mode {
         case .always: return 1.0
         case .hidden: return 0.0
-        case .smart:
-            guard let gs = gs else { return 1.0 }
-            // JULY 2, 2026 (evening): lines only matter when TWO dice can
-            // interact. One lone die on the board = no lines. A dragged
-            // die counts as the second when one is already placed.
-            let placed = gs.placements.count
-            if gs.isAnimating { return placed >= 2 ? 1.0 : 0.0 }   // brewing — full strength
-            if gs.draggedDie != nil { return placed >= 1 ? 0.75 : 0.0 }  // dragging toward a pair
-            return placed >= 2 ? 0.75 : 0.0                        // two+ on board — stay
+        case .smart:  return 1.0
         }
+    }
+
+    /// JULY 2, 2026 (late night) — POTIONY COSMETIC LINES. In smart mode
+    /// an edge is drawn ONLY when BOTH of its endpoint nodes have dice on
+    /// them: placing a second die draws exactly the chalk line(s)
+    /// CONNECTING the two dice, not the whole board's wiring. Purely
+    /// visual for now. During the brew, these dice-connecting lines GLOW
+    /// (green energy pulse — see body); boost-fed edges keep their gold.
+    private var connectedEdges: Set<[Int]> {
+        guard let gs = gs else { return [] }
+        var result = Set<[Int]>()
+        for (a, b) in PotionShopBoard.edges {
+            if gs.placements[a] != nil, gs.placements[b] != nil {
+                result.insert([a, b])
+            }
+        }
+        return result
     }
 
     /// Set of edges (as ordered pairs, both directions) that are active boost
@@ -1972,6 +1981,10 @@ struct PotionShopNodeConnectionLines: View {
     var body: some View {
         let boosted = boostEdges
         let visibility = layerOpacity
+        let connected = connectedEdges
+        // In smart mode only dice-connecting edges draw; Always draws all.
+        let smartMode = (mode == .smart)
+        let brewing = gs?.isAnimating ?? false
         // JUNE 20, 2026: TimelineView drives a continuous pulse for the gold
         // boost lines (opacity + width oscillate). Only animates when there
         // ARE boost lines; otherwise it's a static draw.
@@ -1983,6 +1996,10 @@ struct PotionShopNodeConnectionLines: View {
             Canvas { context, size in
                 // Draw each edge as a line
                 for (fromIdx, toIdx) in PotionShopBoard.edges {
+                    // SMART: skip any edge that isn't connecting two dice.
+                    if smartMode && !connected.contains([fromIdx, toIdx]) {
+                        continue
+                    }
                     let fromNode = PotionShopBoard.nodes[fromIdx]
                     let toNode = PotionShopBoard.nodes[toIdx]
 
@@ -2006,6 +2023,17 @@ struct PotionShopNodeConnectionLines: View {
                         context.stroke(
                             path,
                             with: .color(Color(red: 1.0, green: 0.78, blue: 0.25).opacity(op)),
+                            lineWidth: w
+                        )
+                    } else if smartMode && brewing {
+                        // BREW GLOW (JULY 2, late night): while the brew
+                        // plays, every line connecting two dice pulses
+                        // with bright potion-green energy.
+                        let op = 0.65 + 0.35 * pulse
+                        let w = 3.5 + 1.5 * pulse
+                        context.stroke(
+                            path,
+                            with: .color(Color(red: 0.45, green: 0.95, blue: 0.55).opacity(op)),
                             lineWidth: w
                         )
                     } else {
