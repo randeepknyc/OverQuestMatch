@@ -89,6 +89,10 @@ struct PotionShopHeaderView: View {
                     composure: gs.composure,
                     maxComposure: PotionShopConfig.maxComposure,
                     shield: gs.shield,
+                    // Predicted shield from placed dice — pulses in the bar
+                    // while PLACING; 0 during the brew so the moment the
+                    // real shield lands, the slice solidifies.
+                    previewShield: gs.isAnimating ? 0 : gs.livePreview.shielding,
                     flashCounter: gs.composureFlashCounter,
                     flashKind: gs.composureFlashKind,
                     barHeight: cfg.headerBarHeight
@@ -210,6 +214,10 @@ struct PotionShopComposureBarView: View {
     let composure: Int
     let maxComposure: Int
     let shield: Int
+    /// JULY 2, 2026: shield the CURRENT placements would grant (from
+    /// gs.livePreview) — rendered as a fading-in-and-out slice until the
+    /// brew lands. 0 while brewing / nothing placed.
+    var previewShield: Int = 0
     let flashCounter: Int
     let flashKind: PotionShopComposureFlash
     var barHeight: Double = 20
@@ -224,6 +232,34 @@ struct PotionShopComposureBarView: View {
     private var shieldPct: Double {
         guard maxComposure > 0 else { return 0 }
         return min(Double(shield), Double(maxComposure)) / Double(maxComposure)
+    }
+
+    private var previewPct: Double {
+        guard maxComposure > 0 else { return 0 }
+        return min(Double(previewShield), Double(maxComposure)) / Double(maxComposure)
+    }
+
+    /// One teal shield slice (image-masked when the asset exists, plain
+    /// teal otherwise) — shared by the solid and the pulsing preview.
+    @ViewBuilder
+    private func shieldSlice(width: CGFloat, offset: CGFloat,
+                             barWidth: CGFloat, barHeight: CGFloat) -> some View {
+        if let shieldImg = UIImage(named: "composure_bar_shield") {
+            Image(uiImage: shieldImg)
+                .resizable()
+                .frame(width: barWidth, height: barHeight)
+                .mask(
+                    Rectangle()
+                        .frame(width: width)
+                        .offset(x: offset)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                )
+        } else {
+            Rectangle()
+                .fill(PotionShopTheme.shield)
+                .frame(width: width, height: barHeight)
+                .offset(x: offset)
+        }
     }
 
     /// Which fill asset to use based on composure percentage.
@@ -276,33 +312,40 @@ struct PotionShopComposureBarView: View {
                 }
 
                 // 2. Shield overlay — sits right after the composure fill.
-                //    The shield extends from compoPct to (compoPct + shieldPct),
-                //    capped at the bar's right edge. We mask the full-width
-                //    shield image to show only that slice.
-                if shield > 0 {
-                    let shieldStart = barWidth * compoPct
-                    let shieldEnd = min(barWidth, barWidth * (compoPct + shieldPct))
-                    let visibleWidth = shieldEnd - shieldStart
-                    if visibleWidth > 0 {
-                        if let shieldImg = UIImage(named: "composure_bar_shield") {
-                            Image(uiImage: shieldImg)
-                                .resizable()
-                                .frame(width: barWidth, height: barHeight)
-                                .mask(
-                                    Rectangle()
-                                        .frame(width: visibleWidth)
-                                        .offset(x: shieldStart)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                )
-                                .animation(.easeInOut(duration: 0.35), value: shield)
-                                .animation(.easeInOut(duration: 0.35), value: composure)
-                        } else {
-                            Rectangle()
-                                .fill(PotionShopTheme.shield)
-                                .frame(width: visibleWidth, height: barHeight)
-                                .offset(x: shieldStart)
-                                .animation(.easeInOut(duration: 0.35), value: shield)
-                                .animation(.easeInOut(duration: 0.35), value: composure)
+                //    JULY 2, 2026 FIX: when composure is FULL the old math
+                //    put the slice at the bar's right edge with zero width
+                //    (invisible shield). The shield group is now RIGHT-
+                //    ANCHORED when it runs out of room: at full composure
+                //    it overlays the fill's right end, so you always see
+                //    exactly how much shield you have.
+                //    JULY 2, 2026 NEW: predicted shield from placed dice
+                //    (livePreview) renders as an extra slice that FADES
+                //    IN AND OUT until the brew lands; the real shield is
+                //    solid. Both slide/solidify together on brew.
+                if shield > 0 || previewShield > 0 {
+                    let shieldW = barWidth * shieldPct
+                    let previewW = barWidth * previewPct
+                    let groupW = min(barWidth, shieldW + previewW)
+                    let groupEnd = min(barWidth, barWidth * (compoPct + shieldPct + previewPct))
+                    let groupStart = max(0, groupEnd - groupW)
+                    let solidW = min(groupW, shieldW)
+
+                    // Solid slice — the shield you actually have.
+                    if solidW > 0 {
+                        shieldSlice(width: solidW, offset: groupStart,
+                                    barWidth: barWidth, barHeight: barHeight)
+                            .animation(.easeInOut(duration: 0.35), value: shield)
+                            .animation(.easeInOut(duration: 0.35), value: composure)
+                    }
+
+                    // Pulsing slice — shield the current placements WILL grant.
+                    if groupW - solidW > 0.5 {
+                        TimelineView(.animation) { timeline in
+                            let t = timeline.date.timeIntervalSinceReferenceDate
+                            let breathe = 0.30 + 0.45 * (0.5 + 0.5 * sin(t * 3.6))
+                            shieldSlice(width: groupW - solidW, offset: groupStart + solidW,
+                                        barWidth: barWidth, barHeight: barHeight)
+                                .opacity(breathe)
                         }
                     }
                 }

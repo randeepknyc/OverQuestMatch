@@ -9,7 +9,7 @@
 >
 > **⚠️ JUNE 27, 2026 — CURRENT TOP-LEVEL STATUS (the June 10 line above is now historical):**
 > **MAJOR DESIGN PIVOT.** The game is now a **FINITE 30-DAY CAMPAIGN** — weekly bosses on Days 7/14/21/28 + a finale on Day 30, gentle bounded growth (~×1.07/day), no automatic Composure refills, and Die-in-the-Dungeon-style **bounded D6 dice** (faces never exceed 6). The combat model is LOCKED as the **queue / line-of-3** the code already has. Dice are now **SIX**: Mirror added (NOT built yet) and **Stability promoted to a real die with a fire meter (BUILT — §56).** Focus becomes a real, growing stat. "Endless" is now only an optional post-Day-30 mode.
-> **➡ Read §55 (full canonical model & balance) and §56–§63 before touching systems or balance:** §56–§57 stability fire meter (⚠️ §56.2's simple economy is SUPERSEDED by **§63**); §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** **§63 the STABILITY FIRE ECONOMY — WIRED (June 29): tick every 2 brews, big-hit knocks (dormant at today's attack values), value-based refill, stability = pure fire die with all-1s starting faces + its own tier ladder.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
+> **➡ Read §55 (full canonical model & balance) and §56–§63 before touching systems or balance:** §56–§57 stability fire meter (⚠️ §56.2's simple economy is SUPERSEDED by **§63**); §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** **§63 the STABILITY FIRE ECONOMY — WIRED (June 29): tick every 2 brews, big-hit knocks (dormant at today's attack values), value-based refill, stability = pure fire die with all-1s starting faces + its own tier ladder.** **§66 WEEKLY ATTACK RAMP + BOSS-FROM-EVENING — WIRED (July 2): attacks ×1.13/day resetting weekly; boss = evening round × factors (HP ×1.0, atk ×0.8); combat stats day-scaled at spawn on PotionShopCustomer. §67 THE BALANCE LAB (`cauldron_balance_lab.html`): tuning bench whose defaults match the game — read §67.3 findings before any rebalance.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
 
 ---
 
@@ -4241,3 +4241,47 @@ New baked coords: 0(53.46,13.98) 1(2.46,43.35) 2(55.77,72.85)
 1.2491134881973267 (default + locked defaults + Reset All Nodes all
 restore this value now — resets return to the TUNED look, not 1.0).
 Per-node offsets are zero again after pasting.
+
+---
+
+## 66. WEEKLY ATTACK RAMP + BOSS-FROM-EVENING FORMULA — WIRED & COMPILING (July 2, 2026)
+
+> Wired in `PotionShopModels.swift`, `PotionShopGameState.swift`, `PotionShopCustomerSceneView.swift`. Mirrored in the balance lab (§67). Gives every week a "Day 1 very easy → Day 7 very challenging" arc and makes bosses structurally unable to be weaker than normal rounds.
+
+### 66.1 Weekly attack ramp (sawtooth)
+- `PotionShopConfig.attackWeekGrowth = 1.13`, applied via `attackDayMultiplier(forDay:)` = `pow(1.13, (day-1) % 7)` — Day 1 ×1.0 → Day 7 ≈ ×2.08 → **Day 8 resets to ×1.0**.
+- WHY weekly reset: lab-proven that a single 30-day exponential steep enough for the week-1 arc compounds to ×45 by Day 30 (nothing survives, closes ~D13). The sawtooth gives EVERY week the arc; the global HP curve (×1.07/day, §62 — no reset) keeps later weeks harder overall.
+- **Lab-verified week-1 nerve minimums: 21 → 17 → 16 → 18 → 14 → 13 → 8** (Day 1 never below 70% of the bar, zero storm-outs; Day 7 bottom-third close call).
+
+### 66.2 Combat stats now day-scaled AT SPAWN (stored on the customer)
+- `PotionShopCustomer` gained `activeAttack`, `waitingAttack`, `expireDamage` — computed once in `spawnCustomers` (and `swapCharacterAt`) as char value × `attackDayMultiplier`, min 1.
+- **Expire damage = activeAttack + 1 (§55.8)** — replaces the per-character `expireDamage` table; auto-scales with the ramp and the boss formula.
+- `doBrew` (active attack, waiter totals, waiter stagger loop), the §63 fire **big-hit checks**, and BOTH attack badges in `PotionShopCustomerSceneView` read the customer's stored values, never the raw character. (Badge note: the HP-badge struct has no `liveCustomer` property — it uses an inline `gs.customers.first(where:)` lookup, same pattern as its `liveHP`.)
+
+### 66.3 Boss = the evening round, concentrated
+- In `spawnCustomers`: on `roundIndex == 3` of boss/finale days (single-customer round), boss stats derive from **the same day's evening round** via `PotionShopData.day(dayId)` → **`day.evening.customerIds`** (NOTE: `PotionShopDay` has named rounds `morning/afternoon/evening/night` + `allRounds` — there is NO `.rounds` array; using one was the July 2 compile error).
+  - boss HP = `bucketedHP(Σ evening scaled HP × bossHPFactorOfEvening)` — factor **1.0**
+  - boss attack = `max(1, Σ evening scaled attack × bossAttackFactorOfEvening)` — factor **0.8**
+- Verified magnitudes: **D7 boss ≈ 60 HP hitting for 10 · D14 ≈ 120/12 · D28 ≈ 310/12.** Boss attacks are double digits from Day 7 → **the §63 fire big-hit knock fires on every boss night** (the boss shakes the cauldron). Previously the lone boss (~7 atk) was WEAKER than a 3-customer day round (~12) — flat multipliers could not fix this.
+
+### 66.4 Tuning dials
+`attackWeekGrowth` (weekly steepness) · `bossHPFactorOfEvening` / `bossAttackFactorOfEvening` (boss size vs its day) — all in `PotionShopConfig`. Matching lab dials: "Attack growth / day" + "Weekly reset (sawtooth)", "Boss = evening round × factors".
+
+---
+
+## 67. THE BALANCE LAB — `cauldron_balance_lab.html` (June 29 – July 2, 2026)
+
+> Self-contained HTML simulator of the 30-day campaign (open in any browser; no install). **Its reset defaults now MATCH the wired game** — treat it as the tuning bench before touching Swift constants. Every mechanic below is validated by automated tests (headless model tests + full simulated-browser boot suite).
+
+### 67.1 Base values = the game as it stands (the "reset" state)
+HP growth ×1.07/day (bucket 2) · attack growth **×1.13 weekly-reset** · boss-from-evening ON (HP ×1.0, atk ×0.8) · composure 30/30, no refills · customers 3/3/3/1 · brew 8, heal 8, patience uniform 10 · stability fire ON (5 flames, tick every 2, big-hit ≥10, 1 basic die @ value 1/round) · **rewards ON, cadence = weighted 50/50 upgrades-vs-boons, 3 picks/day, +1 brew per upgrade pick** (the weighting dial: `upgradePct` slider — raise it for a leaner, upgrade-heavy run; boons in the pool CYCLE and STACK) · rush days OFF (lab-only mechanic, not in game).
+
+### 67.2 Tool features
+Verdict with **failure diagnosis** (drain-vs-heal onset day; closing-day damage split storm-outs vs nagging) + **suggestion engine** (probes the sim: on failure, smallest single dial change that survives; on survival, changes that produce "a close call every ~2 days") · close-call counter (**danger zone = bottom THIRD of the bar**, chart + counter share the definition) · per-day table incl. Drain/Heal/Net + 🔥 column (% of turns with the fire out) · versions (save/rename/delete) with **pin-as-ghost** dashed comparison line on the chart · cast editor (per-character HP/attack/wAtk/patience) · seeded order splits (`splitFloor`/`swing`, 🎲 reroll) · export (Swift-constant-mapped text + JSON incl. seed) / import.
+
+### 67.3 Design findings the lab proved (read before rebalancing)
+1. **Stacking heal boons are a wall.** Boons re-draftable → heal grows all run; any FLAT threat (multipliers, rush ×N) is eventually outgrown → late game pins at the cap. Threats must scale with the day (weekly ramp), with the day's rounds (boss formula), or with the player's bar.
+2. **Tension is U-shaped by default:** comfortable start → real valley ~D8–14 → trivially safe late. The scariest week is week 1.
+3. **Rhythmic near-deaths need one-round percentage bursts.** The bar (30–45) is tiny vs late heal FLOW (150+/day): sustained pressure either bounces off or kills. The lab's **Rush days** (every N days, morning burst = % of current max nerve, verified at every-2-days/40–55%) is the working design if the game ever wants that texture — flat multipliers provably can't.
+4. **Bosses can't be tuned by flat multipliers** (1 attacker vs 3) — hence §66.3.
+5. Min column records the dip **after attacks, before heals** (when the player actually sweats); survival is still judged on the round's net.

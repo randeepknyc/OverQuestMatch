@@ -408,6 +408,33 @@ struct PotionShopConfig {
         let snapped = Int((Double(raw) / Double(hpBucketStep)).rounded()) * hpBucketStep
         return max(hpBucketStep, snapped)
     }
+
+    // ─── WEEKLY ATTACK RAMP (July 2, 2026 — balance-lab verified) ────────
+    // Customer attacks climb ×attackWeekGrowth per day WITHIN a week, then
+    // RESET each week (a sawtooth): Day 1 ×1.0 → Day 7 ≈ ×2.08 → Day 8 back
+    // to ×1.0. Lab finding: a single 30-day exponential steep enough for an
+    // easy→brutal week 1 compounds to ×45 by Day 30 and kills every run —
+    // the weekly reset gives EVERY week the "easy Monday → brutal boss"
+    // arc, while the global HP curve above (no reset) keeps later weeks
+    // harder overall. Verified week-1 nerve minimums: 21→17→16→18→13→10→8.
+    static let attackWeekGrowth: Double = 1.13
+    static func attackDayMultiplier(forDay day: Int) -> Double {
+        let d = max(1, day)
+        let dayInWeek = (d - 1) % 7          // 0…6, resets every week
+        return pow(attackWeekGrowth, Double(dayInWeek))
+    }
+
+    // ─── BOSS = THE EVENING ROUND, CONCENTRATED (July 2, 2026) ───────────
+    // Lab finding: a lone boss with flat stat multipliers was WEAKER than a
+    // normal 3-customer round (one attacker vs three). New rule: the boss's
+    // stats are DERIVED from the same day's EVENING round — its combined
+    // order (HP) and combined attack, times these factors — so the boss can
+    // never fall behind the day it closes. 1.0 = the boss's order equals the
+    // whole evening's orders combined; 0.8 = it hits for 80% of the whole
+    // evening's attacks (double digits by Day 7 → also triggers the fire
+    // meter's big-hit knock, §63).
+    static let bossHPFactorOfEvening: Double = 1.0
+    static let bossAttackFactorOfEvening: Double = 0.8
 }
 
 // MARK: - Dice

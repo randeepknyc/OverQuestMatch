@@ -74,6 +74,13 @@ struct PotionShopCustomer: Identifiable, Equatable {
     var patience: Int
     let maxPatience: Int
     var status: PotionShopCustomerStatus
+    // JULY 2, 2026: combat stats are DAY-SCALED AT SPAWN and stored here
+    // (weekly attack ramp + boss-from-evening formula), instead of read raw
+    // from the static character each brew. Expire damage = activeAttack + 1
+    // (§55.8), so it scales automatically with the ramp.
+    var activeAttack: Int = 0
+    var waitingAttack: Int = 0
+    var expireDamage: Int = 0
     // JUNE 18, 2026: cosmetic flavor picked ONCE at spawn from this
     // character's bags, held stable for its lifetime. Empty = fall back.
     var chosenOrderPhrase: String = ""
@@ -509,6 +516,36 @@ class PotionShopGameState {
         } else {
             resolvedIds = round.customerIds
         }
+        // JULY 2, 2026: WEEKLY ATTACK RAMP — attacks climb ×1.13/day within
+        // each week, then reset (see PotionShopConfig.attackDayMultiplier).
+        let atkMult = PotionShopConfig.attackDayMultiplier(forDay: dayNumber)
+
+        // JULY 2, 2026: BOSS-FROM-EVENING FORMULA. On boss/finale nights the
+        // lone boss's stats are derived from THIS day's evening round —
+        // combined scaled HP × bossHPFactorOfEvening, combined scaled attack
+        // × bossAttackFactorOfEvening — so the boss is never weaker than the
+        // rounds it follows. Computed here (before spawning) so the map
+        // below can apply it.
+        var bossOverride: (hp: Int, attack: Int)? = nil
+        if roundIndex == 3,
+           PotionShopData.isBossDay(dayNumber) || PotionShopData.isFinaleDay(dayNumber),
+           resolvedIds.count == 1,
+           let day = PotionShopData.day(dayId) {
+            var eveningHP = 0.0
+            var eveningAtk = 0.0
+            for eid in day.evening.customerIds {
+                guard let c = PotionShopData.character(eid) else { continue }
+                eveningHP += Double(c.hp) * PotionShopConfig.hpDayMultiplier(forDay: dayNumber)
+                eveningAtk += Double(c.activeAttack) * atkMult
+            }
+            if eveningHP > 0 {
+                bossOverride = (
+                    hp: PotionShopConfig.bucketedHP(Int((eveningHP * PotionShopConfig.bossHPFactorOfEvening).rounded())),
+                    attack: max(1, Int((eveningAtk * PotionShopConfig.bossAttackFactorOfEvening).rounded()))
+                )
+            }
+        }
+
         customers = resolvedIds.compactMap { id -> PotionShopCustomer? in
             guard let char = PotionShopData.character(id) else {
                 print("⚠️ PotionShop: Unknown character id \(id)")
@@ -517,9 +554,15 @@ class PotionShopGameState {
             // HP BUCKETING (June 28, 2026): scale order-size by the day curve
             // (~7%/day, first week), snapped to a clean bucket. Day 1 = ×1.0
             // so Day 1 is unchanged. Reuses existing customers (repeats OK).
-            let scaledHP = PotionShopConfig.bucketedHP(
+            let scaledHP = bossOverride?.hp ?? PotionShopConfig.bucketedHP(
                 Int((Double(char.hp) * PotionShopConfig.hpDayMultiplier(forDay: dayNumber)).rounded())
             )
+            // Attacks scale by the weekly ramp; boss uses the evening formula.
+            let scaledActive = bossOverride?.attack
+                ?? max(1, Int((Double(char.activeAttack) * atkMult).rounded()))
+            let scaledWaiting = char.waitingAttack > 0
+                ? max(1, Int((Double(char.waitingAttack) * atkMult).rounded()))
+                : 0
             return PotionShopCustomer(
                 id: UUID(),
                 charKey: id,
@@ -528,6 +571,9 @@ class PotionShopGameState {
                 patience: char.patience,
                 maxPatience: char.patience,
                 status: .waiting,
+                activeAttack: scaledActive,
+                waitingAttack: scaledWaiting,
+                expireDamage: scaledActive + 1,   // §55.8: expire = attack + 1
                 chosenOrderPhrase: char.orderPhrases.randomElement() ?? char.orderDialogue,
                 chosenTraitName: char.traitNames.randomElement() ?? ""
             )
@@ -566,6 +612,10 @@ class PotionShopGameState {
         guard slotIndex >= 0, slotIndex < queue.count,
               let char = PotionShopData.character(newKey) else { return }
         let oldId = queue[slotIndex]
+        // JULY 2, 2026: swapped-in characters get the same day-scaled combat
+        // stats as normal spawns (weekly attack ramp; expire = attack + 1).
+        let swapMult = PotionShopConfig.attackDayMultiplier(forDay: dayNumber)
+        let swapActive = max(1, Int((Double(char.activeAttack) * swapMult).rounded()))
         let newCustomer = PotionShopCustomer(
             id: UUID(),
             charKey: newKey,
@@ -574,6 +624,9 @@ class PotionShopGameState {
             patience: char.patience,
             maxPatience: char.patience,
             status: .waiting,
+            activeAttack: swapActive,
+            waitingAttack: char.waitingAttack > 0 ? max(1, Int((Double(char.waitingAttack) * swapMult).rounded())) : 0,
+            expireDamage: swapActive + 1,
             chosenOrderPhrase: char.orderPhrases.randomElement() ?? char.orderDialogue,
             chosenTraitName: char.traitNames.randomElement() ?? ""
         )
@@ -1481,10 +1534,11 @@ class PotionShopGameState {
 
         // ─── PHASE 4: Customer attacks (HYBRID — active alone, then waiters together) ─
 
+        // JULY 2, 2026: attacks read the customer's DAY-SCALED values (set
+        // at spawn — weekly ramp + boss formula), not the raw character.
         let activeWillAttack: Int
-        if let aChar = PotionShopData.character(customers[activeIdx].charKey),
-           customers[activeIdx].status == .waiting {
-            activeWillAttack = aChar.activeAttack
+        if customers[activeIdx].status == .waiting {
+            activeWillAttack = customers[activeIdx].activeAttack
         } else {
             activeWillAttack = 0
         }
@@ -1493,8 +1547,7 @@ class PotionShopGameState {
         for id in queue.dropFirst() {
             guard let cIdx = customers.firstIndex(where: { $0.id == id }) else { continue }
             if customers[cIdx].status != .waiting { continue }
-            guard let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
-            waiterAttackTotal += char.waitingAttack
+            waiterAttackTotal += customers[cIdx].waitingAttack
         }
 
         if activeWillAttack > 0 || waiterAttackTotal > 0 {
@@ -1542,15 +1595,15 @@ class PotionShopGameState {
             for id in queue.dropFirst() {
                 guard let cIdx = customers.firstIndex(where: { $0.id == id }),
                       customers[cIdx].status == .waiting,
-                      let char = PotionShopData.character(customers[cIdx].charKey),
-                      char.waitingAttack > 0 else { continue }
+                      customers[cIdx].waitingAttack > 0 else { continue }
                 customerAttackingIds.insert(id)
                 ednarPose = .defend
                 HapticManager.shared.customerAttack()
                 triggerCustomerShake(id)
                 // JUNE 29, 2026: a waiter whose OWN single hit is huge also
                 // shakes the cauldron (same big-hit rule as the active).
-                if char.waitingAttack >= PotionShopConfig.fireBigHitThreshold {
+                // JULY 2, 2026: reads the DAY-SCALED value set at spawn.
+                if customers[cIdx].waitingAttack >= PotionShopConfig.fireBigHitThreshold {
                     fire = max(0, fire - 1)
                 }
                 // Small gap before the next waiter shakes, for a rippling
@@ -1599,8 +1652,7 @@ class PotionShopGameState {
         if !expiringIds.isEmpty {
             try? await sleep(seconds: PotionShopBrewAnimator.preExpirationsDelay)
             for id in expiringIds {
-                guard let cIdx = customers.firstIndex(where: { $0.id == id }),
-                      let char = PotionShopData.character(customers[cIdx].charKey) else { continue }
+                guard let cIdx = customers.firstIndex(where: { $0.id == id }) else { continue }
                 customers[cIdx].status = .expired
                 // Close banner if this expired customer is the inspected one
                 if inspectedId == id {
@@ -1610,7 +1662,9 @@ class PotionShopGameState {
                 }
                 expiringCustomerIds.insert(id)
                 triggerCustomerShake(id)
-                let result = applyDamage(char.expireDamage)
+                // JULY 2, 2026: expire damage is the customer's day-scaled
+                // value (activeAttack + 1, §55.8), set at spawn.
+                let result = applyDamage(customers[cIdx].expireDamage)
                 if result.dealt > 0 {
                     emitFloatingNumber(
                         text: "-\(result.dealt)",

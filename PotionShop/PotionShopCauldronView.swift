@@ -425,6 +425,38 @@ struct PotionShopCauldronView: View {
                         )
                         .allowsHitTesting(false)  // Don't intercept touches meant for nodes
                         .zIndex(0)  // 🔧 EXPLICIT Z-INDEX: Bottom layer
+
+                    // ━━━ BUBBLING BOIL (JULY 2, 2026) ━━━━━━━━━━━━━━━
+                    // Your cauldron_boil1…N frames loop over the cauldron
+                    // WHILE THE BREW PLAYS (gs.isAnimating), rendered with
+                    // the exact same frame/position/stretch as the cauldron
+                    // art so bubbles register perfectly over the liquid.
+                    // Draw frames on the SAME canvas as the "cauldron" PNG
+                    // (transparent everywhere except the bubbles). Any
+                    // frame count; speed = PotionShopCauldronBoilTuning.
+                    // No frames drawn = nothing extra, exactly as before.
+                    if gs.isAnimating, PotionShopCauldronBoilAssets.frameCount() > 0 {
+                        TimelineView(.animation) { timeline in
+                            let t = timeline.date.timeIntervalSinceReferenceDate
+                            let count = PotionShopCauldronBoilAssets.frameCount()
+                            let frame = Int(t * max(0.1, PotionShopCauldronBoilTuning.boilFPS)) % count
+                            if let boilImg = PotionShopImageLoader.loadImage(named: "cauldron_boil\(frame + 1)") {
+                                Image(uiImage: boilImg)
+                                    .resizable()
+                                    .frame(
+                                        width: baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,
+                                        height: baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight
+                                    )
+                                    .position(
+                                        x: g.bowlCenterX + cauldronArtXOffset,
+                                        y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
+                                    )
+                            }
+                        }
+                        .allowsHitTesting(false)
+                        .zIndex(0.5)  // over the cauldron art, under nodes/dice
+                        .transition(.opacity)
+                    }
                 } else {
                     // Placeholder: Simple bowl shape when no art
                     PotionShopBowlShape()
@@ -601,6 +633,30 @@ struct PotionShopNodeGlowTuning {
     /// its exact slot, so they always render at node size — this knob no
     /// longer does anything. Kept so old pasted files still compile.
     static let glowArtScale: CGFloat = 1.35
+}
+
+// ─── BUBBLING BOIL (JULY 2, 2026) ───────────────────────────────────
+// The cauldron's brew animation. Draw cauldron_boil1…N on the SAME
+// canvas as the "cauldron" PNG (transparent except the bubbles); they
+// loop over the cauldron for the whole brew sequence. Any frame count.
+
+enum PotionShopCauldronBoilTuning {
+    /// Bubble loop speed (frames per second).
+    static let boilFPS: Double = 8
+}
+
+enum PotionShopCauldronBoilAssets {
+    private static var cached: Int? = nil
+    /// Counts cauldron_boil1, cauldron_boil2, … (up to 12). Cached.
+    static func frameCount(maxProbe: Int = 12) -> Int {
+        if let c = cached { return c }
+        var n = 0
+        for k in 1...maxProbe {
+            if UIImage(named: "cauldron_boil\(k)") != nil { n = k } else { break }
+        }
+        cached = n
+        return n
+    }
 }
 
 // MARK: - Node glow frame resolver (JULY 2, 2026)

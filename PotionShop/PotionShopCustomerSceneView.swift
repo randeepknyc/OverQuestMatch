@@ -795,8 +795,12 @@ struct PotionShopCustomerInSceneView: View {
 
     private var isActive: Bool { gs.queue.first == customer.id }
     private var attack: Int {
-        guard let c = char else { return 0 }
-        return isActive ? c.activeAttack : c.waitingAttack
+        // JULY 2, 2026: read the customer's DAY-SCALED attack (weekly ramp +
+        // boss formula, set at spawn) so the badge matches the real hit.
+        // Live lookup from gs (same pattern as liveHP below) — this struct
+        // has no liveCustomer property.
+        let live = gs.customers.first(where: { $0.id == customer.id }) ?? customer
+        return isActive ? live.activeAttack : live.waitingAttack
     }
     // Read HP straight from gs so SwiftUI's observation on the customers array
     // triggers a re-render here even if the parent's cached `customer` snapshot is stale.
@@ -1874,8 +1878,8 @@ struct PotionShopInspectStripView: View {
     private var liveMaxPatience: Int { liveCustomer.maxPatience }
 
     private var attackForSubtitle: Int {
-        guard let c = char else { return 0 }
-        return isActive ? c.activeAttack : c.waitingAttack
+        // JULY 2, 2026: day-scaled value (weekly ramp + boss formula).
+        return isActive ? liveCustomer.activeAttack : liveCustomer.waitingAttack
     }
 
     /// June 18, 2026: the order PHRASE shown on the banner's bottom row —
