@@ -1411,7 +1411,22 @@ struct PotionShopDieButtonView: View {
             DragGesture(coordinateSpace: .global)
                 .onChanged { value in
                     if !gs.isAnimating {
-                        isDragging = true
+                        if !isDragging {
+                            isDragging = true
+                            // JULY 2, 2026 FIX (hover glow): register the drag
+                            // with the game state. The yellow drop-target glow,
+                            // the cyan reach preview, AND smart chalk lines all
+                            // key off gs.draggedDie — the offset-based tray drag
+                            // rewrite had stopped setting it, so tray→node drags
+                            // showed no glow at all (node→node drags, which set
+                            // it via startDraggingFromNode, still worked).
+                            // Safe: the floating drag overlay requires
+                            // nodeDragLocation/draggedFromNode (both stay nil
+                            // for tray drags), and tryDropDieAtPosition reads
+                            // the hand directly — no double-render, no drop
+                            // behavior change.
+                            gs.draggedDie = die
+                        }
                         dragOffset = value.translation
                         
                         // Update hover state
@@ -1436,6 +1451,9 @@ struct PotionShopDieButtonView: View {
                     
                     isDragging = false
                     gs.hoveredNodeIndex = nil
+                    // JULY 2, 2026 FIX: release the drag registration so the
+                    // glow and smart lines settle when the finger lifts.
+                    gs.draggedDie = nil
                 }
         )
         .onTapGesture {

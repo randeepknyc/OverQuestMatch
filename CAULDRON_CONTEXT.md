@@ -33,7 +33,7 @@ Before starting any work, read the files attached IN ORDER. Then:
 **Enum case:** `.ednarsPotionShop` (in `GameType` in `OverQuestMatch3App.swift`)
 **Status:** Standalone game inside the OverQuestMatch3 multi-game project.
 
-A turn-based dice-placement potion-brewing game. The player is Ednar (the witch behind a counter). Customers form a line on the right. The active customer (front of line) is the brew target. The player draws a hand of 5 dice, places up to 3 on a 12-node cauldron board, and taps BREW. Damage hits the active customer; heal/shield buffer Ednar; then every customer in the queue attacks back. First side to lose all HP/composure loses.
+A turn-based dice-placement potion-brewing game. The player is Ednar (the witch behind a counter). Customers form a line on the right. The active customer (front of line) is the brew target. The player draws a hand of 5 dice, places up to `focus` dice on a 9-node chalk cauldron board (the board is now a day-scheduled LIBRARY — see §64), and taps BREW. Damage hits the active customer; heal/shield buffer Ednar; then every customer in the queue attacks back. First side to lose all HP/composure loses.
 
 A "Day" has four rounds: **Morning → Afternoon → Evening → Night**. Night is the boss fight. Composure carries between rounds (currently +5 partial rest between rounds — tunable; see §8.3).
 
@@ -56,7 +56,7 @@ OverQuestMatch3/
    ├─ PotionShopGameView.swift           ← root view (composes all sections + floating-number overlay)
    ├─ PotionShopHeaderView.swift         ← composure bar, shield, day/round, gear icon
    ├─ PotionShopCustomerSceneView.swift  ← Ednar + customer line + profile row + inspect strip
-   ├─ PotionShopCauldronView.swift       ← bowl shape, 12 nodes, BREW sign, dice tray
+   ├─ PotionShopCauldronView.swift       ← bowl shape, board nodes (9 on chalk9), BREW sign, dice tray
    ├─ PotionShopDebugMenu.swift          ← gear-icon sheet (skip round, heal, win/lose, end game)
    └─ PotionShopBrewAnimator.swift       ← all animation timing constants (single source of truth)
 ```
@@ -428,7 +428,7 @@ The bowl is **NOT** a `Path.addArc` — that approach failed three times with mi
 - **Aspect ratio:** 1.65:1 (wide:tall). Looks like a shallow stew pot, not a half-pipe.
 - **Construction:** 60 line segments around the bottom half of an ellipse, computed via `cos(θ)`/`sin(θ)` outside the `Path { }` closure (precomputing avoids `Type '()' cannot conform to 'View'` errors).
 - **Node area inset:** 70% on each axis. Math check: `0.70² + 0.70² = 0.98 ≤ 1`, so corners of the inset rectangle are provably inside the ellipse. Nodes never escape the bowl.
-- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → 12 nodes → optional foreground rim → BREW sign on a tilted wooden post.
+- **Layers (in z-order, bottom to top):** bowl back (dark fill) → liquid surface (green ellipse) → board nodes (9 on chalk9, §64) → optional foreground rim → BREW sign on a tilted wooden post.
 
 ### 8.5 BREW button (placeholder)
 Wooden brown sign with carved-style "BREW" text, tilted ~12°, on a vertical post going down toward the cauldron. **It is a placeholder.** The user will replace it with their own art (likely a real ladle dipping into the green liquid). Don't waste effort tuning placeholder pixels — the final position will be dictated by the art.
@@ -715,7 +715,7 @@ Same body pose across all 5; only face changes. Easiest workflow: draw base body
 
 ### 16.7 Cauldron layer rules
 - Three Procreate group layers in ONE file at 2048×1536, exported separately
-- Render z-order: cauldron_back → cauldron_liquid → 12 nodes (with placed dice) → cauldron_front
+- Render z-order: cauldron_back → cauldron_liquid → board nodes with placed dice (9 on chalk9, §64) → cauldron_front
 - Liquid layer should have a clean upper edge (the surface line). Front layer's rim overlaps that edge slightly so there's no visible seam.
 
 ### 16.8 Asset catalog vs raw files
@@ -3998,3 +3998,120 @@ Default economy (tick 2, one basic die/round): fire fine through ~Day 15, then d
 
 ### 63.3 Files touched
 `PotionShopModels.swift` (fireTickEveryNTurns, fireBigHitThreshold, rollFace(for:)), `PotionShopGameState.swift` (fireBrewCounter, value refill, tick, big-hit knocks, BrewPreview.stabilityRefill, stability case in computeBrew + placement float). Independent of the node-layout work (LayoutConfig/EditorKit untouched).
+
+---
+
+## 64. BOARD LIBRARY + 9-NODE CHALK BOARD + EDITOR DRAWER (July 2, 2026)
+
+> Replaces the 12-node hardcoded board everywhere. Supersedes §6.4's boost
+> reach ("direct neighbors") and the June 12 "changing the node count" recipe
+> that lived in PotionShopModels.swift. Full session detail also lives in
+> NODE_BOARD_SYSTEM_SESSION.md (project knowledge).
+
+### 64.1 The board is now a LIBRARY (PotionShopModels.swift)
+- `PotionShopBoardDef` = one board: `nodes` (positions), `edges` (wiring),
+  `mirrorPairs` (point-symmetry partners). `PotionShopBoard.library` holds
+  all boards; `PotionShopBoard.schedule` maps days → board id (last row with
+  `fromDay ≤ day` wins). v1 ships ONE board: **chalk9**, all days.
+- All old call sites still work: `PotionShopBoard.nodes/.edges/neighbors/
+  neighborsWithin` read the ACTIVE board. `PotionShopGameState` calls
+  `PotionShopBoard.setActiveBoard(forDay:)` in `init` and `dayId.didSet`.
+- `maxNodeCount` sizes every offset/scale array (LayoutConfig, CauldronView
+  default param) so bigger future boards can't underflow them.
+- To add a day-8+ board later: copy the chalk9 definition, rename, append to
+  `library`, add a schedule row. Placements clear at round start, so board
+  swaps at day boundaries are safe. Reflow ANIMATION deferred until a second
+  board exists.
+
+### 64.2 chalk9 (from the user's July 2 sketch)
+- Sketch numbers 1–9 = code indices 0–8 (always one less).
+- Layout: 1 top center · 2/4 upper flanks · 3 center · 5/8 outer mids ·
+  6/7 lower pair · 9 bottom. Positions were TUNED in the layout editor and
+  BAKED into the definition same-day (coordinates may sit outside the old
+  0–110 envelope — intentional wider spread; per-node offsets reset to 0;
+  config defaults now nodeScale 1.3844 / X 74.82 / Y 75.53 / spacing 1.734).
+- Wiring: OUTER RING 1-2-5-6-9-7-8-4-1 + center (3) connected to diagonals
+  (2,4,6,7) only — deliberately NO hub; 3 never links to 1 or 9.
+- Mirror pairs (point symmetry through the cauldron center): 1↔9, 2↔7,
+  4↔6, 5↔8; sketch-3 (center) has NO partner. This is the wiring for the
+  FUTURE mirror die ("double whatever die sits at my mirror node") via
+  `PotionShopBoard.mirrorNode(of:)`. Die type NOT built yet.
+
+### 64.3 BOOST rule changed (PotionShopDieRules)
+- Boost affects nodes EXACTLY 2 spaces away — it SKIPS direct neighbors
+  (`PotionShopBoard.neighborsExactly(_:hops:2)`). Value = how much it adds,
+  never how far. Canonical example: boost on sketch-1 → hits 5, 3, 8.
+- Every node's boost hits exactly 3 nodes EXCEPT center (sketch-3) which
+  hits 4 (1, 5, 8, 9) — the "wide boost" spot without being a hub.
+- Non-boost dice still preview `within die.value hops` on hover (unchanged,
+  pre-existing).
+
+### 64.4 Chalk connection lines — 3 visibility modes
+- Debug Menu → Layout Tools → **Chalk Lines** picker: Smart (default) /
+  Always / Hidden. Stored in `PotionShopLayoutConfig.nodeLineModeRaw`
+  (UserDefaults-persisted, key `ps_nodeLineMode`).
+- SMART: invisible until TWO dice can interact — shows at 0.75 opacity when
+  ≥2 dice are placed, or when dragging with ≥1 already placed; full
+  strength during the brew; otherwise hidden. (July 2 evening: was "any
+  die placed"; tightened to the two-dice rule on user request.)
+- Boost-fed edges still pulse gold (June 20 behavior) whenever visible.
+- Layer fades via `.opacity` + easeInOut(0.35); `allowsHitTesting(false)`.
+
+### 64.5 Node art + glow assets (Assets.xcassets, transparent PNGs)
+- `potion_node` — chalk circle (512×512). When present, placed dice render
+  at `placedDieHugScale` (0.86, PotionShopCauldronLayout) so the chalk
+  peeks out and "hugs" the die. No asset = old edge-to-edge + parchment
+  rect fallback.
+- `node_glow1…N` — reach-preview animation frames, ANY count (probed to
+  12 by `PotionShopNodeGlowAssets`, cached). Plays at
+  `PotionShopNodeGlowTuning.glowFrameFPS` (8), size ×`glowArtScale` (1.35),
+  rendered ON TOP of node art (moved above it July 2 evening — behind,
+  opaque chalk could hide it), still under the placed die. When frames
+  exist the built-in cyan preview shadow is suppressed (preview state
+  only); no frames = cyan unchanged.
+- ✅ HOVER-GLOW BUG — DIAGNOSED & FIXED (July 2, end of session): tray→node
+  drags showed NO glow (no yellow target, no reach preview) while
+  node→node drags worked. Cause: the offset-based tray-drag rewrite (the
+  gesture using isDragging/dragOffset + tryDropDieAtPosition) had stopped
+  setting `gs.draggedDie` — the legacy `startDrag(handIdx:)` in GameState
+  is DEAD CODE with zero callers. Every glow keys off draggedDie
+  (previewAffectedNodes, canReceiveDrop, smart lines). Fix: the tray drag
+  now sets `gs.draggedDie = die` on drag start and nils it on end. Safe
+  because the floating drag overlay requires nodeDragLocation /
+  draggedFromNode (nil for tray drags) and tryDropDieAtPosition reads the
+  hand directly. LESSON: any new drag implementation must register
+  gs.draggedDie or all hover feedback silently dies.
+
+### 64.6 Layout editor upgrades
+- **Sizes:** Fine Tune tab now has "All Nodes Size ×" (global,
+  `nodeGlobalScale`) and per-node "Size ×" (`perNodeScales`, sized by
+  maxNodeCount). Node visual = editor nodeScale × global × per-node; art,
+  glow, die, and hit area all scale together. Both ride Copy Layout Values;
+  Reset This Node / Reset All Nodes / locked defaults restore 1.0.
+- **Drawer modes (PotionShopLayoutOverlay.DrawerMode):** Full (everything;
+  only mode with background dim) / Compact (slim bar + ONLY the active
+  tab's sliders; ▲ full, ▼ handle) / Handle (small cyan "Editor ▲" pill,
+  bottom-right). Editor stays OPEN in all modes (`layoutEditorIsOpen` stays
+  true) so tap-a-node-to-select and drag-a-node-to-move keep working;
+  tapping a node while in Handle auto-pops to Compact on that node's
+  sliders. ▼ chevron in the Full header minimizes; X still closes fully.
+- Fine-Tune node picker follows `PotionShopBoard.nodes.count` (no more
+  hardcoded 12). Copy Layout Values exports per-node offsets, per-node
+  sizes, and nodeGlobalScale.
+
+### 64.7 Cross-session merge note (July 2, evening)
+The §63 stability session ran in parallel on a PRE-board-redesign codebase.
+Merged: PotionShopModels.swift = stability economy + board library (they
+touched different sections); PotionShopGameState.swift = stability file +
+the two setActiveBoard hooks. If old copies of these two files resurface,
+check for BOTH `chalk9` AND `rollFace(for:)` before pasting.
+
+### 64.8 Files touched (July 2, all rounds)
+PotionShopModels.swift (board library, boost rule, merge),
+PotionShopGameState.swift (setActiveBoard hooks, merge),
+PotionShopLayoutConfig.swift (baked node defaults, perNodeScales,
+nodeGlobalScale, nodeLineModeRaw, maxNodeCount sizing),
+PotionShopCauldronView.swift (line modes, hug, glow frames, size
+multipliers, param sizing), PotionShopGameView.swift (drawer modes, size
+sliders, node picker), PotionShopDebugMenu.swift (Chalk Lines picker,
+export additions).
