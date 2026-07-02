@@ -144,6 +144,46 @@ struct PotionShopImageLoader {
     }
 }
 
+// MARK: - Customer animation assets (JULY 2, 2026)
+//
+// LINE-BOIL idle + ATTACK sequences for customers, following the same
+// auto-detect pattern as the fire meter's flames. Frame names are built
+// from each character's scenePortrait asset name:
+//
+//   Idle line-boil (ACTIVE customer only, loops):
+//       <scenePortrait>_boil1, _boil2, …      e.g. mildred_scene_boil1
+//   Attack (plays ONCE when that customer attacks Ednar, holds last frame):
+//       <scenePortrait>_attack1, _attack2, …  e.g. mildred_scene_attack1
+//
+// Any frame count works (probed up to 12). Draw at the SAME canvas size
+// as the scenePortrait so frames line up perfectly. No frames = the
+// static scenePortrait shows, exactly as before. A single _attack1 frame
+// = a held attack POSE for the attack's duration.
+
+enum PotionShopCustomerAnimTuning {
+    /// Idle line-boil speed (frames per second). 6 ≈ classic hand-drawn feel.
+    static let boilFPS: Double = 6
+    /// Attack sequence speed. At 10fps, 4 frames ≈ 0.4s (the attack window).
+    static let attackFPS: Double = 10
+}
+
+enum PotionShopCustomerAnimAssets {
+    private static var cache: [String: Int] = [:]
+
+    /// Counts frames named "<prefix>1", "<prefix>2", … Cached per prefix.
+    static func frameCount(prefix: String, maxProbe: Int = 12) -> Int {
+        if let c = cache[prefix] { return c }
+        var n = 0
+        for k in 1...maxProbe {
+            if UIImage(named: "\(prefix)\(k)") != nil { n = k } else { break }
+        }
+        cache[prefix] = n
+        return n
+    }
+
+    static func clearCache() { cache.removeAll() }
+}
+
 // MARK: - Game state phases
 //
 // These are the broad states the game can be in. Set by the state
@@ -717,18 +757,27 @@ struct PotionShopDieRules {
 
     /// Returns the node indices this die affects when placed at `nodeIndex`.
     /// Does NOT include the die's own node.
+    ///
+    /// JULY 2, 2026 (night) — HONEST PREVIEWS: only dice that genuinely
+    /// affect OTHER nodes return a reach. Potency/stability/heal/shield
+    /// contribute only their own value in computeBrew, so their old
+    /// "within die.value hops" preview glow was misleading — it lit nodes
+    /// the die does nothing to. They now return [] (no glow beyond the
+    /// yellow drop target). BOOST keeps its reach, and the future MIRROR
+    /// die plugs in the same way (see its stub below). Brew math is
+    /// unchanged: computeBrew only ever queries boost reach.
     static func affectedNodes(for die: PotionShopDie, placedAt nodeIndex: Int) -> [Int] {
         switch die.type {
 
         // ─── POTENCY ────────────────────────────────────────────
         case .potency:
-            // Default: nodes within (die.value) graph hops
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+            // No cross-node effect → no reach glow.
+            return []
 
         // ─── STABILITY ──────────────────────────────────────────
         case .stability:
-            // Default: same as potency, nodes within die.value hops
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+            // Pure fire-refill die (§63) — no cross-node effect.
+            return []
 
         // ─── BOOST ──────────────────────────────────────────────
         case .boost:
@@ -744,16 +793,20 @@ struct PotionShopDieRules {
 
         // ─── HEAL ───────────────────────────────────────────────
         case .heal:
-            // Default: nodes within die.value hops
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
-            //
-            // ALTERNATE: Heals only affect themselves (no interaction):
-            //   return []
+            // No cross-node effect → no reach glow.
+            return []
 
         // ─── SHIELD ─────────────────────────────────────────────
         case .shield:
-            // Default: nodes within die.value hops
-            return PotionShopBoard.neighborsWithin(nodeIndex, hops: die.value)
+            // No cross-node effect → no reach glow.
+            return []
+
+        // ─── MIRROR (future die — wiring note) ──────────────────
+        // When the mirror die type is added, its case is one line:
+        //   case .mirror:
+        //       return PotionShopBoard.mirrorNode(of: nodeIndex).map { [$0] } ?? []
+        // i.e. it glows exactly its point-symmetric partner node
+        // (nothing on the center node, which has no partner).
         }
     }
 }

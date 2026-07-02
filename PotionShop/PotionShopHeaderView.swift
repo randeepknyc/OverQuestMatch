@@ -32,6 +32,12 @@ struct PotionShopHeaderView: View {
     @Bindable var gs: PotionShopGameState
     @Binding var showDebugMenu: Bool
 
+    // JULY 2, 2026 (night): debug-gear visibility + secret-unlock tap
+    // tracking. See PotionShopDebugAccess in PotionShopDebugMenu.swift.
+    @State private var debugAvailable: Bool = PotionShopDebugAccess.isAvailable
+    @State private var secretTapCount: Int = 0
+    @State private var secretLastTap: Date = .distantPast
+
     /// Asset name for the current time-of-day icon.
     private var todIconName: String {
         switch gs.currentRoundTimeOfDay {
@@ -90,24 +96,35 @@ struct PotionShopHeaderView: View {
                 .frame(maxWidth: .infinity)
                 .offset(y: cfg.headerBarOffsetY)
 
-                Button {
-                    showDebugMenu = true
-                } label: {
-                    if let gearImg = UIImage(named: "header_gear") {
-                        Image(uiImage: gearImg)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
-                            .offset(y: cfg.headerGearOffsetY)
-                    } else {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(PotionShopTheme.muted)
-                            .padding(6)
-                            .background(Color.white.opacity(0.5))
-                            .clipShape(Circle())
-                            .offset(y: cfg.headerGearOffsetY)
+                // JULY 2, 2026 (night): the gear only exists when debug
+                // access is on (always in Xcode/DEBUG builds; hidden on
+                // TestFlight/Release unless secretly unlocked — see
+                // PotionShopDebugAccess). A clear placeholder keeps the
+                // composure bar the same width either way, so the tuned
+                // header layout doesn't shift between builds.
+                if debugAvailable {
+                    Button {
+                        showDebugMenu = true
+                    } label: {
+                        if let gearImg = UIImage(named: "header_gear") {
+                            Image(uiImage: gearImg)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
+                                .offset(y: cfg.headerGearOffsetY)
+                        } else {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(PotionShopTheme.muted)
+                                .padding(6)
+                                .background(Color.white.opacity(0.5))
+                                .clipShape(Circle())
+                                .offset(y: cfg.headerGearOffsetY)
+                        }
                     }
+                } else {
+                    Color.clear
+                        .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
                 }
             }
 
@@ -117,6 +134,28 @@ struct PotionShopHeaderView: View {
                     .font(Font.gameUI(size: cfg.headerDayFontSize))
                     .foregroundColor(PotionShopTheme.ink)
                     .offset(x: cfg.headerDayOffsetX, y: cfg.headerDayOffsetY)
+                    // JULY 2, 2026 (night): SECRET debug unlock for Release
+                    // builds — 7 quick taps here toggles the gear icon.
+                    // Does nothing meaningful on Xcode/DEBUG builds (gear
+                    // is always on there). Taps more than 1.5s apart reset
+                    // the count, so normal play can't trip it.
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        let now = Date()
+                        if now.timeIntervalSince(secretLastTap) > 1.5 {
+                            secretTapCount = 0
+                        }
+                        secretLastTap = now
+                        secretTapCount += 1
+                        if secretTapCount >= 7 {
+                            secretTapCount = 0
+                            PotionShopDebugAccess.toggleUnlock()
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                debugAvailable = PotionShopDebugAccess.isAvailable
+                            }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
+                    }
 
                 HStack(spacing: 4) {
                     Text("Composure \(gs.composure)")

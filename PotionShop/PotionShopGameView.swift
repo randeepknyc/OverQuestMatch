@@ -1279,6 +1279,10 @@ struct PotionShopLayoutOverlay: View {
                 // JULY 2, 2026 (evening): GLOBAL size — resizes every node
                 // uniformly. Per-node "Size ×" below stacks on top of this.
                 sliderRow("All Nodes Size ×", value: $layoutConfig.nodeGlobalScale, range: 0.5...2.0, format: "%.2f×")
+                // JULY 2, 2026 (night): RELATIVE growth while a die sits
+                // on a node — 1.00 = no change, 1.15 = 15% bigger (springs
+                // there when a die lands, springs back when it leaves).
+                sliderRow("Occupied Growth ×", value: $layoutConfig.nodeOccupiedScale, range: 0.8...1.8, format: "%.2f×")
 
                 // Node picker
                 VStack(alignment: .leading, spacing: 4) {

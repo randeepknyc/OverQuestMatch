@@ -430,12 +430,21 @@ class PotionShopLayoutConfig {
     // uniformly, multiplied on top of the per-node sizes. 1.0 = normal.
     // Lives in Fine Tune ("All Nodes Size ×") next to the per-node slider.
     var nodeGlobalScale: Double = 1.0
+
+    // OCCUPIED Node Growth (JULY 2, 2026 night; semantics FIXED same
+    // night) — RELATIVE growth applied while a die is placed on a node,
+    // on top of whatever the empty size is. 1.0 = no change on placement
+    // (works the same no matter what "All Nodes Size ×" is). 1.15 = the
+    // node springs 15% bigger when a die lands and springs back when it
+    // leaves — art, glow, and die all together.
+    var nodeOccupiedScale: Double = 1.0
     
     // Helper method to reset all per-node offsets
     func resetAllNodeOffsets() {
         perNodeOffsets = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)
         perNodeScales = Array(repeating: 1.0, count: PotionShopBoard.maxNodeCount)
         nodeGlobalScale = 1.0
+        nodeOccupiedScale = 1.0
     }
 
     // ─── CHALK CONNECTION LINES (JULY 2, 2026) ─────────────────────
@@ -1967,6 +1976,7 @@ class PotionShopLayoutConfig {
         perNodeOffsets = Array(repeating: .zero, count: PotionShopBoard.maxNodeCount)
         perNodeScales = Array(repeating: 1.0, count: PotionShopBoard.maxNodeCount)
         nodeGlobalScale = 1.0
+        nodeOccupiedScale = 1.0
         
         // Dice & Tray
         dieScale = 1.405301421880722

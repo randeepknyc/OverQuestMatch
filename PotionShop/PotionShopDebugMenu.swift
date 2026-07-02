@@ -21,6 +21,40 @@
 import SwiftUI
 import Combine
 
+// MARK: - Debug access gate (JULY 2, 2026)
+//
+// Controls whether the gear icon (and therefore the entire debug menu,
+// layout editor, fire meter editor, etc.) is reachable.
+//
+//   • DEBUG builds (running from Xcode onto your own device): ALWAYS on.
+//   • RELEASE builds (TestFlight / App Store — what friends get): OFF by
+//     default. The gear icon simply doesn't exist for them.
+//   • Secret unlock on a Release build (for YOUR TestFlight copy): tap
+//     the "Day N" label in the header 7 times quickly. Same 7 taps
+//     toggles it back off. Persists across launches (UserDefaults).
+
+enum PotionShopDebugAccess {
+    static let unlockKey = "ps_debugUnlocked"
+
+    /// True when the debug gear should be visible.
+    static var isAvailable: Bool {
+        #if DEBUG
+        return true
+        #else
+        return UserDefaults.standard.bool(forKey: unlockKey)
+        #endif
+    }
+
+    /// Flip the Release-build unlock (no effect on DEBUG builds,
+    /// which are always on).
+    @discardableResult
+    static func toggleUnlock() -> Bool {
+        let now = !UserDefaults.standard.bool(forKey: unlockKey)
+        UserDefaults.standard.set(now, forKey: unlockKey)
+        return now
+    }
+}
+
 struct PotionShopDebugMenu: View {
     @Bindable var gs: PotionShopGameState
     @Binding var isPresented: Bool
@@ -33,6 +67,9 @@ struct PotionShopDebugMenu: View {
 
     @State private var showLayoutEditor = false
     @State private var showFireMeterEditor = false   // 🔥 fire meter editor
+    /// JULY 2, 2026 (night): master drop-down state for the 30-day list.
+    /// Starts COLLAPSED so the menu opens compact.
+    @State private var daysListExpanded = false
 
     // Live RAM tracking (May 29, 2026). The row updates every 0.5s, and
     // when you tap "Purge ALL caches" we capture a before-snapshot so you
@@ -46,32 +83,49 @@ struct PotionShopDebugMenu: View {
             List {
                 // ─── Round shortcuts (TOP — May 25, 2026) ─────────
                 Section("Skip to Day & Round") {
-                    // Legacy 4-round days (Day 1, Day 2)
-                    ForEach(PotionShopData.allDays, id: \.id) { day in
-                        DisclosureGroup(day.name) {
-                            ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
-                                roundJumpButton(dayId: day.id, roundIdx: idx)
-                            }
-                        }
-                    }
-                    // Flex days (Day 3+) — round count varies per day
-                    ForEach(PotionShopData.allFlexDays, id: \.id) { day in
-                        DisclosureGroup(day.name) {
-                            ForEach(0..<day.totalRoundCount, id: \.self) { idx in
-                                roundJumpButton(dayId: day.id, roundIdx: idx)
-                            }
-                            // Reshuffle the random rounds of this flex day.
-                            Button {
-                                gs.reshuffleFlexDay()
-                                isPresented = false
-                            } label: {
-                                HStack {
-                                    Image(systemName: "shuffle")
-                                        .foregroundColor(PotionShopTheme.accent)
-                                    Text("Reshuffle \(day.name) random rounds")
-                                        .foregroundColor(.primary)
+                    // JULY 2, 2026 (night): the 30-day list was a wall of
+                    // rows — it now lives inside ONE master drop-down,
+                    // collapsed by default. Tap "All days ▸" to expand;
+                    // each day still expands to its rounds as before.
+                    DisclosureGroup(isExpanded: $daysListExpanded) {
+                        // Legacy 4-round days (Day 1, Day 2)
+                        ForEach(PotionShopData.allDays, id: \.id) { day in
+                            DisclosureGroup(day.name) {
+                                ForEach(0..<PotionShopConfig.roundsPerDay, id: \.self) { idx in
+                                    roundJumpButton(dayId: day.id, roundIdx: idx)
                                 }
                             }
+                        }
+                        // Flex days (Day 3+) — round count varies per day
+                        ForEach(PotionShopData.allFlexDays, id: \.id) { day in
+                            DisclosureGroup(day.name) {
+                                ForEach(0..<day.totalRoundCount, id: \.self) { idx in
+                                    roundJumpButton(dayId: day.id, roundIdx: idx)
+                                }
+                                // Reshuffle the random rounds of this flex day.
+                                Button {
+                                    gs.reshuffleFlexDay()
+                                    isPresented = false
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "shuffle")
+                                            .foregroundColor(PotionShopTheme.accent)
+                                        Text("Reshuffle \(day.name) random rounds")
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.cyan)
+                            Text("All days")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("Day \(gs.dayNumber) now")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -959,6 +1013,7 @@ struct PotionShopDebugMenu: View {
 
         // JULY 2, 2026: per-node size multipliers ride along too
         text += "\nnodeGlobalScale: \(cfg.nodeGlobalScale)"
+        text += "\nnodeOccupiedScale: \(cfg.nodeOccupiedScale)"
         text += "\n"
         for (idx, scale) in cfg.perNodeScales.enumerated() {
             text += "\nNode \(idx) size: \(scale)×"

@@ -639,6 +639,10 @@ struct PotionShopNodeButtonView: View {
     /// Drives the reach-preview pulse: oscillates 0→1 (repeatForever)
     /// while this node is in the hovered die's reach, rests at 1 otherwise.
     @State private var previewPulse: Double = 1.0
+    /// JULY 2, 2026 (night): occupied-growth state — flipped in its own
+    /// withAnimation transaction so ONLY the node's scale springs when a
+    /// die lands/leaves (see the scaleEffect below for the full story).
+    @State private var occupiedPop: Bool = false
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
@@ -663,7 +667,18 @@ struct PotionShopNodeButtonView: View {
     //   4. Has die locked in           → subtle die-tinted glow
     //   5. Nothing                     → no glow
 
-    /// JULY 2, 2026: true when the player has drawn node_glow1… frames.
+    /// JULY 2, 2026 (night, FIXED same night): how much this node grows
+    /// while a die sits on it. RELATIVE to the node's empty size —
+    /// 1.00 = no change (regardless of what "All Nodes Size ×" is set
+    /// to), 1.15 = grows 15% when a die lands. The original version
+    /// treated this as an ABSOLUTE scale, so raising the empty size
+    /// made placement SHRINK the node (the "swiped into the node"
+    /// animation bug).
+    private var occupiedGrowth: CGFloat {
+        CGFloat(PotionShopLayoutConfig.shared.nodeOccupiedScale)
+    }
+
+    /// JULY 2, 2026 (night): true when the player has drawn node_glow1… frames.
     /// When frames exist, the reach preview plays THEM and the built-in
     /// cyan shadow glow steps aside (for the preview state only — the
     /// yellow drop-target and placed-die glows are unaffected).
@@ -831,6 +846,25 @@ struct PotionShopNodeButtonView: View {
         // This means anywhere inside the node area is grabbable —
         // you can tap or drag from anywhere within the frame, not
         // only inside the small visible die.
+        // JULY 2, 2026 (night, RE-FIXED): OCCUPIED GROWTH. The first
+        // version used `.animation(.spring, value: placedDie != nil)`,
+        // which made SwiftUI apply that spring to EVERYTHING changing in
+        // this node the moment a die landed — including the die's
+        // matched-geometry flight — producing the "swiped into the node"
+        // motion even when the growth was 1.0. Now the growth lives on
+        // its own @State (occupiedPop) flipped inside its OWN
+        // withAnimation transaction, so ONLY the scale springs; the
+        // die's original snap-in animation is untouched. Growth of 1.00
+        // = the scaleEffect never changes = zero effect on anything.
+        .scaleEffect(occupiedPop ? occupiedGrowth : 1.0)
+        .onChange(of: placedDie != nil) { _, occupied in
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.62)) {
+                occupiedPop = occupied
+            }
+        }
+        .onAppear {
+            occupiedPop = (placedDie != nil)  // no animation on first render
+        }
         .contentShape(Rectangle())
         // Reach-preview pulse loop (Request 7): when this node enters the
         // hovered die's reach, oscillate previewPulse 0↔1 forever; when it
@@ -1172,11 +1206,12 @@ struct PotionShopDiceTrayView: View {
                             dieScale: dieScale
                         )
                     } else {
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(
-                                Color.white.opacity(0.35),
-                                style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
-                            )
+                        // Empty slot. JULY 2, 2026: the dashed placeholder
+                        // outline is GONE (user request) — the slot is now
+                        // invisible but keeps its exact frame so the other
+                        // dice hold position and node→tray drops still know
+                        // where each slot lives.
+                        Color.clear
                             .frame(
                                 width: PotionShopCauldronLayout.dieSize * dieScale,
                                 height: PotionShopCauldronLayout.dieSize * dieScale
@@ -1200,21 +1235,33 @@ struct PotionShopDiceTrayView: View {
         }
         .padding(8)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.55, green: 0.35, blue: 0.17),
-                            Color(red: 0.42, green: 0.27, blue: 0.14)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
+            // JULY 2, 2026: hand-drawn tray art. Draw "dice_tray" in
+            // Assets.xcassets (wide canvas, e.g. 1536×512, transparent
+            // corners if you want rounded edges) and it replaces the
+            // code-drawn brown panel below. No asset = the brown
+            // gradient panel stays as the fallback, exactly as before.
+            Group {
+                if let trayImg = PotionShopImageLoader.loadImage(named: "dice_tray") {
+                    Image(uiImage: trayImg)
+                        .resizable()  // stretches to the tray panel's size
+                } else {
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(PotionShopTheme.ink, lineWidth: 2)
-                )
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.55, green: 0.35, blue: 0.17),
+                                    Color(red: 0.42, green: 0.27, blue: 0.14)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(PotionShopTheme.ink, lineWidth: 2)
+                        )
+                }
+            }
         )
         .padding(.horizontal, 14)
         .opacity(gs.isAnimating ? 0.7 : 1.0)

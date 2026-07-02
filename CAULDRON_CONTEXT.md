@@ -4115,3 +4115,87 @@ PotionShopCauldronView.swift (line modes, hug, glow frames, size
 multipliers, param sizing), PotionShopGameView.swift (drawer modes, size
 sliders, node picker), PotionShopDebugMenu.swift (Chalk Lines picker,
 export additions).
+
+---
+
+## 65. CUSTOMER LINE-BOIL + ATTACK ANIMATION, TRAY ART HOOK (July 2, 2026 — later)
+
+### 65.1 Customer animation (PotionShopModels + PotionShopCustomerSceneView)
+- `PotionShopCustomerAnimatedArt` view: attack frames (while that customer is
+  in `gs.customerAttackingIds`, plays ONCE at attackFPS then holds last frame)
+  → line-boil frames (ACTIVE customer only, endless loop at boilFPS) →
+  static scenePortrait (unchanged fallback). Renders identically to
+  sceneImageOrFallback's scene path (scaledToFit, size × size·1.5), uses
+  loadDisplayImage (downsample cache) per frame.
+- Wired at BOTH art call sites: active branch (boil + attack) and the
+  waiting-silhouette overlay (attack only; boil is active-only by design).
+  The white silhouette underlay stays static.
+- Asset names built from each character's scenePortrait:
+  `<scenePortrait>_boil1…N` and `<scenePortrait>_attack1…N` (probe max 12,
+  cached by PotionShopCustomerAnimAssets). e.g. mildred_scene_boil1.
+  Draw frames at the SAME canvas as the scenePortrait so they register.
+  A single _attack1 = held attack POSE. FPS knobs:
+  PotionShopCustomerAnimTuning (boilFPS 6, attackFPS 10).
+
+### 65.2 Tray
+- `dice_tray` asset (wide canvas, e.g. 1536×512) now replaces the
+  code-drawn brown gradient panel when present; gradient = fallback.
+- The dashed empty-slot placeholder is REMOVED — empty slots are invisible
+  Color.clear frames (same size, so slot geometry publishing and
+  node→tray drops are unaffected).
+
+### 65.3 Asset-name quick reference (as asked July 2)
+- Flame smoke (burn-out): `flame1_out1…3` per flame (flame2_out…, up to
+  flame5_) or shared `flame_out1…3` · flame idle: `flameN_lit1…3`
+- Node chalk circle: `potion_node` · node light-up: `node_glow1…N`
+- Tray: `dice_tray` · customer boil/attack: see 65.1
+
+### 65.4 Occupied node growth (July 2, night)
+Two uniform node sizes: EMPTY = "All Nodes Size ×" (nodeGlobalScale),
+OCCUPIED = "Occupied Node Size ×" (nodeOccupiedScale, new Fine Tune slider,
+exported in Copy Layout Values, reset with the others). A node springs
+(0.32s/0.62 damping) between them as a die lands/leaves — art, glow, and
+die scale together (hug preserved). Applied as a visual-only scaleEffect
+BEFORE gesture/geometry modifiers so hit areas, drop detection, and
+nodePositions stay on the stable empty-size frame. Per-node "Size ×"
+stacks on top of whichever state applies. Defaults equal → no change
+until tuned. Also: PotionShopCustomerAnimTuning (65.1 FPS knobs) lives in
+PotionShopModels.swift, after the image loader.
+
+### 65.5 Honest reach previews (July 2, night)
+PotionShopDieRules: potency/stability/heal/shield now return [] — they
+have no cross-node effect in computeBrew, so their old "within die.value
+hops" hover glow lit nodes they did nothing to. Only BOOST glows a reach
+(exactly-2), and the future MIRROR die plugs in as its partner node (stub
+comment in the switch). Yellow drop-target glow on the hovered node is
+unchanged for all dice. Brew math untouched (it only ever queried boost).
+
+### 65.6 Debug menu: collapsed day list + tester lockout (July 2, night)
+- The 30-day "Skip to Day & Round" list now lives inside ONE master
+  DisclosureGroup ("All days", shows current day at right), collapsed by
+  default. Per-day round drop-downs unchanged inside it.
+- PotionShopDebugAccess (top of PotionShopDebugMenu.swift) gates the gear:
+  DEBUG builds (Xcode runs) = always visible; RELEASE builds (TestFlight —
+  what testers get) = gear absent entirely (a clear placeholder keeps the
+  tuned header width identical). SECRET unlock on Release: tap the "Day N"
+  header label 7× quickly (≤1.5s between taps) → toggles the gear with a
+  haptic; persists via UserDefaults key ps_debugUnlocked. Same 7 taps
+  toggles back off.
+
+### 65.7 Occupied growth semantics FIX (July 2, night)
+nodeOccupiedScale is now RELATIVE growth (1.0 = no change on placement,
+whatever the empty size is; slider renamed "Occupied Growth ×",
+0.8–1.8). Was absolute: with empty size raised and occupied left at 1.00,
+placement SHRANK the node mid-flight — the "die feels swiped into the
+node" bug. occupiedGrowth in NodeButtonView now returns the value
+directly instead of dividing by nodeGlobalScale.
+
+### 65.8 Occupied growth RE-FIX (July 2, night) — animation isolation
+Root cause of the persisting "swiped into the node" motion: the
+`.animation(.spring, value: placedDie != nil)` modifier applied its
+spring to EVERY change in the node's subtree when a die landed —
+hijacking the die's matched-geometry snap-in even at growth 1.00. Fixed
+by moving the growth to a dedicated @State (occupiedPop) flipped inside
+its own withAnimation transaction, so only the scaleEffect springs.
+LESSON: never attach `.animation(value:)` to a container whose subtree
+has matchedGeometryEffect children — scope animations to dedicated state.

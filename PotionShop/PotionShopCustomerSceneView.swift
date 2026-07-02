@@ -630,6 +630,90 @@ struct PotionShopEdnarView: View {
     }
 }
 
+// MARK: - Animated customer art (JULY 2, 2026)
+//
+// Line-boil idle + attack sequences with graceful fallback. Renders
+// EXACTLY like PotionShopImageLoader.sceneImageOrFallback's scene path
+// (resizable → scaledToFit → size × size·1.5 frame) so every scale/offset
+// applied by the caller behaves identically for static and animated art.
+//
+// Priority: attack frames (while this customer is attacking Ednar)
+//         → boil frames (ACTIVE customer only, loops forever)
+//         → static scenePortrait (unchanged old behavior).
+// Asset names + FPS knobs: PotionShopCustomerAnimAssets /
+// PotionShopCustomerAnimTuning in PotionShopModels.swift.
+
+struct PotionShopCustomerAnimatedArt: View {
+    let char: PotionShopCharacter
+    let isActive: Bool
+    let isAttacking: Bool
+    let size: CGFloat
+
+    /// When the current attack sequence started (nil = not attacking).
+    /// Set on the isAttacking rising edge so the sequence plays from
+    /// frame 1 every time, then HOLDS its last frame until the attack
+    /// window closes.
+    @State private var attackStartedAt: Date? = nil
+
+    private var boilPrefix: String { "\(char.scenePortrait)_boil" }
+    private var attackPrefix: String { "\(char.scenePortrait)_attack" }
+
+    var body: some View {
+        let attackFrames = PotionShopCustomerAnimAssets.frameCount(prefix: attackPrefix)
+        let boilFrames = PotionShopCustomerAnimAssets.frameCount(prefix: boilPrefix)
+
+        Group {
+            if isAttacking, attackFrames > 0 {
+                // ATTACK: play once at attackFPS, hold the last frame.
+                TimelineView(.animation) { timeline in
+                    let start = attackStartedAt ?? timeline.date
+                    let elapsed = timeline.date.timeIntervalSince(start)
+                    let f = min(attackFrames - 1, Int(elapsed * PotionShopCustomerAnimTuning.attackFPS))
+                    frameImage("\(attackPrefix)\(f + 1)")
+                }
+            } else if isActive, boilFrames > 0 {
+                // LINE BOIL: endless idle loop, active customer only.
+                TimelineView(.animation) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let f = Int(t * PotionShopCustomerAnimTuning.boilFPS) % boilFrames
+                    frameImage("\(boilPrefix)\(f + 1)")
+                }
+            } else {
+                // No frames drawn (or waiting customer) → static art, as before.
+                PotionShopImageLoader.sceneImageOrFallback(
+                    sceneAsset: char.scenePortrait,
+                    profileAsset: char.portrait,
+                    fallbackEmoji: char.iconFallback,
+                    size: size
+                )
+            }
+        }
+        .onChange(of: isAttacking) { _, nowAttacking in
+            attackStartedAt = nowAttacking ? Date() : nil
+        }
+    }
+
+    /// One animation frame, downsample-cached, laid out identically to the
+    /// static scene portrait. Missing frame mid-sequence → static fallback
+    /// (never a blank flash).
+    @ViewBuilder
+    private func frameImage(_ name: String) -> some View {
+        if let ui = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: size * 1.5) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size * 1.5)
+        } else {
+            PotionShopImageLoader.sceneImageOrFallback(
+                sceneAsset: char.scenePortrait,
+                profileAsset: char.portrait,
+                fallbackEmoji: char.iconFallback,
+                size: size
+            )
+        }
+    }
+}
+
 // MARK: - One customer in the scene
 //
 // PHASE 7 additions:
@@ -1099,10 +1183,13 @@ struct PotionShopCustomerInSceneView: View {
                         .brightness(1.0)
 
                         // Overlay: original character art at reduced opacity.
-                        PotionShopImageLoader.sceneImageOrFallback(
-                            sceneAsset: char.scenePortrait,
-                            profileAsset: char.portrait,
-                            fallbackEmoji: char.iconFallback,
+                        // JULY 2, 2026: animated — shows the attack sequence
+                        // while THIS waiter is attacking Ednar (Phase 4b);
+                        // otherwise static (line-boil is active-only).
+                        PotionShopCustomerAnimatedArt(
+                            char: char,
+                            isActive: false,
+                            isAttacking: gs.customerAttackingIds.contains(customer.id),
                             size: PotionShopSceneLayout.portraitDiameter * scale
                         )
                         .scaleEffect(x: customerSceneBaseScale * effectiveWidth,
@@ -1111,10 +1198,14 @@ struct PotionShopCustomerInSceneView: View {
                         .offset(x: effectiveX, y: effectiveY)
                         .opacity(layoutConfig.slot2Opacity)   // was 0.55; now the Slot 2 slider (1.0 = solid)
                     } else {
-                        PotionShopImageLoader.sceneImageOrFallback(
-                            sceneAsset: char.scenePortrait,
-                            profileAsset: char.portrait,
-                            fallbackEmoji: char.iconFallback,
+                        // JULY 2, 2026: animated — LINE-BOIL idle loops for
+                        // the ACTIVE customer; attack sequence plays when
+                        // they attack Ednar (Phase 4a). No frames drawn =
+                        // static scenePortrait, exactly as before.
+                        PotionShopCustomerAnimatedArt(
+                            char: char,
+                            isActive: true,
+                            isAttacking: gs.customerAttackingIds.contains(customer.id),
                             size: PotionShopSceneLayout.portraitDiameter * scale
                         )
                         // Apply base scale FIRST (makes 1536×1024 visible), then per-character scale
