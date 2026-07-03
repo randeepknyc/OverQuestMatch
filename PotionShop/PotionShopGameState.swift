@@ -126,7 +126,7 @@ class PotionShopGameState {
     var composure: Int = PotionShopConfig.startingComposure
     var shield: Int = 0
     /// Stability fire meter (June 27; ECONOMY REDESIGNED June 29, 2026).
-    /// Full each time-slot. Ticks down 1 every fireTickEveryNTurns brews;
+    /// Full each time-slot. Burns 1 per firePerPotionValue potion output;
     /// big single attacks (≥ fireBigHitThreshold) knock an extra flame;
     /// stability dice refill it by their FACE VALUE (capped).
     var fire: Int = PotionShopConfig.maxFire
@@ -291,7 +291,17 @@ class PotionShopGameState {
 
     // MARK: - Init
 
+    /// JULY 2, 2026: this run's crowd-shuffle seed. Rolled fresh here (a
+    /// new run), overwritten by PotionShopSave.restore when continuing, and
+    /// mirrored into PotionShopData.campaignRunSalt so the day generator
+    /// deals THIS run's schedule. See §68 in CAULDRON_CONTEXT.
+    var runSeed: UInt64 = 0
+
     init() {
+        // JULY 2, 2026: roll this run's crowd shuffle BEFORE the first
+        // round spawns, so even Day 1 differs run-to-run.
+        runSeed = UInt64.random(in: 1...UInt64.max)
+        PotionShopData.campaignRunSalt = runSeed
         // JULY 2, 2026: pick the right board for the starting day before
         // the first round builds (didSet doesn't fire for the default value).
         PotionShopBoard.setActiveBoard(forDay: dayNumber)
@@ -507,7 +517,7 @@ class PotionShopGameState {
     /// and deal a fresh hand of dice.
     private func spawnCustomers(from round: PotionShopRound) {
         fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
-        fireBrewCounter = 0               // fresh tick counter each time-slot
+        fireBrewCounter = 0               // fresh potion-value bank each time-slot
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -1715,13 +1725,14 @@ class PotionShopGameState {
         // Clear the expiring set so views stop slide-out animations
         expiringCustomerIds.removeAll()
 
-        // JUNE 29, 2026: the SLOW TICK. One flame goes out every
-        // fireTickEveryNTurns brews (default 2), regardless of what was
-        // placed — refills and the tick are independent now, so a 1-value
-        // stability die on a tick turn nets exactly zero (that's the
-        // economy: one basic die every other turn holds the line).
-        fireBrewCounter += 1
-        if fireBrewCounter % PotionShopConfig.fireTickEveryNTurns == 0 {
+        // JULY 2, 2026: FIRE BURNS BY POTION VALUE (replaces the June 29
+        // every-N-brews tick). Every firePerPotionValue (10) points of
+        // potion the cauldron outputs burns one flame — brew big, burn
+        // hot. Leftover carries over (a 14-value brew banks 4 toward the
+        // next flame), and a monster 20+ brew can cost two flames at once.
+        fireBrewCounter += preview.damage
+        while fireBrewCounter >= PotionShopConfig.firePerPotionValue {
+            fireBrewCounter -= PotionShopConfig.firePerPotionValue
             fire = max(0, fire - 1)
         }
 

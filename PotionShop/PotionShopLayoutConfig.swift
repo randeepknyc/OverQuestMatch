@@ -472,6 +472,11 @@ class PotionShopLayoutConfig {
         didSet { UserDefaults.standard.set(bgColorHex, forKey: "ps_bgColorHex") }
     }
 
+    /// JULY 2, 2026: nudged by the header's secret 7-tap unlock so views
+    /// showing the debug gear (GameView's cauldron corner) re-evaluate
+    /// PotionShopDebugAccess.isAvailable. Not persisted; just a signal.
+    var debugGearBump: Int = 0
+
     /// The override as a Color (nil = no override, use image/parchment).
     var bgColorOverride: Color? {
         guard !bgColorHex.isEmpty else { return nil }

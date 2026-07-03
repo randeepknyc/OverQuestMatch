@@ -4317,3 +4317,95 @@ including the shop_background image — so auditions show the true color;
 "" = off (image → parchment fallback). Reset button (shows current hex)
 clears it; hex rides Copy Layout Values for baking a final choice into
 PotionShopTheme.bg. Hex↔Color helpers on PotionShopLayoutConfig.
+
+### 65.14 Pause/settings menu + debug gear relocation (July 2, later)
+- NEW FILE PotionShopPauseMenu.swift — Match-3-style menu: ONE drawn
+  image (ps_pausemenu, ~900×1560px ≈ 300×520pt) + INVISIBLE TAP ZONES
+  (Resume / Restart Round [gs.startRound] / Tutorial [tutorial.start] /
+  Save & Exit [PotionShopSave.save → dismiss] / End Game → confirmation
+  dialog ps_endgame_dialog with END GAME [no save] / CANCEL zones). Zone
+  bands = fractions in PotionShopPauseMenuLayout (showZones=true tints
+  them for lining up art). Code fallback panel renders buttons AT the
+  zone positions = the drawing template. Presented as a zIndex-900
+  overlay in GameView (below tutorial), scale+opacity in/out, backdrop
+  tap resumes, 0.3s delay before onEndGame (Match-3 flow).
+- HEADER: gear slot now holds the PLAYER settings ☰ button (asset
+  ps_settings_button, SF line.3.horizontal fallback) → showSettingsMenu.
+  PotionShopHeaderView signature gained showSettingsMenu binding.
+- DEBUG GEAR moved to the CAULDRON's bottom-right (overlay on
+  PotionShopCauldronView in GameView), still PotionShopDebugAccess-gated;
+  secret Day-label 7-tap now bumps LayoutConfig.debugGearBump (new, not
+  persisted) so the relocated gear re-checks after Release unlocks.
+- Asset sheet PDF updated with the three new assets. XCODE STEP: user
+  must ADD PotionShopPauseMenu.swift as a NEW file (File → New → File →
+  Swift File → name it exactly, in the PotionShop folder).
+
+---
+
+## 68. PER-RUN CROWD SHUFFLE — the "same 3 customers" fix (July 2, 2026)
+
+DIAGNOSIS: the 30-day campaign generator (§ campaign in PotionShopData)
+was seeded by DAY NUMBER ONLY (`n &* 2654435761`), so every run, replay,
+and install produced the IDENTICAL crowd schedule for all 30 days (Day 1
+morning was always the same trio, forever). The RNG (SplitMix64), the
+randomFromPool spawn path (legacy Day 1/2), the difficulty windows (11
+chars at difficulty 2), and character wiring were all verified healthy —
+determinism-without-entropy was the single cause.
+
+FIX: `PotionShopData.campaignRunSalt` (UInt64) is XORed into every day
+seed. `PotionShopGameState.runSeed` rolls it fresh in init (a new run),
+`PotionShopSave` persists it (optional field — old saves still decode)
+and restores it BEFORE dayId so regenerated lineups match the save.
+Within a run days remain deterministic (the original save-friendly / no-
+respawn-flicker intent); every NEW run deals a different 30-day schedule.
+Debug Menu → Crowd → "Reshuffle Crowd (new run seed)" rerolls live.
+
+STILL TRUE / BY DESIGN: replaying a day within the SAME run shows the
+same lineup (that's the save-friendliness). Small cast (15) means trios
+overlap between rounds; more drawn characters directly increase variety
+(add via campaignCast — see "HOW TO ADD A NEW CUSTOMER" note in Data).
+The June 25 per-character pools (orderPhrases/traitNames bags, chosen at
+spawn; HP round buckets) were verified intact and already wired.
+
+---
+
+## 69. FOUR-FIX ROUND: balance comments, expiration, fire rule, MEMORY (July 2, 2026)
+
+### 69.1 Data tuning table retired
+The old "TUNING RULES OF THUMB BY DIFFICULTY" comment block (absolute
+HP/attack targets per difficulty 1–5) conflicted with the §66 balance
+engine (day-scaled HP/attacks, computed bosses). Replaced with a
+"BALANCE — SOURCE OF TRUTH" block: per-character stats = Day-1 baselines;
+tune the engine (hpDayMultiplier/bucketedHP/attackDayMultiplier/boss
+factors); `difficulty` gates campaign entry only; patience/expire stay
+personality knobs.
+
+### 69.2 Expiration fade (no more edge slide)
+runExpiration no longer slides the character to the screen edge — it now
+freezes at its exact spot (reusing the June 13 defeat freeze +
+conditional matched geometry, preventing the queue-reindex tug) and
+fades in place. 💢 burst unchanged. expireSlideX now stays 0 (var kept).
+
+### 69.3 Fire burns by POTION VALUE
+Replaces the June 29 every-N-brews tick. fireBrewCounter now BANKS the
+brew's potion output (Int(preview.damage)); every firePerPotionValue
+(10, PotionShopConfig — replaces fireTickEveryNTurns) burns one flame,
+leftover carries, 20+ brews can cost two flames. Big-hit rule
+(fireBigHitThreshold, attacks ≥10) unchanged. Stability refill unchanged.
+
+### 69.4 MEMORY OVERHAUL (the 300–700MB crash)
+ROOT CAUSE: PotionShopImageLoader.downsampledImage force-decoded EVERY
+asset full-res via UIImage(named:).pngData() (a 2048×1536 canvas ≈ 12MB
+decoded) and RE-ENCODED it to PNG per cache miss — plus the newest big
+art (cauldron, cauldron_boil frames, node_glow, potion_node, dice_tray,
+shop_background) loaded full-res outside the downsampler entirely.
+FIXES: (1) downsampler rebuilt on UIGraphicsImageRenderer — one small
+redraw, no re-encode, pass-through when already small; (2) cache
+countLimit 64→400 (frame sequences thrashed 64 → re-decode churn every
+animation loop); (3) every heavy draw site now goes through
+loadDisplayImage sized to its on-screen dimensions. Memory-warning purge
+(May 26) still active. RAM now scales with DISPLAY sizes, not canvas
+sizes. USER GUIDANCE: decoded RAM = pixels × 4 regardless of file size —
+no redrawing needed ever; if further savings wanted, re-EXPORT big
+canvases smaller from Procreate (customers ≤ ~700px tall, boil/cauldron
+≤ ~1200px wide), but the code fix should carry it.

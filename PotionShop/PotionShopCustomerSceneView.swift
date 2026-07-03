@@ -1637,9 +1637,16 @@ struct PotionShopCustomerInSceneView: View {
                 }
             }
         }
-        // Slide off-screen + fade
+        // JULY 2, 2026: expiration now FADES IN PLACE (the old slide
+        // shoved the character to the screen edge — looked broken with
+        // the current staging). Reuses the defeat freeze: pin the view
+        // at its exact spot and detach it from the shared queue
+        // geometry, so the re-indexing queue can't tug the ghost while
+        // it fades (the same snap bug defeat fixed on June 13).
+        defeatFrozenX = xPos + shakeOffset
+        defeatFrozenY = yPos
+        defeatFrozen = true
         withAnimation(.easeIn(duration: PotionShopBrewAnimator.expirationDuration * 0.85)) {
-            expireSlideX = PotionShopBrewAnimator.expirationSlideDistance
             expireOpacity = 0.0
         }
     }

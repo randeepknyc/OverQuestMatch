@@ -22,6 +22,8 @@ struct PotionShopGameView: View {
     @State private var showDebugMenu = false
     @State private var showLayoutOverlay = false
     @State private var tutorial = PotionShopTutorialState()
+    /// JULY 2, 2026: player-facing pause/settings menu.
+    @State private var showSettingsMenu = false
 
     /// When true, the view restores from a saved run on appear
     /// instead of starting fresh. Set by GameSelectorView.
@@ -56,7 +58,9 @@ struct PotionShopGameView: View {
                 // shop_background image, then the parchment fallback.
                 if let liveColor = PotionShopLayoutConfig.shared.bgColorOverride {
                     liveColor.ignoresSafeArea()
-                } else if let bgImage = PotionShopImageLoader.loadImage(named: "shop_background") {
+                } else if let bgImage = PotionShopImageLoader.loadDisplayImage(
+                    named: "shop_background",
+                    displaySize: max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)) {
                     Image(uiImage: bgImage)
                         .resizable()
                         .scaledToFill()
@@ -67,7 +71,9 @@ struct PotionShopGameView: View {
                 }
 
                 VStack(spacing: 0) {
-                    PotionShopHeaderView(gs: gs, showDebugMenu: $showDebugMenu)
+                    PotionShopHeaderView(gs: gs,
+                                         showDebugMenu: $showDebugMenu,
+                                         showSettingsMenu: $showSettingsMenu)
                         .frame(height: headerH)
 
                     PotionShopCustomerSceneView(
@@ -117,6 +123,39 @@ struct PotionShopGameView: View {
                         cauldronArtXOffset: layoutConfig.cauldronX,
                         cauldronArtYOffset: layoutConfig.cauldronY
                     )
+                    // ━━━ DEBUG GEAR (JULY 2, 2026 — moved from header) ━━
+                    // Dev-only, bottom-right of the cauldron. Gated by
+                    // PotionShopDebugAccess (always in Xcode builds; on
+                    // TestFlight only after the secret Day-label taps —
+                    // debugGearBump makes this re-check after a toggle).
+                    .overlay(alignment: .bottomTrailing) {
+                        let _ = layoutConfig.debugGearBump  // observe toggles
+                        if PotionShopDebugAccess.isAvailable {
+                            Button {
+                                showDebugMenu = true
+                            } label: {
+                                // JULY 2 (latest): debug wears a subtle
+                                // dashed CIRCLE (the gear now belongs to
+                                // the player settings). ps_debug_button
+                                // art replaces it if ever drawn.
+                                if let dbgImg = UIImage(named: "ps_debug_button") {
+                                    Image(uiImage: dbgImg)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                } else {
+                                    Image(systemName: "circle.dashed")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(PotionShopTheme.muted)
+                                        .padding(6)
+                                        .background(Color.white.opacity(0.45))
+                                        .clipShape(Circle())
+                                }
+                            }
+                            .padding(.trailing, 10)
+                            .padding(.bottom, 6)
+                        }
+                    }
                     // BACKUP (to revert, copy these values back):
                     // brewZoneX: 0.80, brewZoneWidth: 90, showBrewZone: true
                     // cauldronArtWidth: 2.61, cauldronArtHeight: 1.28
@@ -165,6 +204,19 @@ struct PotionShopGameView: View {
                 // sliders. Still gated to Day 2 R2 + editor toggle.
                 if gs.show3DTestSpinButton && gs.currentRoundUses3DDice {
                     testSpinFloatingButton3D
+                }
+
+                // ── SETTINGS / PAUSE MENU (JULY 2, 2026) ─────────
+                // Match-3-style: one drawn image + invisible tap zones
+                // (code-drawn template until ps_pausemenu is drawn).
+                if showSettingsMenu {
+                    PotionShopPauseMenu(
+                        gs: gs,
+                        tutorial: tutorial,
+                        isPresented: $showSettingsMenu,
+                        onEndGame: { dismiss() }
+                    )
+                    .zIndex(900)
                 }
 
                 // ── TUTORIAL OVERLAY (above everything) ──────────

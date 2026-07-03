@@ -410,7 +410,12 @@ struct PotionShopCauldronView: View {
 
             ZStack {
                 // LAYER 0: SINGLE CAULDRON IMAGE (bottom layer)
-                if let cauldronImage = PotionShopImageLoader.loadImage(named: "cauldron") {
+                // JULY 2, 2026 (memory): decode at DISPLAY size — the raw
+                // canvas is ~12MB decoded; on screen it needs a fraction.
+                if let cauldronImage = PotionShopImageLoader.loadDisplayImage(
+                    named: "cauldron",
+                    displaySize: max(baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,
+                                     baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight)) {
                     Image(uiImage: cauldronImage)
                         .resizable()
                         // NO .scaledToFit() or .scaledToFill() - allows independent width/height distortion
@@ -440,7 +445,10 @@ struct PotionShopCauldronView: View {
                             let t = timeline.date.timeIntervalSinceReferenceDate
                             let count = PotionShopCauldronBoilAssets.frameCount()
                             let frame = Int(t * max(0.1, PotionShopCauldronBoilTuning.boilFPS)) % count
-                            if let boilImg = PotionShopImageLoader.loadImage(named: "cauldron_boil\(frame + 1)") {
+                            if let boilImg = PotionShopImageLoader.loadDisplayImage(
+                                named: "cauldron_boil\(frame + 1)",
+                                displaySize: max(baseGeometry.bowlW * cauldronArtScale * cauldronArtWidth,
+                                                 baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight)) {
                                 Image(uiImage: boilImg)
                                     .resizable()
                                     .frame(
@@ -821,9 +829,15 @@ struct PotionShopNodeButtonView: View {
                         let t = timeline.date.timeIntervalSinceReferenceDate
                         let count = PotionShopNodeGlowAssets.frameCount()
                         let frame = Int(t * max(0.1, PotionShopNodeGlowTuning.glowFrameFPS)) % count
-                        Image("node_glow\(frame + 1)")
-                            .resizable()
-                            .scaledToFit()
+                        // JULY 2, 2026 (memory): downsample-cached — the
+                        // SwiftUI Image(name) initializer decoded full-res.
+                        if let glowImg = PotionShopImageLoader.loadDisplayImage(
+                            named: "node_glow\(frame + 1)",
+                            displaySize: PotionShopCauldronLayout.nodeVisible * visualScale) {
+                            Image(uiImage: glowImg)
+                                .resizable()
+                                .scaledToFit()
+                        }
                     }
                 } else {
                     nodeBackground
@@ -1095,7 +1109,9 @@ struct PotionShopNodeButtonView: View {
     // so nothing breaks until your art is added.
     @ViewBuilder
     private var nodeBackground: some View {
-        if let nodeImage = PotionShopImageLoader.loadImage(named: "potion_node") {
+        if let nodeImage = PotionShopImageLoader.loadDisplayImage(
+            named: "potion_node",
+            displaySize: PotionShopCauldronLayout.nodeVisible * visualScale) {
             Image(uiImage: nodeImage)
                 .resizable()
                 .scaledToFit()
@@ -1300,7 +1316,8 @@ struct PotionShopDiceTrayView: View {
             // code-drawn brown panel below. No asset = the brown
             // gradient panel stays as the fallback, exactly as before.
             Group {
-                if let trayImg = PotionShopImageLoader.loadImage(named: "dice_tray") {
+                if let trayImg = PotionShopImageLoader.loadDisplayImage(
+                    named: "dice_tray", displaySize: 380) {
                     Image(uiImage: trayImg)
                         .resizable()  // stretches to the tray panel's size
                 } else {

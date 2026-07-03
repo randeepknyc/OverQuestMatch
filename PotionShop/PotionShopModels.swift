@@ -35,7 +35,15 @@ struct PotionShopImageLoader {
     /// hold these weakly via NSCache so iOS can evict on memory pressure.
     private static let downsampleCache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
-        c.countLimit = 64  // cap total cached thumbnails
+        // JULY 2, 2026 (v2 — the 1969MB lesson): the cache is budgeted in
+        // BYTES now, not entries. Every stored image carries its real
+        // bitmap cost (w × h × 4), and the whole cache can never exceed
+        // ~120MB — NSCache evicts oldest-least-used past that. countLimit
+        // stays as a secondary guard. (v1 raised countLimit to 400 with
+        // no cost accounting, and full-res pass-throughs pinned hundreds
+        // of 12MB bitmaps → ~2GB. Never cache without a byte budget.)
+        c.countLimit = 500
+        c.totalCostLimit = 120 * 1024 * 1024
         return c
     }()
 
@@ -50,30 +58,49 @@ struct PotionShopImageLoader {
     /// SwiftUI scaling/animations). Uses ImageIO's CGImageSourceCreate-
     /// ThumbnailAtIndex so the full image is never decoded.
     static func downsampledImage(named name: String, targetPixelSize: CGFloat) -> UIImage? {
-        let oversample: CGFloat = 3.0
-        let pixelSize = max(64, targetPixelSize * oversample)  // never below 64px
+        // JULY 2, 2026 v2 — MEMORY, DONE RIGHT THIS TIME:
+        //   • hard ceiling: no cached image ever exceeds 2048px longest
+        //     side, no matter what display size was asked for
+        //   • every cached image is a FRESH small bitmap (never the
+        //     UIImage(named:) object itself, whose decoded full-res data
+        //     the system retains) …
+        //   • … stored with its true byte cost, against the cache's
+        //     ~120MB total budget (see the cache setup above).
+        // Result: RAM is bounded by the budget, period.
+        let oversample: CGFloat = 3.0   // points → retina pixels
+        let hardCap: CGFloat = 2048
+        let pixelSize = min(hardCap, max(64, targetPixelSize * oversample))
         let cacheKey = "\(name)@\(Int(pixelSize))" as NSString
         if let cached = downsampleCache.object(forKey: cacheKey) {
             return cached
         }
-        // Resolve the asset to a CGImageSource via UIImage's data.
-        guard let baseImage = UIImage(named: name),
-              let baseData = baseImage.pngData() else {
-            return nil
+        guard let base = UIImage(named: name) else { return nil }
+        let srcPixW = base.size.width * base.scale
+        let srcPixH = base.size.height * base.scale
+        guard srcPixW > 0, srcPixH > 0 else { return nil }
+        let maxSide = max(srcPixW, srcPixH)
+        // Genuinely tiny sources (icons, dice) pass through uncached-cost-free-ish:
+        // cache them WITH cost so even these obey the budget.
+        let ratio = min(1.0, pixelSize / maxSide)
+        let target = CGSize(width: max(1, floor(srcPixW * ratio)),
+                            height: max(1, floor(srcPixH * ratio)))
+        let image: UIImage
+        if ratio >= 1.0 && maxSide <= 512 {
+            // Small enough to keep as-is (≤512px longest side ≈ ≤1MB).
+            image = base
+        } else {
+            // Redraw into an INDEPENDENT bitmap at the capped size — this
+            // is what actually frees the full-res decode for reclaim.
+            let fmt = UIGraphicsImageRendererFormat()
+            fmt.scale = 1
+            fmt.opaque = false
+            image = UIGraphicsImageRenderer(size: target, format: fmt).image { _ in
+                base.draw(in: CGRect(origin: .zero, size: target))
+            }
         }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceShouldCacheImmediately: true,
-            kCGImageSourceThumbnailMaxPixelSize: pixelSize,
-            kCGImageSourceCreateThumbnailWithTransform: true
-        ]
-        guard let src = CGImageSourceCreateWithData(baseData as CFData, nil),
-              let cgImage = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary) else {
-            return baseImage  // fall back to full image rather than nothing
-        }
-        let down = UIImage(cgImage: cgImage)
-        downsampleCache.setObject(down, forKey: cacheKey)
-        return down
+        let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
+        downsampleCache.setObject(image, forKey: cacheKey, cost: cost)
+        return image
     }
 
     /// Attempts to load an image from the asset catalog.
@@ -375,18 +402,14 @@ struct PotionShopConfig {
     /// ─── STABILITY FIRE ECONOMY (June 29, 2026 redesign) ────────────
     /// The meter no longer burns 1 every brew / refills to full on any
     /// stability die. New model:
-    ///   • Burns 1 flame every `fireTickEveryNTurns` brews (the slow tick).
+    ///   • Burns 1 flame per `firePerPotionValue` (10) points of potion the
+    ///     cauldron outputs — brew big, burn hot (JULY 2, 2026; replaces the
+    ///     June 29 every-N-brews tick). Leftover value carries to the next
+    ///     flame (a 14-value brew leaves 4 banked).
     ///   • Any SINGLE customer attack ≥ `fireBigHitThreshold` knocks 1 extra
-    ///     flame (the cauldron shakes). Early-game attacks (2–4) never
-    ///     trigger this; late-game double-digit hits do — a free ramp.
-    ///   • A stability die refills the meter by its FACE VALUE (capped),
-    ///     and stability dice START AT ALL 1s — upgrading the lane is the
-    ///     only way they grow (see PotionShopDieTier.rollFace(for:)).
-    ///   • At 0 fire going into a brew, potion damage is HALVED (unchanged).
-    /// TUNING: raise fireTickEveryNTurns to 3 for a gentler tick, set it to
-    /// 1 for the old harsh burn-every-turn. Raise the threshold to make big
-    /// hits rarer.
-    static let fireTickEveryNTurns = 2
+    /// TUNING: raise firePerPotionValue for a slower burn (bigger brews per
+    /// flame), lower it to make aggressive brewing costly.
+    static let firePerPotionValue = 10
     static let fireBigHitThreshold = 10
 
     /// Stability fire meter: pieces shown under the cauldron. Starts full

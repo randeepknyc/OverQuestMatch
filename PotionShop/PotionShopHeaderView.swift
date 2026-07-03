@@ -31,10 +31,11 @@ import SwiftUI
 struct PotionShopHeaderView: View {
     @Bindable var gs: PotionShopGameState
     @Binding var showDebugMenu: Bool
+    /// JULY 2, 2026: player-facing settings menu (the ☰ button below).
+    @Binding var showSettingsMenu: Bool
 
-    // JULY 2, 2026 (night): debug-gear visibility + secret-unlock tap
-    // tracking. See PotionShopDebugAccess in PotionShopDebugMenu.swift.
-    @State private var debugAvailable: Bool = PotionShopDebugAccess.isAvailable
+    // JULY 2, 2026 (night): secret-unlock tap tracking for the debug
+    // gear (the gear itself lives at the cauldron's bottom-right now).
     @State private var secretTapCount: Int = 0
     @State private var secretLastTap: Date = .distantPast
 
@@ -100,35 +101,33 @@ struct PotionShopHeaderView: View {
                 .frame(maxWidth: .infinity)
                 .offset(y: cfg.headerBarOffsetY)
 
-                // JULY 2, 2026 (night): the gear only exists when debug
-                // access is on (always in Xcode/DEBUG builds; hidden on
-                // TestFlight/Release unless secretly unlocked — see
-                // PotionShopDebugAccess). A clear placeholder keeps the
-                // composure bar the same width either way, so the tuned
-                // header layout doesn't shift between builds.
-                if debugAvailable {
-                    Button {
-                        showDebugMenu = true
-                    } label: {
-                        if let gearImg = UIImage(named: "header_gear") {
-                            Image(uiImage: gearImg)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
-                                .offset(y: cfg.headerGearOffsetY)
-                        } else {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(PotionShopTheme.muted)
-                                .padding(6)
-                                .background(Color.white.opacity(0.5))
-                                .clipShape(Circle())
-                                .offset(y: cfg.headerGearOffsetY)
-                        }
+                // JULY 2, 2026 (later): the header slot now holds the
+                // PLAYER-FACING settings (☰) button — always visible.
+                // The dev-only debug gear moved to the bottom-right of
+                // the cauldron (see PotionShopGameView), still gated by
+                // PotionShopDebugAccess + the secret Day-label taps.
+                // Draw "ps_settings_button" (256×256) to replace the ☰.
+                Button {
+                    showSettingsMenu = true
+                } label: {
+                    // JULY 2 (latest): settings wears the GEAR again (user
+                    // request) — ps_settings_button art wins if drawn,
+                    // then the header_gear art, then the SF gear.
+                    if let btnImg = UIImage(named: "ps_settings_button") ?? UIImage(named: "header_gear") {
+                        Image(uiImage: btnImg)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
+                            .offset(y: cfg.headerGearOffsetY)
+                    } else {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(PotionShopTheme.muted)
+                            .padding(6)
+                            .background(Color.white.opacity(0.5))
+                            .clipShape(Circle())
+                            .offset(y: cfg.headerGearOffsetY)
                     }
-                } else {
-                    Color.clear
-                        .frame(width: cfg.headerGearSize, height: cfg.headerGearSize)
                 }
             }
 
@@ -154,9 +153,9 @@ struct PotionShopHeaderView: View {
                         if secretTapCount >= 7 {
                             secretTapCount = 0
                             PotionShopDebugAccess.toggleUnlock()
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                debugAvailable = PotionShopDebugAccess.isAvailable
-                            }
+                            // Nudge the observable so the CAULDRON's gear
+                            // (which lives in GameView now) re-evaluates.
+                            PotionShopLayoutConfig.shared.debugGearBump += 1
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         }
                     }

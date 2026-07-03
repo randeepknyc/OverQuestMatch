@@ -98,6 +98,7 @@
 		7F693BA82FF1DD1400835FE2 /* CardGameSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BA72FF1DD1400835FE2 /* CardGameSave.swift */; };
 		7F693BE32FF6340500835FE2 /* EnemySelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BE22FF6340500835FE2 /* EnemySelectView.swift */; };
 		7F693BE42FF6340500835FE2 /* EnemyRoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BE12FF6340500835FE2 /* EnemyRoster.swift */; };
+		7F693C572FF74F5100835FE2 /* PotionShopPauseMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693C562FF74F5100835FE2 /* PotionShopPauseMenu.swift */; };
 		7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163252FC4068700DBF8B7 /* CardDatabase.swift */; };
 		7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163272FC4068700DBF8B7 /* CardGameView.swift */; };
 		7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */; };
@@ -251,6 +252,7 @@
 		7F693BA72FF1DD1400835FE2 /* CardGameSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameSave.swift; sourceTree = "<group>"; };
 		7F693BE12FF6340500835FE2 /* EnemyRoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyRoster.swift; sourceTree = "<group>"; };
 		7F693BE22FF6340500835FE2 /* EnemySelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemySelectView.swift; sourceTree = "<group>"; };
+		7F693C562FF74F5100835FE2 /* PotionShopPauseMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopPauseMenu.swift; sourceTree = "<group>"; };
 		7F7163252FC4068700DBF8B7 /* CardDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDatabase.swift; sourceTree = "<group>"; };
 		7F7163262FC4068700DBF8B7 /* CardGameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameModels.swift; sourceTree = "<group>"; };
 		7F7163272FC4068700DBF8B7 /* CardGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameView.swift; sourceTree = "<group>"; };
@@ -463,6 +465,7 @@
 				7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */,
 				7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */,
 				7F79086F2FA81CF800412002 /* PotionShopDebugMenu.swift */,
+				7F693C562FF74F5100835FE2 /* PotionShopPauseMenu.swift */,
 				7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */,
 				7F7908692FA7A05800412002 /* PotionShopCauldronView.swift */,
 				7F79086A2FA7A05800412002 /* PotionShopCustomerSceneView.swift */,
@@ -737,6 +740,7 @@
 			files = (
 				7F2ADE4B2F819CD90078EF4E /* RepairSlot.swift in Sources */,
 				7FB075392F5D2FD300BD0591 /* BoardManager.swift in Sources */,
+				7F693C572FF74F5100835FE2 /* PotionShopPauseMenu.swift in Sources */,
 				7FB0753A2F5D2FDD00BD0591 /* BattleManager.swift in Sources */,
 				7F7908722FA8395E00412002 /* PotionShopBrewAnimator.swift in Sources */,
 				7F693BA02FF1DBA000835FE2 /* SaveManager.swift in Sources */,

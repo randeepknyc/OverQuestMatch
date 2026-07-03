@@ -26,12 +26,24 @@
 //  - To swap which customers appear in a round: edit the
 //    `customerIds` array in the relevant round below.
 //
-//  TUNING RULES OF THUMB BY DIFFICULTY:
-//    1 (Tutorial): HP 8-12  / patience 7-8 / activeAttack 1   / waitingAttack 1   / expire 3-4
-//    2 (Easy):     HP 12-16 / patience 5-7 / activeAttack 1-2 / waitingAttack 1   / expire 5-6
-//    3 (Medium):   HP 16-20 / patience 4-5 / activeAttack 2-3 / waitingAttack 1   / expire 6-7
-//    4 (Hard):     HP 20-26 / patience 4-5 / activeAttack 3   / waitingAttack 1-2 / expire 7-9
-//    5 (Boss):     HP 28-40 / patience 4-6 / activeAttack 4-5 / waitingAttack 2   / expire 12+
+//  ⚖️ BALANCE — SOURCE OF TRUTH (JULY 2, 2026):
+//  The old per-difficulty stat table that lived here is RETIRED — it
+//  predated the weighting/balance system and conflicted with it (bosses
+//  are COMPUTED now; HP and attacks are DAY-SCALED, so hand-tuning to
+//  absolute targets double-scales). The rules now:
+//    • A character's hp / activeAttack / waitingAttack are its DAY-1
+//      BASELINE only. The live numbers come from the balance engine:
+//      hpDayMultiplier + bucketedHP (order sizes) and
+//      attackDayMultiplier (weekly ×1.13/day sawtooth) in
+//      PotionShopConfig — tune THOSE, not per-character stats.
+//    • Boss nights are DERIVED (bossHPFactorOfEvening /
+//      bossAttackFactorOfEvening from that day's evening round) — never
+//      hand-tune a boss's hp/attack fields expecting them to stick.
+//    • `difficulty` (2–4) has ONE job: gating WHEN a character enters
+//      the campaign (difficultyWindow in the generator). It is not a
+//      stat multiplier.
+//    • patience / expire remain simple per-character personality knobs.
+//  The balance lab HTML (§67 in CAULDRON_CONTEXT) simulates all of this.
 //
 
 import Foundation
@@ -1207,12 +1219,22 @@ enum PotionShopData {
         return eligible.count >= 3 ? eligible.sorted() : campaignCast.sorted()
     }
 
-    /// Generate the full 4-round day. DETERMINISTIC (seeded by day number) so a
-    /// day always rebuilds the same lineup — no respawn flicker, save-friendly.
+    /// JULY 2, 2026 — PER-RUN CROWD SHUFFLE. The campaign generator was
+    /// seeded by DAY NUMBER ONLY, so every run/replay/install produced the
+    /// IDENTICAL 30-day crowd schedule ("same 3 customers every round").
+    /// This salt is rolled once per NEW run (GameState.runSeed, persisted
+    /// in the save) and mixed into every day's seed: days stay stable
+    /// WITHIN a run (save-friendly, no respawn flicker — the original
+    /// intent), but every new run deals a different schedule.
+    static var campaignRunSalt: UInt64 = 0
+
+    /// Generate the full 4-round day. DETERMINISTIC within a run (seeded
+    /// by day number ⊕ the run salt) so a day always rebuilds the same
+    /// lineup — no respawn flicker, save-friendly.
     /// ⭐️ Every round sets useFeetAnchor: true so customers stage exactly like
     /// the authored Day 1 (the visual source of truth).
     static func generatedDay(_ n: Int) -> PotionShopDay {
-        var rng = PotionShopSeededRNG(seed: UInt64(max(1, n)) &* 2654435761)
+        var rng = PotionShopSeededRNG(seed: (UInt64(max(1, n)) &* 2654435761) ^ campaignRunSalt)
         let window = difficultyWindow(forDay: n)
 
         func makeRound(_ idx: Int, _ tod: PotionShopTimeOfDay) -> PotionShopRound {
