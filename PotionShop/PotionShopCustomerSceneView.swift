@@ -2013,6 +2013,10 @@ struct PotionShopInspectStripView: View {
                                         Text("\(attackForSubtitle)")
                                             .font(Font.gameScore(size: PotionShopLayoutConfig.shared.bannerBottleNumberSize))
                                             .foregroundColor(.black)
+                                            // ATTACK-ONLY Y nudge (July 3) —
+                                            // knob: bannerAtkNumberExtraY in
+                                            // PotionShopLayoutConfig.swift.
+                                            .offset(y: CGFloat(PotionShopLayoutConfig.shared.bannerAtkNumberExtraY))
                                     } else {
                                         PotionShopRollingHPText(
                                             target: bannerLiveTarget,

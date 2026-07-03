@@ -1,8 +1,8 @@
 # MATCH-3 GAME CONTEXT
 **OverQuestMatch3 - Match-3 RPG Battle Game**
 
-> **Last Updated:** June 12, 2026 (Session 25 - Animation Coordinator System)  
-> **Status:** ✅ COMPLETE & FULLY WORKING - No splash/title/map in Match3ContentView anymore
+> **Last Updated:** July 3, 2026 (Session 26 - Multi-Enemy Roster & Selection Screen)  
+> **Status:** ✅ COMPLETE & FULLY WORKING - Multiple enemies, signature gems, "Choose Your Foe" screen
 
 ---
 
@@ -23,7 +23,9 @@
 - 8×8 grid of colorful gem tiles
 - Match 3+ gems horizontally or vertically
 - Different gem types have different battle effects
-- Turn-based combat between Ramp (player) and Ednar (enemy)
+- Turn-based combat between Ramp (player) and a CHOSEN enemy from the roster
+- "Choose Your Foe" selection screen (16 enemies: 6 unlocked, 10 locked)
+- Each enemy has a SIGNATURE GEM (their element) — the main damage source
 - Special abilities activated via coffee cup button
 - Bonus tiles that clear entire rows/columns
 
@@ -51,7 +53,11 @@ Match3Game/
 ├─ ChainInputHandler2.swift       // Chain mode input handling
 ├─ ChainVisualConfig.swift        // Chain mode visual settings
 ├─ Ability.swift                  // Special ability enum & data
-└─ PoisonPillScreenEffect.swift   // Poison damage screen effect
+├─ PoisonPillScreenEffect.swift   // Poison damage screen effect
+├─ EnemyRoster.swift              // 🆕 S26: ALL enemy configs (stats, gems, messages)
+├─ EnemySelectView.swift          // 🆕 S26: "Choose Your Foe" screen
+├─ TileArt.swift                  // 🆕 S26: signature gem art loader (emoji placeholders)
+└─ CharacterImageLoader.swift     // 🆕 S26: deep image search + transparent-margin trim
 ```
 
 **Shared Files** (in `/Shared` folder, used by all games):
@@ -397,6 +403,67 @@ titleAnimationStyle = .floatAndPulse
 
 ---
 
+## ⚔️ MULTI-ENEMY SYSTEM (Session 26)
+
+### **How It Works**
+- `EnemyRoster.swift` is the single source of truth for every opponent:
+  id, name, portrait asset, max HP, attack min–max, signature element
+  (name/emoji/tile image/damage-per-gem/color/messages), attack messages,
+  and `unlocked` flag. **Edit enemies here — never hardcode in BattleManager.**
+- `EnemyRoster.current` = who we're fighting. Set by `EnemySelectView` on tap;
+  read by `BattleManager.init`, `TileType`, `GameOverView`, `TileArt`.
+- **Signature gem:** the `.fire` TileType slot IS the signature gem. Fire is
+  just Ednar's version. Image, color, damage, and battle messages all come
+  from the current enemy's profile. Board stays at 6 gem types (match-3
+  convention sweet spot: 5–7 types).
+- **Sword = small chip damage vs everyone (2/gem). Signature = main damage
+  (3–5/gem per enemy).**
+
+### **The Roster (16 enemies)**
+Unlocked: Ednar 🔥 FIRE (200 HP) · Mildred 🌿 NATURE (150) ·
+Tomik 🌪️ WIND (170) · Grimdrek ⚡ LIGHTNING (180) ·
+Hexa Mott 🔮 HEX (160) · Ironhilde ❄️ ICE (240, tank)
+Locked (flip `unlocked: true`): Greta ✨, Sister Halla 🌊, Wendelina 🫧,
+Pemberton 🪨, Ardo ⛈️, Bram ⛰️, Crispin 🌑, Gnash 😈, Snapjaw 🦖,
+Toad King 🐸 (250 HP final boss)
+Locked enemies use auto-generated battle messages until custom ones are
+added to their profile (empty [] = generic).
+
+### **Art Pipeline (all placeholder-driven, zero code changes)**
+- **Portraits:** gmarker_ PNGs (cauldron game art) as placeholders.
+  Fallback chain in CharacterAnimations:
+  `<prefix>_<state>_boil1/2/3` → `<prefix>_<state>` → `<prefix>_idle` →
+  bare `<prefix>` → letter circle. Redraw later as `gmarker_bull_idle`
+  or add `gmarker_bull_boil1/2/3` — auto-upgrades.
+- **CharacterImageLoader:** finds images ANYWHERE in the app bundle (not
+  just Assets.xcassets) and auto-trims transparent margins (gmarker art
+  has big empty canvases). Cached. Used by portraits + selection cards.
+- **Signature tiles:** `TileArt.image(for:)` renders the enemy's EMOJI
+  until a PNG named e.g. `ice_tile` / `hex_tile` exists in Assets — then
+  it auto-switches. Ednar's `fire_tile` already exists.
+  ⚠️ Board/selector code must call `TileArt.image(for:)` /
+  `TileArt.uiImage(for:)` — NOT `Image(type.imageName)` directly.
+
+### **Flow & Saves**
+- GameSelectorView: **New Game → EnemySelectView** ("Choose Your Foe") →
+  tap card → battle. **Continue → Match3ContentView directly** (skips
+  selection).
+- `Match3Save` stores `enemyID`; restore rebuilds the right enemy.
+  Pre-Session-26 saves decode with `enemyID = "ednar"` automatically.
+- Ednar remains the DEFAULT (roster entry #1) — old behavior preserved.
+
+### **Planned Next (agreed, not built)**
+- **Mood engine** from Session 9 design docs (`CombatMasterTemplate.md`,
+  `Ednar_CombatProfile.md`, `Ramp_AICombatProfile.md`): per-enemy state
+  meter (Passive→Berserk), damage formula modifiers (match quality, board
+  pressure, mana hoarding, health scaling, variance), narrative tells.
+  Roster = the body; mood engine = the brain (params live in EnemyProfile).
+  Includes HP rebalance to doc scale (Ramp 130, enemies ~110–250).
+- **Board attacks** as Special Behaviors (scramble / gem corruption /
+  mana drain / tile freeze), triggered every Nth enemy turn.
+
+---
+
 ## 🎯 BATTLE MECHANICS REFERENCE
 
 ### **How to Launch Match-3 Game:**
@@ -652,6 +719,22 @@ var asyncEnemyTurn: Bool = false
 
 ## 📚 RECENT MAJOR CHANGES
 
+**Session 26 (July 3, 2026)** - Multi-Enemy Roster & Selection Screen ⚔️
+- NEW `EnemyRoster.swift` — every enemy's stats/art/gem/messages in one config
+- NEW `EnemySelectView.swift` — "Choose Your Foe" grid (6 unlocked, 10 locked)
+- NEW `TileArt.swift` — signature gems render as emoji until tile PNGs exist
+- NEW `CharacterImageLoader.swift` — deep bundle search + margin trimming
+- Signature gem system: `.fire` slot = current enemy's element (per-enemy
+  damage, color, image, messages); sword = universal chip damage
+- BattleManager builds enemy from `EnemyRoster.current` (Ednar = default)
+- Match3Save remembers `enemyID` (old saves → Ednar); GameOverView + enemy
+  attack messages use current enemy's name
+- GameSelectorView: New Game → enemy select; Continue → saved battle
+- CharacterAnimations fallback chain extended to bare asset names
+- Fixed: ViewBuilder error (logic moved to resolveFallback()); Ednar card
+  art (tries `_idle` variant); gmarker portraits invisible in battle
+- Design docs reviewed: Session 9 combat profiles ≈ mood engine, planned next
+
 **Session 25 (June 12, 2026)** - Animation Coordinator System ✨
 - NEW `AnimationCoordinator.swift`: queue + priority + coalesce/drop system
 - All states route through coordinators; boil flipbooks for every state
@@ -717,6 +800,15 @@ var asyncEnemyTurn: Bool = false
   hurt/hurt2/defend/spell/victory/defeat (📋 art pending — static
   fallbacks show until added)
 
+### **Enemy Roster Art (Session 26):**
+- Portrait placeholders (in app already): `gmarker_bird/bull/demon/dino/
+  fishguy/fox/frog/girl/goatguy/octo/oldlady/puck/skull/slug/traveler`
+- Redraw upgrades: `gmarker_<x>_idle` (static) or `gmarker_<x>_boil1/2/3`
+- Signature tile PNGs (📋 pending — emoji shows until added):
+  `nature_tile`, `wind_tile`, `lightning_tile`, `hex_tile`, `ice_tile`,
+  plus locked enemies: `light/tide/slime/earth/storm/mountain/shadow/
+  gloom/primal/bog_tile`
+
 ### **Optional PNG Animations (Bonus Blasts):**
 - `bonus_blast_row_1.png` through `bonus_blast_row_6.png` (2048×256px)
 - `bonus_blast_col_1.png` through `bonus_blast_col_6.png` (256×2048px)
@@ -737,8 +829,16 @@ var asyncEnemyTurn: Bool = false
 4. ✅ Test on both swap and chain modes
 5. ✅ Verify board state after changes
 6. ✅ Check debug menu still works
+7. ✅ **NEVER** hardcode enemy stats/names — everything reads
+   `EnemyRoster.current`. Tile art must go through `TileArt.image(for:)`,
+   character art through `CharacterImageLoader.load(...)`
+8. ✅ In SwiftUI view `body`, avoid multi-statement logic (uninitialized
+   `let` + if/else) — extract to helper funcs ("'()' cannot conform to
+   'View'" bug, Session 26)
 
 **Common Tasks:**
+- Add/edit/unlock ENEMIES → Edit `EnemyRoster.swift` (never BattleManager)
+- Signature gem art/damage/messages → enemy's profile in `EnemyRoster.swift`
 - Adjust battle numbers → Edit `BattleMechanicsConfig.swift`
 - Change gem effects → Edit values in `BattleMechanicsConfig.swift`
 - Add battle messages → Add to arrays in `BattleMechanicsConfig.swift`

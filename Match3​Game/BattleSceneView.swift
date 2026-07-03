@@ -447,7 +447,7 @@ struct GemButton: View {
                     .blur(radius: 8)
                 
                 // Gem tile image
-                if let uiImage = UIImage(named: type.imageName) {
+                if let uiImage = TileArt.uiImage(for: type) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)

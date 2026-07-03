@@ -6,6 +6,10 @@
 //  Line boil flipbooks for EVERY state, with automatic fallback to
 //  static images until the _boil PNG frames are added to Assets.
 //
+//  🆕 MULTI-ENEMY UPDATE: one extra fallback step was added so the
+//  gmarker characters work with their existing file names — no
+//  renaming needed. See the fallback chain below.
+//
 
 import SwiftUI
 import Combine
@@ -19,13 +23,15 @@ struct StateBasedCharacterPortrait: View {
 
     var body: some View {
         // 🆕 FULLY GENERIC (Session 25.1): the asset prefix comes from
-        // character.imageName ("ramp" for Ramp, "ednar" for Ednar/Toad King).
-        // Any new character automatically works — hero or enemy — as long
-        // as their assets follow the naming convention:
+        // character.imageName ("ramp" for Ramp, "ednar" for Ednar,
+        // "gmarker_oldlady" for Mildred, etc). Any new character
+        // automatically works — hero or enemy — as long as their assets
+        // follow the naming convention:
         //   <prefix>_boil1/2/3            (idle flipbook)
         //   <prefix>_<state>_boil1/2/3    (other state flipbooks)
         //   <prefix>_<state>              (static fallback per state)
-        //   <prefix>_idle                 (last-resort static fallback)
+        //   <prefix>_idle                 (static fallback)
+        //   <prefix>                      (bare image — gmarker characters!)
         AnimatedHeroPortrait(assetPrefix: character.imageName,
                              state: character.currentState)
     }
@@ -37,12 +43,13 @@ struct StateBasedCharacterPortrait: View {
 ///   1. Boil frames (<prefix>_<state>_boil1/2/3)  → animates
 ///   2. Static state image (<prefix>_<state>)      → static pose
 ///   3. Static idle image (<prefix>_idle)          → character's idle art
-///   4. Blue circle with initial                    → nothing found at all
-/// This means a character with ONLY an idle image (like Ednar today) shows
-/// that for every state — identical to the old behavior — and upgrades
-/// automatically as art is added.
+///   4. Bare image (<prefix>)                      → 🆕 gmarker characters
+///   5. Blue circle with initial                    → nothing found at all
+/// This means a character with ONLY a single image (like the gmarker
+/// roster today) shows that for every state — and upgrades automatically
+/// as art is added.
 struct AnimatedHeroPortrait: View {
-    let assetPrefix: String       // "ramp", "ednar", later "goro", etc.
+    let assetPrefix: String       // "ramp", "ednar", "gmarker_bull", etc.
     let state: CharacterState
 
     var body: some View {
@@ -52,17 +59,22 @@ struct AnimatedHeroPortrait: View {
             ? "\(assetPrefix)_boil"
             : "\(assetPrefix)_\(state.boilSuffix)_boil"
 
-        // Smart fallback: prefer the state's own static image, otherwise
-        // drop to the character's idle image (e.g. ednar_attack doesn't
-        // exist yet → show ednar_idle, exactly like before)
-        let stateStatic = "\(assetPrefix)_\(state.boilSuffix)"
-        let fallback = (UIImage(named: stateStatic) != nil)
-            ? stateStatic
-            : "\(assetPrefix)_idle"
-
         LineBoilAnimation(framePrefix: framePrefix,
                           frameCount: 3,
-                          fallbackImageName: fallback)
+                          fallbackImageName: resolveFallback())
+    }
+
+    /// Smart fallback chain: state's own static image → idle image →
+    /// 🆕 the bare asset name itself (e.g. "gmarker_skull").
+    /// Checks use CharacterImageLoader, which searches the WHOLE app
+    /// (not just Assets.xcassets) and trims empty margins.
+    private func resolveFallback() -> String {
+        let stateStatic = "\(assetPrefix)_\(state.boilSuffix)"
+        let idleStatic = "\(assetPrefix)_idle"
+
+        if CharacterImageLoader.exists(stateStatic) { return stateStatic }
+        if CharacterImageLoader.exists(idleStatic) { return idleStatic }
+        return assetPrefix   // 🆕 bare image name
     }
 }
 
@@ -107,8 +119,9 @@ struct LineBoilAnimation: View {
                     FallbackPortrait(characterName: framePrefix)
                 }
             }
-        } else if let fb = fallbackImageName, let image = UIImage(named: fb) {
-            // 🖼 Boil frames not added yet → old static art
+        } else if let fb = fallbackImageName, let image = CharacterImageLoader.load(fb) {
+            // 🖼 Boil frames not added yet → static art
+            // (loaded via CharacterImageLoader: deep search + margin trim)
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -122,7 +135,7 @@ struct LineBoilAnimation: View {
 // MARK: - Static Character Portrait (Non-Animated)
 
 /// Shows a single static image based on character state.
-/// Used for Ednar and any character without line boil animations.
+/// Used for any character without line boil animations.
 struct StaticCharacterPortrait: View {
     let character: Character
     let displayState: CharacterState
@@ -194,10 +207,12 @@ struct FallbackPortrait: View {
    victory  →  ramp_victory_boil1 / 2 / 3
    defeat   →  ramp_defeat_boil1 / 2 / 3
 
- Until a state's frames exist, it shows the old static image
- (ramp_attack, ramp_hurt, etc.) — nothing breaks in the meantime.
+ 🆕 THE SAME WORKS FOR EVERY GMARKER ENEMY! For example:
+   gmarker_bull_boil1 / 2 / 3          → Ironhilde idle boil
+   gmarker_bull_attack_boil1 / 2 / 3   → Ironhilde attack boil
+ Until those exist, the single gmarker_bull image is shown.
 
- ANIMATION SPEED: change "every: 0.15" in LineBoilAnimation's timer.
+ ANIMATION SPEED: change frameDuration in LineBoilAnimation.
 
  HOLD TIMES & PRIORITIES: see the config table at the top of
  AnimationCoordinator.swift.

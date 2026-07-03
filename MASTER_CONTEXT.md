@@ -14,7 +14,7 @@
 **User Coding Level:** Zero coding knowledge - Requires complete, copy-paste ready code
 
 ### **Current Games:**
-1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING
+1. **Match-3 RPG Battle** - ✅ COMPLETE & WORKING (S26: multi-enemy roster, "Choose Your Foe" screen, signature gems — see MATCH3_CONTEXT.md)
 2. **Ednar's Potion Cauldron** - 🔨 ACTIVE DEVELOPMENT (current focus) — a dice-roguelite in `PotionShop/`. Full, authoritative docs: **`CAULDRON_CONTEXT.md`**
 3. **Shop of Oddities** - module present in the project (`ShopOfOddities/`); see `ShopOfOddities_CONTEXT.md`
 4. **Physics Chain Game** - ⚠️ CODE COMPLETE - Debugging tile display issue

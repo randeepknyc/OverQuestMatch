@@ -82,6 +82,25 @@ struct PotionShopDebugMenu: View {
         NavigationStack {
             List {
                 // ─── Round shortcuts (TOP — May 25, 2026) ─────────
+                // JULY 2, 2026: instantly deal a new crowd schedule for the
+                // whole run (new runSeed) and respawn the current round —
+                // for testing that lineups actually vary.
+                Section("Crowd") {
+                    Button {
+                        gs.runSeed = UInt64.random(in: 1...UInt64.max)
+                        PotionShopData.campaignRunSalt = gs.runSeed
+                        gs.startRound()
+                        isPresented = false
+                    } label: {
+                        HStack {
+                            Image(systemName: "dice.fill")
+                                .foregroundColor(.purple)
+                            Text("Reshuffle Crowd (new run seed)")
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+
                 Section("Skip to Day & Round") {
                     // JULY 2, 2026 (night): the 30-day list was a wall of
                     // rows — it now lives inside ONE master drop-down,
@@ -522,8 +541,7 @@ struct PotionShopDebugMenu: View {
 
                     if tutorial.isActive {
                         HStack {
-                            Text("Step \(tutorial.currentStep + 1) of 4")
-                                .font(.caption)
+                            Text("Step \(tutorial.currentStep + 1) of \(tutorial.stepCount)")                                .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
                             Button("Prev") {

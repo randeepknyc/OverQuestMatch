@@ -266,8 +266,7 @@ struct PotionShopGameView: View {
         }
         // ── Tutorial step 4: finish when the player brews ────────
         .onChange(of: gs.potionsBrewed) { _, _ in
-            if tutorial.isActive && tutorial.currentStep == 3 {
-                tutorial.finish()
+            if tutorial.isActive && tutorial.currentStepIsBrewStep {                tutorial.finish()
             }
         }
         .onReceive(purgeTimer) { _ in

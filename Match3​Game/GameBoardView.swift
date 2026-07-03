@@ -397,7 +397,7 @@ struct GemTileView: View {
                 bonusTileContent
             } else {
                 // Regular tile
-                Image(tile.type.imageName)
+                TileArt.image(for: tile.type)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size * 0.85, height: size * 0.85)
@@ -443,7 +443,7 @@ struct GemTileView: View {
     
     @ViewBuilder
     private var selectedOverlay: some View {
-        Image(tile.type.imageName)
+        TileArt.image(for: tile.type)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size * 0.85, height: size * 0.85)
@@ -694,7 +694,7 @@ struct ChainCounterView: View {
             Text("\(chainLength)")
                 .font(.gameScore(size: ChainVisualConfig.counterFontSize))
             
-            Image(tileType.imageName)
+            TileArt.image(for: tileType)
                 .resizable()
                 .frame(width: ChainVisualConfig.counterGemSize, height: ChainVisualConfig.counterGemSize)
         }

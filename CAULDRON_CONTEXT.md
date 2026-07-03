@@ -4409,3 +4409,27 @@ sizes. USER GUIDANCE: decoded RAM = pixels × 4 regardless of file size —
 no redrawing needed ever; if further savings wanted, re-EXPORT big
 canvases smaller from Procreate (customers ≤ ~700px tall, boil/cauldron
 ≤ ~1200px wide), but the code fix should carry it.
+
+### 69.5 MEMORY v2 — the 1969MB regression fix (July 2, night)
+69.4's loader had a fatal pair: a full-res "pass-through" branch that
+cached UIImage(named:) objects as-is, and countLimit 400 with NO cost
+accounting → hundreds of 8–13MB bitmaps pinned ≈ 2GB. v2 rules (in
+downsampledImage): hard 2048px ceiling on anything cached; everything
+larger than 512px is REDRAWN into an independent capped bitmap (never
+cache the named UIImage itself — its decoded full-res stays retained);
+every entry stored with cost = w×h×4 against totalCostLimit ≈ 120MB
+(countLimit 500 secondary). RAM is now hard-bounded by the budget.
+LESSON: never cache images without a byte budget.
+
+### 69.6 The "+2 mystery" — CORRECTED diagnosis + Inspiring retired (July 3)
+The 8/10-instead-of-6/8 badges were NOT the Inspiring trait (initial
+diagnosis wrong — with the campaign cast, no queued customer can carry
+it). Real cause: RUN BOONS — run.typeBonuses[.potency] = +2 (type-wide
+boon(s) taken between rounds), applied to every potency die as ruleBonus
+in drawFromBag. Badges were correct; the buff was just invisible on die
+faces. Per user request, `trait: "inspiring"` removed from greta (the
+only assignment anywhere); the trait DEFINITION and the dieValueMod path
+in computeBrew remain wired for future use. Full upload sync July 3
+confirmed all files identical to canon except Save + DebugMenu (user had
+not pasted the crowd-shuffle versions — reshipped; without the new Save,
+runSeed doesn't persist and mid-run relaunches deal a fresh crowd).

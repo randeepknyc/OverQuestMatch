@@ -20,6 +20,7 @@
 //     automatically shows the fire tile art so nothing breaks.
 //
 
+
 import SwiftUI
 
 // ═══════════════════════════════════════════════════════════════
@@ -46,6 +47,12 @@ struct SignatureElement {
     /// Uses your custom tile art if it exists, otherwise the fire tile
     var resolvedTileImage: String {
         UIImage(named: tileImageName) != nil ? tileImageName : "fire_tile"
+    }
+
+    /// 🆕 True once you've drawn this enemy's tile PNG.
+    /// Until then, the board shows the emoji instead (see TileArt.swift).
+    var hasCustomTileArt: Bool {
+        UIImage(named: tileImageName) != nil
     }
 }
 

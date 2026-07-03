@@ -191,7 +191,12 @@ enum PotionShopData {
             tickDialogue: "Greta hums a cheerful tune.",
             expireDialogue: "No worries! Next time, eh?",
             defeatDialogue: "Wonderful! You're a treasure, brewer.",
-            trait: "inspiring"
+            // JULY 3, 2026: Inspiring REMOVED from all customers (user
+            // request — a hidden global dice buff made brew numbers
+            // illegible). The trait definition + the dieValueMod machinery
+            // in computeBrew stay intact for future use (a boon, a story
+            // beat, a rare event). Was: trait: "inspiring".
+            trait: nil
         ),
 
         // ─── DIFFICULTY 2 (Easy) ──────────────────────────────────────

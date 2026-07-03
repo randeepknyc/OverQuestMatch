@@ -111,7 +111,10 @@ struct EnemyCard: View {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.black.opacity(0.35))
 
-                if let image = UIImage(named: enemy.portraitAsset) {
+                // Tries the exact name first, then the "_idle" variant
+                // (Ednar's art is named "ednar_idle", not "ednar")
+                if let image = CharacterImageLoader.load(enemy.portraitAsset)
+                            ?? CharacterImageLoader.load("\(enemy.portraitAsset)_idle") {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)

@@ -622,6 +622,12 @@ class PotionShopLayoutConfig {
     var bannerBottleNumberOffsetX: Double = 1.3297855854034424
     var bannerBottleNumberOffsetY: Double = 8.865249156951904
 
+    // JULY 3, 2026: extra Y nudge for the banner number ONLY while it's
+    // showing the customer's ATTACK value (the black number on
+    // potion_bottle_atk). Added ON TOP of bannerBottleNumberOffsetY.
+    // Negative = up, positive = down. HP and damage numbers unaffected.
+    var bannerAtkNumberExtraY: Double = -9.0
+
     // MARK: - Head Anchor Defaults (May 22, 2026)
     // Fraction of the rendered image where each bucket's head sits.
     // Y: 0.0 = top of image, 1.0 = bottom. X: 0.0 = left edge, 1.0 = right, 0.5 = center.
@@ -714,7 +720,7 @@ class PotionShopLayoutConfig {
     var autoLayoutWaiting1Width: Double = 1.0
     var autoLayoutWaiting1Height: Double = 1.0
     var autoLayoutWaiting1X: Double = -11.440432071685791
-    var autoLayoutWaiting1Y: Double = 33.687591552734375
+    var autoLayoutWaiting1Y: Double = 37.58831024169922  // BAKED July 3 (user-tuned)
 
     var autoLayoutWaiting2Width: Double = 1.0
     var autoLayoutWaiting2Height: Double = 1.0
@@ -760,7 +766,12 @@ class PotionShopLayoutConfig {
 
     /// Sparse per-cell overrides. Most keys absent → matrix + slot fine-tune
     /// applies. Mutating triggers Observable update via property write.
-    var bucketCellOverrides: [BucketCellKey: BucketCell] = [:]
+    /// BAKED July 3 (user-tuned): waiting-1 medium·medium characters sit
+    /// 34.7pt left of the slot default.
+    var bucketCellOverrides: [BucketCellKey: BucketCell] = [
+        BucketCellKey(slot: 1, heightRaw: "medium", widthRaw: "medium"):
+            BucketCell(size: nil, x: -34.68085527420044, y: nil)
+    ]
 
     func bucketCellKey(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketCellKey {
         BucketCellKey(slot: slot, heightRaw: String(describing: height), widthRaw: String(describing: width))
@@ -1022,7 +1033,16 @@ class PotionShopLayoutConfig {
     }
 
     /// SPARSE — only problem pairings ever get entries.
-    var hpBadgeContextNudges: [HpBadgeContextKey: HpBadgeContextNudge] = [:]
+    /// BAKED July 3 (user-tuned): slot-1 superShort·skinny standing
+    /// behind a medium·wide → badge nudged right and up.
+    var hpBadgeContextNudges: [HpBadgeContextKey: HpBadgeContextNudge] = [
+        HpBadgeContextKey(slot: 1,
+                          myHeight: .superShort, myWidth: .skinny,
+                          nbrHeight: .medium, nbrWidth: .wide):
+            HpBadgeContextNudge(dx: 37.23404407501221,
+                                dy: -16.66666269302368,
+                                sizeMul: 1.0)
+    ]
 
     func hpBadgeContextKey(slot: Int, myCharacterId: String, neighborCharacterId: String) -> HpBadgeContextKey {
         let me = characterScale(for: myCharacterId)
@@ -1107,7 +1127,18 @@ class PotionShopLayoutConfig {
     }
 
     /// SPARSE — only problem combos ever get entries.
-    var characterContextNudges: [CharacterContextKey: CharacterContextNudge] = [:]
+    /// BAKED July 3 (user-tuned): a medium·medium in slot 1, squeezed
+    /// between a medium·wide up front and a short·wide behind → steps
+    /// 15pt left so the sandwich doesn't overlap.
+    var characterContextNudges: [CharacterContextKey: CharacterContextNudge] = [
+        CharacterContextKey(slot: 1,
+                            myHeight: .medium, myWidth: .medium,
+                            frontHeight: CustomerHeightBucket.medium.rawValue,
+                            frontWidth: CustomerWidthBucket.wide.rawValue,
+                            backHeight: CustomerHeightBucket.short.rawValue,
+                            backWidth: CustomerWidthBucket.wide.rawValue):
+            CharacterContextNudge(dx: -15.2482271194458, dy: 0.0, sizeMul: 1.0)
+    ]
 
     private func charBuckets(_ id: String?) -> (h: String, w: String) {
         guard let id else { return ("", "") }
@@ -1244,7 +1275,7 @@ class PotionShopLayoutConfig {
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
     var autoLayoutSlotXFractionActive: Double = 0.5004964616894723
-    var autoLayoutSlotXFractionWaiting1: Double = 0.6925974673032761
+    var autoLayoutSlotXFractionWaiting1: Double = 0.6563031542301178  // BAKED July 3 (re-tuned 1:43 AM)
     var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
     // MARK: - Layout Editor state (May 25, 2026)

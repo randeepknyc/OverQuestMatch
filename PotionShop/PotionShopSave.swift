@@ -13,6 +13,10 @@ struct PotionShopSave: Codable {
     // Run progress
     var dayId: String
     var roundIndex: Int
+    /// JULY 2, 2026: the run's crowd-shuffle seed (see
+    /// PotionShopData.campaignRunSalt). Optional so saves from before
+    /// this field still decode; nil = keep whatever seed is running.
+    var runSeed: UInt64? = nil
 
     // Player vitals
     var composure: Int
@@ -31,6 +35,7 @@ struct PotionShopSave: Codable {
         PotionShopSave(
             dayId: gs.dayId,
             roundIndex: gs.roundIndex,
+            runSeed: gs.runSeed,
             composure: gs.composure,
             shield: gs.shield,
             potionsBrewed: gs.potionsBrewed,
@@ -42,6 +47,12 @@ struct PotionShopSave: Codable {
     // MARK: - Restore into game state
 
     func restore(into gs: PotionShopGameState) {
+        // JULY 2, 2026: restore the run's crowd-shuffle seed FIRST, so the
+        // day lineup regenerated below matches the one that was saved.
+        if let seed = runSeed {
+            gs.runSeed = seed
+            PotionShopData.campaignRunSalt = seed
+        }
         gs.dayId = dayId
         gs.roundIndex = roundIndex
         gs.composure = composure
