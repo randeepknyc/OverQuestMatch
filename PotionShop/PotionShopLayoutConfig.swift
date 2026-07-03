@@ -1275,7 +1275,7 @@ class PotionShopLayoutConfig {
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
     var autoLayoutSlotXFractionActive: Double = 0.5004964616894723
-    var autoLayoutSlotXFractionWaiting1: Double = 0.6563031542301178  // BAKED July 3 (re-tuned 1:43 AM)
+    var autoLayoutSlotXFractionWaiting1: Double = 0.7099556124210358  // BAKED July 3 (re-tuned 1:50 AM)
     var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
     // MARK: - Layout Editor state (May 25, 2026)
