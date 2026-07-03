@@ -1693,31 +1693,11 @@ struct PotionShopProfileRowView: View {
             }
             .frame(maxWidth: .infinity)
 
-            if gs.selectedHandIndex != nil {
-                HStack(spacing: 6) {
-                    Text("🎯")
-                        .font(.system(size: 13))
-                    Text("Tap a node in the cauldron to place this die")
-                        .font(Font.gameUI(size: 12))
-                        .foregroundColor(PotionShopTheme.accent)
-                }
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.55))
-                .overlay(
-                    Rectangle()
-                        .fill(PotionShopTheme.accent.opacity(0.3))
-                        .frame(height: 1),
-                    alignment: .top
-                )
-                .overlay(
-                    Rectangle()
-                        .fill(PotionShopTheme.accent.opacity(0.3))
-                        .frame(height: 1),
-                    alignment: .bottom
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            // JULY 3, 2026: the "Tap a node in the cauldron to place this
+            // die" hint strip that appeared on tap-selecting a tray die is
+            // REMOVED (user request) — it nudged the layout every time and
+            // the glow on valid nodes already communicates the affordance.
+            // (Tap-to-select + tap-a-node placement itself still works.)
         }
         .padding(.vertical, 6)
         .animation(.easeInOut(duration: 0.2), value: gs.selectedHandIndex)
