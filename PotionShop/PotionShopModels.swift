@@ -519,7 +519,12 @@ enum PotionShopDieTier: String, Codable {
     func rollFace() -> Int {
         let faces: [Int]
         switch self {
-        case .basic:  faces = [1, 2, 2, 3, 3, 4]
+        // JULY 2, 2026 (§68): basic lowered from [1,2,2,3,3,4] (avg 2.5) to
+        // [1,1,2,2,3,3] (avg 2.0) — humble start: Day-1 orders take ~2 brews,
+        // the fire economy is felt early, longer runway to the 6-cap, and the
+        // basic→silver jump (2.0→3.5) makes the first tier upgrade land hard.
+        // Lab-verified: arc holds (offense and heal drop together).
+        case .basic:  faces = [1, 1, 2, 2, 3, 3]
         case .silver: faces = [2, 3, 3, 4, 4, 5]
         case .gold:   faces = [3, 4, 4, 5, 5, 6]
         }

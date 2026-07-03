@@ -9,7 +9,7 @@
 >
 > **⚠️ JUNE 27, 2026 — CURRENT TOP-LEVEL STATUS (the June 10 line above is now historical):**
 > **MAJOR DESIGN PIVOT.** The game is now a **FINITE 30-DAY CAMPAIGN** — weekly bosses on Days 7/14/21/28 + a finale on Day 30, gentle bounded growth (~×1.07/day), no automatic Composure refills, and Die-in-the-Dungeon-style **bounded D6 dice** (faces never exceed 6). The combat model is LOCKED as the **queue / line-of-3** the code already has. Dice are now **SIX**: Mirror added (NOT built yet) and **Stability promoted to a real die with a fire meter (BUILT — §56).** Focus becomes a real, growing stat. "Endless" is now only an optional post-Day-30 mode.
-> **➡ Read §55 (full canonical model & balance) and §56–§63 before touching systems or balance:** §56–§57 stability fire meter (⚠️ §56.2's simple economy is SUPERSEDED by **§63**); §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** **§63 the STABILITY FIRE ECONOMY — WIRED (June 29): tick every 2 brews, big-hit knocks (dormant at today's attack values), value-based refill, stability = pure fire die with all-1s starting faces + its own tier ladder.** **§66 WEEKLY ATTACK RAMP + BOSS-FROM-EVENING — WIRED (July 2): attacks ×1.13/day resetting weekly; boss = evening round × factors (HP ×1.0, atk ×0.8); combat stats day-scaled at spawn on PotionShopCustomer. §67 THE BALANCE LAB (`cauldron_balance_lab.html`): tuning bench whose defaults match the game — read §67.3 findings before any rebalance.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
+> **➡ Read §55 (full canonical model & balance) and §56–§63 before touching systems or balance:** §56–§57 stability fire meter (⚠️ §56.2's simple economy is SUPERSEDED by **§63**); §58 Ednar poses; §59 fire-meter art pipeline; §60 first canonical-model slice; §61 the spine build PLAN; **§62 the CAMPAIGN SPINE — BUILT (June 28): all 30 days generated, progression to a `.runWon` victory, composure auto-refill removed, day1/2 overwritten, bosses on nights 7/14/21/28 + royal_envoy finale. Save + tutorial delivered as Claude Code prompts (`TASK_Cross_Game_Save_System.md`, `TASK_PotionShop_Tutorial_Overlay.md`). Read §62.3 test checklist + §62.4 balance warning.** **§63 the STABILITY FIRE ECONOMY — WIRED (June 29): tick every 2 brews, big-hit knocks (dormant at today's attack values), value-based refill, stability = pure fire die with all-1s starting faces + its own tier ladder.** **§66 WEEKLY ATTACK RAMP + BOSS-FROM-EVENING — WIRED (July 2): attacks ×1.13/day resetting weekly; boss = evening round × factors (HP ×1.0, atk ×0.8); combat stats day-scaled at spawn on PotionShopCustomer. §67 THE BALANCE LAB (`cauldron_balance_lab.html`): tuning bench whose defaults match the game — read §67.3 findings before any rebalance.** **§68 (July 2): basic die faces lowered to [1,1,2,2,3,3] avg 2.0 — supersedes §55's face table; lab reset = brew/heal 6.** Companion files: `CANONICAL_MODEL_AND_GENERATOR_SPEC.md` and `POTION_CAULDRON_WORKBOOK_30DAY.xlsx`. The old `POTION_DICE_CAULDRON_DESIGN__1_.md` (v8 turn-timer doc) is **SUPERSEDED**.
 
 ---
 
@@ -4244,29 +4244,6 @@ Per-node offsets are zero again after pasting.
 
 ---
 
-### 65.12 Composure-bar shield fixes + cauldron boil (July 2, later)
-- SHIELD AT FULL COMPOSURE: the shield slice was placed at compoPct with
-  width capped at the bar edge → invisible at 100%. The shield GROUP is
-  now right-anchored when out of room (overlays the fill's right end),
-  so shield always shows.
-- PREVIEW SHIELD: PotionShopComposureBarView gained previewShield (fed
-  gs.livePreview.shielding while placing, 0 during brew): renders as an
-  extra slice pulsing 0.30–0.75 opacity (sine, TimelineView) after the
-  solid actual-shield slice; solidifies when the brew applies the real
-  shield. Shared shieldSlice() builder (image-masked composure_bar_shield
-  or teal rect fallback).
-- CAULDRON BOIL: cauldron_boil1…N (SAME canvas as the "cauldron" PNG,
-  transparent except bubbles) loops during gs.isAnimating, rendered with
-  the identical frame/position/stretch chain as the cauldron art
-  (zIndex 0.5 — over cauldron, under nodes). PotionShopCauldronBoilAssets
-  (probe 12, cached) + PotionShopCauldronBoilTuning.boilFPS (8), both in
-  PotionShopCauldronView.swift. Asset sheet PDF updated (also corrected:
-  single "cauldron" image, not the old 3-layer back/liquid/front plan).
-- NOTE: built on top of the same round's weekly-attack-ramp / boss-
-  formula uploads (see §66) — those files were adopted untouched.
-
----
-
 ## 66. WEEKLY ATTACK RAMP + BOSS-FROM-EVENING FORMULA — WIRED & COMPILING (July 2, 2026)
 
 > Wired in `PotionShopModels.swift`, `PotionShopGameState.swift`, `PotionShopCustomerSceneView.swift`. Mirrored in the balance lab (§67). Gives every week a "Day 1 very easy → Day 7 very challenging" arc and makes bosses structurally unable to be weaker than normal rounds.
@@ -4309,127 +4286,12 @@ Verdict with **failure diagnosis** (drain-vs-heal onset day; closing-day damage 
 4. **Bosses can't be tuned by flat multipliers** (1 attacker vs 3) — hence §66.3.
 5. Min column records the dip **after attacks, before heals** (when the player actually sweats); survival is still judged on the round's net.
 
-### 65.13 Live background color picker (July 2, later)
-Debug Menu → Layout Tools → "Background Color" (ColorPicker, no opacity):
-sets PotionShopLayoutConfig.bgColorHex (UserDefaults ps_bgColorHex,
-persists). When set, the flat color REPLACES the whole background —
-including the shop_background image — so auditions show the true color;
-"" = off (image → parchment fallback). Reset button (shows current hex)
-clears it; hex rides Copy Layout Values for baking a final choice into
-PotionShopTheme.bg. Hex↔Color helpers on PotionShopLayoutConfig.
-
-### 65.14 Pause/settings menu + debug gear relocation (July 2, later)
-- NEW FILE PotionShopPauseMenu.swift — Match-3-style menu: ONE drawn
-  image (ps_pausemenu, ~900×1560px ≈ 300×520pt) + INVISIBLE TAP ZONES
-  (Resume / Restart Round [gs.startRound] / Tutorial [tutorial.start] /
-  Save & Exit [PotionShopSave.save → dismiss] / End Game → confirmation
-  dialog ps_endgame_dialog with END GAME [no save] / CANCEL zones). Zone
-  bands = fractions in PotionShopPauseMenuLayout (showZones=true tints
-  them for lining up art). Code fallback panel renders buttons AT the
-  zone positions = the drawing template. Presented as a zIndex-900
-  overlay in GameView (below tutorial), scale+opacity in/out, backdrop
-  tap resumes, 0.3s delay before onEndGame (Match-3 flow).
-- HEADER: gear slot now holds the PLAYER settings ☰ button (asset
-  ps_settings_button, SF line.3.horizontal fallback) → showSettingsMenu.
-  PotionShopHeaderView signature gained showSettingsMenu binding.
-- DEBUG GEAR moved to the CAULDRON's bottom-right (overlay on
-  PotionShopCauldronView in GameView), still PotionShopDebugAccess-gated;
-  secret Day-label 7-tap now bumps LayoutConfig.debugGearBump (new, not
-  persisted) so the relocated gear re-checks after Release unlocks.
-- Asset sheet PDF updated with the three new assets. XCODE STEP: user
-  must ADD PotionShopPauseMenu.swift as a NEW file (File → New → File →
-  Swift File → name it exactly, in the PotionShop folder).
-
 ---
 
-## 68. PER-RUN CROWD SHUFFLE — the "same 3 customers" fix (July 2, 2026)
+## 68. BASIC DIE FACES LOWERED — [1,1,2,2,3,3] (July 2, 2026)
 
-DIAGNOSIS: the 30-day campaign generator (§ campaign in PotionShopData)
-was seeded by DAY NUMBER ONLY (`n &* 2654435761`), so every run, replay,
-and install produced the IDENTICAL crowd schedule for all 30 days (Day 1
-morning was always the same trio, forever). The RNG (SplitMix64), the
-randomFromPool spawn path (legacy Day 1/2), the difficulty windows (11
-chars at difficulty 2), and character wiring were all verified healthy —
-determinism-without-entropy was the single cause.
+> **Amends the §55 face table** (which had basic = 1,2,2,3,3,4, avg 2.5). Wired in `PotionShopDieTier.rollFace()` (`PotionShopModels.swift`); tutorial hand capped at 3 (`PotionShopTutorialOverlay.swift` — a scripted 4 became an impossible roll); lab reset defaults brew/heal 8→6 to keep matching the game.
 
-FIX: `PotionShopData.campaignRunSalt` (UInt64) is XORed into every day
-seed. `PotionShopGameState.runSeed` rolls it fresh in init (a new run),
-`PotionShopSave` persists it (optional field — old saves still decode)
-and restores it BEFORE dayId so regenerated lineups match the save.
-Within a run days remain deterministic (the original save-friendly / no-
-respawn-flicker intent); every NEW run deals a different 30-day schedule.
-Debug Menu → Crowd → "Reshuffle Crowd (new run seed)" rerolls live.
-
-STILL TRUE / BY DESIGN: replaying a day within the SAME run shows the
-same lineup (that's the save-friendliness). Small cast (15) means trios
-overlap between rounds; more drawn characters directly increase variety
-(add via campaignCast — see "HOW TO ADD A NEW CUSTOMER" note in Data).
-The June 25 per-character pools (orderPhrases/traitNames bags, chosen at
-spawn; HP round buckets) were verified intact and already wired.
-
----
-
-## 69. FOUR-FIX ROUND: balance comments, expiration, fire rule, MEMORY (July 2, 2026)
-
-### 69.1 Data tuning table retired
-The old "TUNING RULES OF THUMB BY DIFFICULTY" comment block (absolute
-HP/attack targets per difficulty 1–5) conflicted with the §66 balance
-engine (day-scaled HP/attacks, computed bosses). Replaced with a
-"BALANCE — SOURCE OF TRUTH" block: per-character stats = Day-1 baselines;
-tune the engine (hpDayMultiplier/bucketedHP/attackDayMultiplier/boss
-factors); `difficulty` gates campaign entry only; patience/expire stay
-personality knobs.
-
-### 69.2 Expiration fade (no more edge slide)
-runExpiration no longer slides the character to the screen edge — it now
-freezes at its exact spot (reusing the June 13 defeat freeze +
-conditional matched geometry, preventing the queue-reindex tug) and
-fades in place. 💢 burst unchanged. expireSlideX now stays 0 (var kept).
-
-### 69.3 Fire burns by POTION VALUE
-Replaces the June 29 every-N-brews tick. fireBrewCounter now BANKS the
-brew's potion output (Int(preview.damage)); every firePerPotionValue
-(10, PotionShopConfig — replaces fireTickEveryNTurns) burns one flame,
-leftover carries, 20+ brews can cost two flames. Big-hit rule
-(fireBigHitThreshold, attacks ≥10) unchanged. Stability refill unchanged.
-
-### 69.4 MEMORY OVERHAUL (the 300–700MB crash)
-ROOT CAUSE: PotionShopImageLoader.downsampledImage force-decoded EVERY
-asset full-res via UIImage(named:).pngData() (a 2048×1536 canvas ≈ 12MB
-decoded) and RE-ENCODED it to PNG per cache miss — plus the newest big
-art (cauldron, cauldron_boil frames, node_glow, potion_node, dice_tray,
-shop_background) loaded full-res outside the downsampler entirely.
-FIXES: (1) downsampler rebuilt on UIGraphicsImageRenderer — one small
-redraw, no re-encode, pass-through when already small; (2) cache
-countLimit 64→400 (frame sequences thrashed 64 → re-decode churn every
-animation loop); (3) every heavy draw site now goes through
-loadDisplayImage sized to its on-screen dimensions. Memory-warning purge
-(May 26) still active. RAM now scales with DISPLAY sizes, not canvas
-sizes. USER GUIDANCE: decoded RAM = pixels × 4 regardless of file size —
-no redrawing needed ever; if further savings wanted, re-EXPORT big
-canvases smaller from Procreate (customers ≤ ~700px tall, boil/cauldron
-≤ ~1200px wide), but the code fix should carry it.
-
-### 69.5 MEMORY v2 — the 1969MB regression fix (July 2, night)
-69.4's loader had a fatal pair: a full-res "pass-through" branch that
-cached UIImage(named:) objects as-is, and countLimit 400 with NO cost
-accounting → hundreds of 8–13MB bitmaps pinned ≈ 2GB. v2 rules (in
-downsampledImage): hard 2048px ceiling on anything cached; everything
-larger than 512px is REDRAWN into an independent capped bitmap (never
-cache the named UIImage itself — its decoded full-res stays retained);
-every entry stored with cost = w×h×4 against totalCostLimit ≈ 120MB
-(countLimit 500 secondary). RAM is now hard-bounded by the budget.
-LESSON: never cache images without a byte budget.
-
-### 69.6 The "+2 mystery" — CORRECTED diagnosis + Inspiring retired (July 3)
-The 8/10-instead-of-6/8 badges were NOT the Inspiring trait (initial
-diagnosis wrong — with the campaign cast, no queued customer can carry
-it). Real cause: RUN BOONS — run.typeBonuses[.potency] = +2 (type-wide
-boon(s) taken between rounds), applied to every potency die as ruleBonus
-in drawFromBag. Badges were correct; the buff was just invisible on die
-faces. Per user request, `trait: "inspiring"` removed from greta (the
-only assignment anywhere); the trait DEFINITION and the dieValueMod path
-in computeBrew remain wired for future use. Full upload sync July 3
-confirmed all files identical to canon except Save + DebugMenu (user had
-not pasted the crowd-shuffle versions — reshipped; without the new Save,
-runSeed doesn't persist and mid-run relaunches deal a fresh crowd).
+- **Basic is now [1,1,2,2,3,3] (avg 2.0).** Silver [2,3,3,4,4,5] and gold [3,4,4,5,5,6] unchanged — the basic→silver jump grew (2.0→3.5), so the first tier upgrade lands harder. Boost keeps [1,1,2,2,2,3]; stability keeps its §63 all-1s ladder. Whole grammar: everything starts humble, faces never exceed 6.
+- WHY (feel, not survival): at avg 2.5 most Day-1 orders died in ONE brew, the fire tick was invisible early (rounds too short), and the runway to the 6-cap was thin. At avg 2.0, Day-1 orders take ~2 brews, the fire economy is felt from Day 1, upgrades have more room.
+- **Lab-verified safe:** offense and heal are the same dice, so both drop together and the tuned arc holds — new baseline week-1 mins **21 14 16 18 14 13 8**, still survives all 30 (final 45). Lab reset state now = brew 6 / heal 6.
