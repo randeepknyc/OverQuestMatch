@@ -456,8 +456,22 @@ struct PotionShopConfig {
     // whole evening's orders combined; 0.8 = it hits for 80% of the whole
     // evening's attacks (double digits by Day 7 → also triggers the fire
     // meter's big-hit knock, §63).
-    static let bossHPFactorOfEvening: Double = 1.0
+    // Boss nights = the evening's combined orders +30% — always clearly
+    // above an ordinary night (below). Raise for scarier weekly bosses.
+    static let bossHPFactorOfEvening: Double = 1.3
     static let bossAttackFactorOfEvening: Double = 0.8
+
+    // ─── MINI-BOSS NIGHTS (July 3, 2026) ─────────────────────────────────
+    // EVERY night's lone closer is a mini-boss whose order = the evening's
+    // ADDED-UP total, plus a tunable overage: 1.1 = evening sum +10%
+    // (e.g. a 16/16/12 evening → 44 → a 48-hp mini-boss). THIS is the
+    // percent dial — raise it to make every night bite harder; it must
+    // stay below bossHPFactorOfEvening so weekly bosses tower above.
+    // Night attack is gentler (0.4 of the evening's combined attacks)
+    // because the threat is now the LONG fight, not the per-hit.
+    // Lab-verified: the 30-day arc holds from +0% through +20%.
+    static let nightHPFactorOfEvening: Double = 1.1
+    static let nightAttackFactorOfEvening: Double = 0.4
 }
 
 // MARK: - Dice

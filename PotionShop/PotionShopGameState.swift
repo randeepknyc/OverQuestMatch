@@ -530,28 +530,38 @@ class PotionShopGameState {
         // each week, then reset (see PotionShopConfig.attackDayMultiplier).
         let atkMult = PotionShopConfig.attackDayMultiplier(forDay: dayNumber)
 
-        // JULY 2, 2026: BOSS-FROM-EVENING FORMULA. On boss/finale nights the
-        // lone boss's stats are derived from THIS day's evening round —
-        // combined scaled HP × bossHPFactorOfEvening, combined scaled attack
-        // × bossAttackFactorOfEvening — so the boss is never weaker than the
-        // rounds it follows. Computed here (before spawning) so the map
-        // below can apply it.
+        // JULY 2, 2026: BOSS-FROM-EVENING FORMULA. The night closer's stats
+        // derive from THIS day's evening round — combined scaled HP and
+        // attack × a factor. JULY 3, 2026: EVERY night is now a MINI-BOSS
+        // (nightHPFactorOfEvening = half the evening in one customer);
+        // boss/finale nights use the full boss factors (the WHOLE evening,
+        // exactly double the mini nights).
         var bossOverride: (hp: Int, attack: Int)? = nil
         if roundIndex == 3,
-           PotionShopData.isBossDay(dayNumber) || PotionShopData.isFinaleDay(dayNumber),
            resolvedIds.count == 1,
            let day = PotionShopData.day(dayId) {
+            let isBossNight = PotionShopData.isBossDay(dayNumber) || PotionShopData.isFinaleDay(dayNumber)
+            let hpFactor  = isBossNight ? PotionShopConfig.bossHPFactorOfEvening
+                                        : PotionShopConfig.nightHPFactorOfEvening
+            let atkFactor = isBossNight ? PotionShopConfig.bossAttackFactorOfEvening
+                                        : PotionShopConfig.nightAttackFactorOfEvening
             var eveningHP = 0.0
             var eveningAtk = 0.0
             for eid in day.evening.customerIds {
                 guard let c = PotionShopData.character(eid) else { continue }
-                eveningHP += Double(c.hp) * PotionShopConfig.hpDayMultiplier(forDay: dayNumber)
+                // Bucket each evening customer the SAME way they were
+                // bucketed at spawn, so at factor 1.0 the boss's order is
+                // EXACTLY the sum of the three evening HP badges the player
+                // just saw — the formula is verifiable by eye in-game.
+                eveningHP += Double(PotionShopConfig.bucketedHP(
+                    Int((Double(c.hp) * PotionShopConfig.hpDayMultiplier(forDay: dayNumber)).rounded())
+                ))
                 eveningAtk += Double(c.activeAttack) * atkMult
             }
             if eveningHP > 0 {
                 bossOverride = (
-                    hp: PotionShopConfig.bucketedHP(Int((eveningHP * PotionShopConfig.bossHPFactorOfEvening).rounded())),
-                    attack: max(1, Int((eveningAtk * PotionShopConfig.bossAttackFactorOfEvening).rounded()))
+                    hp: PotionShopConfig.bucketedHP(Int((eveningHP * hpFactor).rounded())),
+                    attack: max(1, Int((eveningAtk * atkFactor).rounded()))
                 )
             }
         }
