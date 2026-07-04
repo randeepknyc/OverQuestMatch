@@ -219,6 +219,24 @@ struct PotionShopGameView: View {
                     .zIndex(900)
                 }
 
+                // ── MAGIC DIE INTRODUCTION (July 4, 2026) ────────
+                // Shown once, the moment the Day-2 mirror die joins the
+                // deck. Dismiss to play.
+                if gs.showMagicIntro {
+                    PotionShopMagicIntroView(gs: gs)
+                        .zIndex(960)
+                        .transition(.opacity)
+                }
+
+                // ── DIE-UPGRADE PICKER (July 4, 2026) ────────────
+                // Shown whenever the player has an unspent "Die Upgrade"
+                // boon pick. Sits above the game, below the tutorial.
+                if gs.run.pendingDieUpgrades > 0 {
+                    PotionShopUpgradePickerView(gs: gs)
+                        .zIndex(950)
+                        .transition(.opacity)
+                }
+
                 // ── TUTORIAL OVERLAY (above everything) ──────────
                 if tutorial.isActive {
                     PotionShopTutorialOverlay(tutorial: tutorial, gs: gs)
@@ -564,12 +582,13 @@ struct PotionShopLayoutOverlay: View {
         case fineTune = "🔧 Fine-Tune"
         case dice = "🎲 Dice"
         case brewZone = "🥄 Brew"
+        case tutorial = "🎓 Tutorial"   // JULY 4, 2026: tutorial overlay layout
     }
 
     /// The everyday tabs (June 12, 2026). Everything else lives behind
     /// "More ▾". Move cases between these arrays to re-prioritize.
     static let primarySections: [LayoutSection] = [
-        .header, .autoLayout, .badges, .customers, .fire, .fineTune, .nodes, .dice
+        .header, .autoLayout, .badges, .customers, .fire, .fineTune, .nodes, .dice, .tutorial
     ]
     static let legacySections: [LayoutSection] = [
         .sections, .ednar, .permutations, .cauldronArt, .cauldronBowl, .brewZone
@@ -839,6 +858,75 @@ struct PotionShopLayoutOverlay: View {
     @ViewBuilder
     private func sectionContent(for section: LayoutSection) -> some View {
         switch section {
+        // ─── JULY 4, 2026: TUTORIAL OVERLAY LAYOUT (in-drawer) ─────────
+        // Same knobs as debug menu → 🎓 Tutorial Layout, but IN the game
+        // drawer so you can tweak while the tutorial is actually running
+        // (pause menu → Tutorial to start it). Edit mode also makes the
+        // card and every dotted circle DRAGGABLE on screen.
+        case .tutorial:
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("✋ Edit mode (drag card + circles)", isOn: $layoutConfig.tutorialEditMode)
+                    .font(.caption)
+                    .tint(.cyan)
+
+                Text("Screen Fade")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Watch 1–3", value: $layoutConfig.tutDimWatch, range: 0...0.95, format: "%.2f")
+                sliderRow("Do-it 4", value: $layoutConfig.tutDimDoIt, range: 0...0.95, format: "%.2f")
+
+                Text("Card")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                sliderRow("Max width", value: $layoutConfig.tutCardMaxWidth, range: 220...420, format: "%.0f")
+                ForEach(0..<4, id: \.self) { i in
+                    Text("Step \(i + 1)")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                    sliderRow("X", value: $layoutConfig.tutCardOffsetX[i], range: -200...200, format: "%.0f")
+                    sliderRow("Y", value: $layoutConfig.tutCardOffsetY[i], range: -300...300, format: "%.0f")
+                }
+
+                Text("Dotted Circles")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                ForEach(Array(layoutConfig.tutCircles.enumerated()), id: \.element.id) { pair in
+                    HStack {
+                        Text("Circle \(pair.offset + 1)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                        Picker("", selection: $layoutConfig.tutCircles[pair.offset].step) {
+                            ForEach(0..<4, id: \.self) { Text("Step \($0 + 1)").tag($0) }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.cyan)
+                        Button {
+                            layoutConfig.tutCircles.remove(at: pair.offset)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    if pair.offset < layoutConfig.tutCircles.count {
+                        sliderRow("X", value: $layoutConfig.tutCircles[pair.offset].x, range: -220...220, format: "%.0f")
+                        sliderRow("Y", value: $layoutConfig.tutCircles[pair.offset].y, range: -420...420, format: "%.0f")
+                        sliderRow("Size", value: $layoutConfig.tutCircles[pair.offset].size, range: 30...220, format: "%.0f")
+                        sliderRow("Line", value: $layoutConfig.tutCircles[pair.offset].lineWidth, range: 1...10, format: "%.1f")
+                    }
+                }
+                Button {
+                    layoutConfig.tutCircles.append(PotionShopLayoutConfig.TutorialCircle())
+                } label: {
+                    Label("Add a dotted circle", systemImage: "plus.circle")
+                        .font(.caption)
+                        .foregroundColor(.cyan)
+                }
+                Text("Values ride 📋 Copy Layout Values. Start the tutorial (pause → Tutorial) to see edits live.")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.5))
+            }
         case .header:
             VStack(alignment: .leading, spacing: 10) {
                 Text("Composure Label")

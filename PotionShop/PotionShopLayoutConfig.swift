@@ -1275,7 +1275,7 @@ class PotionShopLayoutConfig {
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
     var autoLayoutSlotXFractionActive: Double = 0.5004964616894723
-    var autoLayoutSlotXFractionWaiting1: Double = 0.7099556124210358  // BAKED July 3 (re-tuned 1:50 AM)
+    var autoLayoutSlotXFractionWaiting1: Double = 0.6776063299179077  // BAKED July 4, 2:36 PM (was 0.63499…)
     var autoLayoutSlotXFractionWaiting2: Double = 0.8476152014732361
 
     // MARK: - Layout Editor state (May 25, 2026)
@@ -1334,6 +1334,40 @@ class PotionShopLayoutConfig {
         // Template buckets are always centered horizontally.
         case .superShort, .tallHat, .floater: return 0.5
         }
+    }
+
+    // ─── TUTORIAL OVERLAY LAYOUT (July 4, 2026) ─────────────────────────
+    // Edited live in debug menu → "🎓 Tutorial Layout". With edit mode ON,
+    // the tutorial CARD can also be DRAGGED on screen per step.
+    var tutCardOffsetX: [Double] = [0, 0, 0, 0]   // per step 1–4
+    var tutCardOffsetY: [Double] = [0, 0, 0, 0]
+    var tutCardMaxWidth: Double = 340
+    var tutDimWatch: Double = 0.6    // screen fade, watch steps (1–3)
+    var tutDimDoIt: Double = 0.35    // screen fade, do-it step (4)
+    var tutorialEditMode: Bool = false
+
+    // JULY 4, 2026 (evening 3): the dotted highlight circles are now a
+    // LIST — any number, each pinned to a step, each with its own
+    // position (offset from SCREEN CENTER — fixes the old top-anchored
+    // guesswork), size, and line width. Add/remove in the debug editor;
+    // drag them in-game with edit mode on.
+    struct TutorialCircle: Identifiable {
+        let id = UUID()
+        var step: Int = 2        // 0-based (step 3 on screen)
+        var x: Double = 0        // offset from screen CENTER
+        var y: Double = -150
+        var size: Double = 70
+        var lineWidth: Double = 3.5
+    }
+    var tutCircles: [TutorialCircle] = [TutorialCircle()]   // the classic step-3 circle
+
+    func resetTutorialLayout() {
+        tutCardOffsetX = [0, 0, 0, 0]
+        tutCardOffsetY = [0, 0, 0, 0]
+        tutCardMaxWidth = 340
+        tutDimWatch = 0.6
+        tutDimDoIt = 0.35
+        tutCircles = [TutorialCircle()]
     }
 
     private init() {

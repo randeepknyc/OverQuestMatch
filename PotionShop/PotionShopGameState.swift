@@ -81,6 +81,9 @@ struct PotionShopCustomer: Identifiable, Equatable {
     var activeAttack: Int = 0
     var waitingAttack: Int = 0
     var expireDamage: Int = 0
+    /// JULY 4, 2026: self-healing customers — hp regained each brew turn
+    /// (0 = none). Assigned at spawn; see PotionShopConfig.regen* dials.
+    var regenPerTurn: Int = 0
     // JUNE 18, 2026: cosmetic flavor picked ONCE at spawn from this
     // character's bags, held stable for its lifetime. Empty = fall back.
     var chosenOrderPhrase: String = ""
@@ -166,6 +169,13 @@ class PotionShopGameState {
     var boonFrequency: PotionShopBoonFrequency = .everyRound
     /// Map from cauldron node id → die placed there.
     var placements: [Int: PotionShopDie] = [:]
+    /// JULY 4, 2026: true right after the Day-2 magic die is granted —
+    /// GameView shows the introduction card until dismissed. Not saved.
+    var showMagicIntro = false
+    /// JULY 4, 2026 (evening 2): the mirror die is ONE USE PER ROUND —
+    /// set when a brew resolves with a magic die placed; cleared when a
+    /// new round spawns. While true, dealing skips the magic lane.
+    var magicUsedThisRound = false
     var selectedHandIndex: Int? = nil
     
     // MARK: - Drag and drop state
@@ -418,13 +428,14 @@ class PotionShopGameState {
                     id: old.id,
                     type: old.type,                          // type preserved
                     tier: old.tier,
-                    value: old.tier.rollFace(for: old.type), // value re-rolls in tier (stability = its own ladder)
+                    value: old.rolledValue(), // re-rolls from the die's EFFECTIVE faces (upgrades respected)
                     faceValue: PotionShop3DDiceAssetMap.faceId(forType: old.type),
                     trayIndex: old.trayIndex,
+                    customFaces: old.customFaces,   // upgrades survive rerolls
                     ruleBonus: old.ruleBonus
                 )
             } else {
-                hand[i].value = hand[i].tier.rollFace(for: hand[i].type)
+                hand[i].value = hand[i].rolledValue()   // effective faces (upgrades respected)
                 hand[i].faceValue = PotionShopDie.rollFaceImageValue()
             }
         }
@@ -518,6 +529,7 @@ class PotionShopGameState {
     private func spawnCustomers(from round: PotionShopRound) {
         fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
         fireBrewCounter = 0               // fresh potion-value bank each time-slot
+        magicUsedThisRound = false        // the mirror die is fresh each round
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -601,7 +613,40 @@ class PotionShopGameState {
         queue = customers.map { $0.id }
         inspectedId = nil
 
+        // ─── JULY 4, 2026: SELF-HEALING CUSTOMERS ─────────────────────
+        // From regenStartDay, ONE customer per afternoon/evening round
+        // (rotating slot, deterministic per day) regenerates each brew
+        // turn. Bosses join from regenBossStartDay at the late amount.
+        if dayNumber >= PotionShopConfig.regenStartDay {
+            let amount = dayNumber >= PotionShopConfig.regenBossStartDay
+                ? PotionShopConfig.regenAmountLate
+                : PotionShopConfig.regenAmountEarly
+            if PotionShopConfig.regenRounds.contains(roundIndex), !customers.isEmpty {
+                let slot = dayNumber % customers.count   // rotates day to day
+                customers[slot].regenPerTurn = amount
+            }
+            if roundIndex == 3, customers.count == 1,
+               dayNumber >= PotionShopConfig.regenBossStartDay,
+               PotionShopData.isBossDay(dayNumber) || PotionShopData.isFinaleDay(dayNumber) {
+                customers[0].regenPerTurn = PotionShopConfig.regenAmountLate
+            }
+        }
+
         ensureRunDeck()
+        // ─── JULY 4, 2026 (rev 2): DAY 2 MAGIC (mirror) DIE ──────────
+        // Granted the first time ANY Day-2+ round spawns — natural play,
+        // save-load, or debug day-jump all pass through here (the old
+        // advanceDay-only grant missed debug jumps and loads). Once per
+        // run (magicDieGranted). Also raises the intro card.
+        if dayNumber >= 2 && !run.magicDieGranted {
+            run.magicDieGranted = true
+            run.deck.append(PotionShopBagDie(
+                id: "die_magic_day2_\(UUID().uuidString.prefix(4))",
+                type: .magic,
+                tier: .basic
+            ))
+            showMagicIntro = true
+        }
         bag = run.deck.shuffled()
         discardPile.removeAll()
         drawFromBag()
@@ -702,6 +747,13 @@ class PotionShopGameState {
             ? PotionShopData.roundCount(forDayId: dayId)
             : PotionShopConfig.roundsPerDay
         if roundIndex >= totalRounds {
+            // JULY 4, 2026: "Mended Spirit" relic — full composure restore
+            // at the end of every day (applies before the day-won screen).
+            if run.healAtDayEnd {
+                composure = PotionShopConfig.maxComposure
+                composureFlashKind = .heal
+                composureFlashCounter += 1
+            }
             // JUNE 28: finishing the night round of Day 30 wins the whole run.
             if PotionShopData.isLastDay(dayId) {
                 phase = .runWon
@@ -732,6 +784,22 @@ class PotionShopGameState {
         boonLeadsToDay = thenAdvanceToDay
         boonOffer = PotionShopBoonPool.draw(3)
         phase = .choosingBoon
+    }
+
+    /// JULY 4, 2026 (afternoon — revised): FACE-STEP upgrades, DitD-style.
+    /// The picker sends a type + kind: FLOOR bumps one lowest face +1
+    /// (1,1,2,2,2,2 → 1,2,2,2,2,2), CEILING bumps the highest face below 6
+    /// (→ 1,1,2,2,2,3). The first upgradable die of that type gets the new
+    /// faces written into its customFaces. Consumes one pending upgrade.
+    func applyDieUpgrade(type: PotionShopDieType, kind: PotionShopFaceUpgradeKind) {
+        guard run.pendingDieUpgrades > 0 else { return }
+        guard let idx = run.deck.firstIndex(where: {
+            $0.type == type && kind.apply(to: $0.effectiveFaces) != nil
+        }) else { return }   // nothing bumpable (all 6s) — keep the pick
+        guard let newFaces = kind.apply(to: run.deck[idx].effectiveFaces) else { return }
+        run.deck[idx].customFaces = newFaces
+        run.pendingDieUpgrades -= 1
+        PotionShopSave.save(gs: self)
     }
 
     /// Apply the player's chosen boon to the run deck, then continue:
@@ -780,6 +848,10 @@ class PotionShopGameState {
         dayId = nextId
         roundIndex = 0
         flexDayGeneratedRounds = []
+        // JULY 4, 2026: "Warded Morning" relic — start each day shielded.
+        if run.shieldAtDayStart > 0 {
+            shield += run.shieldAtDayStart
+        }
         startRound()
         // Save at the start of the new day
         PotionShopSave.save(gs: self)
@@ -850,6 +922,10 @@ class PotionShopGameState {
     func placeDie(handIdx: Int, nodeId: Int) {
         if placements[nodeId] != nil { return }
         if placements.count >= focus { return }
+        // JULY 4, 2026: HEAL is limited to ONCE PER TURN — a second heal
+        // die can't be placed while one is already on the board.
+        if handIdx < hand.count, hand[handIdx].type == .heal,
+           placements.values.contains(where: { $0.type == .heal }) { return }
         guard handIdx < hand.count else { return }
         let die = hand[handIdx]
         placements[nodeId] = die
@@ -920,7 +996,7 @@ class PotionShopGameState {
     /// at brew time, just live. Reads the realized value from the live preview
     /// (so boosts are reflected). Boost dice themselves emit nothing.
     private func emitPlacementFloatingNumber(nodeId: Int, die: PotionShopDie) {
-        guard die.type != .boost else { return }
+        guard die.type != .boost, die.type != .magic else { return }
         let preview = computeBrew()
         guard let value = preview.nodeValues[nodeId], value != 0 else { return }
         switch die.type {
@@ -950,7 +1026,7 @@ class PotionShopGameState {
                 color: PotionShopFloatingNumber.shieldColor,
                 at: ednarOriginPoint
             )
-        case .boost:
+        case .boost, .magic:
             break
         }
     }
@@ -1163,6 +1239,15 @@ class PotionShopGameState {
                 result.insert(target)
             }
         }
+        // JULY 4, 2026 (evening 2): a PLACED magic die keeps its mirror
+        // partner node glowing (occupied or not) — the link stays visible
+        // after placement instead of dying with the hover preview.
+        for (node, die) in placements where die.type == .magic {
+            if node == draggedFromNode { continue }
+            if let partner = PotionShopBoard.mirrorNode(of: node) {
+                result.insert(partner)
+            }
+        }
         return result
     }
 
@@ -1181,6 +1266,10 @@ class PotionShopGameState {
         /// board can show each die's realized number (clean "7", not "3+4").
         /// Keyed by node id. Boost dice are omitted (they have no output).
         var nodeValues: [Int: Int] = [:]
+        /// JULY 4, 2026: how much of each node's value came FROM boosts
+        /// (only nodes with a nonzero boost share). The board draws this
+        /// as a blue "+N" inside the node.
+        var boostAdds: [Int: Int] = [:]
     }
 
     /// Compute total damage, heal, and shield from currently placed dice.
@@ -1196,6 +1285,22 @@ class PotionShopGameState {
         var stabilityRefill = 0
         var boostNodes: [Int] = []
         var nodeValues: [Int: Int] = [:]
+        var boostAdds: [Int: Int] = [:]
+
+        // ─── JULY 4, 2026 (evening): EFFECTIVE BOOSTS ─────────────────
+        // Real boost dice PLUS any magic die whose mirror partner is a
+        // boost — the magic die then ACTS AS a boost of the partner's
+        // value, radiating from ITS OWN node (its own 2-hop reach).
+        var effectiveBoosts: [(node: Int, value: Int)] = []
+        for (n, d) in placements where d.type == .boost {
+            effectiveBoosts.append((n, d.value + d.ruleBonus))
+        }
+        for (n, d) in placements where d.type == .magic {
+            if let p = PotionShopBoard.mirrorNode(of: n),
+               let src = placements[p], src.type == .boost {
+                effectiveBoosts.append((n, src.value + src.ruleBonus))
+            }
+        }
 
         for (nodeId, die) in placements {
             // STAGE 1 — the die's number: rolled value + global inspiring
@@ -1215,19 +1320,21 @@ class PotionShopGameState {
             // wired neighbors, independent of this die's own reach.
             var boostSum = 0
             if die.type != .boost {
-                for (boostNode, boostDie) in placements where boostDie.type == .boost {
-                    let boostReach = PotionShopDieRules.affectedNodes(for: boostDie, placedAt: boostNode)
-                    if boostReach.contains(nodeId) {
-                        // A boost's contribution includes its own ruleBonus
-                        // (so an "all boosts +2" boon makes a 4-boost add 6).
-                        boostSum += boostDie.value + boostDie.ruleBonus
-                        if !boostNodes.contains(boostNode) {
-                            boostNodes.append(boostNode)
+                // JULY 4 (evening): consult EFFECTIVE boosts (real boosts +
+                // magic-mirroring-a-boost). Reach = the boost rule, exactly
+                // 2 hops from the boosting node (keep in sync with the
+                // .boost case in PotionShopDieRules.affectedNodes).
+                for eb in effectiveBoosts where eb.node != nodeId {
+                    if PotionShopBoard.neighborsExactly(eb.node, hops: 2).contains(nodeId) {
+                        boostSum += eb.value
+                        if !boostNodes.contains(eb.node) {
+                            boostNodes.append(eb.node)
                         }
                     }
                 }
             }
             let total = baseValue + boostSum
+            if boostSum > 0 { boostAdds[nodeId] = boostSum }
             switch die.type {
             case .potency:
                 damage += Double(total)
@@ -1246,6 +1353,53 @@ class PotionShopGameState {
                 nodeValues[nodeId] = total
             case .boost:
                 break
+            case .magic:
+                break   // resolved in the mirror pass below
+            }
+        }
+
+        // ─── JULY 4, 2026: MAGIC (MIRROR) PASS ────────────────────────
+        // A magic die contributes a COPY of whatever die sits at its board
+        // mirror node (the node point-opposite through the center — see
+        // PotionShopBoard.mirrorNode). It copies the mirrored die's FINAL
+        // total (boosts included) and its TYPE. Empty mirror, a boost, or
+        // another magic die at the mirror → the magic die does nothing.
+        for (nodeId, die) in placements where die.type == .magic {
+            // JULY 4 (evening): a BOOST partner is handled above (the magic
+            // die acts as a boost from its own node) — skip without writing
+            // a nodeValue.
+            if let p = PotionShopBoard.mirrorNode(of: nodeId),
+               let src = placements[p], src.type == .boost {
+                continue
+            }
+            guard let partner = PotionShopBoard.mirrorNode(of: nodeId),
+                  let src = placements[partner],
+                  src.type != .magic else {
+                continue
+            }
+            // JULY 4 (evening 2 — user correction): the mirror acts AS IF
+            // the mirrored die were sitting IN THE MIRROR'S NODE. So it
+            // copies the partner's BASE value (own bonuses included) and
+            // is boosted by boosts that reach the MAGIC node — NOT by the
+            // partner's boosts (those belong to the partner's node).
+            let base = src.value + dieValueMod + src.ruleBonus
+            var magicBoost = 0
+            for eb in effectiveBoosts where eb.node != nodeId {
+                if PotionShopBoard.neighborsExactly(eb.node, hops: 2).contains(nodeId) {
+                    magicBoost += eb.value
+                    if !boostNodes.contains(eb.node) { boostNodes.append(eb.node) }
+                }
+            }
+            let copied = base + magicBoost
+            guard copied > 0 else { continue }
+            nodeValues[nodeId] = copied
+            if magicBoost > 0 { boostAdds[nodeId] = magicBoost }
+            switch src.type {
+            case .potency:   damage += Double(copied)
+            case .stability: stabilityRefill += copied
+            case .heal:      healing += copied
+            case .shield:    shielding += copied
+            case .boost, .magic: break
             }
         }
 
@@ -1255,8 +1409,33 @@ class PotionShopGameState {
             shielding: shielding,
             boostNodes: boostNodes,
             stabilityRefill: stabilityRefill,
-            nodeValues: nodeValues
+            nodeValues: nodeValues,
+            boostAdds: boostAdds
         )
+    }
+
+    /// JULY 4, 2026 (rev 3): the boost an EMPTY node would receive if a die
+    /// were placed there — the sum of every placed boost whose reach covers
+    /// it. The board shows this as a blue "+N" inside the empty node
+    /// ("place here, get +N"). 0 when occupied or out of reach.
+    func potentialBoostAt(node: Int) -> Int {
+        guard placements[node] == nil else { return 0 }
+        var sum = 0
+        for (bNode, bDie) in placements where bDie.type == .boost {
+            if PotionShopDieRules.affectedNodes(for: bDie, placedAt: bNode).contains(node) {
+                sum += bDie.value + bDie.ruleBonus
+            }
+        }
+        // JULY 4 (evening): a magic die mirroring a boost also radiates
+        // (same 2-hop boost reach from ITS node).
+        for (mNode, mDie) in placements where mDie.type == .magic {
+            if let p = PotionShopBoard.mirrorNode(of: mNode),
+               let src = placements[p], src.type == .boost,
+               PotionShopBoard.neighborsExactly(mNode, hops: 2).contains(node) {
+                sum += src.value + src.ruleBonus
+            }
+        }
+        return sum
     }
 
     /// JUNE 20, 2026: live preview of the current placements, recomputed on
@@ -1343,14 +1522,32 @@ class PotionShopGameState {
         settledDiceIds.removeAll()
         diceToPopIds.removeAll()
 
-        if bag.count < 5 && !discardPile.isEmpty {
-            bag.append(contentsOf: discardPile)
-            discardPile.removeAll()
-            bag.shuffle()
+        // ═══ JULY 4, 2026: TYPE-DRAW DEALING (per the agreed design) ═══
+        // Each roll deals 5 dice whose TYPES are drawn fresh from the run's
+        // full type set — "there are x types; 5 appear each roll":
+        //   • Day 1: 5 types exist → all five appear every roll.
+        //   • Day 2+ (magic unlocked): 6 types → 5 of the 6 each roll, so
+        //     the mirror die shows up in most hands, guaranteed variety.
+        // Each dealt die is a REAL deck die of that type (random among its
+        // lane), so per-die upgrades (customFaces) and boon bonuses ride
+        // along. Fewer than 5 types would pad with random deck dice.
+        // (The old finite bag/discard cycle is bypassed; fields remain.)
+        ensureRunDeck()
+        var lanePicks: [PotionShopBagDie] = []
+        // JULY 4 (evening 2): once the mirror die has been USED this round
+        // (placed in a resolved brew), its lane sits out until next round.
+        var typePool = Set(run.deck.map { $0.type })
+        if magicUsedThisRound { typePool.remove(.magic) }
+        let allTypes = Array(typePool).shuffled()
+        for t in allTypes.prefix(5) {
+            if let die = run.deck.filter({ $0.type == t }).randomElement() {
+                lanePicks.append(die)
+            }
         }
-        let count = min(5, bag.count)
-        let drawn = Array(bag.prefix(count))
-        bag.removeFirst(count)
+        while lanePicks.count < 5, let extra = run.deck.randomElement() {
+            lanePicks.append(extra)
+        }
+        let drawn = lanePicks
 
         hand = drawn.enumerated().map { (i, bd) in
             // JUNE 18, 2026: a die's total carried bonus = its own per-die
@@ -1379,9 +1576,10 @@ class PotionShopGameState {
                     id: bd.id,
                     type: bd.type,                       // TYPE from the bag (its own identity)
                     tier: bd.tier,
-                    value: bd.tier.rollFace(for: bd.type), // VALUE rolls within tier range (stability = all-1s ladder)
+                    value: bd.effectiveFaces.randomElement() ?? 1, // rolls the die's EFFECTIVE faces (upgrades respected)
                     faceValue: PotionShop3DDiceAssetMap.faceId(forType: bd.type), // spin lands on its own type
                     trayIndex: i,
+                    customFaces: bd.customFaces,
                     ruleBonus: combinedBonus
                 )
             } else {
@@ -1389,9 +1587,10 @@ class PotionShopGameState {
                     id: bd.id,
                     type: bd.type,
                     tier: bd.tier,
-                    value: bd.tier.rollFace(for: bd.type),
+                    value: bd.effectiveFaces.randomElement() ?? 1,
                     faceValue: PotionShopDie.rollFaceImageValue(),
                     trayIndex: i,
+                    customFaces: bd.customFaces,
                     ruleBonus: combinedBonus
                 )
             }
@@ -1452,6 +1651,12 @@ class PotionShopGameState {
 
         let preview = computeBrew()
         let target = currentBrewTarget
+
+        // JULY 4 (evening 2): brewing with the mirror die placed SPENDS it
+        // for this round — it won't be dealt again until the next round.
+        if placements.values.contains(where: { $0.type == .magic }) {
+            magicUsedThisRound = true
+        }
 
         isAnimating = true
         defer { isAnimating = false }
@@ -1663,6 +1868,15 @@ class PotionShopGameState {
             customers[cIdx].patience = max(0, customers[cIdx].patience - tick)
         }
         try? await sleep(seconds: PotionShopBrewAnimator.patienceTickDuration)
+
+        // ─── JULY 4, 2026: SELF-HEALING CUSTOMERS tick ────────────────
+        // After patience, every still-waiting customer with regen heals
+        // (never above its max). The HP badge animates via liveHP.
+        for i in customers.indices
+        where customers[i].status == .waiting && customers[i].regenPerTurn > 0 {
+            customers[i].hp = min(customers[i].maxHp,
+                                  customers[i].hp + customers[i].regenPerTurn)
+        }
 
         // ─── PHASE 6: Expirations ───────────────────────────────────
         let expiringIds = queue.filter { id in

@@ -61,6 +61,14 @@ struct PotionShopBoon: Identifiable {
         /// for the rest of the run (e.g. "+2 to all shield"). Persists via the
         /// run's typeBonuses table, applied to each die when it's dealt.
         case typeWideBonus(type: PotionShopDieType, amount: Int)
+        // ─── JULY 4, 2026: RELIC-STYLE persistent effects + the picker ───
+        /// RELIC: at the END of every day, restore composure to full.
+        case relicHealAtDayEnd
+        /// RELIC: START every day with this much shield.
+        case relicShieldAtDayStart(Int)
+        /// Opens the DIE-UPGRADE PICKER: the player chooses a die type and
+        /// its first die tiers up (basic → silver → gold).
+        case dieUpgrade
     }
     let effect: Effect
 }
@@ -83,6 +91,34 @@ struct PotionShopRunState: Codable {
     /// per-die rule bonus.
     var typeBonuses: [PotionShopDieType: Int] = [:]
 
+    // ─── JULY 4, 2026: relic effects + pending upgrade picks ────────────
+    /// True = composure restores to full at the end of every day.
+    var healAtDayEnd: Bool = false
+    /// Shield granted at the start of every day (0 = none).
+    var shieldAtDayStart: Int = 0
+    /// Die upgrades the player has earned but not yet picked (each opens
+    /// the upgrade-picker overlay once).
+    var pendingDieUpgrades: Int = 0
+    /// True once the Day-2 magic (mirror) die has been added to the deck.
+    var magicDieGranted: Bool = false
+
+    // Custom Codable so saves from BEFORE these fields still decode.
+    private enum CodingKeys: String, CodingKey {
+        case deck, boonsTaken, typeBonuses,
+             healAtDayEnd, shieldAtDayStart, pendingDieUpgrades, magicDieGranted
+    }
+    init() {}
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        deck = try c.decodeIfPresent([PotionShopBagDie].self, forKey: .deck) ?? []
+        boonsTaken = try c.decodeIfPresent([String].self, forKey: .boonsTaken) ?? []
+        typeBonuses = try c.decodeIfPresent([PotionShopDieType: Int].self, forKey: .typeBonuses) ?? [:]
+        healAtDayEnd = try c.decodeIfPresent(Bool.self, forKey: .healAtDayEnd) ?? false
+        shieldAtDayStart = try c.decodeIfPresent(Int.self, forKey: .shieldAtDayStart) ?? 0
+        pendingDieUpgrades = try c.decodeIfPresent(Int.self, forKey: .pendingDieUpgrades) ?? 0
+        magicDieGranted = try c.decodeIfPresent(Bool.self, forKey: .magicDieGranted) ?? false
+    }
+
     /// Seed the starting deck once at run start. Mirrors the old hardcoded
     /// bag, but now it's the RUN deck that persists instead of being rebuilt
     /// every round.
@@ -103,6 +139,10 @@ struct PotionShopRunState: Codable {
         }
         boonsTaken.removeAll()
         typeBonuses.removeAll()
+        healAtDayEnd = false
+        shieldAtDayStart = 0
+        pendingDieUpgrades = 0
+        magicDieGranted = false
     }
 
     /// Apply a chosen boon to the run deck.
@@ -132,6 +172,13 @@ struct PotionShopRunState: Codable {
             // June 18: every die of this type gets +amount for the rest of
             // the run (stored in typeBonuses, applied in drawFromBag).
             typeBonuses[type, default: 0] += amount
+        case .relicHealAtDayEnd:
+            healAtDayEnd = true
+        case let .relicShieldAtDayStart(amount):
+            shieldAtDayStart += amount
+        case .dieUpgrade:
+            // GameView watches this counter and presents the picker overlay.
+            pendingDieUpgrades += 1
         }
         boonsTaken.append(boon.name)
     }
@@ -143,32 +190,23 @@ struct PotionShopRunState: Codable {
 // these are obvious test placeholders so you can see the system working.
 
 enum PotionShopBoonPool {
+    // ═══ JULY 4, 2026: REBUILT STARTER POOL — modest by design. ═══
+    // The old pool's stat piles (+2s everywhere) outgrew every threat
+    // (§67.3 finding 1). These start small and creative; EDIT FREELY —
+    // each row is one card: (name, blurb, emoji, effect).
     static let all: [PotionShopBoon] = [
+        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade one die — you pick which",
+                       emoji: "⬆️", effect: .dieUpgrade),
+        PotionShopBoon(name: "Mended Spirit", blurb: "RELIC: fully restore composure at the end of each day",
+                       emoji: "💖", effect: .relicHealAtDayEnd),
+        PotionShopBoon(name: "Warded Morning", blurb: "RELIC: start each day with 5 shield",
+                       emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
         PotionShopBoon(name: "Extra Potency", blurb: "Add a potency die to your deck",
                        emoji: "⚗️", effect: .addDie(type: .potency, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Sharpen Potency", blurb: "A potency die hits for +2",
-                       emoji: "🗡️", effect: .upgradeDie(type: .potency, amount: 2)),
         PotionShopBoon(name: "Extra Heal", blurb: "Add a heal die to your deck",
                        emoji: "💚", effect: .addDie(type: .heal, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Stronger Heal", blurb: "A heal die restores +2",
-                       emoji: "✨", effect: .upgradeDie(type: .heal, amount: 2)),
-        PotionShopBoon(name: "Extra Shield", blurb: "Add a shield die to your deck",
-                       emoji: "🛡️", effect: .addDie(type: .shield, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Bigger Boost", blurb: "A boost die is +2 stronger",
-                       emoji: "🔆", effect: .upgradeDie(type: .boost, amount: 2)),
-        PotionShopBoon(name: "Extra Boost", blurb: "Add a boost die to your deck",
-                       emoji: "➕", effect: .addDie(type: .boost, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Steady Hand", blurb: "A stability die is +2 stronger",
-                       emoji: "🪨", effect: .upgradeDie(type: .stability, amount: 2)),
-        // ─── Type-wide boons (June 18, 2026): affect EVERY die of a type ───
-        PotionShopBoon(name: "Reinforced Shields", blurb: "Add +2 to ALL shield dice",
-                       emoji: "🛡️", effect: .typeWideBonus(type: .shield, amount: 2)),
-        PotionShopBoon(name: "Healing Mastery", blurb: "Add +1 to ALL heal dice",
-                       emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
-        PotionShopBoon(name: "Amplified Boosts", blurb: "Add +2 to ALL boost dice",
-                       emoji: "🔆", effect: .typeWideBonus(type: .boost, amount: 2)),
-        PotionShopBoon(name: "Potent Brew", blurb: "Add +1 to ALL potency dice",
-                       emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
+        PotionShopBoon(name: "Spare Ember", blurb: "Add a stability die to your deck",
+                       emoji: "🔥", effect: .addDie(type: .stability, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
     ]
 
     /// Draw `n` distinct random boons for a menu.

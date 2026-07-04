@@ -472,6 +472,16 @@ struct PotionShopConfig {
     // Lab-verified: the 30-day arc holds from +0% through +20%.
     static let nightHPFactorOfEvening: Double = 1.1
     static let nightAttackFactorOfEvening: Double = 0.4
+
+    // ─── SELF-HEALING CUSTOMERS (July 4, 2026) ───────────────────────────
+    // From regenStartDay, ONE customer in each afternoon/evening round
+    // (rotating slot) heals itself every turn — pressure to finish orders
+    // fast. Bosses join from regenBossStartDay at the late amount.
+    static let regenStartDay = 2
+    static let regenRounds: Set<Int> = [1, 2]      // afternoon, evening
+    static let regenAmountEarly = 1                 // days 2–13
+    static let regenAmountLate = 2                  // day 14 onward
+    static let regenBossStartDay = 14
 }
 
 // MARK: - Dice
@@ -485,6 +495,10 @@ enum PotionShopDieType: String, CaseIterable, Identifiable, Codable {
     case boost
     case heal
     case shield
+    // JULY 4, 2026: the MAGIC (mirror) die — copies whatever die sits at
+    // its board mirror node (PotionShopBoard.mirrorNode). Its own rolled
+    // value is unused. Introduced automatically at the start of Day 2.
+    case magic
 
     var id: String { rawValue }
 
@@ -496,6 +510,7 @@ enum PotionShopDieType: String, CaseIterable, Identifiable, Codable {
         case .boost:     return "BST"
         case .heal:      return "HEAL"
         case .shield:    return "SHD"
+        case .magic:     return "MIR"
         }
     }
 
@@ -510,6 +525,7 @@ enum PotionShopDieType: String, CaseIterable, Identifiable, Codable {
         case .boost:     return "die_boost"
         case .heal:      return "die_heal"
         case .shield:    return "die_shield"
+        case .magic:     return "die_magic"
         }
     }
 
@@ -521,6 +537,7 @@ enum PotionShopDieType: String, CaseIterable, Identifiable, Codable {
         case .boost:     return Color(red: 0.61, green: 0.35, blue: 0.71) // purple
         case .heal:      return Color(red: 0.18, green: 0.80, blue: 0.44) // green
         case .shield:    return Color(red: 0.11, green: 0.62, blue: 0.46) // teal
+        case .magic:     return Color(red: 0.95, green: 0.77, blue: 0.20) // gold
         }
     }
 }
@@ -553,15 +570,65 @@ enum PotionShopDieTier: String, Codable {
     ///   basic  [1,1,1,1,1,1]  → always 1
     ///   silver [1,2,2,2,3,3]  → avg ~2.2
     ///   gold   [2,3,3,4,4,5]  → avg ~3.5
-    func rollFace(for type: PotionShopDieType) -> Int {
-        guard type == .stability else { return rollFace() }
-        let faces: [Int]
-        switch self {
-        case .basic:  faces = [1, 1, 1, 1, 1, 1]
-        case .silver: faces = [1, 2, 2, 2, 3, 3]
-        case .gold:   faces = [2, 3, 3, 4, 4, 5]
+    /// JULY 4, 2026: PER-TYPE basic faces — the curve starts LOWER.
+    /// Day-1 rule: no die except heal has a 3 face, and heal has only ONE.
+    ///   potency/shield basic [1,1,2,2,2,2] (avg 1.67)
+    ///   heal          basic [1,1,2,2,2,3] (avg 1.83 — the lone 3)
+    ///   boost         basic [1,1,1,1,2,2] (avg 1.33)
+    ///   stability     basic all 1s (§63 — value = flames refilled)
+    ///   magic         value UNUSED (it copies its mirror node's die)
+    /// The CANONICAL face arrays — the single source the roll, the upgrade
+    /// picker, and per-die custom faces all start from.
+    func faces(for type: PotionShopDieType) -> [Int] {
+        switch type {
+        case .stability:
+            switch self {
+            case .basic:  return [1, 1, 1, 1, 1, 1]
+            case .silver: return [1, 2, 2, 2, 3, 3]
+            case .gold:   return [2, 3, 3, 4, 4, 5]
+            }
+        case .boost:
+            switch self {
+            case .basic:  return [1, 1, 1, 1, 2, 2]
+            case .silver: return [1, 2, 2, 2, 3, 3]
+            case .gold:   return [2, 3, 3, 4, 4, 5]
+            }
+        case .heal:
+            switch self {
+            case .basic:  return [1, 1, 2, 2, 2, 3]
+            case .silver: return [2, 3, 3, 4, 4, 5]
+            case .gold:   return [3, 4, 4, 5, 5, 6]
+            }
+        case .magic:
+            return [1, 1, 1, 1, 1, 1]   // never read — mirror copies
+        case .potency, .shield:
+            switch self {
+            case .basic:  return [1, 1, 2, 2, 2, 2]
+            case .silver: return [2, 3, 3, 4, 4, 5]
+            case .gold:   return [3, 4, 4, 5, 5, 6]
+            }
         }
-        return faces.randomElement()!
+    }
+
+    func rollFace(for type: PotionShopDieType) -> Int {
+        faces(for: type).randomElement()!
+    }
+
+    /// The next tier up, or nil at gold (legacy; face-step upgrades — July 4
+    /// afternoon — largely replace tier jumps, but the ladder stays for
+    /// boards/boons that may still grant whole tiers).
+    var next: PotionShopDieTier? {
+        switch self {
+        case .basic:  return .silver
+        case .silver: return .gold
+        case .gold:   return nil
+        }
+    }
+
+    /// The DISTINCT face values this tier rolls for a type — the little
+    /// die images the upgrade picker shows (e.g. basic boost → [1, 2]).
+    func distinctFaces(for type: PotionShopDieType) -> [Int] {
+        Array(Set(faces(for: type))).sorted()
     }
 }
 
@@ -593,6 +660,10 @@ struct PotionShopDie: Identifiable, Equatable {
     /// the tray's HStack would slide remaining dice leftward on every
     /// drag-out.
     var trayIndex: Int = 0
+    /// JULY 4, 2026 (afternoon): per-die UPGRADED FACES. nil = roll from the
+    /// tier's canonical array; set = this die's own face list (built by the
+    /// upgrade picker's floor/ceiling bumps). Copied from the bag die.
+    var customFaces: [Int]? = nil
     /// JUNE 18, 2026 (run system test): flat bonus this die carries from a
     /// boon (e.g. an upgraded potency = +2). Added to value in computeBrew.
     /// 0 for ordinary dice.
@@ -627,7 +698,12 @@ struct PotionShopDie: Identifiable, Equatable {
 struct PotionShopBagDie: Codable {
     let id: String
     let type: PotionShopDieType
-    let tier: PotionShopDieTier
+    // JULY 4, 2026: var (was let) — the die-upgrade picker bumps tiers.
+    var tier: PotionShopDieTier
+    /// JULY 4, 2026 (afternoon): this die's upgraded faces (nil = tier
+    /// default). Optional → old saves decode as nil. The picker's
+    /// floor/ceiling bumps write here; effective faces = this ?? tier's.
+    var customFaces: [Int]? = nil
     /// JUNE 18, 2026 (run system test): optional rule this die carries —
     /// e.g. a boon-upgraded die with +2 bonus value. Default = no bonus.
     /// Rides with the die through the deck so its effect persists for the run.
@@ -882,12 +958,50 @@ struct PotionShopDieRules {
             // No cross-node effect → no reach glow.
             return []
 
-        // ─── MIRROR (future die — wiring note) ──────────────────
-        // When the mirror die type is added, its case is one line:
-        //   case .mirror:
-        //       return PotionShopBoard.mirrorNode(of: nodeIndex).map { [$0] } ?? []
+        // ─── MAGIC / MIRROR (July 4, 2026 — wired!) ─────────────
+        // Reach glow = the node it copies: its board mirror partner.
+        case .magic:
+            return PotionShopBoard.mirrorNode(of: nodeIndex).map { [$0] } ?? []
         // i.e. it glows exactly its point-symmetric partner node
         // (nothing on the center node, which has no partner).
         }
+    }
+}
+
+
+// MARK: - Effective faces + face-step upgrades (July 4, 2026 — afternoon)
+
+extension PotionShopBagDie {
+    /// The faces this die actually rolls: its upgrades, else its tier's.
+    var effectiveFaces: [Int] {
+        customFaces ?? tier.faces(for: type)
+    }
+}
+
+extension PotionShopDie {
+    /// Roll a value from this die's effective faces (upgrades respected).
+    func rolledValue() -> Int {
+        (customFaces ?? tier.faces(for: type)).randomElement() ?? 1
+    }
+}
+
+/// The two face-step upgrade kinds the picker offers (DitD-style):
+/// FLOOR bumps one of the LOWEST faces +1 ("1,1,2,2,2,2 → 1,2,2,2,2,2");
+/// CEILING bumps the HIGHEST face below 6 +1 ("…2,2 → …2,3"). Faces cap at 6.
+enum PotionShopFaceUpgradeKind {
+    case floor, ceiling
+
+    /// The resulting face array, or nil if no bump is possible (all 6s).
+    func apply(to faces: [Int]) -> [Int]? {
+        var f = faces.sorted()
+        switch self {
+        case .floor:
+            guard let i = f.firstIndex(where: { $0 < 6 }) else { return nil }
+            f[i] += 1
+        case .ceiling:
+            guard let i = f.lastIndex(where: { $0 < 6 }) else { return nil }
+            f[i] += 1
+        }
+        return f.sorted()
     }
 }

@@ -110,6 +110,10 @@ struct PotionShop3DDiceAssetMap {
         .init(id: 4, type: .heal,      brewValue: 4, assetName: "die_heal",      weight: 1),
         .init(id: 5, type: .shield,    brewValue: 5, assetName: "die_shield",    weight: 1),
         .init(id: 6, type: .stability, brewValue: 6, assetName: "die_stability", weight: 1),
+        // JULY 4, 2026: the MAGIC (mirror) die's face. Without this row,
+        // faceId(forType: .magic) fell back to face 1 — the magic die was
+        // rendering as a POTENCY die in the tray ("never appearing").
+        .init(id: 7, type: .magic,     brewValue: 1, assetName: "die_magic",     weight: 1),
         // Future examples:
         // .init(id: 7, type: .heal,    brewValue: 2, assetName: "die_heal",   weight: 2),
         // .init(id: 8, type: .potency, brewValue: 4, assetName: "die_potency", weight: 1),
@@ -873,6 +877,37 @@ struct PotionShopNodeButtonView: View {
                         // Drag origin: ghosted die stays put
                         PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
                             .opacity(0.3)
+                    } else if die.type == .magic,
+                              let partnerNode = PotionShopBoard.mirrorNode(of: nodeIndex),
+                              let partnerDie = gs.placements[partnerNode],
+                              partnerDie.type != .magic {
+                        // JULY 4 (evening 2): a placed MIRROR die visually
+                        // CROSSFADES between its own art and the die it's
+                        // mirroring (slow sine), selling "I am that die now".
+                        TimelineView(.animation) { timeline in
+                            let t = timeline.date.timeIntervalSinceReferenceDate
+                            let x = 0.5 + 0.5 * sin(t * 1.8)   // 0…1, ~3.5s loop
+                            ZStack {
+                                PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
+                                    .opacity(1.0 - x)
+                                PotionShopPlacedDieView(
+                                    die: PotionShopDie(
+                                        id: die.id + "_mirror_ghost",
+                                        type: partnerDie.type,
+                                        tier: partnerDie.tier,
+                                        value: partnerDie.value
+                                    ),
+                                    visualScale: visualScale * hug,
+                                    useFaceAsset: false   // ghost always wears its TYPE art
+                                )
+                                .opacity(x)
+                            }
+                        }
+                        .matchedGeometryEffect(
+                            id: die.id,
+                            in: diceFlight,
+                            properties: [.position, .size]
+                        )
                     } else {
                         // Locked-in die, scaled down so node frame shows
                         // around it as a "socket".
@@ -890,6 +925,7 @@ struct PotionShopNodeButtonView: View {
                 // Only for non-boost dice (boosts have no output of their own).
                 // Reads the live brew preview keyed by this node.
                 if die.type != .boost,
+                   die.type != .magic,   // JULY 4 (evening 2): the mirror shows no value badge
                    !gs.isAnimating,
                    let realized = gs.livePreview.nodeValues[nodeIndex],
                    !isDraggingFromHere {
@@ -912,6 +948,38 @@ struct PotionShopNodeButtonView: View {
                         .allowsHitTesting(false)
                         .transition(.scale.combined(with: .opacity))
                         .zIndex(50)
+                }
+            }
+            // ─── JULY 4, 2026 (rev 3 — user correction): EMPTY nodes in a
+            // placed boost's reach show the "+N" they WOULD receive, blue,
+            // dead center ("place a die here, it gets +N"). Rendered as the
+            // LAST sibling of this node's ZStack, so it sits ON TOP of the
+            // chalk frame AND the node_glow1…N frames.
+            if placedDie == nil, !gs.isAnimating {
+                // JULY 4 (evening 2): the "+N" now ALSO appears during a
+                // boost drag — same trigger, same moment as the node_glow
+                // reach preview (previewAffectedNodes) — plus the standing
+                // charge from already-placed boosts (potentialBoostAt).
+                let placedPotential = gs.potentialBoostAt(node: nodeIndex)
+                let hoverPotential: Int = {
+                    guard let dragged = gs.draggedDie, dragged.type == .boost,
+                          gs.previewAffectedNodes.contains(nodeIndex) else { return 0 }
+                    return dragged.value + dragged.ruleBonus
+                }()
+                let potential = placedPotential + hoverPotential
+                if potential > 0 {
+                    // Brighter blue, NO white border (user call), breathing
+                    // ±8% on a slow sine.
+                    TimelineView(.animation) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        let breathe = 1.0 + 0.08 * sin(t * 2.6)
+                        Text("+\(potential)")
+                            .font(Font.gameScore(size: 20 * visualScale))
+                            .foregroundColor(Color(red: 0.13, green: 0.66, blue: 1.0))
+                            .scaleEffect(breathe)
+                    }
+                    .allowsHitTesting(false)
+                    .zIndex(48)
                 }
             }
         }
@@ -1142,7 +1210,10 @@ struct PotionShopPlacedDieView: View {
         // SHARED faceValue field that the cube also targets — so the picture
         // on the cube and the picture on the placed die are guaranteed to
         // match. In every other round, use the die's TYPE asset as before.
-        let assetName = useFaceAsset
+        // JULY 4, 2026: the MAGIC die always shows its own art (die_magic)
+        // — the legacy face-value map predates it and would show another
+        // type's picture.
+        let assetName = (useFaceAsset && die.type != .magic)
             ? PotionShop3DDiceAssetMap.assetName(forValue: die.faceValue)
             : die.type.assetName
 
@@ -1159,7 +1230,7 @@ struct PotionShopPlacedDieView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                 
                 // Die value overlaid on center (center 30% kept blank on art)
-                Text("\(die.value)")
+                Text(die.type == .magic ? "X" : "\(die.value)")   // JULY 4: mirror die shows "X"
                     .font(Font.gameScore(size: 13 * visualScale))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 1, x: 0, y: 1)
@@ -1178,7 +1249,7 @@ struct PotionShopPlacedDieView: View {
                         .stroke(PotionShopTheme.ink, lineWidth: 1.5)
                 )
                 .overlay(
-                    Text("\(die.value)")
+                    Text(die.type == .magic ? "X" : "\(die.value)")   // JULY 4: mirror die shows "X"
                         .font(Font.gameScore(size: 13 * visualScale))
                         .foregroundColor(.white)
                         .offset(y: 3 * visualScale)
@@ -1468,7 +1539,7 @@ struct PotionShopDieButtonView: View {
                             )
 
                         // Die value overlaid on center
-                        Text("\(die.value)")
+                        Text(die.type == .magic ? "X" : "\(die.value)")   // JULY 4: mirror die shows "X"
                             .font(Font.gameScore(size: scaledFontSize))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.6), radius: 2, x: 0, y: 1)
@@ -1479,7 +1550,7 @@ struct PotionShopDieButtonView: View {
                     VStack(spacing: 1) {
                         Text(die.type.abbr)
                             .font(Font.gameUI(size: 9 * dieScale))
-                        Text("\(die.value)")
+                        Text(die.type == .magic ? "X" : "\(die.value)")   // JULY 4: mirror die shows "X"
                             .font(Font.gameScore(size: 14 * dieScale))
                     }
                     .foregroundColor(.white)
@@ -2037,8 +2108,17 @@ struct PotionShopNodeConnectionLines: View {
     private var boostEdges: Set<[Int]> {
         guard let gs = gs else { return [] }
         var result = Set<[Int]>()
-        for (boostNode, boostDie) in gs.placements where boostDie.type == .boost {
-            let reach = PotionShopDieRules.affectedNodes(for: boostDie, placedAt: boostNode)
+        // JULY 4 (evening): nodes acting as boosts = real boost dice plus
+        // any magic die mirroring a boost (it radiates from its own node).
+        var boostingNodes: [Int] = gs.placements.compactMap { $0.value.type == .boost ? $0.key : nil }
+        for (mNode, mDie) in gs.placements where mDie.type == .magic {
+            if let p = PotionShopBoard.mirrorNode(of: mNode),
+               let src = gs.placements[p], src.type == .boost {
+                boostingNodes.append(mNode)
+            }
+        }
+        for boostNode in boostingNodes {
+            let reach = PotionShopBoard.neighborsExactly(boostNode, hops: 2)
             for (a, b) in PotionShopBoard.edges {
                 let other = (a == boostNode) ? b : (b == boostNode ? a : nil)
                 if let other = other,

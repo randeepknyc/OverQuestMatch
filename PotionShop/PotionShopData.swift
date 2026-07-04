@@ -672,6 +672,53 @@ enum PotionShopData {
                 "Drifting"
             ]
         ),
+        // ─── JULY 4, 2026: two new cast members (user's new art) ──────
+        "gmarker_vamp": PotionShopCharacter(
+            id: "gmarker_vamp", name: "Vesper", title: "Polite Vampire",
+            portrait: "gmarker_vamp", scenePortrait: "gmarker_vamp",
+            iconFallback: "🧛",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "Something Restorative", orderDialogue: "No garlic in this, I trust? Splendid.",
+            hp: 20, patience: 9, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "He checks a pocket watch that has no hands.",
+            expireDialogue: "The night is long, but not THIS long. Farewell.",
+            defeatDialogue: "Ah — the color returns to my cheeks. Metaphorically.",
+            trait: nil,
+            orderPhrases: [
+                "Something restorative — sunrise waits for no one.",
+                "A brew, please. I find myself... drained.",
+                "No garlic in this, I trust? Splendid."
+            ],
+            traitNames: [
+                "Nocturnal",
+                "Courtly",
+                "Pale"
+            ]
+        ),
+        "gmarker_duck": PotionShopCharacter(
+            id: "gmarker_duck", name: "Waddles", title: "Pond Dandy",
+            portrait: "gmarker_duck", scenePortrait: "gmarker_duck",
+            iconFallback: "🦆",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Pond-Warmer", orderDialogue: "Quack. The pond's gone frightfully cold.",
+            hp: 14, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 3,
+            tickDialogue: "Feathers ruffle with mounting impatience.",
+            expireDialogue: "QUACK! I shall take my coin to the mill pond!",
+            defeatDialogue: "Quack-cellent. Simply quack-cellent.",
+            trait: nil,
+            orderPhrases: [
+                "Quack. The pond's gone frightfully cold.",
+                "Something warming — I've been dabbling in icy water all day.",
+                "One brew, my good brewer, and do mind the tail feathers."
+            ],
+            traitNames: [
+                "Puddle-Proud",
+                "Preening",
+                "Buoyant"
+            ]
+        ),
         "gmarker_girl": PotionShopCharacter(
             id: "gmarker_girl", name: "Petal", title: "Cheerful Apprentice",
             portrait: "gmarker_girl", scenePortrait: "gmarker_girl",
@@ -1186,7 +1233,8 @@ enum PotionShopData {
         "gmarker_octo", "gmarker_girl", "gmarker_skull", "gmarker_slug",
         "gmarker_fishguy", "gmarker_bull", "gmarker_frog", "gmarker_fox",
         "gmarker_traveler", "gmarker_demon", "gmarker_bird", "gmarker_dino",
-        "gmarker_goatguy", "gmarker_oldlady", "gmarker_puck"
+        "gmarker_goatguy", "gmarker_oldlady", "gmarker_puck",
+        "gmarker_vamp", "gmarker_duck"   // JULY 4, 2026: new art
     ]
 
     /// Boss-night closers. These are STAND-INS (tough cast members) until the

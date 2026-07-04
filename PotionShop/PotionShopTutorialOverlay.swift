@@ -123,6 +123,11 @@ struct PotionShopTutorialOverlay: View {
     @State private var cardOpacity: Double = 0
     @State private var cardOffset: CGFloat = 30
 
+    // JULY 4, 2026: layout config (positions, dim levels) + live drag.
+    @Bindable private var cfg = PotionShopLayoutConfig.shared
+    @State private var dragStart: CGSize? = nil
+    @State private var circleDragStart: CGSize? = nil
+
     var body: some View {
         let step = tutorial.currentStep
 
@@ -130,7 +135,9 @@ struct PotionShopTutorialOverlay: View {
             // ── DIM LAYER ───────────────────────────────────────
             // Step 4: dim only the header + scene; leave cauldron/tray
             // interactive. Steps 0–3: dim everything.
-            Color.black.opacity(step < 3 ? 0.6 : 0.35)
+            // JULY 4, 2026: dim levels are config knobs (debug → 🎓 Tutorial
+            // Layout): tutDimWatch for steps 1–3, tutDimDoIt for step 4.
+            Color.black.opacity(step < 3 ? cfg.tutDimWatch : cfg.tutDimDoIt)
                 .ignoresSafeArea()
                 .allowsHitTesting(step < 3)  // steps 0-2 block taps on game
                 .onTapGesture {
@@ -140,9 +147,15 @@ struct PotionShopTutorialOverlay: View {
                 }
 
             // ── SPOTLIGHT / HIGHLIGHT ────────────────────────────
-            // Step 3: boiling circle around HP badge area
-            if step == 2 {
-                boilingCircleHighlight
+            // JULY 4, 2026 (evening 3): dotted circles are a configurable
+            // LIST — every circle assigned to the current step renders,
+            // positioned by OFFSET FROM SCREEN CENTER (the old version was
+            // anchored to the top with a Spacer guess — placement was off).
+            // Edit mode: drag any circle; sliders live in 🎓 Tutorial Layout.
+            ForEach(Array(cfg.tutCircles.enumerated()), id: \.element.id) { pair in
+                if pair.element.step == step {
+                    dottedCircle(index: pair.offset)
+                }
             }
 
             // ── TEXT CARD ────────────────────────────────────────
@@ -212,7 +225,13 @@ struct PotionShopTutorialOverlay: View {
         }
         .onChange(of: tutorial.currentStep) { _, newStep in
             animateCardIn()
-            if newStep == 2 {
+            if cfg.tutCircles.contains(where: { $0.step == newStep }) {
+                startBoilAnimation()
+            }
+        }
+        // Circles on step 1 need the draw animation at first appearance too.
+        .onAppear {
+            if cfg.tutCircles.contains(where: { $0.step == tutorial.currentStep }) {
                 startBoilAnimation()
             }
         }
@@ -264,29 +283,64 @@ struct PotionShopTutorialOverlay: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(PotionShopTheme.accent.opacity(0.5), lineWidth: 1.5)
         )
+        .frame(maxWidth: cfg.tutCardMaxWidth)
         .opacity(cardOpacity)
         .offset(y: cardOffset)
+        // JULY 4, 2026: per-step nudge from the layout config, plus LIVE
+        // DRAG when edit mode is on (debug → 🎓 Tutorial Layout). Dragging
+        // writes straight into the config, so the values stick.
+        .offset(x: cfg.tutCardOffsetX[min(tutorial.currentStep, 3)],
+                y: cfg.tutCardOffsetY[min(tutorial.currentStep, 3)])
+        .gesture(cfg.tutorialEditMode ? DragGesture()
+            .onChanged { v in
+                let i = min(tutorial.currentStep, 3)
+                if dragStart == nil {
+                    dragStart = CGSize(width: cfg.tutCardOffsetX[i],
+                                       height: cfg.tutCardOffsetY[i])
+                }
+                cfg.tutCardOffsetX[i] = (dragStart?.width ?? 0) + v.translation.width
+                cfg.tutCardOffsetY[i] = (dragStart?.height ?? 0) + v.translation.height
+            }
+            .onEnded { _ in dragStart = nil } : nil)
+        .overlay(alignment: .top) {
+            if cfg.tutorialEditMode {
+                Text("EDIT MODE — drag me · step \(tutorial.currentStep + 1)")
+                    .font(.caption2).foregroundColor(.yellow)
+                    .padding(4).background(Color.black.opacity(0.7))
+                    .offset(y: -22)
+            }
+        }
     }
 
     // MARK: - Boiling circle (step 3)
 
-    private var boilingCircleHighlight: some View {
-        // Position the boiling circle in the customer scene area,
-        // roughly where the active customer's HP badge sits.
-        // This is a visual indicator, not pixel-perfect anchored.
-        VStack {
-            Spacer().frame(height: 180) // below header, into scene area
+    @ViewBuilder
+    private func dottedCircle(index: Int) -> some View {
+        if index < cfg.tutCircles.count {
+            let c = cfg.tutCircles[index]
             Circle()
                 .trim(from: 0, to: boilTrim)
                 .stroke(
                     PotionShopTheme.accent,
-                    style: StrokeStyle(lineWidth: 3.5, lineCap: .round, dash: [6, 4])
+                    style: StrokeStyle(lineWidth: c.lineWidth, lineCap: .round, dash: [6, 4])
                 )
-                .frame(width: 70, height: 70)
+                .frame(width: c.size, height: c.size)
                 .scaleEffect(boilPulse)
                 .rotationEffect(.degrees(boilRotation))
                 .shadow(color: PotionShopTheme.accent.opacity(0.6), radius: 8)
-            Spacer()
+                // Offset from SCREEN CENTER — what the sliders say is
+                // exactly where it sits, no hidden Spacer math.
+                .offset(x: c.x, y: c.y)
+                .gesture(cfg.tutorialEditMode ? DragGesture()
+                    .onChanged { v in
+                        if circleDragStart == nil {
+                            circleDragStart = CGSize(width: c.x, height: c.y)
+                        }
+                        cfg.tutCircles[index].x = (circleDragStart?.width ?? 0) + v.translation.width
+                        cfg.tutCircles[index].y = (circleDragStart?.height ?? 0) + v.translation.height
+                    }
+                    .onEnded { _ in circleDragStart = nil } : nil)
+                .allowsHitTesting(cfg.tutorialEditMode)
         }
     }
 
@@ -331,6 +385,93 @@ struct PotionShopTutorialOverlay: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             tutorial.advance()
+        }
+    }
+}
+
+
+// MARK: - 🎓 Tutorial layout editor (July 4, 2026 — debug menu sheet)
+//
+// Sliders for everything the overlay reads from the layout config, plus the
+// EDIT MODE toggle that makes the tutorial card draggable in place. Start
+// the tutorial (pause menu → Tutorial) with edit mode on to position live.
+
+struct PotionShopTutorialLayoutView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Bindable private var cfg = PotionShopLayoutConfig.shared
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Toggle("✋ Edit mode (drag the card in-game)", isOn: $cfg.tutorialEditMode)
+                    Text("Turn this ON, then start the tutorial (pause menu → Tutorial). Drag the text card where you want it — each step remembers its own spot. Values land in the sliders below.")
+                        .font(.caption).foregroundColor(.secondary)
+                }
+                Section("Screen fade (dim)") {
+                    row("Watch steps (1–3)", $cfg.tutDimWatch, 0...0.95, step: 0.05, decimals: 2)
+                    row("Do-it step (4)", $cfg.tutDimDoIt, 0...0.95, step: 0.05, decimals: 2)
+                }
+                ForEach(0..<4, id: \.self) { i in
+                    Section("Card · step \(i + 1)") {
+                        row("X", $cfg.tutCardOffsetX[i], -200...200)
+                        row("Y", $cfg.tutCardOffsetY[i], -300...300)
+                    }
+                }
+                Section("Card size") {
+                    row("Max width", $cfg.tutCardMaxWidth, 220...420)
+                }
+                // JULY 4 (evening 3): the dotted circles are a LIST — add
+                // as many as you want, each pinned to a step. Positions are
+                // offsets from SCREEN CENTER. With edit mode on, drag them
+                // live in-game.
+                ForEach(Array(cfg.tutCircles.enumerated()), id: \.element.id) { pair in
+                    Section("Dotted circle \(pair.offset + 1)") {
+                        Picker("Shows on step", selection: $cfg.tutCircles[pair.offset].step) {
+                            ForEach(0..<4, id: \.self) { Text("Step \($0 + 1)").tag($0) }
+                        }
+                        row("X (from center)", $cfg.tutCircles[pair.offset].x, -220...220)
+                        row("Y (from center)", $cfg.tutCircles[pair.offset].y, -420...420)
+                        row("Size", $cfg.tutCircles[pair.offset].size, 30...220)
+                        row("Line width", $cfg.tutCircles[pair.offset].lineWidth, 1...10, step: 0.5, decimals: 1)
+                        Button(role: .destructive) {
+                            cfg.tutCircles.remove(at: pair.offset)
+                        } label: {
+                            Label("Remove this circle", systemImage: "trash")
+                        }
+                    }
+                }
+                Section {
+                    Button {
+                        cfg.tutCircles.append(PotionShopLayoutConfig.TutorialCircle())
+                    } label: {
+                        Label("➕ Add a dotted circle", systemImage: "plus.circle")
+                    }
+                }
+                Section {
+                    Button(role: .destructive) {
+                        cfg.resetTutorialLayout()
+                    } label: {
+                        Label("Reset tutorial layout", systemImage: "arrow.counterclockwise")
+                    }
+                }
+            }
+            .navigationTitle("🎓 Tutorial Layout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+    }
+
+    @ViewBuilder
+    private func row(_ title: String, _ value: Binding<Double>,
+                     _ range: ClosedRange<Double>, step: Double = 1, decimals: Int = 0) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(title); Spacer()
+                Text(String(format: "%.\(decimals)f", value.wrappedValue))
+                    .foregroundColor(.secondary).monospacedDigit()
+            }
+            Slider(value: value, in: range, step: step)
         }
     }
 }

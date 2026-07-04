@@ -4298,3 +4298,56 @@ Verdict with **failure diagnosis** (drain-vs-heal onset day; closing-day damage 
 
 ### 66.5 MINI-BOSS NIGHTS = EVENING SUM + % (July 3, 2026 — revised same day)
 EVERY night's lone closer uses the evening formula. REVISED definition (user call): the mini-boss order = the evening's ADDED-UP total **plus an overage** — `nightHPFactorOfEvening = 1.1` (evening 16/16/12 → 44 → a **48-hp** mini-boss). **This constant is THE percent dial** — raise it to make nights bite harder; keep it below the boss factor. `nightAttackFactorOfEvening = 0.4` (gentler per-hit; the threat is the long fight). Boss/finale nights were raised to stay above ordinary nights: `bossHPFactorOfEvening = 1.3` (evening +30%), attack 0.8. Wired in the `bossOverride` block in `spawnCustomers`; lab dials "Night order/attack (% of evening)". Lab-verified: the 30-day arc holds from +0% to +20% overage. HONEST FLAG: a Day-1 night of ~48 hp at brew ~6/turn is ~8 turns against patience 10 — tight by design; a bad-luck storm-out costs expire damage (~3), not the run. If early nights storm out too often in hand, the gentler dials are night patience or a smaller overage.
+
+---
+
+## 69. JULY 4 FEATURE BATCH — lower curve, magic die, relic boons, upgrade picker, regen customers, tutorial editor
+
+> Nine files touched; one NEW file **`PotionShopUpgradePicker.swift`** (must be added to the Xcode target).
+
+### 69.1 Face curve lowered again (supersedes §68's table)
+Per-type BASIC faces, day-1 rule "no 3s except one on heal": potency/shield **[1,1,2,2,2,2]** · heal **[1,1,2,2,2,3]** (the lone 3) · boost **[1,1,1,1,2,2]** · stability all-1s (§63) · magic value unused. Silver/gold unchanged. `PotionShopDieTier.rollFace(for:)` is now fully per-type. **HEAL IS ONCE PER TURN** — `placeDie` rejects a second heal while one is placed.
+
+### 69.2 MAGIC (mirror) die — `case magic`, asset `die_magic.png` (gold fallback)
+Granted automatically at the START of Day 2 (once/run, `run.magicDieGranted`). Copies the FINAL total (boosts included) + type of whatever die sits at its board **mirror node**. JULY 4 (evening): it also MIRRORS BOOSTS — across from a boost, the magic die ACTS AS a boost of that value radiating from ITS OWN node (own 2-hop reach; feeds computeBrew's effectiveBoosts, the empty-node +N preview, and the gold flow lines; shows no value badge of its own) (`PotionShopBoard.mirrorNode`, pairs live in each board def — chalk9's four corner pairs + center-has-none). Empty/boost/magic mirror = does nothing. Reach glow highlights its partner node. Its own rolled value is never read → excluded from the upgrade picker.
+
+### 69.3 Boon pool REBUILT (modest starters; §67.3 finding 1) + relics
+New `Effect` cases: `.relicHealAtDayEnd` (full composure at every day end), `.relicShieldAtDayStart(5)`, `.dieUpgrade` (opens the picker). Pool = Die Upgrade ⬆️ · Mended Spirit 💖 · Warded Morning 🛡️ · Extra Potency/Heal/Stability adds. RunState gained `healAtDayEnd/shieldAtDayStart/pendingDieUpgrades/magicDieGranted` with **custom Codable** (old saves decode). Hooks: day-end heal in `advanceRound`, day-start shield + magic grant in `advanceDay`.
+
+### 69.4 Die-upgrade picker (`PotionShopUpgradePickerView`) — REV 2 same day: FACE-STEP upgrades
+Overlay appears while `run.pendingDieUpgrades > 0` (zIndex 950 in GameView). REVISED (user call — tier jumps were way too big): upgrades are single FACE STEPS, DitD-style. Each type row shows the die's PNG asset (`type.assetName`, colored fallback), its CURRENT full 6-face multiset, and TWO tappable results: **FLOOR** (one lowest face +1 → 1,1,2,2,2,2 becomes 1,2,2,2,2,2) or **CEILING** (highest face <6 +1 → becomes 1,1,2,2,2,3). Identical results dedupe (stability all-1s shows one option). Machinery: `PotionShopBagDie.customFaces` + `PotionShopDie.customFaces` (optional → old saves fine; carried through rerolls and drawFromBag), `effectiveFaces`, `PotionShopFaceUpgradeKind.apply(to:)` in Models, `gs.applyDieUpgrade(type:kind:)`. ALL value rolls now roll `effectiveFaces` — the canonical arrays live in `PotionShopDieTier.faces(for:)` (rollFace reads it). Tier ladder kept but dormant for upgrades.
+
+### 69.2b FIXES (July 4, later): magic grant + intro card + boost labels
+- Magic-die grant MOVED from `advanceDay` to `spawnCustomers` (idempotent, `dayNumber >= 2 && !magicDieGranted`) — the old spot missed debug day-jumps and save-loads, which is why it "never appeared". Grant also raises `gs.showMagicIntro` → **`PotionShopMagicIntroView`** (in the UpgradePicker file, zIndex 960 in GameView): art + one-line explanation + Got it, shown once per run.
+- Boost "+N" FINAL (July 4, ~2:30 PM): shown ONLY on EMPTY nodes inside a placed boost's reach — the blue "+N" the node WOULD grant a die placed there (`gs.potentialBoostAt(node:)` sums ALL reaching boosts). Rendered as the node ZStack's LAST sibling → always ABOVE the chalk frame and the node_glow1…N frames. Style: bright blue (0.16, 0.60, 1.0), double white shadow, **breathing scale ±8% on a ~2.4s sine** via TimelineView (dials in code: `0.08` swing, `2.6` speed). The boost die's OWN node label (rev 2) is REMOVED; the occupied-receiver lower-edge label (rev 2) is REMOVED. Realized totals stay in the corner badges.
+
+### 69.2d MIRROR DIE, FINAL SEMANTICS + PRESENTATION (July 4, evening 2)
+- SEMANTICS (user correction): the mirror acts AS IF the mirrored die were IN THE MIRROR'S NODE — it copies the partner's BASE value (+ its rule bonus + inspiring mod) and is boosted by boosts reaching the MAGIC node, NOT by the partner's boosts. Boost partners still make it act as a boost from its own node.
+- ONE USE PER ROUND: brewing with the mirror placed sets `magicUsedThisRound` (cleared each round spawn); dealing skips the magic lane while set.
+- PRESENTATION: mirror shows "X" instead of a value everywhere (4 value-text sites); NO corner value badge; a placed mirror CROSSFADES (~3.5s sine) between die_magic art and the mirrored die's type art; its mirror-partner node KEEPS the node_glow after placement (partner added to `boostChargedNodes`, occupied or not).
+- BOOST "+N": now also appears during a boost DRAG — same trigger/moment as the node_glow reach preview (`previewAffectedNodes` + dragged boost's value) on top of placed-boost potential; style = brighter blue (0.13, 0.66, 1.0), NO white border/shadow, breathing kept.
+
+### 69.2c DEALING MODEL + the "invisible" magic die (July 4, evening)
+- ROOT CAUSE found: the magic die WAS being dealt — but `PotionShop3DDiceAssetMap.faceId(forType:)` had no magic row and fell back to face 1, so its cube rendered AS A POTENCY DIE. Fixed with a magic row in `faceSpecs` (id 7, `die_magic`).
+- DEALING REBUILT to the agreed type-draw model: each roll deals **5 dice of 5 DISTINCT TYPES drawn fresh from the run's type set** ("x types exist; 5 appear each roll"). Day 1: 5 types → all five every roll. Day 2+: 6 types → 5 of 6, magic in ~83% of hands. Each dealt die is a real deck die of its type (random within the lane) so customFaces upgrades + rule bonuses ride along; <5 types pads with random deck dice. The finite bag/discard cycle is BYPASSED (fields remain; discardPile still accumulates inertly within a round). Boon note: "add a die" now mainly widens a lane's pick pool rather than changing draw odds.
+
+### 69.5 Self-healing customers (`regen*` dials in PotionShopConfig)
+From Day 2, ONE customer per afternoon/evening round (rotating slot = `dayNumber % count`) heals **1 hp/turn** (2 from Day 14); bosses regen 2 from Day 14. Applied after the patience tick; badge animates via liveHP. NO dedicated VFX yet (honest gap — a green pulse/floating +1 is a future nicety).
+
+### 69.6 Boost "+N" in-node label
+When a node's value includes boost, a blue **+N** renders INSIDE the node (the realized-value badge stays at the corner). `BrewPreview.boostAdds`.
+
+### 69.6b BAKED LAYOUT VALUE (July 4, 2:27 PM)
+`autoLayoutSlotXFractionWaiting1 = 0.6776063299179077` (July 4, 2:36 PM; earlier July 4 bake 0.63499…, July 3 bake 0.70995…) — waiting-slot-1 X fraction, from the user's layout-editor session, now the config default.
+
+### 69.8 NEW CAST (July 4): gmarker_vamp & gmarker_duck
+Added to `PotionShopData.characters` + `campaignCast`: **Vesper** (`gmarker_vamp`, Polite Vampire, difficulty 3 — hp 20, patience 9, atk 3/1, expire 4) and **Waddles** (`gmarker_duck`, Pond Dandy, difficulty 2 — hp 14, patience 10, atk 2/1, expire 3). All rounds/times like the rest of the gmarker cast; assets = `gmarker_vamp` / `gmarker_duck` (portrait + scene). Stats/dialogue are first-pass — edit freely; difficulty gates entry via the generator's window.
+
+### 69.7c TUTORIAL SECTION IN THE EDITOR DRAWER (July 4, evening 4)
+The layout-editor drawer gained a **🎓 Tutorial** primary tab (`LayoutSection.tutorial` in GameView) with the full kit in-drawer: edit-mode toggle, dim sliders, per-step card X/Y + width, per-circle step picker/X/Y/size/line + remove, and Add-a-circle — so tuning happens while the tutorial actually runs on screen. Same config values as the debug-menu sheet; both ride Copy Layout Values.
+
+### 69.7b DOTTED CIRCLES REBUILT (July 4, evening 3)
+The single step-3 boil circle (`tutBoil*`, now REMOVED) became a configurable LIST: `PotionShopLayoutConfig.TutorialCircle` (step 0–3, x/y as OFFSETS FROM SCREEN CENTER — fixes the old top-anchored Spacer placement being off — size, lineWidth). Overlay renders every circle assigned to the current step (draw animation fires on any step with circles, incl. step 1 via onAppear); with edit mode ON they're DRAGGABLE in-game. Editor: per-circle section (step picker + sliders + remove) and an "➕ Add a dotted circle" button.
+
+### 69.7 Tutorial layout editor (debug menu → 🎓 Tutorial Layout)
+Layout-config knobs: per-step card X/Y, card max width, **dim opacity** for watch steps vs do-it step, boil-circle X/Y/size. **Edit mode toggle makes the card DRAGGABLE in-game** (per step, writes into config). `PotionShopTutorialLayoutView` lives in the TutorialOverlay file. JULY 4 (evening 3): tutorial values are NOW IN "Copy Layout Values" (card offsets, width, dim levels, and every dotted circle as `tutCircleN: step, x, y, size, lineWidth`) — the changed-only diff picks them up automatically since it diffs this same text.

@@ -66,7 +66,8 @@ struct PotionShopDebugMenu: View {
     let onEndGame: () -> Void
 
     @State private var showLayoutEditor = false
-    @State private var showFireMeterEditor = false   // 🔥 fire meter editor
+    @State private var showFireMeterEditor = false
+    @State private var showTutorialLayoutEditor = false   // 🔥 fire meter editor
     /// JULY 2, 2026 (night): master drop-down state for the 30-day list.
     /// Starts COLLAPSED so the menu opens compact.
     @State private var daysListExpanded = false
@@ -218,6 +219,22 @@ struct PotionShopDebugMenu: View {
                             Image(systemName: "flame.fill")
                                 .foregroundColor(.orange)
                             Text("🔥 Fire Meter (position + size)")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    // JULY 4, 2026: tutorial overlay layout editor.
+                    Button {
+                        showTutorialLayoutEditor = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "graduationcap.fill")
+                                .foregroundColor(.blue)
+                            Text("🎓 Tutorial Layout (position + dim)")
                                 .foregroundColor(.primary)
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -595,7 +612,10 @@ struct PotionShopDebugMenu: View {
             .sheet(isPresented: $showFireMeterEditor) {
                 PotionShopFireMeterDebugView()
             }
-        }
+
+        .sheet(isPresented: $showTutorialLayoutEditor) {
+            PotionShopTutorialLayoutView()
+        }        }
     }
 
     // MARK: - Helpers
@@ -1347,6 +1367,16 @@ struct PotionShopDebugMenu: View {
         text += """
         ═══════════════════════════════════════════════════════════════
         END OF LAYOUT VALUES
+        ── TUTORIAL OVERLAY LAYOUT (July 4, 2026) ──
+        tutCardOffsetX: \(cfg.tutCardOffsetX.map { String(format: "%.2f", $0) }.joined(separator: ", "))
+        tutCardOffsetY: \(cfg.tutCardOffsetY.map { String(format: "%.2f", $0) }.joined(separator: ", "))
+        tutCardMaxWidth: \(cfg.tutCardMaxWidth)
+        tutDimWatch: \(cfg.tutDimWatch)
+        tutDimDoIt: \(cfg.tutDimDoIt)
+        \(cfg.tutCircles.enumerated().map { i, c in
+            "tutCircle\(i + 1): step \(c.step + 1), x \(String(format: "%.1f", c.x)), y \(String(format: "%.1f", c.y)), size \(String(format: "%.1f", c.size)), lineWidth \(String(format: "%.1f", c.lineWidth))"
+        }.joined(separator: "\n"))
+        
         ═══════════════════════════════════════════════════════════════
         
         ✅ COPIED TO CLIPBOARD
