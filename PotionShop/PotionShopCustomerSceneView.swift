@@ -497,7 +497,10 @@ struct PotionShopEdnarView: View {
 
         VStack(spacing: 0) {
             // Try to load Ednar expression image, fallback to emoji
-            if let ednarImage = PotionShopImageLoader.loadImage(named: expressionAssetName) {
+            // JULY 4, 2026 (memory v3): Ednar's expression art is a full
+            // 1536×1024 canvas — the RAW load pinned full-res decodes. Use
+            // the budgeted downsampler at his real display size.
+            if let ednarImage = PotionShopImageLoader.loadDisplayImage(named: expressionAssetName, displaySize: max(placeholderW, finalHeight)) {
                 ZStack {
                     Color.clear
                         .frame(width: placeholderW, height: placeholderH)

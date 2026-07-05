@@ -37,14 +37,16 @@ enum PotionShopTutorialConstants {
 
     // ── Scripted opening hand (fixed values for the tutorial) ────
     // Five dice: type + value. Kept simple for the first-ever brew.
-    // JULY 2, 2026: values capped at 3 — the basic die is now
-    // [1,1,2,2,3,3], so a 4 would be an impossible roll.
+    // ⚠️ RULE: every value must be a face its die can ACTUALLY roll
+    // (see PotionShopDieTier.faces(for:)). Current basic faces (§69.1):
+    // potency/shield max 2 · heal max 3 (the only 3) · boost max 2.
+    // JULY 4, 2026: potency 3s → 2s (the §69.1 curve made 3 impossible).
 
     static let scriptedHand: [(type: PotionShopDieType, value: Int)] = [
-        (.potency,  3),
+        (.potency,  2),
         (.potency,  2),
         (.heal,     2),
-        (.potency,  3),
+        (.potency,  2),
         (.shield,   1),
     ]
 

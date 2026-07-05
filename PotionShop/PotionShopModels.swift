@@ -51,6 +51,7 @@ struct PotionShopImageLoader {
     /// memory-warning observer + game-end transitions.
     static func purgeDownsampleCache() {
         downsampleCache.removeAllObjects()
+        looseFileCache.removeAllObjects()
     }
 
     /// Loads an asset PNG and returns a downsampled UIImage at roughly
@@ -69,7 +70,13 @@ struct PotionShopImageLoader {
         // Result: RAM is bounded by the budget, period.
         let oversample: CGFloat = 3.0   // points → retina pixels
         let hardCap: CGFloat = 2048
-        let pixelSize = min(hardCap, max(64, targetPixelSize * oversample))
+        // JULY 4, 2026 (memory v3): QUANTIZE the requested size to 64-px
+        // buckets. Animated/interpolating display sizes (die flight, pop
+        // scales) were minting a distinct cache entry per frame-size —
+        // hundreds of near-identical bitmaps churning the budget. Bucketed,
+        // an animation touches at most a handful of entries.
+        let rawPixel = min(hardCap, max(64, targetPixelSize * oversample))
+        let pixelSize = (rawPixel / 64).rounded(.up) * 64
         let cacheKey = "\(name)@\(Int(pixelSize))" as NSString
         if let cached = downsampleCache.object(forKey: cacheKey) {
             return cached
@@ -105,14 +112,33 @@ struct PotionShopImageLoader {
 
     /// Attempts to load an image from the asset catalog.
     /// Returns the image if found, nil otherwise.
+    /// JULY 4, 2026 (memory v3): the loose-file fallback gets its OWN
+    /// budgeted cache. UIImage(contentsOfFile:) is NOT system-cached — a
+    /// view body that re-evaluates every frame (TimelineView, drags) was
+    /// minting a fresh FULL-RES decode per frame for any loose-PNG asset.
+    /// That is the 2.8GB failure mode. Decode once, budget it, reuse.
+    private static let looseFileCache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.totalCostLimit = 60 * 1024 * 1024   // 60MB for loose files, total
+        return c
+    }()
+    /// Names known to be missing — skip repeated catalog+disk probes.
+    private static var missingNames = Set<String>()
+
     static func loadImage(named name: String) -> UIImage? {
-        // 1) Asset catalog (Assets.xcassets) — the reliable path.
+        // 1) Asset catalog (Assets.xcassets) — system-cached, safe to repeat.
         if let img = UIImage(named: name) { return img }
-        // 2) Fallback: a loose PNG added to the app target but not in a catalog.
+        if missingNames.contains(name) { return nil }
+        // 2) Loose PNG fallback — decode ONCE into the budgeted cache.
+        let key = name as NSString
+        if let cached = looseFileCache.object(forKey: key) { return cached }
         if let path = Bundle.main.path(forResource: name, ofType: "png"),
            let img = UIImage(contentsOfFile: path) {
+            let cost = Int(img.size.width * img.scale * img.size.height * img.scale * 4)
+            looseFileCache.setObject(img, forKey: key, cost: cost)
             return img
         }
+        missingNames.insert(name)
         return nil
     }
 

@@ -93,7 +93,7 @@ struct PotionShopPauseMenu: View {
         let W = PotionShopPauseMenuLayout.panelWidth
         let H = PotionShopPauseMenuLayout.panelHeight
         return ZStack {
-            if let art = PotionShopImageLoader.loadImage(named: "ps_pausemenu") {
+            if let art = PotionShopImageLoader.loadDisplayImage(named: "ps_pausemenu", displaySize: PotionShopPauseMenuLayout.panelHeight) {
                 Image(uiImage: art)
                     .resizable()
                     .scaledToFit()
@@ -135,7 +135,7 @@ struct PotionShopPauseMenu: View {
         let W = PotionShopPauseMenuLayout.dialogWidth
         let H = PotionShopPauseMenuLayout.dialogHeight
         return ZStack {
-            if let art = PotionShopImageLoader.loadImage(named: "ps_endgame_dialog") {
+            if let art = PotionShopImageLoader.loadDisplayImage(named: "ps_endgame_dialog", displaySize: PotionShopPauseMenuLayout.dialogHeight) {
                 Image(uiImage: art)
                     .resizable()
                     .scaledToFit()

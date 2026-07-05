@@ -697,6 +697,13 @@ enum PotionShopNodeGlowAssets {
 
 struct PotionShopNodeButtonView: View {
     @Bindable var gs: PotionShopGameState
+    // JULY 4, 2026 (memory v3): the breathing "+N" and the mirror
+    // crossfade are one-shot repeatForever animations — the TimelineView
+    // versions re-evaluated their bodies EVERY FRAME (rebuilding die
+    // views + image lookups 60×/s): the runaway-memory shape. These
+    // animate render properties only; the body builds ONCE.
+    @State private var plusPulse = false
+    @State private var mirrorFade = false
     let nodeIndex: Int
     let diceFlight: Namespace.ID
     var visualScale: Double = 1.0  // Visual-only scale (doesn't affect position)
@@ -881,28 +888,29 @@ struct PotionShopNodeButtonView: View {
                               let partnerNode = PotionShopBoard.mirrorNode(of: nodeIndex),
                               let partnerDie = gs.placements[partnerNode],
                               partnerDie.type != .magic {
-                        // JULY 4 (evening 2): a placed MIRROR die visually
-                        // CROSSFADES between its own art and the die it's
-                        // mirroring (slow sine), selling "I am that die now".
-                        TimelineView(.animation) { timeline in
-                            let t = timeline.date.timeIntervalSinceReferenceDate
-                            let x = 0.5 + 0.5 * sin(t * 1.8)   // 0…1, ~3.5s loop
-                            ZStack {
-                                PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
-                                    .opacity(1.0 - x)
-                                PotionShopPlacedDieView(
-                                    die: PotionShopDie(
-                                        id: die.id + "_mirror_ghost",
-                                        type: partnerDie.type,
-                                        tier: partnerDie.tier,
-                                        value: partnerDie.value
-                                    ),
-                                    visualScale: visualScale * hug,
-                                    useFaceAsset: false   // ghost always wears its TYPE art
-                                )
-                                .opacity(x)
-                            }
+                        // JULY 4 (evening 2 · memory v3): a placed MIRROR die
+                        // crossfades between its own art and the mirrored
+                        // die's — via a repeatForever OPACITY animation.
+                        // Both die views build ONCE; only opacity animates
+                        // (the TimelineView version rebuilt them + their
+                        // image lookups every frame).
+                        ZStack {
+                            PotionShopPlacedDieView(die: die, visualScale: visualScale * hug, useFaceAsset: gs.currentRoundUses3DDice)
+                                .opacity(mirrorFade ? 0.0 : 1.0)
+                            PotionShopPlacedDieView(
+                                die: PotionShopDie(
+                                    id: die.id + "_mirror_ghost",
+                                    type: partnerDie.type,
+                                    tier: partnerDie.tier,
+                                    value: partnerDie.value
+                                ),
+                                visualScale: visualScale * hug,
+                                useFaceAsset: false   // ghost always wears its TYPE art
+                            )
+                            .opacity(mirrorFade ? 1.0 : 0.0)
                         }
+                        .animation(.easeInOut(duration: 1.75).repeatForever(autoreverses: true), value: mirrorFade)
+                        .onAppear { mirrorFade = true }
                         .matchedGeometryEffect(
                             id: die.id,
                             in: diceFlight,
@@ -968,18 +976,16 @@ struct PotionShopNodeButtonView: View {
                 }()
                 let potential = placedPotential + hoverPotential
                 if potential > 0 {
-                    // Brighter blue, NO white border (user call), breathing
-                    // ±8% on a slow sine.
-                    TimelineView(.animation) { timeline in
-                        let t = timeline.date.timeIntervalSinceReferenceDate
-                        let breathe = 1.0 + 0.08 * sin(t * 2.6)
-                        Text("+\(potential)")
-                            .font(Font.gameScore(size: 20 * visualScale))
-                            .foregroundColor(Color(red: 0.13, green: 0.66, blue: 1.0))
-                            .scaleEffect(breathe)
-                    }
-                    .allowsHitTesting(false)
-                    .zIndex(48)
+                    // Brighter blue, NO white border, breathing ±8% via a
+                    // repeatForever animation (memory v3: no per-frame body).
+                    Text("+\(potential)")
+                        .font(Font.gameScore(size: 20 * visualScale))
+                        .foregroundColor(Color(red: 0.13, green: 0.66, blue: 1.0))
+                        .scaleEffect(plusPulse ? 1.08 : 0.92)
+                        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: plusPulse)
+                        .onAppear { plusPulse = true }
+                        .allowsHitTesting(false)
+                        .zIndex(48)
                 }
             }
         }
@@ -1218,7 +1224,11 @@ struct PotionShopPlacedDieView: View {
             : die.type.assetName
 
         // Try to load die face image, fallback to colored square
-        if let dieImage = PotionShopImageLoader.loadImage(named: assetName) {
+        // JULY 4 (memory v3): budgeted load at node display size.
+        if let dieImage = PotionShopImageLoader.loadDisplayImage(
+            named: assetName,
+            displaySize: PotionShopCauldronLayout.nodeVisible * visualScale
+        ) {
             ZStack {
                 Image(uiImage: dieImage)
                     .resizable()
@@ -1526,7 +1536,8 @@ struct PotionShopDieButtonView: View {
                 }
             } else {
                 // Try to load die face image, fallback to colored square
-                if let dieImage = PotionShopImageLoader.loadImage(named: die.type.assetName) {
+                // JULY 4 (memory v3): budgeted load at tray display size.
+                if let dieImage = PotionShopImageLoader.loadDisplayImage(named: die.type.assetName, displaySize: 96) {
                     ZStack {
                         Image(uiImage: dieImage)
                             .resizable()

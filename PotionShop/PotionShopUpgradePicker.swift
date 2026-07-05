@@ -151,7 +151,7 @@ struct PotionShopUpgradePickerView: View {
     /// The die's PNG asset (falls back to a colored abbr square).
     @ViewBuilder
     private func dieArt(_ type: PotionShopDieType) -> some View {
-        if let img = PotionShopImageLoader.loadImage(named: type.assetName) {
+        if let img = PotionShopImageLoader.loadDisplayImage(named: type.assetName, displaySize: 32) {
             Image(uiImage: img)
                 .resizable()
                 .scaledToFit()
@@ -207,7 +207,7 @@ struct PotionShopMagicIntroView: View {
                     .font(Font.gameScore(size: 26))
                     .foregroundColor(.white)
 
-                if let img = PotionShopImageLoader.loadImage(named: PotionShopDieType.magic.assetName) {
+                if let img = PotionShopImageLoader.loadDisplayImage(named: PotionShopDieType.magic.assetName, displaySize: 84) {
                     Image(uiImage: img)
                         .resizable().scaledToFit()
                         .frame(width: 84, height: 84)

@@ -4290,7 +4290,7 @@ Verdict with **failure diagnosis** (drain-vs-heal onset day; closing-day damage 
 
 ## 68. BASIC DIE FACES LOWERED — [1,1,2,2,3,3] (July 2, 2026)
 
-> **Amends the §55 face table** (which had basic = 1,2,2,3,3,4, avg 2.5). Wired in `PotionShopDieTier.rollFace()` (`PotionShopModels.swift`); tutorial hand capped at 3 (`PotionShopTutorialOverlay.swift` — a scripted 4 became an impossible roll); lab reset defaults brew/heal 8→6 to keep matching the game.
+> **Amends the §55 face table** (which had basic = 1,2,2,3,3,4, avg 2.5). Wired in `PotionShopDieTier.rollFace()` (`PotionShopModels.swift`); tutorial hand capped at 3 (`PotionShopTutorialOverlay.swift` — a scripted 4 became an impossible roll; RE-FIXED July 4 evening after §69.1: potency 3s → 2s, since potency basic now tops out at 2. RULE: scripted values must be rollable faces — recheck the hand whenever the face curve changes); lab reset defaults brew/heal 8→6 to keep matching the game.
 
 - **Basic is now [1,1,2,2,3,3] (avg 2.0).** Silver [2,3,3,4,4,5] and gold [3,4,4,5,5,6] unchanged — the basic→silver jump grew (2.0→3.5), so the first tier upgrade lands harder. Boost keeps [1,1,2,2,2,3]; stability keeps its §63 all-1s ladder. Whole grammar: everything starts humble, faces never exceed 6.
 - WHY (feel, not survival): at avg 2.5 most Day-1 orders died in ONE brew, the fire tick was invisible early (rounds too short), and the runway to the 6-cap was thin. At avg 2.0, Day-1 orders take ~2 brews, the fire economy is felt from Day 1, upgrades have more room.
@@ -4326,6 +4326,13 @@ Overlay appears while `run.pendingDieUpgrades > 0` (zIndex 950 in GameView). REV
 - ONE USE PER ROUND: brewing with the mirror placed sets `magicUsedThisRound` (cleared each round spawn); dealing skips the magic lane while set.
 - PRESENTATION: mirror shows "X" instead of a value everywhere (4 value-text sites); NO corner value badge; a placed mirror CROSSFADES (~3.5s sine) between die_magic art and the mirrored die's type art; its mirror-partner node KEEPS the node_glow after placement (partner added to `boostChargedNodes`, occupied or not).
 - BOOST "+N": now also appears during a boost DRAG — same trigger/moment as the node_glow reach preview (`previewAffectedNodes` + dragged boost's value) on top of placed-boost potential; style = brighter blue (0.13, 0.66, 1.0), NO white border/shadow, breathing kept.
+
+### 70. MEMORY v3 — the 2868MB incident (July 4, night)
+Symptom: RAM 170MB → 2868MB after the July-4 features. THREE compounding causes, all fixed:
+1. **`loadImage(named:)` (the RAW path) was never budgeted** — the July-2 fix only covered `loadDisplayImage`. Worse, its loose-PNG fallback `UIImage(contentsOfFile:)` is NOT system-cached: any per-frame view body (TimelineView!) hitting a loose asset minted a FRESH FULL-RES DECODE EVERY FRAME. Fix: loose-file decodes go into their own 60MB-budgeted NSCache + missing names are negative-cached; `purgeDownsampleCache()` clears it too. **RULE: view code uses `loadDisplayImage(named:displaySize:)`, never raw `loadImage`, for anything drawn on the big canvas.**
+2. **Raw-load call sites converted to budgeted**: Ednar expression art (CustomerSceneView — full 1536×1024 canvas!), placed-die view, tray-die view, upgrade picker, magic intro, pause menu panels.
+3. **Per-frame view churn removed**: the breathing "+N" and the mirror crossfade were `TimelineView(.animation)` re-building their content (incl. die views + image lookups) 60×/s. Both are now one-shot `repeatForever` animations on render properties (`plusPulse`/`mirrorFade` @State in the node view) — bodies build once. Remaining TimelineViews (boil, glow, gold-line flipbooks) are frame-flipbooks by design and already budgeted.
+Also: downsample cache keys are now QUANTIZED to 64-px buckets — animated display sizes were minting a near-identical cache entry per frame-size.
 
 ### 69.2c DEALING MODEL + the "invisible" magic die (July 4, evening)
 - ROOT CAUSE found: the magic die WAS being dealt — but `PotionShop3DDiceAssetMap.faceId(forType:)` had no magic row and fell back to face 1, so its cube rendered AS A POTENCY DIE. Fixed with a magic row in `faceSpecs` (id 7, `die_magic`).
