@@ -202,7 +202,7 @@ struct PotionShopPauseMenu: View {
                 .shadow(color: .black.opacity(0.4), radius: 14, y: 6)
 
             Text("PAUSED")
-                .font(Font.gameScore(size: 30))
+                .font(Font.gameScore(size: 45))
                 .foregroundColor(Color(red: 0.35, green: 0.22, blue: 0.10))
                 .offset(y: -H * 0.36)
 
@@ -225,7 +225,7 @@ struct PotionShopPauseMenu: View {
             .fill(tint)
             .overlay(
                 Text(label)
-                    .font(Font.gameUI(size: 17))
+                    .font(Font.gameUI(size: 28))
                     .foregroundColor(.white)
             )
             .frame(width: W * (1 - inset * 2), height: H * (band.bottom - band.top) * 0.9)
@@ -243,11 +243,11 @@ struct PotionShopPauseMenu: View {
                 )
                 .shadow(color: .black.opacity(0.4), radius: 14, y: 6)
             Text("ARE YOU SURE?")
-                .font(Font.gameScore(size: 22))
+                .font(Font.gameScore(size: 28))
                 .foregroundColor(Color(red: 0.35, green: 0.22, blue: 0.10))
                 .offset(y: -H * 0.28)
             Text("Ending abandons this round.\n(Use Save & Exit to keep it.)")
-                .font(Font.gameUI(size: 13))
+                .font(Font.gameUI(size: 30))
                 .multilineTextAlignment(.center)
                 .foregroundColor(Color(red: 0.35, green: 0.22, blue: 0.10).opacity(0.8))
                 .offset(y: -H * 0.10)

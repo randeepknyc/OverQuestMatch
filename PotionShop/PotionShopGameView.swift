@@ -138,7 +138,7 @@ struct PotionShopGameView: View {
                                 // dashed CIRCLE (the gear now belongs to
                                 // the player settings). ps_debug_button
                                 // art replaces it if ever drawn.
-                                if let dbgImg = UIImage(named: "ps_debug_button") {
+                                if let dbgImg = PotionShopImageLoader.loadDisplayImage(named: "ps_debug_button", displaySize: 30) {  // JULY 5 memory: was full-res
                                     Image(uiImage: dbgImg)
                                         .resizable()
                                         .scaledToFit()
@@ -195,8 +195,18 @@ struct PotionShopGameView: View {
                     PotionShopLayoutOverlay(
                         isPresented: $showLayoutOverlay,
                         gs: gs,
-                        diceFlight: diceFlight
+                        diceFlight: diceFlight,
+                        tutorial: tutorial
                     )
+                    // JULY 5, 2026: SLIDER-ACCESS FIX. The tutorial overlay
+                    // sits at zIndex 999 — with the drawer at its default 0,
+                    // every slider was buried under the tutorial's dim layer
+                    // the moment the tutorial started. While tutorial EDIT
+                    // MODE is on, the drawer floats ABOVE the tutorial; its
+                    // backdrop passes touches through, so the card and the
+                    // dotted circles behind it stay draggable. Toggle edit
+                    // mode off (or finish the tutorial) and it drops back.
+                    .zIndex(tutorial.isActive && layoutConfig.tutorialEditMode ? 1002 : 0)
                 }
 
                 // 3D dice test-spin button — rendered LAST so it sits ON TOP of
@@ -222,6 +232,23 @@ struct PotionShopGameView: View {
                 // ── MAGIC DIE INTRODUCTION (July 4, 2026) ────────
                 // Shown once, the moment the Day-2 mirror die joins the
                 // deck. Dismiss to play.
+                // ── MEMORY WATCHDOG BANNER (July 4, 2026) ────────
+                // Appears ONLY if the footprint crosses the soft limit —
+                // if you ever see this, tell Claude what was on screen.
+                if let warning = PotionShopMemoryWatchdog.shared.warningText {
+                    Text(warning)
+                        .font(Font.gameUI(size: 13))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(Color(red: 0.75, green: 0.12, blue: 0.10).opacity(0.95)))
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 60)
+                        .allowsHitTesting(false)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(990)
+                }
+
                 if gs.showMagicIntro {
                     PotionShopMagicIntroView(gs: gs)
                         .zIndex(960)
@@ -261,6 +288,10 @@ struct PotionShopGameView: View {
         }
         .onAppear {
             gs.viewIsOnScreen = true
+            // JULY 4, 2026 (memory v3, layer 3): the watchdog samples the
+            // app's real memory footprint every 5s; past its soft limit it
+            // purges every image cache and raises the red banner below.
+            PotionShopMemoryWatchdog.shared.start()
             // ── Restore from save if continuing ──────────────────
             if continueFromSave, let save = PotionShopSave.load() {
                 save.restore(into: gs)
@@ -351,14 +382,16 @@ struct PotionShopGameView: View {
                 // Safety net: the last round normally goes straight to .runWon.
                 placeholderOverlay(
                     title: "Day 30 Complete!",
-                    subtitle: "Potions brewed today: \(gs.potionsBrewed)",
+                    subtitle: "\(PotionShopDayEndMessages.dayWonText(composure: gs.dayEndComposure, maxComposure: PotionShopConfig.maxComposure))\nPotions brewed today: \(gs.potionsBrewed)",
                     buttonLabel: "See how you did",
                     action: { gs.advanceDay() }
                 )
             } else {
                 placeholderOverlay(
                     title: "Success, Day Complete!",
-                    subtitle: "Day \(gs.dayNumber) of 30\nPotions brewed today: \(gs.potionsBrewed)",
+                    // JULY 5, 2026: flavor line picked by end-of-day composure
+                    // (edit the lines in PotionShopDayEndMessages, Data file).
+                    subtitle: "\(PotionShopDayEndMessages.dayWonText(composure: gs.dayEndComposure, maxComposure: PotionShopConfig.maxComposure))\nDay \(gs.dayNumber) of 30\nPotions brewed today: \(gs.potionsBrewed)",
                     buttonLabel: "Re-open shop tomorrow",
                     action: { gs.advanceDay() }
                 )
@@ -366,14 +399,14 @@ struct PotionShopGameView: View {
         case .runWon:
             placeholderOverlay(
                 title: "You Made It! 🧪",
-                subtitle: "You kept Ednar's shop open all 30 days.\nTotal potions brewed: \(gs.potionsBrewed)",
+                subtitle: "\(PotionShopDayEndMessages.runWonText(composure: gs.dayEndComposure, maxComposure: PotionShopConfig.maxComposure))\nYou kept Ednar's shop open all 30 days.\nTotal potions brewed: \(gs.potionsBrewed)",
                 buttonLabel: "New Run",
                 action: { gs.resetGame() }
             )
         case .lost:
             placeholderOverlay(
                 title: "You Collapsed",
-                subtitle: "Potions brewed before defeat: \(gs.potionsBrewed)",
+                subtitle: "\(PotionShopDayEndMessages.lostText(dayNumber: gs.dayNumber))\nPotions brewed before defeat: \(gs.potionsBrewed)",
                 buttonLabel: "Try Again",
                 action: { gs.resetGame() }
             )
@@ -541,6 +574,10 @@ struct PotionShopLayoutOverlay: View {
     @Binding var isPresented: Bool
     @Bindable var gs: PotionShopGameState
     let diceFlight: Namespace.ID
+    /// JULY 5, 2026: the tutorial state, so the 🎓 tab can navigate steps
+    /// from INSIDE the drawer (the overlay's bottom ✏️ toolbar can end up
+    /// hidden underneath this very drawer while editing).
+    var tutorial: PotionShopTutorialState
     
     // Use the shared config instead of local state
     @Bindable var layoutConfig = PotionShopLayoutConfig.shared
@@ -869,6 +906,53 @@ struct PotionShopLayoutOverlay: View {
                     .font(.caption)
                     .tint(.cyan)
 
+                // JULY 5, 2026: step navigation IN the drawer. While the
+                // drawer floats above the tutorial (edit mode), the
+                // overlay's bottom ✏️ toolbar can sit underneath it —
+                // so the drawer gets its own ◀ Step ▶ controls, plus an
+                // add-circle button that pins the new circle to the step
+                // you're LOOKING at (it appears at screen center — drag it).
+                if tutorial.isActive {
+                    HStack(spacing: 12) {
+                        Button {
+                            if tutorial.currentStep > 0 { tutorial.currentStep -= 1 }
+                        } label: {
+                            Image(systemName: "chevron.left.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.cyan)
+                        }
+                        Text("Step \(tutorial.currentStep + 1) / \(tutorial.stepCount)")
+                            .font(.caption.bold())
+                            .foregroundColor(.white)
+                            .monospacedDigit()
+                        Button {
+                            if tutorial.currentStep < tutorial.stepCount - 1 {
+                                tutorial.currentStep += 1
+                            }
+                        } label: {
+                            Image(systemName: "chevron.right.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.cyan)
+                        }
+                        Spacer()
+                        Button {
+                            layoutConfig.tutCircles.append(
+                                PotionShopLayoutConfig.TutorialCircle(
+                                    step: tutorial.currentStep, x: 0, y: 0)
+                            )
+                        } label: {
+                            Label("Circle", systemImage: "plus.circle.fill")
+                                .font(.caption.bold())
+                                .foregroundColor(.cyan)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                } else {
+                    Text("Tutorial isn't running — start it (pause ☰ → Tutorial) to edit live.")
+                        .font(.caption2)
+                        .foregroundColor(.yellow.opacity(0.85))
+                }
+
                 Text("Screen Fade")
                     .font(.caption2.bold())
                     .foregroundColor(.cyan)
@@ -917,7 +1001,16 @@ struct PotionShopLayoutOverlay: View {
                     }
                 }
                 Button {
-                    layoutConfig.tutCircles.append(PotionShopLayoutConfig.TutorialCircle())
+                    // JULY 5, 2026: if the tutorial is running, pin the new
+                    // circle to the step currently on screen (at center).
+                    if tutorial.isActive {
+                        layoutConfig.tutCircles.append(
+                            PotionShopLayoutConfig.TutorialCircle(
+                                step: tutorial.currentStep, x: 0, y: 0)
+                        )
+                    } else {
+                        layoutConfig.tutCircles.append(PotionShopLayoutConfig.TutorialCircle())
+                    }
                 } label: {
                     Label("Add a dotted circle", systemImage: "plus.circle")
                         .font(.caption)

@@ -141,6 +141,10 @@ class PotionShopGameState {
     /// constant before.
     var focus: Int = PotionShopConfig.maxPlacementsPerBrew
     var potionsBrewed: Int = 0
+    /// JULY 5, 2026: composure as the round actually ENDED — captured in
+    /// advanceRound BEFORE the rest heal / Mended Spirit restore it, so the
+    /// day-won and run-won screens can pick an honest flavor line.
+    var dayEndComposure: Int = 0
 
     // MARK: - Customer queue
 
@@ -736,6 +740,12 @@ class PotionShopGameState {
 
     /// Move to next round of the current day. Called when round is won.
     func advanceRound() {
+        // JULY 5, 2026: remember the composure the round actually ENDED with,
+        // BEFORE the rest heal and the Mended Spirit relic top it back up —
+        // the day-won / run-won screens use this for their flavor line
+        // ("that was easy!" vs "time for tea and bed"). Messages live in
+        // PotionShopDayEndMessages (PotionShopData.swift) — edit freely.
+        dayEndComposure = composure
         // Apply between-round composure rest
         composure = min(
             PotionShopConfig.maxComposure,
@@ -782,7 +792,7 @@ class PotionShopGameState {
     private var boonLeadsToDay = false
     func offerBoons(thenAdvanceToDay: Bool) {
         boonLeadsToDay = thenAdvanceToDay
-        boonOffer = PotionShopBoonPool.draw(3)
+        boonOffer = PotionShopBoonPool.draw(3, owned: run)
         phase = .choosingBoon
     }
 
@@ -793,11 +803,20 @@ class PotionShopGameState {
     /// faces written into its customFaces. Consumes one pending upgrade.
     func applyDieUpgrade(type: PotionShopDieType, kind: PotionShopFaceUpgradeKind) {
         guard run.pendingDieUpgrades > 0 else { return }
-        guard let idx = run.deck.firstIndex(where: {
-            $0.type == type && kind.apply(to: $0.effectiveFaces) != nil
-        }) else { return }   // nothing bumpable (all 6s) — keep the pick
-        guard let newFaces = kind.apply(to: run.deck[idx].effectiveFaces) else { return }
-        run.deck[idx].customFaces = newFaces
+        // JULY 5, 2026 (boon audit): the face step applies to EVERY die of
+        // the chosen type. The seed deck holds 3 potency / 2 stability dice
+        // and the dealer picks one at random within a lane — upgrading only
+        // the FIRST die meant a potency upgrade appeared in ~1/3 of potency
+        // hands while the picker presented it as upgrading "the type". Now
+        // what the picker shows is what every roll of that type uses.
+        var appliedAny = false
+        for idx in run.deck.indices where run.deck[idx].type == type {
+            if let newFaces = kind.apply(to: run.deck[idx].effectiveFaces) {
+                run.deck[idx].customFaces = newFaces
+                appliedAny = true
+            }
+        }
+        guard appliedAny else { return }   // all faces maxed — keep the pick
         run.pendingDieUpgrades -= 1
         PotionShopSave.save(gs: self)
     }

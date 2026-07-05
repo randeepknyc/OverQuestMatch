@@ -406,7 +406,7 @@ struct PotionShopCustomerSceneView: View {
             // days, so Day 1 matches Day 3 R3. Revert by changing bgName back
             // to gs.isFlexDay ? ... or to "customerbg" only.
             let bgName: String = (gs.isFlexDay || gs.currentRoundUsesFeetAnchor) ? "bgtest1" : "customerbg"
-            if let backgroundImage = UIImage(named: bgName) {
+            if let backgroundImage = PotionShopImageLoader.loadDisplayImage(named: bgName, displaySize: max(geo.size.width, geo.size.height)) {  // JULY 5 memory: was full-res
                 let _ = print("✅ LOADED: \(bgName)")
                 Image(uiImage: backgroundImage)
                     .resizable()
@@ -455,7 +455,8 @@ struct PotionShopEdnarView: View {
     // June 25, 2026 — idle breath + reaction pop. Applied to the ART ONLY
     // (multiplied into the image's scaleEffect below), so the frame and the
     // speech bubble never move. Tuning lives in PotionShopBrewAnimator §7.
-    @State private var ednarBreathPhase: CGFloat = 1.0
+    // JULY 5, 2026 (fade fix v2): breath state removed — the breath is a
+    // phaseAnimator directly on the art now (leak-proof by construction).
     @State private var ednarPopPhase: CGFloat = 1.0
     // June 28, 2026 — random brew pose, chosen once each time Ednar brews.
     @State private var brewPoseVariant: String = "ps_ednar_brew"
@@ -509,13 +510,39 @@ struct PotionShopEdnarView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: placeholderW, height: placeholderH)
+                        // JULY 5, 2026 — FADE FIX v3: three stacked guards.
+                        // v2's .animation(nil) alone was NOT enough — SwiftUI
+                        // treats an Image's CONTENT swap as its own category
+                        // and the brew transactions still crossfaded it.
+                        //   1. contentTransition(.identity): content swaps
+                        //      render instantly, never as a dissolve.
+                        //   2. .animation(nil, value:): belt-and-suspenders
+                        //      for anything animatable in this chain.
+                        .contentTransition(.identity)
+                        .animation(nil, value: expressionAssetName)
                         .scaleEffect(
-                            x: baseScale * ednarArtScale * ednarArtWidth * ednarBreathPhase * ednarPopPhase,
-                            y: baseScale * ednarArtScale * ednarArtHeight * ednarBreathPhase * ednarPopPhase,
+                            x: baseScale * ednarArtScale * ednarArtWidth * ednarPopPhase,
+                            y: baseScale * ednarArtScale * ednarArtHeight * ednarPopPhase,
                             anchor: .center
                         )
+                        // Breath: phaseAnimator, scoped by construction —
+                        // cannot touch opacity (see §58c).
+                        .phaseAnimator([CGFloat(1.0), PotionShopBrewAnimator.ednarBreathScale]) { view, phase in
+                            view.scaleEffect(phase)
+                        } animation: { _ in
+                            .easeInOut(duration: PotionShopBrewAnimator.ednarBreathDuration)
+                        }
                         .offset(x: ednarArtXOffset, y: ednarArtYOffset)
                         .allowsHitTesting(false)
+                        //   3. THE HARD GUARD: .id() makes each pose a
+                        //      structurally DIFFERENT view — the old art is
+                        //      torn down and the new one inserted — and
+                        //      .transition(.identity) makes that swap render
+                        //      with NO effect at all, no matter what
+                        //      animation transaction is active. There is
+                        //      nothing left for SwiftUI to interpolate.
+                        .id(expressionAssetName)
+                        .transition(.identity)
                 }
 
                 // Shadow scales proportionally to image height (20% of height, min 4pt)
@@ -535,6 +562,10 @@ struct PotionShopEdnarView: View {
                 Text(expressionEmojiFallback)
                     .font(.system(size: finalSize))
                     .offset(x: ednarArtXOffset, y: ednarArtYOffset)
+                    // JULY 5, 2026 (fade fix v3): if a pose's art is missing,
+                    // the art↔emoji branch flip must be instant too.
+                    .id(expressionEmojiFallback)
+                    .transition(.identity)
                 
                 // Shadow scales with emoji size
                 Capsule()
@@ -599,16 +630,9 @@ struct PotionShopEdnarView: View {
                 .allowsHitTesting(false)
             }
         }
-        // June 25, 2026 — start the endless idle breath when Ednar appears,
-        // and fire a quick reaction pop whenever his expression changes.
-        .onAppear {
-            withAnimation(
-                .easeInOut(duration: PotionShopBrewAnimator.ednarBreathDuration)
-                    .repeatForever(autoreverses: true)
-            ) {
-                ednarBreathPhase = PotionShopBrewAnimator.ednarBreathScale
-            }
-        }
+        // JULY 5, 2026 (fade fix v2): the breath needs no onAppear kick —
+        // the phaseAnimator on the art cycles on its own. Only the reaction
+        // pop remains event-driven.
         .onChange(of: expressionAssetName) { _, _ in
             triggerEdnarPop()
         }
@@ -1348,10 +1372,10 @@ struct PotionShopCustomerInSceneView: View {
                         // banner so they pulse in sync.
                         let fade = 0.5 + 0.5 * sin(t * PotionShopBrewAnimator.damagePulseSpeed)
                         ZStack {
-                            if takingDamage, let img = UIImage(named: "hp_damage") {
+                            if takingDamage, let img = PotionShopImageLoader.loadDisplayImage(named: "hp_damage", displaySize: hpSize * scale) {  // JULY 5 memory: was full-res
                                 Image(uiImage: img).resizable().scaledToFit()
                                     .frame(width: hpSize * scale, height: hpSize * scale)
-                            } else if isAttackingEdnar, let atkImg = UIImage(named: "hp_customer_atk") {
+                            } else if isAttackingEdnar, let atkImg = PotionShopImageLoader.loadDisplayImage(named: "hp_customer_atk", displaySize: hpSize * scale) {
                                 Image(uiImage: atkImg).resizable().scaledToFit()
                                     .frame(width: hpSize * scale, height: hpSize * scale)
                             } else {
@@ -1455,7 +1479,7 @@ struct PotionShopCustomerInSceneView: View {
                 if !gs.currentRoundUsesFeetAnchor, attack > 0 {
                     ZStack {
                         // Custom attack badge graphic (background)
-                        if let attackBadgeImage = UIImage(named: "attack_badge") {
+                        if let attackBadgeImage = PotionShopImageLoader.loadDisplayImage(named: "attack_badge", displaySize: PotionShopLayoutConfig.shared.attackBadgeSize(for: customer.charKey, queueSlot: badgeQueueSlot) * scale) {  // JULY 5 memory: was full-res
                             Image(uiImage: attackBadgeImage)
                                 .resizable()
                                 .scaledToFit()
@@ -1578,7 +1602,8 @@ struct PotionShopCustomerInSceneView: View {
     /// at the right size, used by the crossfade pulse.
     @ViewBuilder
     private func badgeImage(_ name: String, hpSize: Double, scale: CGFloat) -> some View {
-        if let img = UIImage(named: name) {
+        // JULY 5, 2026 (memory): budgeted load — was a full-res decode.
+        if let img = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: hpSize * scale) {
             Image(uiImage: img).resizable().scaledToFit()
                 .frame(width: hpSize * scale, height: hpSize * scale)
         } else {
@@ -1956,26 +1981,26 @@ struct PotionShopInspectStripView: View {
                                 // JUNE 20, 2026: during the HIT, hp_damage
                                 // REPLACES the bottle entirely. Otherwise show
                                 // the normal bottle + the staged-damage fade.
-                                if takingDamage, let hitImage = UIImage(named: "hp_damage") {
+                                if takingDamage, let hitImage = PotionShopImageLoader.loadDisplayImage(named: "hp_damage", displaySize: bottleSize) {  // JULY 5 memory: was full-res
                                     Image(uiImage: hitImage).resizable().scaledToFit()
                                         .frame(width: bottleSize, height: bottleSize)
                                         // JUNE 20, 2026: y-offset knob for the
                                         // hp_damage banner image. Negative = up,
                                         // positive = down. Adjust this number.
                                         .offset(y: 5)
-                                } else if bannerIsAttacking, let atkImg = UIImage(named: "potion_bottle_atk") {
+                                } else if bannerIsAttacking, let atkImg = PotionShopImageLoader.loadDisplayImage(named: "potion_bottle_atk", displaySize: bottleSize) {  // JULY 5 memory: was full-res
                                     Image(uiImage: atkImg).resizable().scaledToFit()
                                         .frame(width: bottleSize, height: bottleSize)
                                 } else {
                                     // Base bottle outline
-                                    if let bottleImage = UIImage(named: "potion_bottle_outline") {
+                                    if let bottleImage = PotionShopImageLoader.loadDisplayImage(named: "potion_bottle_outline", displaySize: bottleSize) {  // JULY 5 memory: was full-res
                                         Image(uiImage: bottleImage).resizable().scaledToFit()
                                             .frame(width: bottleSize, height: bottleSize)
                                     } else {
                                         Text("🧪").font(.system(size: bottleSize * 0.7))
                                     }
                                     // Damage bottle fades in/out on top when staged
-                                    if let dmgImage = UIImage(named: "potion_bottle_damage") {
+                                    if let dmgImage = PotionShopImageLoader.loadDisplayImage(named: "potion_bottle_damage", displaySize: bottleSize) {  // JULY 5 memory: was full-res
                                         Image(uiImage: dmgImage).resizable().scaledToFit()
                                             .frame(width: bottleSize, height: bottleSize)
                                             .opacity(dmgFade)
@@ -2033,7 +2058,7 @@ struct PotionShopInspectStripView: View {
                 .background(
                     // OPTION 3: Custom parchment border replaces code border entirely
                     GeometryReader { geo in
-                        if let borderImage = UIImage(named: "banner_border") {
+                        if let borderImage = PotionShopImageLoader.loadDisplayImage(named: "banner_border", displaySize: max(geo.size.width, geo.size.height)) {  // JULY 5 memory: was full-res
                             // User's hand-drawn parchment border (PRIMARY)
                             Image(uiImage: borderImage)
                                 .resizable()

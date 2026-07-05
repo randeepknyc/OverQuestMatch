@@ -1237,9 +1237,12 @@ enum PotionShopData {
         "gmarker_vamp", "gmarker_duck"   // JULY 4, 2026: new art
     ]
 
-    /// Boss-night closers. These are STAND-INS (tough cast members) until the
-    /// real bosses (carmilla / grimdrek / royal_envoy) are drawn + bucketed.
-    /// 🔁 When those are ready, add them to campaignCast and swap them in here.
+    /// Boss-night closers. JULY 5, 2026: these ARE the bosses now, final —
+    /// the old pre-template originals (carmilla / grimdrek / royal_envoy and
+    /// the rest of the original 14) were REDRAWN AS the gmarker cast and are
+    /// permanently retired. Their definitions remain in `characters` as
+    /// dormant data only. (Property names kept as "StandIns" to avoid
+    /// churning call sites — read them as "boss closers".)
     static let weeklyBossStandIns = ["gmarker_bull", "gmarker_skull", "gmarker_fox"]
     static let finaleBossStandIn  = "gmarker_fishguy"   // biggest order in the cast
 
@@ -1427,5 +1430,68 @@ struct PotionShopFlexDay {
     /// Total round count = fixed rounds + one round per random size.
     var totalRoundCount: Int {
         fixedRounds.count + randomRoundSizes.count
+    }
+}
+
+// MARK: - 🗨️ DAY-END / WIN / LOSE FLAVOR MESSAGES (July 5, 2026)
+//
+// ✏️ EDIT FREELY — this is pure dialogue, no logic to break.
+// The day-won and run-won lines are picked by how much composure was LEFT
+// when the last round ended (BEFORE the rest heal / Mended Spirit relic
+// top it back up). Defeat lines are picked by how far the run got.
+//
+//   • dayWon / runWon rows: (atLeast: fraction of max composure, text).
+//     The FIRST row the player qualifies for wins, top to bottom — keep
+//     them in DESCENDING order. 1.0 = untouched, 0.0 = barely alive.
+//   • lost rows: (byDay: day number, text) in ASCENDING order — the first
+//     row whose day the run reached at-or-before wins.
+//
+// Add or remove rows freely; any count works.
+
+enum PotionShopDayEndMessages {
+
+    /// Shown on the "Day Complete" screen.
+    static let dayWon: [(atLeast: Double, text: String)] = [
+        (1.00, "Not a scratch. That was easy!"),
+        (0.75, "A fine day's brewing."),
+        (0.50, "Busy one. The kettle has earned its keep."),
+        (0.25, "Rough crowd today… but the shop stands."),
+        (0.00, "Exhausting day. Tea, then bed. Immediately."),
+    ]
+
+    /// Shown on the Day-30 victory screen.
+    static let runWon: [(atLeast: Double, text: String)] = [
+        (0.75, "Thirty days and barely winded. Legendary."),
+        (0.25, "Thirty days of chaos, survived with style."),
+        (0.00, "Thirty days… by a whisker. Never again. (Same time next week?)"),
+    ]
+
+    /// Shown on the defeat screen — composure is always 0 here, so these
+    /// vary by how FAR the run got instead.
+    static let lost: [(byDay: Int, text: String)] = [
+        (3,  "The morning rush proved… educational."),
+        (7,  "The first week bites. It always does."),
+        (14, "Two weeks in — the crowds only get bolder."),
+        (21, "So close to the final stretch. The shop will remember."),
+        (30, "Felled within sight of the finish line. Cruel."),
+    ]
+
+    // ── Lookups (no need to touch these when editing the lines above) ──
+
+    static func dayWonText(composure: Int, maxComposure: Int) -> String {
+        let frac = maxComposure > 0 ? Double(composure) / Double(maxComposure) : 0
+        return dayWon.first(where: { frac >= $0.atLeast })?.text
+            ?? dayWon.last?.text ?? ""
+    }
+
+    static func runWonText(composure: Int, maxComposure: Int) -> String {
+        let frac = maxComposure > 0 ? Double(composure) / Double(maxComposure) : 0
+        return runWon.first(where: { frac >= $0.atLeast })?.text
+            ?? runWon.last?.text ?? ""
+    }
+
+    static func lostText(dayNumber: Int) -> String {
+        lost.first(where: { dayNumber <= $0.byDay })?.text
+            ?? lost.last?.text ?? ""
     }
 }

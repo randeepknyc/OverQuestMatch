@@ -95,9 +95,22 @@ struct PotionShopImageLoader {
         if ratio >= 1.0 && maxSide <= 512 {
             // Small enough to keep as-is (≤512px longest side ≈ ≤1MB).
             image = base
+        } else if let thumb = base.preparingThumbnail(of: target) {
+            // JULY 5, 2026 (memory v5 — the "2819MB on Xcode-attached runs"
+            // fix): preparingThumbnail decodes DIRECTLY at the target size
+            // via ImageIO — the full-resolution bitmap is NEVER materialized.
+            // The old renderer path below called base.draw(...), which forced
+            // a FULL-RES decode into Apple's named-image cache first. iOS
+            // normally reclaims those under memory pressure (why a home-screen
+            // relaunch always looked fine), but WITH XCODE ATTACHED that
+            // reclaim is suspended — so every asset's full decode accumulated
+            // to ~2.8GB and our purge couldn't touch it (Apple's cache, not
+            // ours). Decoding at size fixes it at the source, on every run.
+            image = thumb
         } else {
-            // Redraw into an INDEPENDENT bitmap at the capped size — this
-            // is what actually frees the full-res decode for reclaim.
+            // Fallback (thumbnailing can fail for exotic sources): redraw
+            // into an independent bitmap at the capped size — costs one
+            // full-res decode, but Apple's cache can reclaim it later.
             let fmt = UIGraphicsImageRendererFormat()
             fmt.scale = 1
             fmt.opaque = false
@@ -125,11 +138,19 @@ struct PotionShopImageLoader {
     /// Names known to be missing — skip repeated catalog+disk probes.
     private static var missingNames = Set<String>()
 
+    /// JULY 4, 2026 (memory v4 — "never again" layer 1): there is NO
+    /// unbounded image path anymore. loadImage is now SAFE BY DEFAULT —
+    /// it routes through the budgeted downsampler with the 2048px hard
+    /// cap. Small art (≤512px) is returned as-is; big canvases can never
+    /// pin a full-res decode. Existence probes (`!= nil`) still work.
+    /// If some future feature genuinely needs full resolution, that's
+    /// `loadFullResolutionImage` below — read its warning first.
     static func loadImage(named name: String) -> UIImage? {
-        // 1) Asset catalog (Assets.xcassets) — system-cached, safe to repeat.
-        if let img = UIImage(named: name) { return img }
         if missingNames.contains(name) { return nil }
-        // 2) Loose PNG fallback — decode ONCE into the budgeted cache.
+        if let img = downsampledImage(named: name, targetPixelSize: 682) { // ×3 oversample ≈ 2048 cap
+            return img
+        }
+        // Loose PNG fallback — decode ONCE into the budgeted cache.
         let key = name as NSString
         if let cached = looseFileCache.object(forKey: key) { return cached }
         if let path = Bundle.main.path(forResource: name, ofType: "png"),
@@ -140,6 +161,13 @@ struct PotionShopImageLoader {
         }
         missingNames.insert(name)
         return nil
+    }
+
+    /// ⚠️ DANGEROUS: bypasses every budget and pins the full decode.
+    /// Nothing in the game uses this. If you're about to: don't call it
+    /// from any view body, and never inside anything that re-renders.
+    static func loadFullResolutionImage(named name: String) -> UIImage? {
+        UIImage(named: name)
     }
 
     /// Returns either a downsampled UIImage (if enabled) or the full asset.
@@ -1029,5 +1057,82 @@ enum PotionShopFaceUpgradeKind {
             f[i] += 1
         }
         return f.sorted()
+    }
+}
+
+
+// MARK: - 🐕 Memory watchdog (July 4, 2026 — "never again" layers 2 & 3)
+//
+// Samples the app's REAL memory footprint (phys_footprint — the same
+// number Xcode's gauge shows) every few seconds.
+//   • Debug menu shows it live, so drift is visible in normal testing.
+//   • Past softLimitMB: purges every image cache automatically and shows
+//     an in-game banner — a regression self-limits AND announces itself
+//     instead of silently climbing to 2.8GB.
+// Started from GameView.onAppear; also purges on system memory warnings.
+
+@Observable
+final class PotionShopMemoryWatchdog {
+    static let shared = PotionShopMemoryWatchdog()
+
+    /// Latest sampled footprint in MB (-1 until first sample).
+    var footprintMB: Int = -1
+    /// Non-nil while the warning banner should show.
+    var warningText: String? = nil
+
+    /// Above this, caches are purged and the banner fires. The game's
+    /// healthy baseline is ~170MB; 900 = something is very wrong.
+    static let softLimitMB = 900
+
+    private var timer: Timer? = nil
+    private var lastPurge = Date.distantPast
+
+    func start() {
+        guard timer == nil else { return }
+        sample()
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            self?.sample()
+        }
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            PotionShopImageLoader.purgeDownsampleCache()
+            self?.warningText = "⚠️ iOS memory warning — caches purged"
+            self?.scheduleBannerClear()
+        }
+    }
+
+    private func sample() {
+        footprintMB = Self.currentFootprintMB()
+        guard footprintMB > Self.softLimitMB else { return }
+        // Self-limit: purge at most once per 30s, and shout.
+        if Date().timeIntervalSince(lastPurge) > 30 {
+            lastPurge = Date()
+            PotionShopImageLoader.purgeDownsampleCache()
+            warningText = "⚠️ MEMORY \(footprintMB)MB — caches purged. Tell Claude what was on screen."
+            scheduleBannerClear()
+        }
+    }
+
+    private func scheduleBannerClear() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.warningText = nil
+        }
+    }
+
+    /// phys_footprint via task_info — the figure Xcode's memory gauge shows.
+    static func currentFootprintMB() -> Int {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size
+        )
+        let kr = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return -1 }
+        return Int(info.phys_footprint / 1_048_576)
     }
 }

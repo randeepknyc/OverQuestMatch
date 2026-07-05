@@ -1739,6 +1739,8 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "guide_faun",     height: .medium,     width: .wide)
         applyGuideCharacter(id: "guide_fox",      height: .tall,       width: .medium)
         applyGuideCharacter(id: "guide_woman",    height: .medium,     width: .medium)
+        applyGuideCharacter(id: "gmarker_duck",     height: .superShort, width: .skinny)
+        applyGuideCharacter(id: "gmarker_vamp",     height: .short,      width: .medium)
 
         // Day 3 Evening tuned positions (May 24, 2026)
         var slug = perCharacterScales["guide_slug"] ?? CharacterScale()

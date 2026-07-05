@@ -128,8 +128,12 @@ struct PotionShopFlameView: View {
                   let (prefix, count) = PotionShopFlameAssets.resolve(flameIndex: flameIndex, state: "out") {
             let elapsed: Double = date.timeIntervalSince(start)
             let f: Int = Int(elapsed * max(0.1, fps))
-            if f < count {
-                Image("\(prefix)\(f + 1)").resizable().scaledToFit()   // smoke playing
+            if f < count,
+               // JULY 5, 2026 (memory): budgeted load — the SwiftUI
+               // Image("name") initializer pinned a FULL-RES decode of
+               // every drawn flame frame in the system cache.
+               let ui = PotionShopImageLoader.loadDisplayImage(named: "\(prefix)\(f + 1)", displaySize: size) {
+                Image(uiImage: ui).resizable().scaledToFit()               // smoke playing
             } else {
                 Color.clear                                            // empty after smoke
             }
@@ -143,7 +147,16 @@ struct PotionShopFlameView: View {
         if let (prefix, count) = PotionShopFlameAssets.resolve(flameIndex: flameIndex, state: "lit"), count > 0 {
             let t: Double = date.timeIntervalSinceReferenceDate + Double(flameIndex) * 0.17
             let frame: Int = Int(t * max(0.1, fps)) % count
-            Image("\(prefix)\(frame + 1)").resizable().scaledToFit()
+            // JULY 5, 2026 (memory): budgeted load, same reason as the
+            // smoke frames above — never Image("name") for drawn art.
+            if let ui = PotionShopImageLoader.loadDisplayImage(named: "\(prefix)\(frame + 1)", displaySize: size) {
+                Image(uiImage: ui).resizable().scaledToFit()
+            } else {
+                Image(systemName: "flame.fill")
+                    .resizable().scaledToFit()
+                    .foregroundColor(Color(red: 0.95, green: 0.55, blue: 0.15))
+                    .padding(2)
+            }
         } else {
             Image(systemName: "flame.fill")
                 .resizable().scaledToFit()

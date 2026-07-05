@@ -82,6 +82,26 @@ struct PotionShopDebugMenu: View {
     var body: some View {
         NavigationStack {
             List {
+                // JULY 4, 2026 (memory v3): live footprint — the same
+                // number Xcode's memory gauge shows. Healthy ≈ 170–400MB;
+                // the watchdog purges + banners past 900MB on its own.
+                Section("Memory") {
+                    HStack {
+                        Image(systemName: "memorychip")
+                            .foregroundColor(PotionShopMemoryWatchdog.shared.footprintMB > 700 ? .red : .green)
+                        Text("Footprint")
+                        Spacer()
+                        Text("\(PotionShopMemoryWatchdog.shared.footprintMB) MB")
+                            .monospacedDigit()
+                            .foregroundColor(.secondary)
+                    }
+                    Button {
+                        PotionShopImageLoader.purgeDownsampleCache()
+                    } label: {
+                        Label("Purge image caches now", systemImage: "trash")
+                    }
+                }
+
                 // ─── Round shortcuts (TOP — May 25, 2026) ─────────
                 // JULY 2, 2026: instantly deal a new crowd schedule for the
                 // whole run (new runSeed) and respawn the current round —

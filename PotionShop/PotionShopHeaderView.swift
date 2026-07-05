@@ -73,7 +73,7 @@ struct PotionShopHeaderView: View {
             // ── ROW 1: tod icon | composure bar | gear ─────────
             HStack(spacing: 8) {
                 // Time-of-day icon (left of bar)
-                if let todImg = UIImage(named: todIconName) {
+                if let todImg = PotionShopImageLoader.loadDisplayImage(named: todIconName, displaySize: cfg.headerTodIconSize) {  // JULY 5 memory: was full-res
                     Image(uiImage: todImg)
                         .resizable()
                         .scaledToFit()
@@ -113,7 +113,7 @@ struct PotionShopHeaderView: View {
                     // JULY 2 (latest): settings wears the GEAR again (user
                     // request) — ps_settings_button art wins if drawn,
                     // then the header_gear art, then the SF gear.
-                    if let btnImg = UIImage(named: "ps_settings_button") ?? UIImage(named: "header_gear") {
+                    if let btnImg = PotionShopImageLoader.loadDisplayImage(named: "ps_settings_button", displaySize: cfg.headerGearSize) ?? PotionShopImageLoader.loadDisplayImage(named: "header_gear", displaySize: cfg.headerGearSize) {  // JULY 5 memory: was full-res
                         Image(uiImage: btnImg)
                             .resizable()
                             .scaledToFit()
@@ -243,7 +243,7 @@ struct PotionShopComposureBarView: View {
     @ViewBuilder
     private func shieldSlice(width: CGFloat, offset: CGFloat,
                              barWidth: CGFloat, barHeight: CGFloat) -> some View {
-        if let shieldImg = UIImage(named: "composure_bar_shield") {
+        if let shieldImg = PotionShopImageLoader.loadDisplayImage(named: "composure_bar_shield", displaySize: barWidth) {  // JULY 5 memory: was full-res
             Image(uiImage: shieldImg)
                 .resizable()
                 .frame(width: barWidth, height: barHeight)
@@ -287,7 +287,7 @@ struct PotionShopComposureBarView: View {
             let barHeight = geo.size.height
             ZStack(alignment: .leading) {
                 // 1. Fill image, masked to composure percentage
-                if let fillImg = UIImage(named: fillAssetName) {
+                if let fillImg = PotionShopImageLoader.loadDisplayImage(named: fillAssetName, displaySize: barWidth) {  // JULY 5 memory: was full-res
                     Image(uiImage: fillImg)
                         .resizable()
                         .frame(width: barWidth, height: barHeight)
@@ -350,7 +350,7 @@ struct PotionShopComposureBarView: View {
                 }
 
                 // 3. Background frame (drawn ON TOP so the outline sits over fills)
-                if let bgImg = UIImage(named: "composure_bar_bg") {
+                if let bgImg = PotionShopImageLoader.loadDisplayImage(named: "composure_bar_bg", displaySize: barWidth) {  // JULY 5 memory: was full-res
                     Image(uiImage: bgImg)
                         .resizable()
                         .frame(width: barWidth, height: barHeight)

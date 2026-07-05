@@ -149,12 +149,22 @@ struct PotionShopRunState: Codable {
     mutating func apply(_ boon: PotionShopBoon) {
         switch boon.effect {
         case let .addDie(type, rule):
-            deck.append(PotionShopBagDie(
+            // JULY 5, 2026 (boon audit): an added die INHERITS the type's
+            // best upgraded faces — under type-draw dealing a fresh basic
+            // die would only DILUTE a lane the player has upgraded. (The
+            // default pool no longer uses .addDie, but any user-added
+            // card stays safe.)
+            var newDie = PotionShopBagDie(
                 id: "die_\(type.rawValue)_boon_\(UUID().uuidString.prefix(4))",
                 type: type,
                 tier: .basic,
                 rule: rule
-            ))
+            )
+            newDie.customFaces = deck
+                .filter { $0.type == type }
+                .compactMap { $0.customFaces }
+                .max(by: { $0.reduce(0, +) < $1.reduce(0, +) })
+            deck.append(newDie)
         case let .upgradeDie(type, amount):
             // Bump the first matching die's bonus; if none exists, add one.
             if let idx = deck.firstIndex(where: { $0.type == type }) {
@@ -201,16 +211,31 @@ enum PotionShopBoonPool {
                        emoji: "💖", effect: .relicHealAtDayEnd),
         PotionShopBoon(name: "Warded Morning", blurb: "RELIC: start each day with 5 shield",
                        emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
-        PotionShopBoon(name: "Extra Potency", blurb: "Add a potency die to your deck",
-                       emoji: "⚗️", effect: .addDie(type: .potency, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Extra Heal", blurb: "Add a heal die to your deck",
-                       emoji: "💚", effect: .addDie(type: .heal, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
-        PotionShopBoon(name: "Spare Ember", blurb: "Add a stability die to your deck",
-                       emoji: "🔥", effect: .addDie(type: .stability, rule: PotionShopDieRule(bonusValue: 0, label: ""))),
+        // JULY 5, 2026 (boon audit): the three "add a die" cards were DEAD
+        // under type-draw dealing — die count doesn't change what's dealt,
+        // and a fresh basic die could even DILUTE an upgraded lane. Replaced
+        // with type-wide +1s (half the old §pre-67 values; verified consumed
+        // by the brew math). ✏️ EDIT FREELY — these are your cards.
+        PotionShopBoon(name: "Potent Brew", blurb: "+1 to ALL potency dice",
+                       emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
+        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to ALL heal dice",
+                       emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
+        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to ALL stability dice (bigger fire refills)",
+                       emoji: "🔥", effect: .typeWideBonus(type: .stability, amount: 1)),
     ]
 
     /// Draw `n` distinct random boons for a menu.
-    static func draw(_ n: Int = 3) -> [PotionShopBoon] {
-        Array(all.shuffled().prefix(n))
+    /// JULY 5, 2026 (boon audit): pass the run so ONE-SHOT relics the
+    /// player already owns are excluded — a re-offered Mended Spirit was
+    /// a dead pick. (Warded Morning stays offerable: its shield STACKS.)
+    static func draw(_ n: Int = 3, owned run: PotionShopRunState? = nil) -> [PotionShopBoon] {
+        var pool = all
+        if let run, run.healAtDayEnd {
+            pool.removeAll {
+                if case .relicHealAtDayEnd = $0.effect { return true }
+                return false
+            }
+        }
+        return Array(pool.shuffled().prefix(n))
     }
 }

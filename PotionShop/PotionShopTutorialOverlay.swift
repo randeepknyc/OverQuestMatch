@@ -143,7 +143,10 @@ struct PotionShopTutorialOverlay: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(step < 3)  // steps 0-2 block taps on game
                 .onTapGesture {
-                    if step < 3 {
+                    // JULY 4, 2026 (evening 5): EDIT MODE FREEZES the
+                    // tutorial — no tap-to-advance, so drags edit instead
+                    // of skipping steps. Navigate with the edit toolbar.
+                    if step < 3, !cfg.tutorialEditMode {
                         advanceWithAnimation()
                     }
                 }
@@ -158,6 +161,55 @@ struct PotionShopTutorialOverlay: View {
                 if pair.element.step == step {
                     dottedCircle(index: pair.offset)
                 }
+            }
+
+            // ── ✏️ EDIT TOOLBAR (July 4, 2026 — evening 5) ────────────
+            // Visible ONLY in edit mode. The tutorial is frozen while
+            // editing; this is how you move between steps and add circles
+            // without fighting the tap-to-advance.
+            if cfg.tutorialEditMode {
+                VStack(spacing: 8) {
+                    Spacer()
+                    HStack(spacing: 14) {
+                        Button {
+                            if tutorial.currentStep > 0 { tutorial.currentStep -= 1 }
+                        } label: {
+                            Image(systemName: "chevron.left.circle.fill").font(.title2)
+                        }
+                        Text("Step \(step + 1) / \(tutorial.stepCount)")
+                            .font(Font.gameUI(size: 14))
+                            .foregroundColor(.white)
+                            .monospacedDigit()
+                        Button {
+                            if tutorial.currentStep < tutorial.stepCount - 1 {
+                                tutorial.currentStep += 1
+                            }
+                        } label: {
+                            Image(systemName: "chevron.right.circle.fill").font(.title2)
+                        }
+                        Divider().frame(height: 22).background(Color.white.opacity(0.4))
+                        Button {
+                            cfg.tutCircles.append(
+                                PotionShopLayoutConfig.TutorialCircle(step: step, x: 0, y: 0)
+                            )
+                        } label: {
+                            Label("Circle", systemImage: "plus.circle.fill")
+                                .font(Font.gameUI(size: 14))
+                        }
+                    }
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color.black.opacity(0.82)))
+                    .overlay(Capsule().stroke(Color.cyan.opacity(0.5), lineWidth: 1))
+                    Text("✏️ Edit mode — taps don't advance. Drag the card & circles (grab anywhere inside a circle). Sliders: editor drawer → 🎓 Tutorial.")
+                        .font(Font.gameUI(size: 11))
+                        .foregroundColor(.white.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                        .padding(.bottom, 14)
+                }
+                .zIndex(80)
             }
 
             // ── TEXT CARD ────────────────────────────────────────
@@ -202,7 +254,7 @@ struct PotionShopTutorialOverlay: View {
                         tutorial.finish()
                     } label: {
                         Text("Skip")
-                            .font(Font.gameUI(size: 14))
+                            .font(Font.gameUI(size: 23))
                             .foregroundColor(.white.opacity(0.85))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
@@ -244,21 +296,21 @@ struct PotionShopTutorialOverlay: View {
     private func tutorialCard(title: String, body: String, showNext: Bool) -> some View {
         VStack(spacing: 14) {
             Text(title)
-                .font(Font.gameUI(size: 22))
+                .font(Font.gameUI(size: 30))
                 .foregroundColor(.white)
 
             Text(body)
-                .font(Font.gameUI(size: 15))
+                .font(Font.gameUI(size: 24))
                 .foregroundColor(.white.opacity(0.9))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if showNext {
+            if showNext, !cfg.tutorialEditMode {   // edit mode: navigate via the ✏️ toolbar
                 Button {
                     advanceWithAnimation()
                 } label: {
                     Text("Next")
-                        .font(Font.gameUI(size: 16))
+                        .font(Font.gameUI(size: 26))
                         .foregroundColor(PotionShopTheme.ink)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 10)
@@ -271,7 +323,7 @@ struct PotionShopTutorialOverlay: View {
             } else {
                 // Step 4 hint
                 Text("Tap BREW when ready")
-                    .font(Font.gameUI(size: 12))
+                    .font(Font.gameUI(size: 28))
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.top, 4)
             }
@@ -330,6 +382,16 @@ struct PotionShopTutorialOverlay: View {
                 .scaleEffect(boilPulse)
                 .rotationEffect(.degrees(boilRotation))
                 .shadow(color: PotionShopTheme.accent.opacity(0.6), radius: 8)
+                // JULY 5, 2026: DRAG FIX. The stroked dashes were the ONLY
+                // touch target — a 3.5pt dotted line is impossible to grab.
+                // In edit mode a faint fill shows the grab area, and
+                // contentShape makes the WHOLE disc draggable (not just
+                // the painted line). Normal runs: unchanged, untouchable.
+                .background(
+                    Circle()
+                        .fill(PotionShopTheme.accent.opacity(cfg.tutorialEditMode ? 0.16 : 0))
+                )
+                .contentShape(Circle())
                 // Offset from SCREEN CENTER — what the sliders say is
                 // exactly where it sits, no hidden Spacer math.
                 .offset(x: c.x, y: c.y)

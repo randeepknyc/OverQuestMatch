@@ -1913,7 +1913,10 @@ struct DieSceneView3D: UIViewRepresentable {
     /// is missing.
     private func renderFaceTexture(value: Int) -> UIImage {
         let mappedName = PotionShop3DDiceAssetMap.assetName(forValue: value)
-        if let custom = UIImage(named: mappedName) {
+        // JULY 5, 2026 (memory): budgeted, capped ~1024px texture — a cube
+        // face never needs the full drawn canvas, and SceneKit PINS whatever
+        // it's given as a material for the life of the scene.
+        if let custom = PotionShopImageLoader.loadDisplayImage(named: mappedName, displaySize: 342) {
             return custom
         }
         return fallbackFaceTexture(value: value)
