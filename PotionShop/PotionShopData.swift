@@ -719,6 +719,175 @@ enum PotionShopData {
                 "Buoyant"
             ]
         ),
+        // ═══ JULY 6, 2026: SEVEN NEW CUSTOMERS (art added to Assets) ═══
+        // ✏️ Names, titles, dialogue, and stats below are STARTING VALUES —
+        // edit freely, they're yours. Difficulty gates ENTRY day only
+        // (2 = Day 1+, 3 = Day 8+, 4 = Day 22+).
+        "gmarker_advisor": PotionShopCharacter(
+            id: "gmarker_advisor", name: "Quillam", title: "Advisor to No One",
+            portrait: "gmarker_advisor", scenePortrait: "gmarker_advisor",
+            iconFallback: "📜",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Thinking Tonic", orderDialogue: "I advise... that you hurry.",
+            hp: 19, patience: 9, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "He drafts a strongly-worded memorandum.",
+            expireDialogue: "Noted. Filed. NEVER forgotten.",
+            defeatDialogue: "Excellent counsel. I mean potion. Excellent potion.",
+            trait: nil,
+            orderPhrases: [
+                "A thinking tonic — the realm won't mismanage itself.",
+                "I advise... that you hurry.",
+                "Something clarifying. My last three ideas were terrible."
+            ],
+            traitNames: [
+                "Verbose",
+                "Officious",
+                "Well-Read"
+            ]
+        ),
+        "gmarker_rooster": PotionShopCharacter(
+            id: "gmarker_rooster", name: "Doodle", title: "Dawn Herald",
+            portrait: "gmarker_rooster", scenePortrait: "gmarker_rooster",
+            iconFallback: "🐓",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "An Early Riser", orderDialogue: "COCK-A-DOODLE— sorry. Habit. One brew.",
+            hp: 15, patience: 9, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 3,
+            tickDialogue: "He struts a tight, impatient circle.",
+            expireDialogue: "This service is FOWL. I bid you good dawn!",
+            defeatDialogue: "Ah! Something to crow about at last.",
+            trait: nil,
+            orderPhrases: [
+                "COCK-A-DOODLE— sorry. Habit. One brew.",
+                "Something bold. Dawn duty starts in five hours.",
+                "An early riser, and be quick about it."
+            ],
+            traitNames: [
+                "Punctual",
+                "Loud",
+                "Proud"
+            ]
+        ),
+        "gmarker_fairy": PotionShopCharacter(
+            id: "gmarker_fairy", name: "Twill", title: "Dewdrop Courier",
+            portrait: "gmarker_fairy", scenePortrait: "gmarker_fairy",
+            iconFallback: "🧚",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Thimbleful", orderDialogue: "Just a thimbleful! I'm carrying it far.",
+            hp: 13, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 3,
+            tickDialogue: "Glitter falls a little more aggressively than before.",
+            expireDialogue: "The dew waits for NO ONE. Toodle-oo!",
+            defeatDialogue: "Sip sip! Off I flutter!",
+            trait: nil,
+            orderPhrases: [
+                "Just a thimbleful! I'm carrying it far.",
+                "One tiny brew — wing-strength, please.",
+                "Quickly! Before the morning dew dries!"
+            ],
+            traitNames: [
+                "Flighty",
+                "Sparkly",
+                "Prompt"
+            ]
+        ),
+        "gmarker_fishman": PotionShopCharacter(
+            id: "gmarker_fishman", name: "Brackish", title: "Deep-Sea Diplomat",
+            portrait: "gmarker_fishman", scenePortrait: "gmarker_fishman",
+            iconFallback: "🐟",
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "Something Briny", orderDialogue: "Blub. Your surface air is... drying.",
+            hp: 20, patience: 8, activeAttack: 3, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 4,
+            tickDialogue: "His gills flare with quiet menace.",
+            expireDialogue: "The trench extends no second invitations.",
+            defeatDialogue: "Blub. Acceptable. The abyss thanks you.",
+            trait: nil,
+            orderPhrases: [
+                "Blub. Your surface air is... drying.",
+                "Something briny, before I evaporate entirely.",
+                "One brew. The trench council convenes at moonrise."
+            ],
+            traitNames: [
+                "Damp",
+                "Stately",
+                "Unblinking"
+            ]
+        ),
+        "gmarker_birdyo": PotionShopCharacter(
+            id: "gmarker_birdyo", name: "Pip", title: "Fledgling Regular",
+            portrait: "gmarker_birdyo", scenePortrait: "gmarker_birdyo",
+            iconFallback: "🐦",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "A Wee Warmer", orderDialogue: "Cheep! The usual, if you please!",
+            hp: 14, patience: 10, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 3,
+            tickDialogue: "Tiny talons tap-tap-tap on the counter.",
+            expireDialogue: "Cheep!! The seed stand NEVER keeps me waiting!",
+            defeatDialogue: "Cheep cheep! Warm down to my pinfeathers!",
+            trait: nil,
+            orderPhrases: [
+                "Cheep! The usual, if you please!",
+                "A wee warmer — the nest gets drafty.",
+                "One small brew for one small bird!"
+            ],
+            traitNames: [
+                "Tiny",
+                "Chipper",
+                "Regular"
+            ]
+        ),
+        "gmarker_cyclops": PotionShopCharacter(
+            id: "gmarker_cyclops", name: "Gorm", title: "One-Eyed Gentleman",
+            portrait: "gmarker_cyclops", scenePortrait: "gmarker_cyclops",
+            iconFallback: "👁️",
+            // JULY 6, 2026: difficulty 3 (Day 8+ entry) — a diff-4 would have
+            // been the cast's only Day-22-gated regular, and the design is
+            // that only BOSSES get exclusivity. Bump back to 4 if a late-run
+            // heavyweight is ever wanted.
+            difficulty: 3, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "The Big One", orderDialogue: "GORM WANT... the large size. Please.",
+            hp: 26, patience: 8, activeAttack: 4, waitingAttack: 2,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 5,
+            tickDialogue: "His one great eye narrows. The floor creaks.",
+            expireDialogue: "GORM PATIENCE... SMALL. GORM LEAVE... BIG.",
+            defeatDialogue: "Gorm... happy. Gorm write nice review.",
+            trait: nil,
+            orderPhrases: [
+                "GORM WANT... the large size. Please.",
+                "One big brew. Gorm had long day of looming.",
+                "Gorm heard good things. Gorm hopes they true."
+            ],
+            traitNames: [
+                "Enormous",
+                "Polite-ish",
+                "Focused"
+            ]
+        ),
+        "gmarker_wizzy": PotionShopCharacter(
+            id: "gmarker_wizzy", name: "Wizzy", title: "Wizard, Probationary",
+            portrait: "gmarker_wizzy", scenePortrait: "gmarker_wizzy",
+            iconFallback: "🪄",
+            difficulty: 2, timeOfDay: [.morning, .afternoon, .evening, .night],
+            orderName: "Study Fuel", orderDialogue: "My exam is TOMORROW. Something potent!",
+            hp: 15, patience: 9, activeAttack: 2, waitingAttack: 1,
+            activePatienceTick: 1, waitingPatienceTick: 1, expireDamage: 3,
+            tickDialogue: "Sparks of stress crackle off his hat.",
+            expireDialogue: "Fine! I'll BREW MY OWN. How hard can it be?!",
+            defeatDialogue: "Oh that's the good stuff. Chapter twelve, here I come.",
+            trait: nil,
+            orderPhrases: [
+                "My exam is TOMORROW. Something potent!",
+                "Study fuel, please. The grimoire won't read itself.",
+                "One brew — and no notes on my wand technique."
+            ],
+            traitNames: [
+                "Cramming",
+                "Ambitious",
+                "Singed"
+            ]
+        ),
         "gmarker_girl": PotionShopCharacter(
             id: "gmarker_girl", name: "Petal", title: "Cheerful Apprentice",
             portrait: "gmarker_girl", scenePortrait: "gmarker_girl",
@@ -1234,7 +1403,11 @@ enum PotionShopData {
         "gmarker_fishguy", "gmarker_bull", "gmarker_frog", "gmarker_fox",
         "gmarker_traveler", "gmarker_demon", "gmarker_bird", "gmarker_dino",
         "gmarker_goatguy", "gmarker_oldlady", "gmarker_puck",
-        "gmarker_vamp", "gmarker_duck"   // JULY 4, 2026: new art
+        "gmarker_vamp", "gmarker_duck",  // JULY 4, 2026: new art
+        // JULY 6, 2026: seven more
+        "gmarker_advisor", "gmarker_rooster", "gmarker_fairy",
+        "gmarker_fishman", "gmarker_birdyo", "gmarker_cyclops",
+        "gmarker_wizzy"
     ]
 
     /// Boss-night closers. JULY 5, 2026: these ARE the bosses now, final —
