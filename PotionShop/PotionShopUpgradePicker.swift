@@ -2,16 +2,17 @@
 //  PotionShopUpgradePicker.swift
 //  OverQuestMatch3
 //
-//  Ednar's Potion Cauldron — DIE-UPGRADE PICKER (July 4, 2026 — rev 2)
-//  Place in: PotionShop/ folder  ← NEW FILE, add to the Xcode target
+//  Ednar's Potion Cauldron — DIE-UPGRADE PICKER (July 7, 2026 — rev 3)
+//  Place in: PotionShop/ folder
 //
-//  FACE-STEP upgrades (Die-in-the-Dungeon style). Each type row shows the
-//  die's CURRENT faces and offers TWO choices:
-//    ⬆ FLOOR   — one of the lowest faces +1   (1,1,2,2,2,2 → 1,2,2,2,2,2)
-//    ⬆ CEILING — the highest face below 6 +1  (1,1,2,2,2,2 → 1,1,2,2,2,3)
-//  Tap either result to take it. Faces cap at 6; identical results dedupe.
-//  The die's picture on the left is its PNG asset (die_potency.png etc.),
-//  with the colored square only as a fallback until art exists.
+//  JULY 7 REDESIGN — VALUE-TARGETED UPGRADES. Each type row shows the
+//  die's current faces, and the choices are the die's DISTINCT face
+//  values, each drawn as its own little die:  [1] → [2]   [2] → [3]
+//  Tap one: ONE face of that value goes up by +1 (per die, whole lane —
+//  e.g. boost 1,1,1,1,2,2 → pick the 1 → 1,1,1,2,2,2 · pick the 2 →
+//  1,1,1,1,2,3). Faces cap at 6; values already at 6 aren't offered.
+//  (The old floor/ceiling buttons showed the full six-face result string;
+//  they were just the lowest/highest of these choices.)
 //
 
 import SwiftUI
@@ -26,10 +27,11 @@ struct PotionShopUpgradePickerView: View {
     }
 
     /// The first upgradable die of this type in the deck (nil = none).
+    /// (All dice of a lane are identical under whole-lane upgrades, so
+    /// the first one's faces speak for the lane.)
     private func upgradableDie(_ type: PotionShopDieType) -> PotionShopBagDie? {
         gs.run.deck.first(where: {
-            $0.type == type &&
-            (PotionShopFaceUpgradeKind.floor.apply(to: $0.effectiveFaces) != nil)
+            $0.type == type && $0.effectiveFaces.contains(where: { $0 < 6 })
         })
     }
 
@@ -41,7 +43,7 @@ struct PotionShopUpgradePickerView: View {
                 Text("Upgrade a Die")
                     .font(Font.gameScore(size: 24))
                     .foregroundColor(.white)
-                Text("Pick which face gets better")
+                Text("Tap a face to raise it by 1")
                     .font(Font.gameUI(size: 13))
                     .foregroundColor(.white.opacity(0.75))
 
@@ -73,7 +75,8 @@ struct PotionShopUpgradePickerView: View {
         }
     }
 
-    // ─── One type: [die PNG + name + current faces] then the 2 choices ──
+    // ─── One type: [die PNG + name + current faces], then one tappable
+    //     chip per DISTINCT face value:  [1]→[2]   [2]→[3]  ─────────────
 
     @ViewBuilder
     private func typeRow(_ type: PotionShopDieType) -> some View {
@@ -86,7 +89,7 @@ struct PotionShopUpgradePickerView: View {
                     .foregroundColor(.white)
                 Spacer()
                 if let die {
-                    faceStrip(die.effectiveFaces, color: type.color.opacity(0.9), size: 17)
+                    faceStrip(die.effectiveFaces, color: type.color.opacity(0.9), size: 15)
                 } else {
                     Text(gs.run.deck.contains(where: { $0.type == type }) ? "maxed" : "none in deck")
                         .font(Font.gameUI(size: 12))
@@ -94,17 +97,12 @@ struct PotionShopUpgradePickerView: View {
                 }
             }
             if let die {
-                let current = die.effectiveFaces
-                let floorF = PotionShopFaceUpgradeKind.floor.apply(to: current)
-                let ceilF  = PotionShopFaceUpgradeKind.ceiling.apply(to: current)
+                // Distinct upgradable values, lowest first (e.g. boost
+                // 1,1,1,1,2,2 → chips for 1 and 2).
+                let values = Array(Set(die.effectiveFaces.filter { $0 < 6 })).sorted()
                 HStack(spacing: 8) {
-                    if let floorF {
-                        choiceButton(type: type, kind: .floor, result: floorF)
-                    }
-                    // Dedupe: on an all-same-faces die (e.g. stability's all
-                    // 1s) floor and ceiling produce the identical result.
-                    if let ceilF, ceilF != floorF {
-                        choiceButton(type: type, kind: .ceiling, result: ceilF)
+                    ForEach(values, id: \.self) { v in
+                        choiceChip(type: type, value: v)
                     }
                 }
             }
@@ -118,25 +116,25 @@ struct PotionShopUpgradePickerView: View {
         .opacity(die != nil ? 1 : 0.55)
     }
 
-    /// One tappable upgrade choice showing the RESULTING faces.
+    /// One tappable choice: the face value as its own die, an arrow, and
+    /// what it becomes. Tap = one face of that value goes +1 (whole lane).
     @ViewBuilder
-    private func choiceButton(type: PotionShopDieType,
-                              kind: PotionShopFaceUpgradeKind,
-                              result: [Int]) -> some View {
+    private func choiceChip(type: PotionShopDieType, value: Int) -> some View {
         Button {
             withAnimation(.easeOut(duration: 0.2)) {
-                gs.applyDieUpgrade(type: type, kind: kind)
+                gs.applyDieUpgrade(type: type, bumpingFace: value)
             }
             HapticManager.shared.diePlaced()
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.up")
+            HStack(spacing: 6) {
+                faceSquare(value, color: type.color, size: 24)
+                Image(systemName: "arrow.right")
                     .font(.caption2.bold())
                     .foregroundColor(.yellow)
-                faceStrip(result, color: type.color, size: 16)
+                faceSquare(value + 1, color: type.color, size: 24, highlighted: true)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.white.opacity(0.14))
@@ -168,7 +166,26 @@ struct PotionShopUpgradePickerView: View {
         }
     }
 
+    /// A single face drawn as its own little die.
+    @ViewBuilder
+    private func faceSquare(_ v: Int, color: Color, size: CGFloat, highlighted: Bool = false) -> some View {
+        RoundedRectangle(cornerRadius: 4)
+            .fill(color)
+            .frame(width: size, height: size)
+            .overlay(
+                Text("\(v)")
+                    .font(Font.gameScore(size: size * 0.62))
+                    .foregroundColor(.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(highlighted ? Color.yellow : Color.white.opacity(0.7),
+                            lineWidth: highlighted ? 1.4 : 0.8)
+            )
+    }
+
     /// Faces as little squares — the FULL multiset (1,1,2,2,2,2 shows six).
+    /// Kept in the row header so you can see the whole die at a glance.
     @ViewBuilder
     private func faceStrip(_ faces: [Int], color: Color, size: CGFloat) -> some View {
         HStack(spacing: 2) {

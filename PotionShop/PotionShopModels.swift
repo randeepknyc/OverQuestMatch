@@ -33,6 +33,30 @@ struct PotionShopImageLoader {
 
     /// Cache of downsampled UIImages keyed by "assetName@targetSize". We
     /// hold these weakly via NSCache so iOS can evict on memory pressure.
+    // ─── JULY 6, 2026 (memory v7): ONE SERIAL DECODE LANE + LEDGER ───
+    // The §58e prewarms introduced several CONCURRENT background threads
+    // pushing decodes at once — a condition the v5 decode-at-size path was
+    // never tested under, and the prime suspect for the intermittent
+    // multi-GB relapses (duplicate concurrent decodes of the same asset +
+    // whatever internal path preparingThumbnail takes under contention).
+    // All cache-miss decode work now funnels through ONE serial queue with
+    // a double-checked cache lookup: concurrent requests for the same key
+    // dedupe to a single decode, and decoder concurrency is exactly 1.
+    // The LEDGER counts every decode by path; the debug menu shows it —
+    // "full-res fallback" is the expensive path, and a screenshot of that
+    // line during any future memory spike names the culprit with DATA.
+    private static let decodeQueue = DispatchQueue(label: "potionshop.image.decode",
+                                                   qos: .userInitiated)
+    // Mutated ONLY inside decodeQueue (serialization = thread safety).
+    private(set) static var statImageIODecodes = 0
+    private(set) static var statAtSizeDecodes = 0
+    private(set) static var statFallbackDecodes = 0
+    private(set) static var statFallbackFullResMB = 0
+    private(set) static var statPassThroughs = 0
+    static var decodeStatsText: String {
+        "imageio \(statImageIODecodes) · at-size \(statAtSizeDecodes) · full-res fallback \(statFallbackDecodes) (≈\(statFallbackFullResMB)MB) · small pass \(statPassThroughs)"
+    }
+
     private static let downsampleCache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
         // JULY 2, 2026 (v2 — the 1969MB lesson): the cache is budgeted in
@@ -43,7 +67,20 @@ struct PotionShopImageLoader {
         // no cost accounting, and full-res pass-throughs pinned hundreds
         // of 12MB bitmaps → ~2GB. Never cache without a byte budget.)
         c.countLimit = 500
-        c.totalCostLimit = 120 * 1024 * 1024
+        // JULY 6, 2026 (v6 — the "why is it hitching all of a sudden"
+        // lesson): 120MB was right-sized for the game of July 2, but the
+        // working set OUTGREW it — 24-character cast, tallHat-scale art,
+        // animation-frame wardrobes, banner set, Ednar's 7 poses. Once the
+        // live set exceeds the budget, NSCache THRASHES: prewarming one
+        // wardrobe evicts another, and the evicted art re-decodes on the
+        // main thread mid-animation (the brew/shake/banner hitches). The
+        // pre-July-5 system never hitched only because it kept EVERYTHING
+        // decoded forever — that's the 2.8GB catastrophe; don't go back.
+        // 320MB fits the full live working set with queue headroom, stays
+        // far under the 900MB watchdog line, and remains a hard bound.
+        // RULE: if hitches return as art grows, re-measure the working set
+        // and raise this — do NOT add more prewarms into a full cache.
+        c.totalCostLimit = 320 * 1024 * 1024
         return c
     }()
 
@@ -81,6 +118,48 @@ struct PotionShopImageLoader {
         if let cached = downsampleCache.object(forKey: cacheKey) {
             return cached
         }
+        // JULY 6, 2026 (memory v7): all misses decode inside the ONE lane.
+        return decodeQueue.sync {
+            // Double-check: a concurrent caller may have decoded this key
+            // while we waited our turn — dedupe instead of decoding twice.
+            if let cached = downsampleCache.object(forKey: cacheKey) {
+                return cached
+            }
+            return decodeLocked(name: name, cacheKey: cacheKey, pixelSize: pixelSize)
+        }
+    }
+
+    /// The actual decode. MUST only ever run on decodeQueue (stats +
+    /// single-decoder guarantee both rely on it).
+    private static func decodeLocked(name: String, cacheKey: NSString, pixelSize: CGFloat) -> UIImage? {
+        // ─── JULY 6, 2026 (memory v8 — THE LEDGER'S VERDICT) ───
+        // The ledger proved it: full-res fallback = 0, yet 60 at-size
+        // decodes footprinted ~2.8GB (~48MB each = a full-canvas decode).
+        // preparingThumbnail returns the small image but ALSO deposits the
+        // SOURCE's full-resolution decode in Apple's named-image cache as
+        // a side effect. Cure: for any asset that exists as a FILE in the
+        // bundle, decode with ImageIO straight from disk —
+        // CGImageSourceCreateThumbnailAtIndex never touches UIImage's
+        // named cache, so there is NOTHING to deposit. Catalog-only assets
+        // still take the preparingThumbnail path below (ledger's "at-size"
+        // count tracks them; if that count is high during a spike, those
+        // assets need moving out of the catalog).
+        if let filePath = Bundle.main.path(forResource: name, ofType: "png"),
+           let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: filePath) as CFURL, nil) {
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceShouldCacheImmediately: true,
+                kCGImageSourceThumbnailMaxPixelSize: Int(pixelSize)
+            ]
+            if let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) {
+                let image = UIImage(cgImage: cg)
+                statImageIODecodes += 1
+                let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
+                downsampleCache.setObject(image, forKey: cacheKey, cost: cost)
+                return image
+            }
+        }
         guard let base = UIImage(named: name) else { return nil }
         let srcPixW = base.size.width * base.scale
         let srcPixH = base.size.height * base.scale
@@ -95,6 +174,7 @@ struct PotionShopImageLoader {
         if ratio >= 1.0 && maxSide <= 512 {
             // Small enough to keep as-is (≤512px longest side ≈ ≤1MB).
             image = base
+            statPassThroughs += 1
         } else if let thumb = base.preparingThumbnail(of: target) {
             // JULY 5, 2026 (memory v5 — the "2819MB on Xcode-attached runs"
             // fix): preparingThumbnail decodes DIRECTLY at the target size
@@ -107,6 +187,7 @@ struct PotionShopImageLoader {
             // to ~2.8GB and our purge couldn't touch it (Apple's cache, not
             // ours). Decoding at size fixes it at the source, on every run.
             image = thumb
+            statAtSizeDecodes += 1
         } else {
             // Fallback (thumbnailing can fail for exotic sources): redraw
             // into an independent bitmap at the capped size — costs one
@@ -117,6 +198,9 @@ struct PotionShopImageLoader {
             image = UIGraphicsImageRenderer(size: target, format: fmt).image { _ in
                 base.draw(in: CGRect(origin: .zero, size: target))
             }
+            statFallbackDecodes += 1
+            statFallbackFullResMB += Int(srcPixW * srcPixH * 4 / 1_048_576)
+            print("⚠️ PS image: FULL-RES fallback decode for '\(name)' (\(Int(srcPixW))×\(Int(srcPixH)))")
         }
         let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
         downsampleCache.setObject(image, forKey: cacheKey, cost: cost)

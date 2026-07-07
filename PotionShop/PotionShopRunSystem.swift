@@ -200,27 +200,29 @@ struct PotionShopRunState: Codable {
 // these are obvious test placeholders so you can see the system working.
 
 enum PotionShopBoonPool {
+    // JULY 7, 2026: blurbs shortened to ONE short sentence each so cards
+    // never truncate on device. ✏️ These strings are YOURS — edit freely.
     // ═══ JULY 4, 2026: REBUILT STARTER POOL — modest by design. ═══
     // The old pool's stat piles (+2s everywhere) outgrew every threat
     // (§67.3 finding 1). These start small and creative; EDIT FREELY —
     // each row is one card: (name, blurb, emoji, effect).
     static let all: [PotionShopBoon] = [
-        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade one die — you pick which",
+        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die — your pick",
                        emoji: "⬆️", effect: .dieUpgrade),
-        PotionShopBoon(name: "Mended Spirit", blurb: "RELIC: fully restore composure at the end of each day",
+        PotionShopBoon(name: "Mended Spirit", blurb: "Relic: full heal at day's end",
                        emoji: "💖", effect: .relicHealAtDayEnd),
-        PotionShopBoon(name: "Warded Morning", blurb: "RELIC: start each day with 5 shield",
+        PotionShopBoon(name: "Warded Morning", blurb: "Relic: +5 shield every morning",
                        emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
         // JULY 5, 2026 (boon audit): the three "add a die" cards were DEAD
         // under type-draw dealing — die count doesn't change what's dealt,
         // and a fresh basic die could even DILUTE an upgraded lane. Replaced
         // with type-wide +1s (half the old §pre-67 values; verified consumed
         // by the brew math). ✏️ EDIT FREELY — these are your cards.
-        PotionShopBoon(name: "Potent Brew", blurb: "+1 to ALL potency dice",
+        PotionShopBoon(name: "Potent Brew", blurb: "+1 to all potency dice",
                        emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
-        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to ALL heal dice",
+        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to all heal dice",
                        emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
-        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to ALL stability dice (bigger fire refills)",
+        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to all stability dice",
                        emoji: "🔥", effect: .typeWideBonus(type: .stability, amount: 1)),
     ]
 

@@ -95,6 +95,13 @@ struct PotionShopDebugMenu: View {
                             .monospacedDigit()
                             .foregroundColor(.secondary)
                     }
+                    // JULY 6, 2026 (memory v7): the decode ledger. If the
+                    // footprint ever spikes again, screenshot THIS line —
+                    // "full-res fallback" is the expensive path and its
+                    // count/MB names the culprit with data, not guesses.
+                    Text(PotionShopImageLoader.decodeStatsText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                     Button {
                         PotionShopImageLoader.purgeDownsampleCache()
                     } label: {

@@ -633,6 +633,40 @@ struct PotionShopEdnarView: View {
         // JULY 5, 2026 (fade fix v2): the breath needs no onAppear kick —
         // the phaseAnimator on the art cycles on its own. Only the reaction
         // pop remains event-driven.
+        // JULY 6, 2026 (brew-lag fix): PRE-WARM Ednar's entire pose wardrobe
+        // the moment he appears, on a background thread. A brew swaps through
+        // 3–4 poses (heal → brew → defend → idle, each a full 1536×1024
+        // canvas) — any pose not yet cached was being decoded ON THE MAIN
+        // THREAD mid-animation, hitching the whole brew choreography. After
+        // this, every pose is already sitting in the budgeted cache before
+        // the first BREW tap. displaySize mirrors the render call above
+        // EXACTLY so the cache keys match. Loader is thread-safe.
+        .onAppear {
+            let warmSize = max(PotionShopSceneLayout.portraitDiameter,
+                               PotionShopSceneLayout.portraitDiameter * 1.5
+                               * PotionShopLayoutConfig.shared.customerSceneBaseScale
+                               * ednarArtScale * ednarArtHeight)
+            let poses = ["ps_ednar_idle", "ps_ednar_idle_50",
+                         "ps_ednar_brew", "ps_ednar_brew2", "ps_ednar_brew_50",
+                         "ps_ednar_heal", "ps_ednar_defend"]
+            // JULY 6, 2026 (part 3): the BANNER wardrobe too — the banner is
+            // only mounted while open, so its own onAppear fires too late
+            // (the hitch IS the first open). Warmed here because Ednar's
+            // view is always mounted. Sizes mirror the banner's exact keys.
+            let bottleSize = PotionShopLayoutConfig.shared.bannerBottleSize
+            let bannerSet = ["potion_bottle_outline", "potion_bottle_damage",
+                             "potion_bottle_atk", "hp_damage"]
+            let screenMax = max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
+            DispatchQueue.global(qos: .utility).async {
+                for name in poses {
+                    _ = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: warmSize)
+                }
+                for name in bannerSet {
+                    _ = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: bottleSize)
+                }
+                _ = PotionShopImageLoader.loadDisplayImage(named: "banner_border", displaySize: screenMax)
+            }
+        }
         .onChange(of: expressionAssetName) { _, _ in
             triggerEdnarPop()
         }
@@ -717,6 +751,33 @@ struct PotionShopCustomerAnimatedArt: View {
         }
         .onChange(of: isAttacking) { _, nowAttacking in
             attackStartedAt = nowAttacking ? Date() : nil
+        }
+        // JULY 6, 2026 (brew-lag fix, part 2 — customer shakes): PRE-WARM
+        // this customer's whole frame wardrobe (attack + boil, full
+        // 1024×1536 canvases) on a background thread. A customer's FIRST
+        // attack of the session was decoding its attack frames ON THE MAIN
+        // THREAD mid-shake — the same hitch Ednar's poses had. displaySize
+        // mirrors frameImage EXACTLY so cache keys match. Re-warms when a
+        // NEW customer takes over this slot (views get reused as the line
+        // advances, so onAppear alone would miss handovers).
+        .onAppear { prewarmFrames() }
+        .onChange(of: char.id) { _, _ in prewarmFrames() }
+    }
+
+    private func prewarmFrames() {
+        let warmSize = size * 1.5
+        let atkPrefix = attackPrefix
+        let idlePrefix = boilPrefix
+        let atkCount = PotionShopCustomerAnimAssets.frameCount(prefix: atkPrefix)
+        let boilCount = PotionShopCustomerAnimAssets.frameCount(prefix: idlePrefix)
+        guard atkCount > 0 || boilCount > 0 else { return }
+        DispatchQueue.global(qos: .utility).async {
+            for f in 0..<atkCount {
+                _ = PotionShopImageLoader.loadDisplayImage(named: "\(atkPrefix)\(f + 1)", displaySize: warmSize)
+            }
+            for f in 0..<boilCount {
+                _ = PotionShopImageLoader.loadDisplayImage(named: "\(idlePrefix)\(f + 1)", displaySize: warmSize)
+            }
         }
     }
 
@@ -1400,11 +1461,11 @@ struct PotionShopCustomerInSceneView: View {
                     // value instead of HP when customer is attacking Ednar.
                     if takingDamage, let brewDmg = gs.brewDamageBadges[customer.id], brewDmg > 0 {
                         Text("-\(brewDmg)")
-                            .font(Font.gameScore(size: 18 * scale))
+                            .font(Font.gameScore(size: 32 * scale))   // JULY 6: USER FONT — 32, do not revert
                             .foregroundColor(.white)
                     } else if isAttackingEdnar {
                         Text("\(attack)")
-                            .font(Font.gameScore(size: 18 * scale))
+                            .font(Font.gameScore(size: 32 * scale))   // JULY 6: USER FONT — 32, do not revert
                             .foregroundColor(.black)
                     } else {
                         PotionShopRollingHPText(

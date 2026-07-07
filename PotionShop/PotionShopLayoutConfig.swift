@@ -1744,11 +1744,11 @@ class PotionShopLayoutConfig {
         // JULY 6, 2026: seven new customers. Rooster/fishman/cyclops/wizzy
         // buckets set by the artist (July 6); the other three were thumbnail
         // guesses — adjust any of them freely after an in-game eyeball.
-        applyGuideCharacter(id: "gmarker_advisor",  height: .tall,       width: .medium)
-        applyGuideCharacter(id: "gmarker_rooster",  height: .tallHat,    width: .medium)
+        applyGuideCharacter(id: "gmarker_advisor",  height: .tallHat,       width: .medium)
+        applyGuideCharacter(id: "gmarker_rooster",  height: .tall,    width: .medium)
         applyGuideCharacter(id: "gmarker_fairy",    height: .floater,    width: .skinny)
         applyGuideCharacter(id: "gmarker_fishman",  height: .tallHat,    width: .medium)
-        applyGuideCharacter(id: "gmarker_birdyo",   height: .short,      width: .skinny)
+        applyGuideCharacter(id: "gmarker_birdyo",   height: .medium,      width: .medium)
         applyGuideCharacter(id: "gmarker_cyclops",  height: .tallHat,    width: .wide)
         applyGuideCharacter(id: "gmarker_wizzy",    height: .superShort, width: .medium)
 

@@ -768,10 +768,13 @@ class PotionShopGameState {
             if PotionShopData.isLastDay(dayId) {
                 phase = .runWon
                 PotionShopSave.deleteSave()
-            } else if boonFrequency == .everyDay {
-                offerBoons(thenAdvanceToDay: true)
             } else {
-                phase = .dayWon
+                // JULY 7, 2026: DAY-END BOON FOR BOTH FREQUENCIES. Under
+                // .everyRound the night round's boundary previously fell
+                // through to .dayWon with NO menu — "every round" was really
+                // 3 boons/day and never one at day end. Both cases now offer;
+                // chooseBoon/skipBoon route to .dayWon via boonLeadsToDay.
+                offerBoons(thenAdvanceToDay: true)
             }
         } else {
             // Mid-day round boundary. Offer a boon if frequency is everyRound.
@@ -817,6 +820,30 @@ class PotionShopGameState {
             }
         }
         guard appliedAny else { return }   // all faces maxed — keep the pick
+        run.pendingDieUpgrades -= 1
+        PotionShopSave.save(gs: self)
+    }
+
+    /// JULY 7, 2026 — VALUE-TARGETED UPGRADE (new picker UI). The player
+    /// picks WHICH FACE VALUE to raise: "upgrade a 1" bumps ONE face equal
+    /// to 1 up to 2, "upgrade a 2" bumps one 2 up to 3 — always +1 to a
+    /// single face (per die). Applies to EVERY die of the lane (July-5
+    /// whole-lane rule), so the lane stays identical. Faces cap at 6.
+    /// Consumes one pending upgrade. The old floor/ceiling method above is
+    /// kept for compatibility; floor/ceiling are just the lowest/highest
+    /// choices in this scheme.
+    func applyDieUpgrade(type: PotionShopDieType, bumpingFace value: Int) {
+        guard run.pendingDieUpgrades > 0, value < 6 else { return }
+        var appliedAny = false
+        for idx in run.deck.indices where run.deck[idx].type == type {
+            var f = run.deck[idx].effectiveFaces.sorted()
+            if let i = f.firstIndex(of: value) {
+                f[i] += 1
+                run.deck[idx].customFaces = f.sorted()
+                appliedAny = true
+            }
+        }
+        guard appliedAny else { return }   // no face of that value — keep the pick
         run.pendingDieUpgrades -= 1
         PotionShopSave.save(gs: self)
     }
