@@ -503,6 +503,10 @@ class PotionShopGameState {
     /// Spawn customers and deal a hand. Called at the start of each round
     /// and any time the user resets.
     func startRound() {
+        // JULY 11, 2026: a real round always exits the H×W test round —
+        // without this the test flag lingered forever and "Next page"
+        // could replace a LIVE round's customers.
+        isLayoutTestRound = false
         // ─── Flex day (Day 3+) path ─────────────────────────────────
         if isFlexDay {
             // Lazily generate the random rounds the first time we enter
@@ -992,6 +996,87 @@ class PotionShopGameState {
         inspectedId = nil
     }
 
+    // ═══ JULY 11, 2026: 🧪 H×W LAYOUT TEST ROUND — FULLY DELETABLE ═════
+    // A gallery round for tuning master bucket values: one representative
+    // character per distinct (height × width) bucket combo in the roster,
+    // shown 3 at a time (pages). Nothing attacks, expires, or dies; the
+    // run/save is untouched. Start it while ALREADY IN a standing
+    // (feet-anchor) round — it replaces the current customers in place.
+    // TO DELETE LATER: remove this block + the two buttons in the debug
+    // menu's Layout Tools section. Nothing else references it.
+    var isLayoutTestRound = false
+    var layoutTestPage = 0
+    var layoutTestReps: [String] = []
+
+    func startLayoutTestRound() {
+        let cfg = PotionShopLayoutConfig.shared
+        var seen = Set<String>()
+        var reps: [(key: String, sortKey: String)] = []
+        // JULY 11, 2026 fix: gmarker only — the dict still holds the
+        // retired named cast as dormant data, and untagged "ardo"
+        // (alphabetically first, defaulting to medium·medium) was
+        // hijacking the medium·medium representative slot.
+        for key in PotionShopData.characters.keys.sorted()
+        where key.hasPrefix("gmarker_") {
+            let cs = cfg.characterScale(for: key)
+            let combo = "\(cs.heightBucket)·\(cs.widthBucket)"
+            if !seen.contains(combo) {
+                seen.insert(combo)
+                reps.append((key, combo))
+            }
+        }
+        layoutTestReps = reps.sorted { $0.sortKey < $1.sortKey }.map { $0.key }
+        layoutTestPage = 0
+        isLayoutTestRound = true
+        applyLayoutTestPage()
+    }
+
+    func layoutTestNextPage() {
+        guard isLayoutTestRound, !layoutTestReps.isEmpty else { return }
+        // JULY 11, 2026: unbounded — each full cycle through the pages
+        // shifts the window by one, so every combo ROTATES through every
+        // slot over successive cycles (was: fixed chunks, each combo
+        // stuck in the same slot forever).
+        layoutTestPage += 1
+        applyLayoutTestPage()
+    }
+
+    private func applyLayoutTestPage() {
+        let n = layoutTestReps.count
+        let cycle = max(1, (n + 2) / 3)
+        let rotation = n == 0 ? 0 : (layoutTestPage / cycle) % n
+        let start = n == 0 ? 0 : (((layoutTestPage % cycle) * 3) + rotation) % n
+        var keys: [String] = []
+        for i in 0..<min(3, n) {
+            keys.append(layoutTestReps[(start + i) % n])
+        }
+        guard !keys.isEmpty else { return }
+        placements.removeAll()
+        // JULY 11, 2026 fix: a lingering inspectedId pointing at the OLD
+        // customers (fresh UUIDs below) blanked the profile row — the
+        // buttons hide while inspecting, and the dangling inspect strip
+        // never rendered. Clear it on every page swap.
+        inspectedId = nil
+        customers = keys.map { key in
+            let char = PotionShopData.character(key)
+            return PotionShopCustomer(
+                id: UUID(),
+                charKey: key,
+                hp: 999,
+                maxHp: 999,
+                patience: 99,
+                maxPatience: 99,
+                status: .waiting,
+                activeAttack: 0,
+                waitingAttack: 0,
+                expireDamage: 0,
+                chosenOrderPhrase: char?.orderPhrases.randomElement() ?? char?.orderDialogue ?? "",
+                chosenTraitName: ""
+            )
+        }
+        queue = customers.map { $0.id }
+    }
+
     // MARK: - Dice placement
 
     func selectHand(_ idx: Int) {
@@ -1070,6 +1155,15 @@ class PotionShopGameState {
         }
         if nonFreePlacementCount >= focus {
             // At cap - return die to hand
+            returnDraggedDie()
+            return
+        }
+        // JULY 11, 2026 (BUG FIX): the DRAG path was missing the heal
+        // gate that placeDie (the tap path) has had since July 4 — HEAL
+        // is once per turn; a second heal die can't join while one is on
+        // the board. Dragging could bypass the rule; now both paths agree.
+        if die.type == .heal,
+           placements.values.contains(where: { $0.type == .heal }) {
             returnDraggedDie()
             return
         }
@@ -1612,32 +1706,28 @@ class PotionShopGameState {
         settledDiceIds.removeAll()
         diceToPopIds.removeAll()
 
-        // ═══ JULY 4, 2026: TYPE-DRAW DEALING (per the agreed design) ═══
-        // Each roll deals 5 dice whose TYPES are drawn fresh from the run's
-        // full type set — "there are x types; 5 appear each roll":
-        //   • Day 1: 5 types exist → all five appear every roll.
-        //   • Day 2+ (magic unlocked): 6 types → 5 of the 6 each roll, so
-        //     the mirror die shows up in most hands, guaranteed variety.
-        // Each dealt die is a REAL deck die of that type (random among its
-        // lane), so per-die upgrades (customFaces) and boon bonuses ride
-        // along. Fewer than 5 types would pad with random deck dice.
-        // (The old finite bag/discard cycle is bypassed; fields remain.)
+        // ═══ JULY 11, 2026: TRUE BAG DRAW (supersedes July-4 type-draw) ═══
+        // The deck IS the bag: every turn draws 5 random dice from it
+        // WITHOUT replacement — "you have a bag of x dice, you draw 5/x
+        // each turn." Doubles and gaps are the point: with 3 potency dice
+        // you'll see potency-heavy hands; some hands have no heal. Deck
+        // composition finally matters — every added die (Focus-Free picks)
+        // genuinely enriches the bag, and lane counts shape your draws.
+        //   • The mirror die is simply IN the bag from Day 2 (≈5/9 of
+        //     hands) — no longer guaranteed every hand.
+        //   • JULY 4 rule kept: once the mirror has been USED this round,
+        //     it sits out of the bag until next round.
+        //   • Hand is sorted by type so duplicates sit together in the
+        //     tray. ✏️ Delete the .sorted line for raw draw order.
+        // (The old finite bag/discard cycle stays bypassed; fields remain.)
         ensureRunDeck()
-        var lanePicks: [PotionShopBagDie] = []
-        // JULY 4 (evening 2): once the mirror die has been USED this round
-        // (placed in a resolved brew), its lane sits out until next round.
-        var typePool = Set(run.deck.map { $0.type })
-        if magicUsedThisRound { typePool.remove(.magic) }
-        let allTypes = Array(typePool).shuffled()
-        for t in allTypes.prefix(5) {
-            if let die = run.deck.filter({ $0.type == t }).randomElement() {
-                lanePicks.append(die)
+        var bag = run.deck
+        if magicUsedThisRound { bag.removeAll { $0.type == .magic } }
+        let typeOrder = PotionShopDieType.allCases
+        let drawn = Array(bag.shuffled().prefix(5))
+            .sorted { a, b in
+                (typeOrder.firstIndex(of: a.type) ?? 0) < (typeOrder.firstIndex(of: b.type) ?? 0)
             }
-        }
-        while lanePicks.count < 5, let extra = run.deck.randomElement() {
-            lanePicks.append(extra)
-        }
-        let drawn = lanePicks
 
         // JULY 10, 2026 (PLAYTEST V1): remember which drawn bag dice are
         // FOCUS-FREE so the flag can ride onto the hand dice below.

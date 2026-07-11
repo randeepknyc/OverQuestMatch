@@ -86,6 +86,11 @@ struct PotionShopDebugMenu: View {
                 // number Xcode's memory gauge shows. Healthy ≈ 170–400MB;
                 // the watchdog purges + banners past 900MB on its own.
                 Section("Memory") {
+                    // JULY 11, 2026: instrumentation retired at the user's
+                    // request — the 2.8GB mystery is solved (§72) and only
+                    // the headline footprint remains. The fix itself (the
+                    // budgeted loader) lives in PotionShopImageLoader and
+                    // is NOT affected by this cleanup.
                     HStack {
                         Image(systemName: "memorychip")
                             .foregroundColor(PotionShopMemoryWatchdog.shared.footprintMB > 700 ? .red : .green)
@@ -94,66 +99,6 @@ struct PotionShopDebugMenu: View {
                         Text("\(PotionShopMemoryWatchdog.shared.footprintMB) MB")
                             .monospacedDigit()
                             .foregroundColor(.secondary)
-                    }
-                    // JULY 6, 2026 (memory v7): the decode ledger. If the
-                    // footprint ever spikes again, screenshot THIS line —
-                    // "full-res fallback" is the expensive path and its
-                    // count/MB names the culprit with data, not guesses.
-                    Text(PotionShopImageLoader.decodeStatsText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026 (case reopened): the footprint split
-                    // into VM buckets — live / compressed / reusable /
-                    // headroom. If the footprint is big, THIS line says
-                    // whether it's real (live/compressed hold it) or
-                    // bookkeeping (reusable holds it, headroom is huge).
-                    Text(PotionShopMemoryWatchdog.shared.vmBreakdownText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026: the two discriminators. Line 1 —
-                    // what full-res pinning WOULD cost (≈ live figure =
-                    // hidden-cache pinning confirmed, offenders named).
-                    // Line 2 — loader outputs still alive (≈ live figure =
-                    // something retains our images; family names who).
-                    Text(PotionShopImageLoader.exposureText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text(PotionShopImageLoader.livenessCensusText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026: the launch curve — footprint per
-                    // second for the first minute. On a BAD (2800) launch
-                    // this line alone says whether it inflated instantly
-                    // or ramped.
-                    Text(PotionShopMemoryWatchdog.shared.launchCurveText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026: the layer audit — names the view
-                    // whose backing stores hold the missing gigabytes.
-                    Text(PotionShopMemoryWatchdog.shared.layerAuditText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026: the decode-storm profiler. at-size
-                    // ~30/second means some view re-decodes every frame —
-                    // this line names it.
-                    Text(PotionShopImageLoader.decodeStormText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    // JULY 10, 2026: what the splash/title/map art costs
-                    // if it all decodes — the prime balloon suspect.
-                    Text(PotionShopMemoryWatchdog.shared.titleFlowText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Button {
-                        PotionShopMemoryWatchdog.shared.layerAuditText =
-                            PotionShopMemoryWatchdog.runLayerAudit()
-                    } label: {
-                        Label("Audit layers now", systemImage: "square.3.layers.3d")
-                    }
-                    Button {
-                        PotionShopImageLoader.purgeDownsampleCache()
-                    } label: {
-                        Label("Purge image caches now", systemImage: "trash")
                     }
                 }
 
@@ -906,205 +851,22 @@ struct PotionShopDebugMenu: View {
         ednarBubbleX: \(cfg.ednarBubbleX)
         ednarBubbleY: \(cfg.ednarBubbleY)
         bgTestOpacity: \(cfg.bgTestOpacity)
-        slot1Opacity: \(cfg.slot1Opacity)
-        slot2Opacity: \(cfg.slot2Opacity)
         
-        ───────────────────────────────────────────────────────────────
-        🧍 CUSTOMER SCENE PORTRAITS (per-character scaling)
-        ───────────────────────────────────────────────────────────────
-        mildred_width: \(cfg.characterScale(for: "mildred").width)
-        mildred_height: \(cfg.characterScale(for: "mildred").height)
-        mildred_x: \(cfg.characterScale(for: "mildred").x)
-        mildred_y: \(cfg.characterScale(for: "mildred").y)
-        mildred_waiting_width: \(cfg.characterScale(for: "mildred").waitingWidth)
-        mildred_waiting_height: \(cfg.characterScale(for: "mildred").waitingHeight)
-        mildred_waiting_x: \(cfg.characterScale(for: "mildred").waitingX)
-        mildred_waiting_y: \(cfg.characterScale(for: "mildred").waitingY)
-        mildred_waiting2_width: \(cfg.characterScale(for: "mildred").waiting2Width)
-        mildred_waiting2_height: \(cfg.characterScale(for: "mildred").waiting2Height)
-        mildred_waiting2_x: \(cfg.characterScale(for: "mildred").waiting2X)
-        mildred_waiting2_y: \(cfg.characterScale(for: "mildred").waiting2Y)
-        
-        tomik_width: \(cfg.characterScale(for: "tomik").width)
-        tomik_height: \(cfg.characterScale(for: "tomik").height)
-        tomik_x: \(cfg.characterScale(for: "tomik").x)
-        tomik_y: \(cfg.characterScale(for: "tomik").y)
-        tomik_waiting_width: \(cfg.characterScale(for: "tomik").waitingWidth)
-        tomik_waiting_height: \(cfg.characterScale(for: "tomik").waitingHeight)
-        tomik_waiting_x: \(cfg.characterScale(for: "tomik").waitingX)
-        tomik_waiting_y: \(cfg.characterScale(for: "tomik").waitingY)
-        tomik_waiting2_width: \(cfg.characterScale(for: "tomik").waiting2Width)
-        tomik_waiting2_height: \(cfg.characterScale(for: "tomik").waiting2Height)
-        tomik_waiting2_x: \(cfg.characterScale(for: "tomik").waiting2X)
-        tomik_waiting2_y: \(cfg.characterScale(for: "tomik").waiting2Y)
-        
-        greta_width: \(cfg.characterScale(for: "greta").width)
-        greta_height: \(cfg.characterScale(for: "greta").height)
-        greta_x: \(cfg.characterScale(for: "greta").x)
-        greta_y: \(cfg.characterScale(for: "greta").y)
-        greta_waiting_width: \(cfg.characterScale(for: "greta").waitingWidth)
-        greta_waiting_height: \(cfg.characterScale(for: "greta").waitingHeight)
-        greta_waiting_x: \(cfg.characterScale(for: "greta").waitingX)
-        greta_waiting_y: \(cfg.characterScale(for: "greta").waitingY)
-        greta_waiting2_width: \(cfg.characterScale(for: "greta").waiting2Width)
-        greta_waiting2_height: \(cfg.characterScale(for: "greta").waiting2Height)
-        greta_waiting2_x: \(cfg.characterScale(for: "greta").waiting2X)
-        greta_waiting2_y: \(cfg.characterScale(for: "greta").waiting2Y)
-        
-        sister_halla_width: \(cfg.characterScale(for: "sister_halla").width)
-        sister_halla_height: \(cfg.characterScale(for: "sister_halla").height)
-        sister_halla_x: \(cfg.characterScale(for: "sister_halla").x)
-        sister_halla_y: \(cfg.characterScale(for: "sister_halla").y)
-        sister_halla_waiting_width: \(cfg.characterScale(for: "sister_halla").waitingWidth)
-        sister_halla_waiting_height: \(cfg.characterScale(for: "sister_halla").waitingHeight)
-        sister_halla_waiting_x: \(cfg.characterScale(for: "sister_halla").waitingX)
-        sister_halla_waiting_y: \(cfg.characterScale(for: "sister_halla").waitingY)
-        sister_halla_waiting2_width: \(cfg.characterScale(for: "sister_halla").waiting2Width)
-        sister_halla_waiting2_height: \(cfg.characterScale(for: "sister_halla").waiting2Height)
-        sister_halla_waiting2_x: \(cfg.characterScale(for: "sister_halla").waiting2X)
-        sister_halla_waiting2_y: \(cfg.characterScale(for: "sister_halla").waiting2Y)
-        
-        wendelina_width: \(cfg.characterScale(for: "wendelina").width)
-        wendelina_height: \(cfg.characterScale(for: "wendelina").height)
-        wendelina_x: \(cfg.characterScale(for: "wendelina").x)
-        wendelina_y: \(cfg.characterScale(for: "wendelina").y)
-        wendelina_waiting_width: \(cfg.characterScale(for: "wendelina").waitingWidth)
-        wendelina_waiting_height: \(cfg.characterScale(for: "wendelina").waitingHeight)
-        wendelina_waiting_x: \(cfg.characterScale(for: "wendelina").waitingX)
-        wendelina_waiting_y: \(cfg.characterScale(for: "wendelina").waitingY)
-        wendelina_waiting2_width: \(cfg.characterScale(for: "wendelina").waiting2Width)
-        wendelina_waiting2_height: \(cfg.characterScale(for: "wendelina").waiting2Height)
-        wendelina_waiting2_x: \(cfg.characterScale(for: "wendelina").waiting2X)
-        wendelina_waiting2_y: \(cfg.characterScale(for: "wendelina").waiting2Y)
-        
-        grimdrek_width: \(cfg.characterScale(for: "grimdrek").width)
-        grimdrek_height: \(cfg.characterScale(for: "grimdrek").height)
-        grimdrek_x: \(cfg.characterScale(for: "grimdrek").x)
-        grimdrek_y: \(cfg.characterScale(for: "grimdrek").y)
-        grimdrek_waiting_width: \(cfg.characterScale(for: "grimdrek").waitingWidth)
-        grimdrek_waiting_height: \(cfg.characterScale(for: "grimdrek").waitingHeight)
-        grimdrek_waiting_x: \(cfg.characterScale(for: "grimdrek").waitingX)
-        grimdrek_waiting_y: \(cfg.characterScale(for: "grimdrek").waitingY)
-        grimdrek_waiting2_width: \(cfg.characterScale(for: "grimdrek").waiting2Width)
-        grimdrek_waiting2_height: \(cfg.characterScale(for: "grimdrek").waiting2Height)
-        grimdrek_waiting2_x: \(cfg.characterScale(for: "grimdrek").waiting2X)
-        grimdrek_waiting2_y: \(cfg.characterScale(for: "grimdrek").waiting2Y)
-        
-        hexa_mott_width: \(cfg.characterScale(for: "hexa_mott").width)
-        hexa_mott_height: \(cfg.characterScale(for: "hexa_mott").height)
-        hexa_mott_x: \(cfg.characterScale(for: "hexa_mott").x)
-        hexa_mott_y: \(cfg.characterScale(for: "hexa_mott").y)
-        hexa_mott_waiting_width: \(cfg.characterScale(for: "hexa_mott").waitingWidth)
-        hexa_mott_waiting_height: \(cfg.characterScale(for: "hexa_mott").waitingHeight)
-        hexa_mott_waiting_x: \(cfg.characterScale(for: "hexa_mott").waitingX)
-        hexa_mott_waiting_y: \(cfg.characterScale(for: "hexa_mott").waitingY)
-        hexa_mott_waiting2_width: \(cfg.characterScale(for: "hexa_mott").waiting2Width)
-        hexa_mott_waiting2_height: \(cfg.characterScale(for: "hexa_mott").waiting2Height)
-        hexa_mott_waiting2_x: \(cfg.characterScale(for: "hexa_mott").waiting2X)
-        hexa_mott_waiting2_y: \(cfg.characterScale(for: "hexa_mott").waiting2Y)
-        
-        pemberton_width: \(cfg.characterScale(for: "pemberton").width)
-        pemberton_height: \(cfg.characterScale(for: "pemberton").height)
-        pemberton_x: \(cfg.characterScale(for: "pemberton").x)
-        pemberton_y: \(cfg.characterScale(for: "pemberton").y)
-        pemberton_waiting_width: \(cfg.characterScale(for: "pemberton").waitingWidth)
-        pemberton_waiting_height: \(cfg.characterScale(for: "pemberton").waitingHeight)
-        pemberton_waiting_x: \(cfg.characterScale(for: "pemberton").waitingX)
-        pemberton_waiting_y: \(cfg.characterScale(for: "pemberton").waitingY)
-        pemberton_waiting2_width: \(cfg.characterScale(for: "pemberton").waiting2Width)
-        pemberton_waiting2_height: \(cfg.characterScale(for: "pemberton").waiting2Height)
-        pemberton_waiting2_x: \(cfg.characterScale(for: "pemberton").waiting2X)
-        pemberton_waiting2_y: \(cfg.characterScale(for: "pemberton").waiting2Y)
-        
-        ardo_width: \(cfg.characterScale(for: "ardo").width)
-        ardo_height: \(cfg.characterScale(for: "ardo").height)
-        ardo_x: \(cfg.characterScale(for: "ardo").x)
-        ardo_y: \(cfg.characterScale(for: "ardo").y)
-        ardo_waiting_width: \(cfg.characterScale(for: "ardo").waitingWidth)
-        ardo_waiting_height: \(cfg.characterScale(for: "ardo").waitingHeight)
-        ardo_waiting_x: \(cfg.characterScale(for: "ardo").waitingX)
-        ardo_waiting_y: \(cfg.characterScale(for: "ardo").waitingY)
-        ardo_waiting2_width: \(cfg.characterScale(for: "ardo").waiting2Width)
-        ardo_waiting2_height: \(cfg.characterScale(for: "ardo").waiting2Height)
-        ardo_waiting2_x: \(cfg.characterScale(for: "ardo").waiting2X)
-        ardo_waiting2_y: \(cfg.characterScale(for: "ardo").waiting2Y)
-        
-        bram_width: \(cfg.characterScale(for: "bram").width)
-        bram_height: \(cfg.characterScale(for: "bram").height)
-        bram_x: \(cfg.characterScale(for: "bram").x)
-        bram_y: \(cfg.characterScale(for: "bram").y)
-        bram_waiting_width: \(cfg.characterScale(for: "bram").waitingWidth)
-        bram_waiting_height: \(cfg.characterScale(for: "bram").waitingHeight)
-        bram_waiting_x: \(cfg.characterScale(for: "bram").waitingX)
-        bram_waiting_y: \(cfg.characterScale(for: "bram").waitingY)
-        bram_waiting2_width: \(cfg.characterScale(for: "bram").waiting2Width)
-        bram_waiting2_height: \(cfg.characterScale(for: "bram").waiting2Height)
-        bram_waiting2_x: \(cfg.characterScale(for: "bram").waiting2X)
-        bram_waiting2_y: \(cfg.characterScale(for: "bram").waiting2Y)
-        
-        crispin_width: \(cfg.characterScale(for: "crispin").width)
-        crispin_height: \(cfg.characterScale(for: "crispin").height)
-        crispin_x: \(cfg.characterScale(for: "crispin").x)
-        crispin_y: \(cfg.characterScale(for: "crispin").y)
-        crispin_waiting_width: \(cfg.characterScale(for: "crispin").waitingWidth)
-        crispin_waiting_height: \(cfg.characterScale(for: "crispin").waitingHeight)
-        crispin_waiting_x: \(cfg.characterScale(for: "crispin").waitingX)
-        crispin_waiting_y: \(cfg.characterScale(for: "crispin").waitingY)
-        crispin_waiting2_width: \(cfg.characterScale(for: "crispin").waiting2Width)
-        crispin_waiting2_height: \(cfg.characterScale(for: "crispin").waiting2Height)
-        crispin_waiting2_x: \(cfg.characterScale(for: "crispin").waiting2X)
-        crispin_waiting2_y: \(cfg.characterScale(for: "crispin").waiting2Y)
-        
-        ironhilde_width: \(cfg.characterScale(for: "ironhilde").width)
-        ironhilde_height: \(cfg.characterScale(for: "ironhilde").height)
-        ironhilde_x: \(cfg.characterScale(for: "ironhilde").x)
-        ironhilde_y: \(cfg.characterScale(for: "ironhilde").y)
-        ironhilde_waiting_width: \(cfg.characterScale(for: "ironhilde").waitingWidth)
-        ironhilde_waiting_height: \(cfg.characterScale(for: "ironhilde").waitingHeight)
-        ironhilde_waiting_x: \(cfg.characterScale(for: "ironhilde").waitingX)
-        ironhilde_waiting_y: \(cfg.characterScale(for: "ironhilde").waitingY)
-        ironhilde_waiting2_width: \(cfg.characterScale(for: "ironhilde").waiting2Width)
-        ironhilde_waiting2_height: \(cfg.characterScale(for: "ironhilde").waiting2Height)
-        ironhilde_waiting2_x: \(cfg.characterScale(for: "ironhilde").waiting2X)
-        ironhilde_waiting2_y: \(cfg.characterScale(for: "ironhilde").waiting2Y)
-        
-        carmilla_width: \(cfg.characterScale(for: "carmilla").width)
-        carmilla_height: \(cfg.characterScale(for: "carmilla").height)
-        carmilla_x: \(cfg.characterScale(for: "carmilla").x)
-        carmilla_y: \(cfg.characterScale(for: "carmilla").y)
-        carmilla_waiting_width: \(cfg.characterScale(for: "carmilla").waitingWidth)
-        carmilla_waiting_height: \(cfg.characterScale(for: "carmilla").waitingHeight)
-        carmilla_waiting_x: \(cfg.characterScale(for: "carmilla").waitingX)
-        carmilla_waiting_y: \(cfg.characterScale(for: "carmilla").waitingY)
-        carmilla_waiting2_width: \(cfg.characterScale(for: "carmilla").waiting2Width)
-        carmilla_waiting2_height: \(cfg.characterScale(for: "carmilla").waiting2Height)
-        carmilla_waiting2_x: \(cfg.characterScale(for: "carmilla").waiting2X)
-        carmilla_waiting2_y: \(cfg.characterScale(for: "carmilla").waiting2Y)
-        
-        royal_envoy_width: \(cfg.characterScale(for: "royal_envoy").width)
-        royal_envoy_height: \(cfg.characterScale(for: "royal_envoy").height)
-        royal_envoy_x: \(cfg.characterScale(for: "royal_envoy").x)
-        royal_envoy_y: \(cfg.characterScale(for: "royal_envoy").y)
-        royal_envoy_waiting_width: \(cfg.characterScale(for: "royal_envoy").waitingWidth)
-        royal_envoy_waiting_height: \(cfg.characterScale(for: "royal_envoy").waitingHeight)
-        royal_envoy_waiting_x: \(cfg.characterScale(for: "royal_envoy").waitingX)
-        royal_envoy_waiting_y: \(cfg.characterScale(for: "royal_envoy").waitingY)
-        royal_envoy_waiting2_width: \(cfg.characterScale(for: "royal_envoy").waiting2Width)
-        royal_envoy_waiting2_height: \(cfg.characterScale(for: "royal_envoy").waiting2Height)
-        royal_envoy_waiting2_x: \(cfg.characterScale(for: "royal_envoy").waiting2X)
-        royal_envoy_waiting2_y: \(cfg.characterScale(for: "royal_envoy").waiting2Y)
-
         """
+        // JULY 11, 2026: the retired named cast's export block (mildred …
+        // royal_envoy) was removed — the dynamic gmarker section below
+        // covers the whole live roster.
 
         // ─── DAY 3 GUIDE CHARACTERS (May 30, 2026) ─────────────────
         // Only include guides whose positions/scales have been tuned away
         // from defaults — keeps the export concise.
         text += "\n───────────────────────────────────────────────────────────────\n"
-        text += "🧍 DAY 3 GUIDE CHARACTERS (positions + scales)\n"
+        text += "🧍 CHARACTERS (positions + scales)\n"
         text += "───────────────────────────────────────────────────────────────\n"
-        let guideIds = ["guide_octo","guide_girl","guide_skull","guide_slug","guide_fishguy",
-                        "guide_bull","guide_traveler","guide_demon","guide_frog","guide_pig",
-                        "guide_faun","guide_fox","guide_woman"]
+        // JULY 11, 2026: guide_* roster removed — enumerate the gmarker
+        // set DYNAMICALLY so this list can never go stale again.
+        let guideIds = PotionShopData.characters.keys
+            .filter { $0.hasPrefix("gmarker_") }.sorted()
         for id in guideIds {
             let cs = cfg.characterScale(for: id)
             // Skip if every position field is still default (untouched chars
@@ -1254,6 +1016,7 @@ struct PotionShopDebugMenu: View {
         ───────────────────────────────────────────────────────────────
         👣 FEET-ANCHOR MODE (May 30, 2026 — Day 3 R2 only)
         ───────────────────────────────────────────────────────────────
+        feetPlantOnArt: \(cfg.feetPlantOnArt)
         autoLayoutFeetYActive: \(cfg.autoLayoutFeetYActive)
         autoLayoutFeetYWaiting1: \(cfg.autoLayoutFeetYWaiting1)
         autoLayoutFeetYWaiting2: \(cfg.autoLayoutFeetYWaiting2)
@@ -1304,21 +1067,10 @@ struct PotionShopDebugMenu: View {
         // ─── PER-CHARACTER BADGE OVERRIDES ────────────────────────
         // Includes Day 3 guide_* chars (added May 30, 2026) so per-character
         // tuning of Day 3 characters can be exported and baked in.
-        let allCharacterIds = [
-            // Day 1/2 legacy
-            "mildred","tomik","greta","sister_halla","wendelina","grimdrek",
-            "hexa_mott","pemberton","ardo","bram","crispin","ironhilde",
-            "carmilla","royal_envoy",
-            // Day 3 guides
-            "guide_octo","guide_girl","guide_skull","guide_slug","guide_fishguy",
-            "guide_bull","guide_traveler","guide_demon","guide_frog","guide_pig",
-            "guide_faun","guide_fox","guide_woman",
-            // gmarker characters
-            "gmarker_octo","gmarker_girl","gmarker_skull","gmarker_slug",
-            "gmarker_fishguy","gmarker_bull","gmarker_frog","gmarker_fox",
-            "gmarker_traveler","gmarker_demon","gmarker_goatguy","gmarker_oldlady",
-            "gmarker_bird","gmarker_dino","gmarker_puck"
-        ]
+        // JULY 11, 2026: retired named cast removed; the list is now the
+        // dynamic gmarker roster only.
+        let allCharacterIds =
+            PotionShopData.characters.keys.filter { $0.hasPrefix("gmarker_") }.sorted()
         let charsWithOverrides = allCharacterIds.filter { key in
             let cs = cfg.characterScale(for: key)
             return cs.hpBadgeSizeOverride != nil ||

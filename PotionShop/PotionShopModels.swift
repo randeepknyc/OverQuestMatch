@@ -374,6 +374,94 @@ struct PotionShopImageLoader {
     /// 1. Try scenePortrait asset
     /// 2. If not found, try portrait asset (profile closeup)
     /// 3. If not found, show emoji
+    // ═══ JULY 11, 2026: FEET-PLANT AUTO-INSET ══════════════════════════
+    // Measures how far a character's VISIBLE feet sit above the bottom of
+    // its 2:3 render frame — transparent art padding + scaledToFit
+    // letterboxing combined — as a FRACTION of the frame height. The scene
+    // view adds this to the feet-anchor Y so visible feet (not the frame)
+    // land on the floor line. Measured ONCE per asset (240px decode via
+    // the budgeted loader, ~350KB transient scan buffer), then cached.
+    private static var feetInsetCache: [String: CGFloat] = [:]
+
+    static func sceneFeetInsetFraction(sceneAsset: String) -> CGFloat {
+        if let cached = feetInsetCache[sceneAsset] { return cached }
+        var result: CGFloat = 0
+        if let ui = loadDisplayImage(named: sceneAsset, displaySize: 240),
+           let cg = ui.cgImage, cg.width > 0, cg.height > 0 {
+            let w = cg.width, h = cg.height
+            if let ctx = CGContext(data: nil, width: w, height: h,
+                                   bitsPerComponent: 8, bytesPerRow: w * 4,
+                                   space: CGColorSpaceCreateDeviceRGB(),
+                                   bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+                // Flip so memory row 0 = TOP of the image (UIKit alignment),
+                // making "the last rows" unambiguously the feet end.
+                ctx.translateBy(x: 0, y: CGFloat(h))
+                ctx.scaleBy(x: 1, y: -1)
+                ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+                if let data = ctx.data {
+                    let buf = data.bindMemory(to: UInt8.self, capacity: w * h * 4)
+                    var padRows = 0
+                    outer: for row in stride(from: h - 1, through: 0, by: -1) {
+                        let base = row * w * 4
+                        for col in 0..<w where buf[base + col * 4 + 3] > 25 {
+                            break outer
+                        }
+                        padRows += 1
+                    }
+                    let padFrac = CGFloat(padRows) / CGFloat(h)
+                    // scaledToFit letterboxing inside the 2:3 frame:
+                    let imgAspect = CGFloat(w) / CGFloat(h)
+                    let frameAspect: CGFloat = 2.0 / 3.0
+                    let fittedHFrac: CGFloat = imgAspect > frameAspect ? (frameAspect / imgAspect) : 1.0
+                    let letterboxBottom = (1 - fittedHFrac) / 2
+                    result = letterboxBottom + padFrac * fittedHFrac
+                }
+            }
+        }
+        feetInsetCache[sceneAsset] = result
+        return result
+    }
+
+    // ═══ JULY 11, 2026 (rev 3): TEMPLATE-CONSTANT PLANTING ═════════════
+    // CHARACTER_TEMPLATE_v2: canvas 1024×1536, FLOOR at y=1500, universal
+    // LEFT-foot-tip anchor at (300, 1500). The canvas is exactly 2:3 (the
+    // render frame's aspect), so conforming exports never letterbox, and
+    // the planting inset is a KNOWN CONSTANT: (1536−1500)/1536 of the
+    // canvas height. Planting POSITIONS the canvas — it never crops —
+    // so art drawn BELOW the floor line (hems, the screen-right foot in
+    // perspective) renders below the line exactly as drawn, and floaters
+    // keep their drawn hover. NOTHING is ever cut off.
+    static let templateFloorInsetFraction: CGFloat = 36.0 / 1536.0
+
+    static func templateFeetInsetFraction() -> CGFloat {
+        templateFloorInsetFraction
+    }
+
+    /// EXPORT-CONFORMANCE audit. For each character:
+    ///   • aspectOK — the export is exactly the 2:3 template canvas
+    ///     (a trimmed/cropped export breaks constant planting: FIX BY
+    ///     RE-EXPORTING the full canvas, not with nudges).
+    ///   • overhangPct — how far the art's lowest opaque pixel sits BELOW
+    ///     the template floor line, as % of canvas height. Positive =
+    ///     hems / perspective foot (fine, informational). Large negative
+    ///     = the art stops well above the line (floaters: expected).
+    static func feetInsetAudit() -> [(key: String, aspectOK: Bool, overhangPct: CGFloat)] {
+        PotionShopData.characters
+            .map { (key, char) -> (String, Bool, CGFloat) in
+                var aspectOK = true
+                if let ui = loadDisplayImage(named: char.scenePortrait, displaySize: 240) {
+                    let a = ui.size.width / max(ui.size.height, 1)
+                    aspectOK = abs(a - 2.0 / 3.0) < 0.01
+                }
+                let measured = sceneFeetInsetFraction(sceneAsset: char.scenePortrait)
+                // measured = padding below lowest pixel; overhang = how far
+                // that pixel sits below the floor line.
+                let overhang = (templateFloorInsetFraction - measured) * 100
+                return (key, aspectOK, overhang)
+            }
+            .sorted { (!$0.1 ? 999 : abs($0.2)) > (!$1.1 ? 999 : abs($1.2)) }
+    }
+
     @ViewBuilder
     static func sceneImageOrFallback(sceneAsset: String, profileAsset: String, fallbackEmoji: String, size: CGFloat) -> some View {
         // Scene portraits are drawn at 2:3 aspect, so the bounding box is
@@ -611,7 +699,12 @@ struct PotionShopConfig {
     /// JUNE 28, 2026: set to 0 — the canonical model has NO automatic
     /// composure refills (recovery comes from heal dice / the Patch-Up boon).
     /// Live dial: raise it (e.g. 5) if the early game proves too punishing.
-    static let composureRestBetweenRounds = 0
+    // JULY 11, 2026 (BAG-DRAW REBALANCE): 0 → 5. Under true bag draw,
+    // heal droughts (37% of 5-of-8 hands have no heal die) made Day 1 a
+    // coin flip; between-round rest restores the sustain the guaranteed
+    // heal used to provide. Lab-measured with the full rebalance: Day-1
+    // deaths 66% → 0%.
+    static let composureRestBetweenRounds = 5
     /// +N composure recovered between days. JUNE 28, 2026: set to 0 (was a
     /// near-full refill). Raise it to soften day-to-day difficulty if needed.
     static let composureRestBetweenDays = 0
@@ -645,7 +738,12 @@ struct PotionShopConfig {
     // it goes"). Lab-measured: 17% of strong runs reach Day 30, median
     // death Day 14. FALLBACK if playtesters can't crack week 2: 1.08
     // (≈3× completions, one number).
-    static let hpGrowthPerDay: Double = 1.09
+    // JULY 11, 2026 (BAG-DRAW REBALANCE): 1.09 → 1.1025. Bag draw +
+    // day-1 fixes (rest 5, warm-up grace) made runs stronger; 1.1025
+    // re-lands the target: 22% of strong sim runs reach Day 30, Day-1
+    // deaths 0%, median death D14, boss dips p50 = 7/6/23/7. The dial is
+    // STEEP here: 1.10 = 36% · 1.1025 = 22% · 1.105 = 10% · 1.11 = 1%.
+    static let hpGrowthPerDay: Double = 1.1025
     static let hpBucketStep = 2
     static func hpDayMultiplier(forDay day: Int) -> Double {
         let d = max(1, min(30, day))   // full 30-day campaign curve
@@ -668,7 +766,11 @@ struct PotionShopConfig {
     static func attackDayMultiplier(forDay day: Int) -> Double {
         let d = max(1, day)
         let dayInWeek = (d - 1) % 7          // 0…6, resets every week
-        return pow(attackWeekGrowth, Double(dayInWeek))
+        // JULY 11, 2026 (BAG-DRAW REBALANCE): WARM-UP GRACE — attacks are
+        // scaled ×0.5 on Day 1 and ×0.75 on Day 2, then full strength.
+        // Part of the day-1 lethality fix under bag draw (with rest 5).
+        let grace: Double = day == 1 ? 0.5 : day == 2 ? 0.75 : 1.0
+        return pow(attackWeekGrowth, Double(dayInWeek)) * grace
     }
 
     // ─── BOSS = THE EVENING ROUND, CONCENTRATED (July 2, 2026) ───────────

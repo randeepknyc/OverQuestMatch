@@ -141,78 +141,10 @@ class PotionShopLayoutConfig {
     // All characters drawn on 1536×1024 canvas at their natural relative sizes
     // Default scale 1.0×1.0 for ALL positions = no distortion, images appear as drawn
     // Use layout editor sliders to fine-tune individual positions per character
-    var perCharacterScales: [String: CharacterScale] = [
-        "mildred": CharacterScale(
-            width: 1.0, height: 1.0, x: -5.6737542152404785, y: 7.801413536071777,
-            waitingWidth: 0.9880319200456142, waitingHeight: 0.9880319200456142, waitingX: 0.0, waitingY: -9.219861030578613,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "tomik": CharacterScale(
-            width: 1.0, height: 1.0, x: -34.7517728805542, y: 10.283684730529785,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: -7.446813583374023,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "greta": CharacterScale(
-            width: 0.8563829660415649, height: 0.8563829660415649, x: -46.45390510559082, y: 19.5035457611084,
-            waitingWidth: 0.8882978670299053, waitingHeight: 0.8882978670299053, waitingX: 0.0, waitingY: 3.9007186889648438,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "sister_halla": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "wendelina": CharacterScale(
-            width: 1.0, height: 1.0, x: -43.6170220375061, y: 3.9007186889648438,
-            waitingWidth: 1.003989353775978, waitingHeight: 1.003989353775978, waitingX: -18.794333934783936, waitingY: -9.929072856903076,
-            waiting2Width: 0.9960106536746025, waiting2Height: 0.9960106536746025, waiting2X: -4.964542388916016, waiting2Y: -6.0283660888671875
-        ),
-        "grimdrek": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "hexa_mott": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "pemberton": CharacterScale(
-            width: 0.8324467986822128, height: 0.8324467986822128, x: -39.361703395843506, y: 24.11346435546875,
-            waitingWidth: 0.8643616996705532, waitingHeight: 0.8643616996705532, waitingX: -23.049640655517578, waitingY: 5.3191423416137695,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "ardo": CharacterScale(
-            width: 0.9840425699949265, height: 0.9840425699949265, x: -39.716315269470215, y: 10.283684730529785,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: -9.574460983276367, waitingY: -5.3191423416137695,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: -5.319154262542725, waiting2Y: -5.319154262542725
-        ),
-        "bram": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "crispin": CharacterScale(
-            width: 1.0319149382412434, height: 1.0319149382412434, x: -31.914889812469482, y: 0.0,
-            waitingWidth: 1.0279255546629429, waitingHeight: 1.0279255546629429, waitingX: -21.631205081939697, waitingY: -12.765955924987793,
-            waiting2Width: 1.0279255546629429, waiting2Height: 1.0279255546629429, waiting2X: -18.794333934783936, waiting2Y: -15.957450866699219
-        ),
-        "ironhilde": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "carmilla": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        ),
-        "royal_envoy": CharacterScale(
-            width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-            waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-            waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-        )
-    ]
+    // JULY 11, 2026: the named-cast seed entries (mildred … royal_envoy)
+    // were deleted — that cast is retired; gmarker characters get their
+    // entries at runtime via applyGuideCharacter + the baked blocks.
+    var perCharacterScales: [String: CharacterScale] = [:]
     
     // MARK: - Per-Permutation Queue Positioning (NEW - Prevents Overlaps)
     //
@@ -687,11 +619,18 @@ class PotionShopLayoutConfig {
     // multipliers below let you size all chars of a bucket consistently.
 
     /// Floor Y-fraction for active slot (queue[0]). Bottom of image lands here.
-    var autoLayoutFeetYActive: Double = 0.8407908082008362  // BAKED JULY 11, 2026 (user-tuned, batch 5)
+    // JULY 11, 2026: FEET PLANTING — when true, each character's measured
+    // art inset (transparent padding + letterbox) is added to the feet-
+    // anchor Y so VISIBLE feet land on the floor line, not the frame edge.
+    // Toggle lives in the debug menu → Layout Tools, for instant compare.
+    // NOTE: cell-Y bakes that were compensating for art padding may now
+    // overshoot — re-true them in the 🧪 H×W test round.
+    var feetPlantOnArt: Bool = true
+    var autoLayoutFeetYActive: Double = 0.8297092318534851  // BAKED JULY 11, 2026 (user-tuned, batch 11)
     /// Floor Y-fraction for waiting1 slot (queue[1]).
-    var autoLayoutFeetYWaiting1: Double = 0.7768936157226562  // BAKED JULY 11, 2026 (user-tuned, batch 4)
+    var autoLayoutFeetYWaiting1: Double = 0.7414326220750809  // BAKED JULY 11, 2026 (user-tuned, batch 10)
     /// Floor Y-fraction for waiting2 slot (queue[2]).
-    var autoLayoutFeetYWaiting2: Double = 0.8780567944049835
+    var autoLayoutFeetYWaiting2: Double = 0.873624175786972  // BAKED JULY 11, 2026 (user-tuned, batch 8)
 
     /// Per-height-bucket scale multiplier (multiplied with per-slot scale).
     /// Only applied in feet-anchor mode.
@@ -714,12 +653,12 @@ class PotionShopLayoutConfig {
 
     var autoLayoutActiveWidth: Double = 1.0
     var autoLayoutActiveHeight: Double = 1.0
-    var autoLayoutActiveX: Double = -4.6103715896606445  // BAKED JULY 10, 2026 (user-tuned, batch 2)
+    var autoLayoutActiveX: Double = -19.503986835479736  // BAKED JULY 11, 2026 (user-tuned, batch 10)
     var autoLayoutActiveY: Double = 24.468159675598145  // BAKED JULY 11, 2026 (user-tuned, batch 4)
 
     var autoLayoutWaiting1Width: Double = 1.0
     var autoLayoutWaiting1Height: Double = 1.0
-    var autoLayoutWaiting1X: Double = -16.759586334228516  // BAKED JULY 10, 2026 (user-tuned, batch 2)
+    var autoLayoutWaiting1X: Double = -15.341150760650635  // BAKED JULY 11, 2026 (user-tuned, batch 9)
     var autoLayoutWaiting1Y: Double = 51.06348991394043  // BAKED JULY 11, 2026 (user-tuned, batch 5)
 
     var autoLayoutWaiting2Width: Double = 1.0
@@ -773,9 +712,9 @@ class PotionShopLayoutConfig {
             BucketCell(size: nil, x: -34.68085527420044, y: nil),
         // BAKED JULY 7, 2026 (user-tuned, batch 1): floaters in the waiting rows
         BucketCellKey(slot: 1, heightRaw: "floater", widthRaw: "skinny"):
-            BucketCell(size: 0.9132978826761244, x: 18.439722061157227, y: -1.7730474472045898),   // BAKED JULY 11, 2026 (batch 4)
+            BucketCell(size: 0.8937057286500931, x: -22.34041690826416, y: -14.539003372192383),   // BAKED JULY 11, 2026 (batch 11)
         BucketCellKey(slot: 2, heightRaw: "floater", widthRaw: "skinny"):
-            BucketCell(size: 0.8554964989423752, x: nil, y: 10.63830852508545)
+            BucketCell(size: 0.8554964989423752, x: 2.127671241760254, y: 3.191494941711426)   // BAKED JULY 11, 2026 (batch 11)
     ]
 
     func bucketCellKey(slot: Int, height: CustomerHeightBucket, width: CustomerWidthBucket) -> BucketCellKey {
@@ -1279,9 +1218,9 @@ class PotionShopLayoutConfig {
     /// Fixed X-fraction of scene width for each slot in feet-anchor mode.
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
-    var autoLayoutSlotXFractionActive: Double = 0.5257446679472924  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-    var autoLayoutSlotXFractionWaiting1: Double = 0.6776063299179077  // BAKED JULY 11, 2026 (user-tuned, batch 5)
-    var autoLayoutSlotXFractionWaiting2: Double = 0.8349910718202591  // BAKED JULY 11, 2026 (user-tuned, batch 3)
+    var autoLayoutSlotXFractionActive: Double = 0.5596719467639923  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+    var autoLayoutSlotXFractionWaiting1: Double = 0.7530740374326705  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+    var autoLayoutSlotXFractionWaiting2: Double = 0.8397250872850418  // BAKED JULY 11, 2026 (user-tuned, batch 10)
 
     // MARK: - Layout Editor state (May 25, 2026)
     //
@@ -1291,7 +1230,7 @@ class PotionShopLayoutConfig {
     // making the per-character override sliders jump to that customer.
 
     /// Which character the per-character override sliders are bound to.
-    var selectedCharacterId: String = "mildred"
+    var selectedCharacterId: String = "gmarker_octo"   // JULY 11: was mildred (retired)
 
     /// Which queue slot (0=active, 1=waiting1, 2=waiting2) the tapped char
     /// is currently in. nil = no char selected → editor shows full grid view.
@@ -1377,345 +1316,47 @@ class PotionShopLayoutConfig {
 
     private init() {
         // MARK: - Queue Permutations (Custom 3-Character Spacing)
-        // Evening round arrangements to prevent character overlaps
+        // JULY 11, 2026: the named-cast Evening arrangements (ardo /
+        // wendelina / crispin / hexa_mott / ironhilde trios) were deleted
+        // with the retired cast. The mechanism (addPermutation) remains
+        // for future use.
         
-        // Arrangement 1: ardo → wendelina → crispin
-        addPermutation(
-            for: ["ardo", "wendelina", "crispin"],
-            xPositions: [0.47, 0.59, 0.87],
-            yPositions: [0.48, 0.56, 0.57]
-        )
 
-        // Arrangement 2: crispin → ardo → wendelina
-        addPermutation(
-            for: ["crispin", "ardo", "wendelina"],
-            xPositions: [0.49, 0.74, 0.88],
-            yPositions: [0.50, 0.55, 0.55]
-        )
 
-        // Arrangement 3: crispin → wendelina → ardo
-        addPermutation(
-            for: ["crispin", "wendelina", "ardo"],
-            xPositions: [0.48, 0.70, 0.88],
-            yPositions: [0.50, 0.55, 0.55]
-        )
 
-        // Arrangement 4: wendelina → ardo → crispin
-        addPermutation(
-            for: ["wendelina", "ardo", "crispin"],
-            xPositions: [0.44, 0.66, 0.87],
-            yPositions: [0.50, 0.55, 0.57]
-        )
 
-        // Arrangement 5: wendelina → crispin → ardo
-        addPermutation(
-            for: ["wendelina", "crispin", "ardo"],
-            xPositions: [0.44, 0.66, 0.88],
-            yPositions: [0.50, 0.56, 0.55]
-        )
 
-        // ── Day 2 Evening (hexa_mott + ironhilde + ardo) arrangements ──
 
-        // Arrangement 6: hexa_mott → ironhilde → ardo
-        addPermutation(
-            for: ["hexa_mott", "ironhilde", "ardo"],
-            xPositions: [0.48, 0.70, 0.88],
-            yPositions: [0.48, 0.55, 0.55]
-        )
 
-        // Arrangement 7: ironhilde → ardo → hexa_mott
-        addPermutation(
-            for: ["ironhilde", "ardo", "hexa_mott"],
-            xPositions: [0.48, 0.72, 0.88],
-            yPositions: [0.48, 0.55, 0.55]
-        )
 
-        // Arrangement 8: ironhilde → hexa_mott → ardo
-        addPermutation(
-            for: ["ironhilde", "hexa_mott", "ardo"],
-            xPositions: [0.48, 0.75, 0.88],
-            yPositions: [0.48, 0.55, 0.55]
-        )
 
-        applyDefaultHeightBuckets()
-    }
-
-    private func applyDefaultHeightBuckets() {
-        let defaults: [(String, CustomerHeightBucket)] = [
-            ("mildred", .medium),
-            ("tomik", .tall),
-            ("pemberton", .short),
-            ("greta", .short),
-            ("wendelina", .medium),
-            ("crispin", .medium),
-            ("ardo", .short),
-            ("grimdrek", .tall),
-        ]
-        for (key, bucket) in defaults {
-            var scale = perCharacterScales[key] ?? CharacterScale()
-            scale.heightBucket = bucket
-            perCharacterScales[key] = scale
-        }
+        // JULY 11, 2026: applyDefaultHeightBuckets() deleted — it tagged
+        // the retired named cast. It was also the caller of
+        // applyTunedCharacterScales(), so that call moves HERE: it applies
+        // the gmarker bucket tags AND every baked cell/badge/context value.
         applyTunedCharacterScales()
     }
+
 
     /// Seeds per-character scale values tuned through the layout editor.
     /// Updated May 24, 2026 from Copy Layout Values export (post body-follow fix).
     /// Called after bucket assignment so these survive a fresh launch.
     private func applyTunedCharacterScales() {
-        // mildred (updated June 24, 2026)
-        var mildred = perCharacterScales["mildred"] ?? CharacterScale()
-        mildred.x = -26.241135597229004
-        mildred.y = 4.609918594360352
-        mildred.waitingWidth = 0.9880319200456142
-        mildred.waitingHeight = 0.9880319200456142
-        mildred.waitingY = -9.219861030578613
-        mildred.hpBadgeSizeOverride = 54.82624113559723
-        mildred.hpBadgeOffsetXOverride = -64.99999165534973
-        mildred.hpBadgeOffsetYOverride = 10.904252529144287
-        mildred.attackBadgeOffsetXOverride = -61.17022633552551
-        mildred.attackBadgeOffsetYOverride = 53.98938059806824
-        mildred.waitingHpBadgeOffsetXOverride = -68.72339844703674
-        mildred.waitingAttackBadgeOffsetXOverride = -67.55320429801941
-        mildred.waitingAttackBadgeOffsetYOverride = 43.88299584388733
-        perCharacterScales["mildred"] = mildred
+        // ─── gmarker per-character tunings (BAKED JULY 11, 2026, batch 7) ──
+        // NOTE: a gmarker_slug waiting2 scale of 1.584 arrived in the
+        // batch-7 export but blew superShort up 58% in slot 2 — judged an
+        // accidental slider nudge and NOT baked. Re-tune deliberately if
+        // a bigger slot-2 slug was actually wanted.
+        var dinoScale = perCharacterScales["gmarker_dino"] ?? CharacterScale()
+        dinoScale.hpBadgeSizeOverride = 50.516698360443115
+        perCharacterScales["gmarker_dino"] = dinoScale
 
-        // tomik
-        var tomik = perCharacterScales["tomik"] ?? CharacterScale()
-        tomik.x = -34.7517728805542
-        tomik.y = 10.283684730529785
-        tomik.waitingY = -7.446813583374023
-        tomik.hpBadgeOffsetXOverride = -76.59577131271362
-        tomik.hpBadgeOffsetYOverride = 0.0
-        tomik.attackBadgeSizeOverride = 35.40070980787277
-        tomik.attackBadgeOffsetXOverride = -77.65957117080688
-        tomik.attackBadgeOffsetYOverride = 37.76596784591675
-        tomik.waitingHpBadgeSizeOverride = 54.10815745592117
-        tomik.waitingHpBadgeOffsetXOverride = -83.51066708564758
-        tomik.waitingHpBadgeOffsetYOverride = 1.8617033958435059
-        tomik.waitingAttackBadgeOffsetXOverride = -84.57444906234741
-        tomik.waitingAttackBadgeOffsetYOverride = 39.09575343132019
-        perCharacterScales["tomik"] = tomik
-
-        // greta
-        var greta = perCharacterScales["greta"] ?? CharacterScale()
-        greta.width = 0.8563829660415649
-        greta.height = 0.8563829660415649
-        greta.x = -24.822700023651123
-        greta.y = 19.5035457611084
-        greta.waitingWidth = 0.8882978670299053
-        greta.waitingHeight = 0.8882978670299053
-        greta.waitingY = 3.9007186889648438
-        greta.hpBadgeOffsetXOverride = -60.47873497009277
-        greta.hpBadgeOffsetYOverride = 67.81915426254272
-        greta.attackBadgeOffsetXOverride = -59.574490785598755
-        greta.attackBadgeOffsetYOverride = 95.21276950836182
-        greta.waitingHpBadgeOffsetXOverride = -38.1382942199707
-        greta.waitingHpBadgeOffsetYOverride = 55.05319833755493
-        greta.waitingAttackBadgeOffsetXOverride = -34.57449674606323
-        greta.waitingAttackBadgeOffsetYOverride = 89.6276593208313
-        perCharacterScales["greta"] = greta
-
-        // wendelina
-        var wendelina = perCharacterScales["wendelina"] ?? CharacterScale()
-        wendelina.x = -32.97872543334961
-        wendelina.y = 3.9007186889648438
-        wendelina.waitingWidth = 1.003989353775978
-        wendelina.waitingHeight = 1.003989353775978
-        wendelina.waitingX = -16.666674613952637
-        wendelina.waitingY = -9.929072856903076
-        wendelina.waiting2Width = 0.9960106536746025
-        wendelina.waiting2Height = 0.9960106536746025
-        wendelina.waiting2X = -4.964542388916016
-        wendelina.waiting2Y = -6.0283660888671875
-        wendelina.hpBadgeOffsetXOverride = -46.914875507354736
-        wendelina.hpBadgeOffsetYOverride = 22.606390714645386
-        wendelina.attackBadgeOffsetXOverride = -47.34043478965759
-        wendelina.attackBadgeOffsetYOverride = 57.4468195438385
-        wendelina.waitingHpBadgeSizeOverride = 50.83687901496887
-        wendelina.waitingHpBadgeOffsetXOverride = -35.21275520324707
-        wendelina.waitingHpBadgeOffsetYOverride = 10.90427041053772
-        wendelina.waitingAttackBadgeOffsetXOverride = -40.957456827163696
-        wendelina.waitingAttackBadgeOffsetYOverride = 43.351078033447266
-        perCharacterScales["wendelina"] = wendelina
-
-        // grimdrek
-        var grimdrek = perCharacterScales["grimdrek"] ?? CharacterScale()
-        grimdrek.x = -70.92198133468628
-        grimdrek.y = 9.219861030578613
-        grimdrek.hpBadgeOffsetXOverride = -89.89360928535461
-        grimdrek.attackBadgeOffsetXOverride = -87.23403811454773
-        grimdrek.attackBadgeOffsetYOverride = 51.063841581344604
-        perCharacterScales["grimdrek"] = grimdrek
-
-        // pemberton
-        var pemberton = perCharacterScales["pemberton"] ?? CharacterScale()
-        pemberton.width = 0.8324467986822128
-        pemberton.height = 0.8324467986822128
-        pemberton.x = -22.340428829193115
-        pemberton.y = 24.11346435546875
-        pemberton.waitingWidth = 0.8643616996705532
-        pemberton.waitingHeight = 0.8643616996705532
-        pemberton.waitingX = -23.049640655517578
-        pemberton.waitingY = 5.3191423416137695
-        pemberton.hpBadgeSizeOverride = 50.83688169717789
-        pemberton.hpBadgeOffsetXOverride = -73.24467301368713
-        pemberton.hpBadgeOffsetYOverride = 30.585122108459473
-        pemberton.attackBadgeOffsetXOverride = -65.95745086669922
-        pemberton.attackBadgeOffsetYOverride = 69.6808397769928
-        pemberton.waitingHpBadgeOffsetXOverride = -67.3936128616333
-        pemberton.waitingHpBadgeOffsetYOverride = 23.13830852508545
-        pemberton.waitingAttackBadgeOffsetXOverride = -63.8297975063324
-        pemberton.waitingAttackBadgeOffsetYOverride = 55.85104823112488
-        perCharacterScales["pemberton"] = pemberton
-
-        // ardo (waiting2 badge overrides added May 24, 2026)
-        var ardo = perCharacterScales["ardo"] ?? CharacterScale()
-        ardo.width = 0.9840425699949265
-        ardo.height = 0.9840425699949265
-        ardo.x = -40.42553901672363
-        ardo.y = 8.86523723602295
-        ardo.waitingX = -33.33332538604736
-        ardo.waitingY = -5.3191423416137695
-        ardo.waiting2X = 10.283684730529785
-        ardo.waiting2Y = -5.319154262542725
-        ardo.hpBadgeOffsetXOverride = -38.1382942199707
-        ardo.attackBadgeOffsetXOverride = -35.10639667510986
-        ardo.attackBadgeOffsetYOverride = 28.191500902175903
-        ardo.waitingHpBadgeOffsetXOverride = -30.691534280776978
-        ardo.waitingHpBadgeOffsetYOverride = -26.59572958946228
-        ardo.waitingAttackBadgeSizeOverride = 34.28368777036667
-        ardo.waitingAttackBadgeOffsetXOverride = -29.25533652305603
-        ardo.waitingAttackBadgeOffsetYOverride = 4.521292448043823
-        ardo.waiting2HpBadgeOffsetXOverride = -32.287269830703735
-        ardo.waiting2AttackBadgeOffsetXOverride = -35.63831448554993
-        ardo.waiting2AttackBadgeOffsetYOverride = 8.776617050170898
-        perCharacterScales["ardo"] = ardo
-
-        // bram
-        var bram = perCharacterScales["bram"] ?? CharacterScale()
-        bram.x = -36.8794322013855
-        bram.y = 6.382989883422852
-        bram.waitingX = -17.02127456665039
-        bram.hpBadgeSizeOverride = 47.863384783267975
-        bram.hpBadgeOffsetXOverride = -38.936179876327515
-        bram.hpBadgeOffsetYOverride = 1.3297855854034424
-        bram.attackBadgeOffsetXOverride = -50.00000596046448
-        bram.attackBadgeOffsetYOverride = 38.56383562088013
-        bram.waitingHpBadgeOffsetXOverride = -49.574482440948486
-        bram.waitingHpBadgeOffsetYOverride = 7.712763547897339
-        bram.waitingAttackBadgeOffsetYOverride = 41.22340679168701
-        perCharacterScales["bram"] = bram
-
-        // crispin
-        var crispin = perCharacterScales["crispin"] ?? CharacterScale()
-        crispin.width = 1.0319149382412434
-        crispin.height = 1.0319149382412434
-        crispin.x = -34.04254913330078
-        crispin.waitingWidth = 1.0279255546629429
-        crispin.waitingHeight = 1.0279255546629429
-        crispin.waitingX = -21.631205081939697
-        crispin.waitingY = -12.765955924987793
-        crispin.waiting2Width = 1.0279255546629429
-        crispin.waiting2Height = 1.0279255546629429
-        crispin.waiting2X = -16.666674613952637
-        crispin.waiting2Y = -16.312062740325928
-        crispin.hpBadgeSizeOverride = 54.82624113559723
-        crispin.hpBadgeOffsetXOverride = -68.19149851799011
-        crispin.hpBadgeOffsetYOverride = 4.521274566650391
-        crispin.attackBadgeOffsetXOverride = -61.702126264572144
-        crispin.attackBadgeOffsetYOverride = 38.82978558540344
-        crispin.waitingHpBadgeOffsetXOverride = -61.80850267410278
-        crispin.waitingHpBadgeOffsetYOverride = 5.053192377090454
-        crispin.waitingAttackBadgeOffsetXOverride = -58.510637283325195
-        crispin.waitingAttackBadgeOffsetYOverride = 41.755324602127075
-        perCharacterScales["crispin"] = crispin
-
-        // sister_halla (Day 2)
-        var sisterHalla = perCharacterScales["sister_halla"] ?? CharacterScale()
-        sisterHalla.x = -34.39716100692749
-        sisterHalla.y = 3.5460948944091797
-        sisterHalla.waitingY = -9.929072856903076
-        sisterHalla.hpBadgeSizeOverride = 49.480496644973755
-        sisterHalla.hpBadgeOffsetXOverride = -60.744667053222656
-        sisterHalla.hpBadgeOffsetYOverride = 24.202126264572144
-        sisterHalla.attackBadgeOffsetXOverride = -59.57447290420532
-        sisterHalla.attackBadgeOffsetYOverride = 59.57447290420532
-        sisterHalla.waitingHpBadgeOffsetXOverride = -62.87233829498291
-        sisterHalla.waitingAttackBadgeOffsetXOverride = -62.7659797668457
-        perCharacterScales["sister_halla"] = sisterHalla
-
-        // hexa_mott (Day 2)
-        var hexaMott = perCharacterScales["hexa_mott"] ?? CharacterScale()
-        hexaMott.x = -46.09929323196411
-        hexaMott.y = 5.3191423416137695
-        hexaMott.waitingX = -39.0070915222168
-        hexaMott.waitingY = -13.120567798614502
-        hexaMott.waiting2Y = -10.992908477783203
-        hexaMott.hpBadgeSizeOverride = 49.320921301841736
-        hexaMott.hpBadgeOffsetXOverride = -56.89948797225952
-        hexaMott.hpBadgeOffsetYOverride = -7.446804642677307
-        hexaMott.attackBadgeOffsetXOverride = -58.510637283325195
-        hexaMott.attackBadgeOffsetYOverride = 26.329797506332397
-        hexaMott.waitingHpBadgeOffsetXOverride = -59.559059143066406
-        hexaMott.waitingHpBadgeOffsetYOverride = -11.968079209327698
-        hexaMott.waitingAttackBadgeOffsetXOverride = -57.4468195438385
-        hexaMott.waitingAttackBadgeOffsetYOverride = 23.936176300048828
-        perCharacterScales["hexa_mott"] = hexaMott
-
-        // ironhilde (Day 2)
-        var ironhilde = perCharacterScales["ironhilde"] ?? CharacterScale()
-        ironhilde.width = 0.8962766006588936
-        ironhilde.height = 0.8962766006588936
-        ironhilde.x = -21.631205081939697
-        ironhilde.y = 18.179941177368164
-        ironhilde.waitingWidth = 0.8962766006588936
-        ironhilde.waitingHeight = 0.8962766006588936
-        ironhilde.waitingX = -10.638296604156494
-        ironhilde.waitingY = 0.0
-        ironhilde.waiting2Width = 0.94015958532691
-        ironhilde.waiting2Height = 0.94015958532691
-        ironhilde.waiting2X = -10.992908477783203
-        ironhilde.waiting2Y = -5.581486225128174
-        ironhilde.hpBadgeOffsetXOverride = -72.44680523872375
-        ironhilde.hpBadgeOffsetYOverride = -2.6595711708068848
-        ironhilde.attackBadgeOffsetXOverride = -65.95745086669922
-        ironhilde.waitingHpBadgeOffsetXOverride = -67.65956282615662
-        ironhilde.waitingHpBadgeOffsetYOverride = -3.9893656969070435
-        ironhilde.waitingAttackBadgeSizeOverride = 35.560282468795776
-        ironhilde.waitingAttackBadgeOffsetXOverride = -64.36171531677246
-        ironhilde.waitingAttackBadgeOffsetYOverride = 31.914907693862915
-        perCharacterScales["ironhilde"] = ironhilde
-
-        // carmilla (Day 2)
-        var carmilla = perCharacterScales["carmilla"] ?? CharacterScale()
-        carmilla.x = -28.368782997131348
-        carmilla.y = 6.382989883422852
-        carmilla.waitingX = -3.191494941711426
-        carmilla.waitingY = -6.3829779624938965
-        carmilla.hpBadgeOffsetXOverride = -73.51064085960388
-        carmilla.hpBadgeOffsetYOverride = 35.37234663963318
-        carmilla.attackBadgeOffsetXOverride = -73.9361822605133
-        carmilla.attackBadgeOffsetYOverride = 73.9361822605133
-        carmilla.waitingHpBadgeOffsetXOverride = -77.23402976989746
-        carmilla.waitingHpBadgeOffsetYOverride = 23.13830852508545
-        carmilla.waitingAttackBadgeOffsetXOverride = -76.59575343132019
-        carmilla.waitingAttackBadgeOffsetYOverride = 59.84044075012207
-        perCharacterScales["carmilla"] = carmilla
-
-        // royal_envoy (Day 2 boss — position tuned May 24, 2026)
-        var royalEnvoy = perCharacterScales["royal_envoy"] ?? CharacterScale()
-        royalEnvoy.x = -68.43972206115723
-        perCharacterScales["royal_envoy"] = royalEnvoy
-
-        // ─── DAY 3 GUIDE CHARACTERS (May 25, 2026) ───────────────────
-        // All 13 guide_* chars use the new template buckets. They share
-        // headAnchorX = 0.5 (centered) and bucket-specific headAnchorY.
-        // Width buckets are set explicitly per character for auto-layout.
-
-        applyGuideCharacter(id: "guide_octo",     height: .short,      width: .wide)
-        applyGuideCharacter(id: "guide_girl",     height: .medium,     width: .skinny)
-        applyGuideCharacter(id: "guide_skull",    height: .tall,       width: .skinny)
+        // JULY 11, 2026: the retired named cast's per-character tunings
+        // (mildred, tomik, greta, …) were deleted — the campaign is
+        // gmarker-only. ⚠️ The bake(...) / bakeCharacterContext(...) /
+        // badge calls below are the LIVE bucket-cell values — keep them.
+        // ─── CHARACTER BUCKET TAGS ────────────────────────────────────
+        // JULY 11, 2026: guide_* tags removed with the guide roster.
         // gmarker_* — same buckets as guide_*, used by Day 3 R3 + test-swap
         // (June 1, 2026). fishguy = .tallHat (template label SUPERTALL).
         // slug = .superShort (per user spec).
@@ -1734,16 +1375,6 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "gmarker_bird",     height: .medium,     width: .medium)
         applyGuideCharacter(id: "gmarker_dino",     height: .medium,     width: .medium)
         applyGuideCharacter(id: "gmarker_puck",     height: .superShort, width: .skinny)
-        applyGuideCharacter(id: "guide_slug",     height: .short,      width: .medium)
-        applyGuideCharacter(id: "guide_fishguy",  height: .tallHat,    width: .medium)
-        applyGuideCharacter(id: "guide_bull",     height: .tall,       width: .wide)
-        applyGuideCharacter(id: "guide_traveler", height: .medium,     width: .medium)
-        applyGuideCharacter(id: "guide_demon",    height: .floater,    width: .medium)
-        applyGuideCharacter(id: "guide_frog",     height: .medium,     width: .wide)
-        applyGuideCharacter(id: "guide_pig",      height: .medium,     width: .wide)
-        applyGuideCharacter(id: "guide_faun",     height: .medium,     width: .wide)
-        applyGuideCharacter(id: "guide_fox",      height: .tall,       width: .medium)
-        applyGuideCharacter(id: "guide_woman",    height: .medium,     width: .medium)
         applyGuideCharacter(id: "gmarker_duck",     height: .superShort, width: .skinny)
         applyGuideCharacter(id: "gmarker_vamp",     height: .short,      width: .medium)
         // JULY 6, 2026: seven new customers. Rooster/fishman/cyclops/wizzy
@@ -1758,84 +1389,64 @@ class PotionShopLayoutConfig {
         applyGuideCharacter(id: "gmarker_wizzy",    height: .superShort, width: .medium)
 
         // Day 3 Evening tuned positions (May 24, 2026)
-        var slug = perCharacterScales["guide_slug"] ?? CharacterScale()
-        slug.waitingY = 24.11346435546875
-        slug.waiting2X = -1.063835620880127
-        slug.waiting2Y = 20.212769508361816
-        perCharacterScales["guide_slug"] = slug
-
-        var fishguy = perCharacterScales["guide_fishguy"] ?? CharacterScale()
-        fishguy.width = 0.9242021180689335
-        fishguy.height = 0.9242021180689335
-        fishguy.x = 3.9006948471069336
-        fishguy.y = 8.156037330627441
-        fishguy.waitingX = 13.829803466796875
-        fishguy.waitingY = 10.283684730529785
-        fishguy.waiting2Width = 1.08737051486969
-        fishguy.waiting2Height = 1.0
-        fishguy.waiting2X = -15.60283899307251
-        fishguy.waiting2Y = -108.51063132286072
-        perCharacterScales["guide_fishguy"] = fishguy
-
-        var bull = perCharacterScales["guide_bull"] ?? CharacterScale()
-        bull.width = 0.992021270096302
-        bull.height = 0.992021270096302
-        bull.x = 7.8014373779296875
-        bull.y = 0.0
-        bull.waitingWidth = 1.2313830107450485
-        bull.waitingHeight = 1.2313830107450485
-        bull.waitingX = 17.02127456665039
-        bull.waitingY = -9.219849109649658
-        bull.waiting2Width = 1.203457459807396
-        bull.waiting2Height = 1.203457459807396
-        bull.waiting2X = 8.156037330627441
-        bull.waiting2Y = -1.063835620880127
-        perCharacterScales["guide_bull"] = bull
-
+        // JULY 11, 2026: guide_slug/fishguy/bull blocks deleted with the
+        // guide_* roster. The named-cast tunings below are still live.
         // ─── Per-cell overrides (June 2, 2026) ─────────────────────
         // 11 tuned (slot × height × width) cells for Day 3 R3 feet-anchor.
         // slot 0 = active, 1 = waiting1, 2 = waiting2.
-        bake(slot: 0, height: .medium,  width: .medium, size: 1.0391844183206558, x: -5.3191304206848145,  y: -12.411355972290039)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 0, height: .medium,  width: .skinny, size: 1.0512411206960677, x: -2.4822592735290527, y: -6.7375898361206055)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 0, height: .medium,  width: .wide,   size: 1.0045213103294373, x: -5.6737542152404785,  y: -4.255318641662598)
-        bake(slot: 0, height: .superShort, width: .medium, size: 0.941223394870758, x: 4.964542388916016,    y: -1.4184355735778809)
+        bake(slot: 0, height: .medium, width: .medium, size: 1.0331560164690017, x: -4.96450662612915, y: -9.219872951507568)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .medium, width: .skinny, size: 1.0723404258489608, x: -2.4822592735290527, y: -9.929084777832031)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .medium, width: .wide, size: 1.0331560671329498, x: -5.6737542152404785, y: -7.801413536071777)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .superShort, width: .medium, size: 0.941223394870758, x: 4.964542388916016, y: 9.219861030578613)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 0, height: .superShort, width: .skinny, size: 1.0180851131677626, x: 16.666674613952637, y: -3.5460948944091797)
-        bake(slot: 0, height: .tall,    width: .skinny, size: 1.0030142098665238, x: nil,                  y: -4.964542388916016)
-        bake(slot: 1, height: .medium,  width: .skinny, size: 0.9705674469470977, x: 13.120579719543457,   y: -9.574472904205322)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 1, height: .medium,  width: .medium, size: 0.9675532460212708, x: 15.602850914001465,   y: -20.92198133468628)  // BAKED JULY 11, 2026 (user-tuned, batch 5)
-        bake(slot: 0, height: .tall,    width: .medium, size: 1.0210993140935898, x: -13.120567798614502,  y: -6.7375898361206055)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 1, height: .superShort, width: .skinny, size: 0.8967198789119719, x: 24.468088150024414, y: -19.503533840179443)  // BAKED JULY 11, 2026 (user-tuned, batch 5)
-        bake(slot: 1, height: .floater, width: .medium, size: 0.9223404347896575, x: 16.312050819396973,   y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 5)
-        bake(slot: 2, height: .floater, width: .medium, size: 0.8359042942523955, x: nil,                  y: 19.148945808410645)  // BAKED JULY 11, 2026 (user-tuned, batch 5)
-        bake(slot: 1, height: .tall,    width: .medium, size: 0.9992021530866622, x: -6.3829779624938965,  y: -7.0922017097473145)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 2, height: .superShort, width: .skinny, size: 0.8570035487413405, x: 21.985816955566406, y: 8.86523723602295)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bake(slot: 2, height: .tall,    width: .medium, size: 0.9142730623483657, x: -6.0283660888671875,  y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 2, height: .medium,  width: .medium, size: 0.9368794679641723, x: nil,                  y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 2, height: .short,   width: .wide,   size: nil,                x: nil,                  y: 12.056732177734375)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 1, height: .medium,  width: .wide,   size: nil,                x: -13.475215435028076,  y: -7.446813583374023)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 1, height: .short,   width: .wide,   size: 0.869592222571373,  x: -0.7092118263244629,  y: 4.255318641662598)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
+        bake(slot: 0, height: .tall, width: .skinny, size: 1.0165780633687973, x: -11.347520351409912, y: -2.482283115386963)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .medium, width: .skinny, size: 1.0278369605541229, x: -17.730486392974854, y: -26.241135597229004)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .medium, width: .medium, size: 0.9178191840648651, x: -26.595735549926758, y: -8.510637283325195)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 0, height: .tall, width: .medium, size: 1.0060284107923507, x: -9.219861030578613, y: -7.446801662445068)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 1, height: .superShort, width: .skinny, size: 0.9464539408683776, x: -3.191494941711426, y: -9.219849109649658)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .floater, width: .medium, size: 0.9223404347896575, x: -20.567381381988525, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .floater, width: .medium, size: 0.8916667073965072, x: 26.241135597229004, y: 13.829803466796875)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 0, height: .floater, width: .medium, size: 1.0452127695083617, x: 2.482271194458008, y: 20.56736946105957)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bake(slot: 2, height: .superShort, width: .medium, size: 0.8374113440513611, x: 9.929084777832031, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bake(slot: 1, height: .tall, width: .medium, size: 0.9992021530866622, x: -36.170196533203125, y: -18.439722061157227)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 2, height: .superShort, width: .skinny, size: 0.8570035487413405, x: 20.921993255615234, y: -3.191494941711426)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .tall, width: .medium, size: 0.9504432708024979, x: 2.1276473999023438, y: -4.255330562591553)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 2, height: .medium, width: .medium, size: 0.9097518116235732, x: 6.382989883422852, y: -6.0283660888671875)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 2, height: .short, width: .wide, size: 0.8675532519817353, x: nil, y: -4.255318641662598)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bake(slot: 1, height: .medium, width: .wide, size: 0.9765957474708558, x: -24.11351203918457, y: -18.43973398208618)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .short, width: .wide, size: 0.890691527724266, x: 12.056756019592285, y: -2.836883068084717)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
-        bake(slot: 1, height: .tall,    width: .wide,   size: 0.9645390450954436, x: 4.255318641662598,    y: -6.0283660888671875)
-        bake(slot: 1, height: .superShort, width: .medium, size: nil,              x: 36.87942028045654,    y: 12.411332130432129)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 1, height: .tallHat, width: .medium, size: nil,                x: 16.666674613952637,   y: 8.156037330627441)
-        bake(slot: 2, height: .medium,  width: .wide,   size: nil,                x: -34.148937463760376,  y: nil)
-        bake(slot: 2, height: .medium,  width: .skinny, size: 0.8886525064706803, x: nil,                  y: 7.446813583374023)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bake(slot: 2, height: .tall,    width: .skinny, size: 0.8841312557458878, x: -7.446813583374023,   y: 3.5460948944091797)
-        bake(slot: 2, height: .tall,    width: .wide,   size: 0.9037234604358673, x: -13.120567798614502,  y: nil)
-        bake(slot: 2, height: .tallHat, width: .medium, size: nil,                x: nil,                  y: 7.801413536071777)
+        bake(slot: 1, height: .tall, width: .wide, size: 1.0172872573137284, x: -30.4964542388916, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .superShort, width: .medium, size: 0.8921985775232315, x: -9.556269645690918, y: -4.612767696380615)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .tallHat, width: .medium, size: 0.9781028479337692, x: -16.312038898468018, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .medium, width: .wide, size: 0.9730496764183043, x: -15.354609489440918, y: -8.865249156951904)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .medium, width: .skinny, size: 0.9640071243047714, x: 14.184403419494629, y: -11.702132225036621)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .tall, width: .skinny, size: 0.9398936688899993, x: 3.191494941711426, y: -2.836883068084717)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 2, height: .tall, width: .wide, size: 0.9429078698158264, x: -13.120567798614502, y: -7.446813583374023)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 2, height: .tallHat, width: .medium, size: 0.9037234097719191, x: 3.191494941711426, y: -2.482271194458008)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 0, height: .short, width: .wide, size: 0.9246453911066055, x: 6.382989883422852, y: 8.86523723602295)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .tall, width: .wide, size: 1.0391844183206558, x: nil, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .tallHat, width: .medium, size: 1.0135638117790222, x: -1.4184355735778809, y: -6.028354167938232)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .tallHat, width: .wide, size: 1.0150709122419357, x: -1.0638236999511719, y: 1.418447494506836)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .tallHat, width: .wide, size: 0.9615248441696167, x: -9.929072856903076, y: -12.765955924987793)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .short, width: .medium, size: 0.8600177496671677, x: 0.3545999526977539, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 2, height: .tallHat, width: .wide, size: 0.9474291205406189, x: 7.801413536071777, y: -7.801413536071777)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bake(slot: 0, height: .short, width: .medium, size: 0.8975177347660064, x: -12.056732177734375, y: 8.86523723602295)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .short, width: .medium, size: nil, x: -14.539027214050293, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .floater, width: .skinny, size: 0.9578014492988587, x: nil, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
 
         // ─── HP badge per-cell overrides (June 3, 2026) ────────────
         // Keyed by (height × width) only — HP badge is head-anchored and already
         // scales with per-slot scale at render time.
         bakeHp(height: .superShort, width: .skinny, size: 57.8581565618515,   x: -30.691498517990112,  y: -62.32268810272217)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHp(height: .superShort, width: .medium, size: 60.49113631248474,   x: -48.244696855545044,  y: -43.17375421524048)
+        bakeHp(height: .superShort, width: .medium, size: 76.76773011684418, x: -48.244696855545044, y: -43.17375421524048)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
-        bakeHp(height: .medium,     width: .medium, size: nil,                 x: -43.72340440750122,   y: -34.397149085998535)  // BAKED JULY 7, 2026 (user-tuned, batch 1)
+        bakeHp(height: .medium, width: .medium, size: nil, x: 3.6170482635498047, y: -34.397149085998535)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bakeHp(height: .medium,     width: .wide,   size: 52.83156007528305,  x: 58.40427875518799,    y: -18.794310092926025)  // BAKED JULY 7, 2026 (user-tuned, batch 1) — x sign-flipped per paste
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
         bakeHp(height: .tall,       width: .medium, size: nil,                 x: -43.61702799797058,   y: 22.2517728805542)
-        bakeHp(height: .tall,       width: .wide,   size: 50.0801956653595,    x: 82.44681358337402,    y: -9.249544143676758)
+        bakeHp(height: .tall, width: .wide, size: 64.32299375534058, x: -103.83024215698242, y: -9.249544143676758)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHp(height: .tallHat,    width: .medium, size: 59.852840304374695,  x: 18.085098266601562,   y: 7.003545761108398)
         bakeHp(height: .floater,    width: .medium, size: nil,                 x: -41.063833236694336,  y: -45.39005756378174)
         bakeHp(height: .floater,    width: .skinny, size: 57.219855189323425, x: -50.299376249313354,  y: -36.52482032775879)  // BAKED JULY 7, 2026 (user-tuned, batch 1)
@@ -1843,32 +1454,47 @@ class PotionShopLayoutConfig {
         // ─── HP badge per-SLOT overrides (June 3-4, 2026) ──────────
         // Slot-specific deltas — win over shared HxW field-by-field at resolve time.
         bakeHpSlot(slot: 0, height: .superShort, width: .skinny, size: 55.78369319438934,   x: -70.05320191383362,   y: -41.75530672073364)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHpSlot(slot: 0, height: .tall,      width: .medium, size: nil,                x: nil,                  y: -4.343974590301514)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHpSlot(slot: 1, height: .medium,    width: .medium, size: 56.342198848724365, x: -31.48934841156006,   y: nil)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHpSlot(slot: 1, height: .superShort, width: .skinny, size: 58.89538824558258, x: -30.691498517990112,  y: -70.83332538604736)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 2, height: .medium,    width: .medium, size: nil,                x: -21.382981538772583,  y: -26.95033550262451)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 2, height: .superShort, width: .skinny, size: 65.5975204706192,  x: -20.05319595336914,   y: -68.35105419158936)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHpSlot(slot: 0, height: .medium,    width: .wide,   size: nil,                x: -39.46809768676758,   y: nil)
-        bakeHpSlot(slot: 0, height: .tallHat,   width: .medium, size: nil,                x: -40.42553901672363,   y: 25.08864402770996)
-        bakeHpSlot(slot: 1, height: .medium,    width: .skinny, size: nil,                x: -11.808496713638306,  y: -33.33332538604736)
-        bakeHpSlot(slot: 1, height: .medium,    width: .wide,   size: nil,                x: -24.5744526386261,    y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 1, height: .short,     width: .wide,   size: 67.51241385936737,  x: -14.734035730361938,  y: -82.8900694847107)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: 63.60283672809601, x: -6.223422288894653,   y: -69.41487789154053)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 1, height: .tall,      width: .medium, size: 51.23581737279892,  x: -36.70213222503662,   y: -13.918447494506836)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 1, height: .tall,      width: .wide,   size: 52.831562757492065,  x: -148.9361822605133,   y: -8.95390510559082)
-        bakeHpSlot(slot: 2, height: .floater,   width: .medium, size: 61.12943232059479,  x: -43.19148659706116,   y: -52.127647399902344)
+        bakeHpSlot(slot: 0, height: .tall, width: .medium, size: nil, x: -45.7446813583374, y: 28.63473892211914)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 1, height: .medium, width: .medium, size: 57.14007019996643, x: -38.93614411354065, y: -40.42552709579468)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpSlot(slot: 1, height: .superShort, width: .skinny, size: 58.89538824558258, x: -50.372350215911865, y: -60.54964065551758)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 2, height: .medium, width: .medium, size: 60.41134595870972, x: -45.851075649261475, y: -15.248215198516846)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 2, height: .superShort, width: .skinny, size: 70.2251785993576, x: -41.861701011657715, y: -68.35105419158936)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 0, height: .medium, width: .wide, size: nil, x: -54.36170697212219, y: -5.3191304206848145)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 0, height: .tallHat, width: .medium, size: nil, x: -48.40427041053772, y: 25.08864402770996)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 1, height: .medium, width: .skinny, size: nil, x: -50.106364488601685, y: -11.702120304107666)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 1, height: .medium, width: .wide, size: nil, x: -53.29785346984863, y: -6.382966041564941)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 1, height: .short, width: .wide, size: 71.58156096935272, x: -47.180843353271484, y: -66.57801866531372)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: 67.59219884872437, x: -32.819151878356934, y: -69.06026601791382)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 1, height: .tall, width: .medium, size: 51.23581737279892, x: -40.418654680252075, y: -6.826233863830566)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpSlot(slot: 1, height: .tall, width: .wide, size: 52.831562757492065, x: -43.08511018753052, y: -1.152491569519043)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 2, height: .floater, width: .medium, size: 62.88475036621094, x: -15.000003576278687, y: -52.127647399902344)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHpSlot(slot: 2, height: .medium,    width: .skinny, size: nil,                x: -13.93616795539856,   y: -33.33332538604736)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 2, height: .short,     width: .wide,   size: 62.40602970123291,  x: -1.9680798053741455,  y: -86.08156442642212)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 0, height: .medium,    width: .medium, size: nil,                x: nil,                  y: -11.347508430480957)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
+        bakeHpSlot(slot: 2, height: .short, width: .wide, size: 69.0283715724945, x: -59.0890109539032, y: -74.02483224868774)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 0, height: .medium, width: .medium, size: nil, x: -61.27658486366272, y: 8.156037330627441)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bakeHpSlot(slot: 2, height: .floater,   width: .skinny, size: nil,                x: -15.724915266036987,  y: -48.22695255279541)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
-        bakeHpSlot(slot: 2, height: .superShort, width: .medium, size: nil,               x: -15.797889232635498,  y: -39.98225927352905)
-        bakeHpSlot(slot: 2, height: .tall,      width: .medium, size: nil,                x: -35.10639667510986,   y: -29.16666269302368)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
+        bakeHpSlot(slot: 0, height: .floater,   width: .medium, size: nil,                x: -54.893624782562256,  y: -20.567357540130615)  // BAKED JULY 11, 2026 (user-tuned, batch 8)
+        bakeHpSlot(slot: 1, height: .floater, width: .skinny, size: 63.363471031188965, x: -29.02277112007141, y: -34.04254913330078)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 2, height: .superShort, width: .medium, size: 71.98050200939178, x: -17.39364266395569, y: -68.70566606521606)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 2, height: .tall, width: .medium, size: nil, x: -20.744705200195312, y: 1.3297796249389648)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bakeHpSlot(slot: 2, height: .tall,      width: .wide,   size: nil,                x: -45.7446813583374,    y: nil)
-        bakeHpSlot(slot: 2, height: .tallHat,   width: .medium, size: 61.767733693122864, x: 43.08511018753052,    y: 31.11701011657715)
+        bakeHpSlot(slot: 2, height: .tallHat, width: .medium, size: 68.70922088623047, x: -0.5319178104400635, y: -21.36526107788086)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 0, height: .medium, width: .skinny, size: nil, x: nil, y: 9.219861030578613)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 0, height: .tall, width: .skinny, size: nil, x: nil, y: 3.1028270721435547)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 0, height: .tall, width: .wide, size: nil, x: -57.02172517776489, y: -9.249544143676758)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 0, height: .tallHat, width: .wide, size: nil, x: -68.08510422706604, y: -8.95390510559082)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 1, height: .tallHat, width: .medium, size: 59.852840304374695, x: -47.34043478965759, y: -2.216315269470215)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 1, height: .tallHat, width: .wide, size: 57.8581565618515, x: -51.063841581344604, y: -12.854611873626709)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 2, height: .short, width: .medium, size: 73.01891922950745, x: -29.627662897109985, y: -52.39361524581909)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 2, height: .tallHat, width: .wide, size: nil, x: -56.382983922958374, y: -10.372340679168701)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpSlot(slot: 0, height: .short, width: .medium, size: 60.730496644973755, x: -47.18086123466492, y: -26.152479648590088)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 0, height: .short, width: .wide, size: 65.03900945186615, x: nil, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 1, height: .short, width: .medium, size: 74.29433107376099, x: -42.39363670349121, y: -32.350873947143555)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 2, height: .medium, width: .wide, size: nil, x: -29.361677169799805, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 1, height: .tall, width: .skinny, size: 54.10815745592117, x: nil, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
 
         // ─── HP badge context nudges (June 13, 2026) ─────────────
         // Slot × myBody × neighborBody → dx/dy/sizeMul adjustments.
-        bakeHpContext(slot: 1, myHeight: .floater,    myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 34.04254913330078,   dy: -9.574472904205322,  sizeMul: 1.0120567619800567)
+        bakeHpContext(slot: 1, myHeight: .floater,    myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 17.375874519348145,   dy: -9.574472904205322,  sizeMul: 1.0120567619800567)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 39.716315269470215,  dy: -27.304959297180176, sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .short,   nbrWidth: .wide,   dx: -38.65247964859009,  dy: 8.86523723602295,    sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .skinny, nbrHeight: .tallHat, nbrWidth: .medium, dx: -32.97872543334961,  dy: 6.0283660888671875,  sizeMul: 1.0)
@@ -1879,14 +1505,37 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 28.368782997131348,  dy: -24.468088150024414,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .wide,   dx: 10.63830852508545,   dy: -18.439722061157227, sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .wide,   dx: 25.531911849975586,  dy: -2.482271194458008,  sizeMul: 1.0)
-        bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 10.63830852508545,   dy: -15.2482271194458,   sizeMul: 1.0)
-        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 100.35459995269775,  dy: -6.0283660888671875, sizeMul: 1.0)
-        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 115.2482271194458,   dy: -6.7375898361206055, sizeMul: 1.0)
+        bakeHpContext(slot: 2, myHeight: .tall, myWidth: .wide, nbrHeight: .tall, nbrWidth: .skinny, dx: 10.63830852508545, dy: -6.0283660888671875, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .tall, myWidth: .skinny, nbrHeight: .tall, nbrWidth: .wide, dx: 17.375874519348145, dy: -15.2482271194458, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .tall,       myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 14.184403419494629,   dy: -6.7375898361206055, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .tall,    nbrWidth: .skinny, dx: 50.0,                dy: 0.0,                 sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .skinny, nbrHeight: .tall,    nbrWidth: .wide,   dx: 7.801413536071777,   dy: -18.085110187530518, sizeMul: 1.0)
         bakeHpContext(slot: 1, myHeight: .medium,     myWidth: .medium, nbrHeight: .tall,    nbrWidth: .skinny, dx: 22.34041690826416,   dy: -19.5035457611084,   sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .tall,       myWidth: .wide,   nbrHeight: .medium,  nbrWidth: .medium, dx: 16.666674613952637,  dy: -17.02127456665039,  sizeMul: 1.0)
         bakeHpContext(slot: 2, myHeight: .medium,     myWidth: .wide,   nbrHeight: .medium,  nbrWidth: .skinny, dx: 13.475179672241211,  dy: -15.2482271194458,   sizeMul: 1.0)
+        bakeHpContext(slot: 1, myHeight: .tallHat, myWidth: .medium, nbrHeight: .tallHat, nbrWidth: .wide, dx: 43.61701011657715, dy: -6.7375898361206055, sizeMul: 0.902039036154747)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 1, myHeight: .tallHat, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 1.418447494506836, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 1, myHeight: .tall, myWidth: .medium, nbrHeight: .tallHat, nbrWidth: .medium, dx: -21.27659320831299, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 2, myHeight: .floater, myWidth: .medium, nbrHeight: .tall, nbrWidth: .wide, dx: -1.7730474472045898, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 2, myHeight: .tallHat, myWidth: .wide, nbrHeight: .tall, nbrWidth: .medium, dx: 2.127671241760254, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 2, myHeight: .tall, myWidth: .skinny, nbrHeight: .floater, nbrWidth: .medium, dx: 10.63830852508545, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeHpContext(slot: 1, myHeight: .short, myWidth: .medium, nbrHeight: .medium, nbrWidth: .wide, dx: 30.851054191589355, dy: -53.90070676803589, sizeMul: 0.9954787582159041)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .short, myWidth: .medium, nbrHeight: .short, nbrWidth: .wide, dx: 26.241135597229004, dy: -41.843974590301514, sizeMul: 1.3029255807399749)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpContext(slot: 1, myHeight: .short, myWidth: .wide, nbrHeight: .superShort, nbrWidth: .medium, dx: -19.5035457611084, dy: 17.7304744720459, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 2, myHeight: .medium, myWidth: .skinny, nbrHeight: .floater, nbrWidth: .skinny, dx: -25.177299976348877, dy: 13.120555877685547, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpContext(slot: 2, myHeight: .short, myWidth: .wide, nbrHeight: .short, nbrWidth: .medium, dx: -40.070927143096924, dy: 15.2482271194458, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpContext(slot: 1, myHeight: .floater, myWidth: .skinny, nbrHeight: .tall, nbrWidth: .wide, dx: 0.0, dy: 0.0, sizeMul: 1.096453931927681)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .short, myWidth: .medium, nbrHeight: .medium, nbrWidth: .skinny, dx: 27.304959297180176, dy: -18.79432201385498, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .superShort, myWidth: .skinny, nbrHeight: .superShort, nbrWidth: .medium, dx: -15.60283899307251, dy: 18.79432201385498, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .tall, myWidth: .medium, nbrHeight: .tallHat, nbrWidth: .wide, dx: -17.73049831390381, dy: 6.7375898361206055, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .tall, myWidth: .skinny, nbrHeight: .floater, nbrWidth: .medium, dx: 0.0, dy: -2.482271194458008, sizeMul: 1.1808511018753052)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 2, myHeight: .short, myWidth: .wide, nbrHeight: .superShort, nbrWidth: .skinny, dx: -2.127659320831299, dy: 14.539003372192383, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 2, myHeight: .tall, myWidth: .medium, nbrHeight: .tallHat, nbrWidth: .wide, dx: 11.347508430480957, dy: 3.191494941711426, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 2, myHeight: .tall, myWidth: .skinny, nbrHeight: .tallHat, nbrWidth: .wide, dx: 17.02127456665039, dy: -9.574472904205322, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpContext(slot: 1, myHeight: .medium, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 8.86523723602295, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpContext(slot: 2, myHeight: .medium, myWidth: .medium, nbrHeight: .medium, nbrWidth: .medium, dx: 24.822688102722168, dy: -23.404252529144287, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpContext(slot: 2, myHeight: .medium, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 52.83687114715576, dy: -43.97163391113281, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpContext(slot: 2, myHeight: .tall, myWidth: .medium, nbrHeight: .medium, nbrWidth: .medium, dx: -24.113476276397705, dy: -17.73049831390381, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
 
         // ── CHARACTER contextual nudges (June 24, 2026) ──
         bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
@@ -1918,6 +1567,82 @@ class PotionShopLayoutConfig {
                              frontHeight: "tall", frontWidth: "wide",
                              backHeight: "", backWidth: "",
                              dx: 8.156037330627441, dy: 0.0, sizeMul: 1.0)
+        bakeCharacterContext(slot: 1, myHeight: .floater, myWidth: .medium,
+                             frontHeight: "tall", frontWidth: "skinny",
+                             backHeight: "tall", backWidth: "wide",
+                             dx: -12.765955924987793, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeCharacterContext(slot: 1, myHeight: .tall, myWidth: .wide,
+                             frontHeight: "floater", frontWidth: "medium",
+                             backHeight: "tall", backWidth: "skinny",
+                             dx: -12.056732177734375, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeCharacterContext(slot: 2, myHeight: .floater, myWidth: .medium,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "", backWidth: "",
+                             dx: -1.7730474472045898, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .wide,
+                             frontHeight: "short", frontWidth: "wide",
+                             backHeight: "short", backWidth: "medium",
+                             dx: 11.702132225036621, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
+                             frontHeight: "medium", frontWidth: "wide",
+                             backHeight: "short", backWidth: "medium",
+                             dx: 12.056732177734375, dy: -4.255318641662598, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeCharacterContext(slot: 1, myHeight: .floater, myWidth: .medium,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "floater", backWidth: "skinny",
+                             dx: 35.10637283325195, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .floater, myWidth: .skinny,
+                             frontHeight: "medium", frontWidth: "medium",
+                             backHeight: "medium", backWidth: "skinny",
+                             dx: 13.829779624938965, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .floater, myWidth: .skinny,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "floater", backWidth: "medium",
+                             dx: 44.326233863830566, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .skinny,
+                             frontHeight: "short", frontWidth: "medium",
+                             backHeight: "medium", backWidth: "wide",
+                             dx: -12.411344051361084, dy: 3.191494941711426, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .medium,
+                             frontHeight: "medium", frontWidth: "skinny",
+                             backHeight: "medium", backWidth: "wide",
+                             dx: -24.822700023651123, dy: 2.8368711471557617, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
+                             frontHeight: "superShort", frontWidth: "medium",
+                             backHeight: "superShort", backWidth: "skinny",
+                             dx: -25.531911849975586, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
+                             frontHeight: "superShort", frontWidth: "skinny",
+                             backHeight: "superShort", backWidth: "medium",
+                             dx: -18.439722061157227, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .superShort, myWidth: .skinny,
+                             frontHeight: "short", frontWidth: "wide",
+                             backHeight: "superShort", backWidth: "medium",
+                             dx: 9.219861030578613, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .tallHat, myWidth: .wide,
+                             frontHeight: "tall", frontWidth: "medium",
+                             backHeight: "tall", backWidth: "skinny",
+                             dx: -12.411344051361084, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .tall, myWidth: .skinny,
+                             frontHeight: "floater", frontWidth: "medium",
+                             backHeight: "tall", backWidth: "wide",
+                             dx: -26.950359344482422, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .tall, myWidth: .skinny,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "floater", backWidth: "medium",
+                             dx: 10.992908477783203, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 2, myHeight: .floater, myWidth: .skinny,
+                             frontHeight: "floater", frontWidth: "medium",
+                             backHeight: "", backWidth: "",
+                             dx: 20.56736946105957, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 2, myHeight: .floater, myWidth: .skinny,
+                             frontHeight: "tall", frontWidth: "wide",
+                             backHeight: "", backWidth: "",
+                             dx: 23.758864402770996, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 2, myHeight: .medium, myWidth: .skinny,
+                             frontHeight: "medium", frontWidth: "medium",
+                             backHeight: "", backWidth: "",
+                             dx: -4.609930515289307, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to
@@ -2032,79 +1757,11 @@ class PotionShopLayoutConfig {
         customerSceneX = 0.0
         customerSceneY = 0.0
         
-        // Per-Character Scales (all 14 characters)
-        perCharacterScales = [
-            "mildred": CharacterScale(
-                width: 1.0, height: 1.0, x: -5.6737542152404785, y: 7.801413536071777,
-                waitingWidth: 0.9880319200456142, waitingHeight: 0.9880319200456142, waitingX: 0.0, waitingY: -9.219861030578613,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "tomik": CharacterScale(
-                width: 1.0, height: 1.0, x: -34.7517728805542, y: 10.283684730529785,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: -7.446813583374023,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "greta": CharacterScale(
-                width: 0.8563829660415649, height: 0.8563829660415649, x: -46.45390510559082, y: 19.5035457611084,
-                waitingWidth: 0.8882978670299053, waitingHeight: 0.8882978670299053, waitingX: 0.0, waitingY: 3.9007186889648438,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "sister_halla": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "wendelina": CharacterScale(
-                width: 1.0, height: 1.0, x: -43.6170220375061, y: 3.9007186889648438,
-                waitingWidth: 1.003989353775978, waitingHeight: 1.003989353775978, waitingX: -18.794333934783936, waitingY: -9.929072856903076,
-                waiting2Width: 0.9960106536746025, waiting2Height: 0.9960106536746025, waiting2X: -4.964542388916016, waiting2Y: -6.0283660888671875
-            ),
-            "grimdrek": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "hexa_mott": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "pemberton": CharacterScale(
-                width: 0.8324467986822128, height: 0.8324467986822128, x: -39.361703395843506, y: 24.11346435546875,
-                waitingWidth: 0.8643616996705532, waitingHeight: 0.8643616996705532, waitingX: -23.049640655517578, waitingY: 5.3191423416137695,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "ardo": CharacterScale(
-                width: 0.9840425699949265, height: 0.9840425699949265, x: -39.716315269470215, y: 10.283684730529785,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: -9.574460983276367, waitingY: -5.3191423416137695,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: -5.319154262542725, waiting2Y: -5.319154262542725
-            ),
-            "bram": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "crispin": CharacterScale(
-                width: 1.0319149382412434, height: 1.0319149382412434, x: -31.914889812469482, y: 0.0,
-                waitingWidth: 1.0279255546629429, waitingHeight: 1.0279255546629429, waitingX: -21.631205081939697, waitingY: -12.765955924987793,
-                waiting2Width: 1.0279255546629429, waiting2Height: 1.0279255546629429, waiting2X: -18.794333934783936, waiting2Y: -15.957450866699219
-            ),
-            "ironhilde": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "carmilla": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            ),
-            "royal_envoy": CharacterScale(
-                width: 1.0, height: 1.0, x: 0.0, y: 0.0,
-                waitingWidth: 1.0, waitingHeight: 1.0, waitingX: 0.0, waitingY: 0.0,
-                waiting2Width: 1.0, waiting2Height: 1.0, waiting2X: 0.0, waiting2Y: 0.0
-            )
-        ]
+        // JULY 11, 2026: restore no longer resurrects the retired named
+        // cast — it clears to empty, then re-applies the gmarker bucket
+        // tags and every baked value.
+        perCharacterScales = [:]
+        applyTunedCharacterScales()
         
         // Cauldron Art
         cauldronWidth = 1.3613475412130356
@@ -2200,7 +1857,9 @@ class PotionShopLayoutConfig {
         headAnchorXShort = 0.37765955924987793
         headAnchorXMedium = 0.5372340679168701
         headAnchorXTall = 0.5647163391113281
-        applyDefaultHeightBuckets()
+        // JULY 11, 2026: applyDefaultHeightBuckets() call removed — the
+        // function was deleted with the retired named cast; the
+        // applyTunedCharacterScales() call above covers gmarker tags.
         
         print("✅ RESTORED LOCKED DEFAULTS (May 13, 2026)")
     }

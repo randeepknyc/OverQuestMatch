@@ -558,17 +558,11 @@ struct PotionShopDraggedDieOverlay: View {
 
 /// All Day 3 guide character ids — used by the feet-anchor test-swap pickers
 /// in the layout editor to quickly drop different buckets into each slot.
-private let allGuideCharIds: [String] = [
-    "guide_octo", "guide_girl", "guide_skull",
-    "guide_slug", "guide_fishguy", "guide_bull",
-    "guide_traveler", "guide_demon", "guide_frog",
-    "guide_pig", "guide_faun", "guide_fox", "guide_woman",
-    "gmarker_octo", "gmarker_girl", "gmarker_skull",
-    "gmarker_slug", "gmarker_fishguy", "gmarker_bull",
-    "gmarker_frog", "gmarker_fox", "gmarker_traveler",
-    "gmarker_demon", "gmarker_goatguy", "gmarker_oldlady",
-    "gmarker_bird", "gmarker_dino", "gmarker_puck"
-]
+// JULY 11, 2026: guide_* roster removed — gmarker only, built
+/// dynamically from the character dict so it never goes stale.
+private let allGuideCharIds: [String] = Array(
+    PotionShopData.characters.keys.filter { $0.hasPrefix("gmarker_") }.sorted()
+)
 
 struct PotionShopLayoutOverlay: View {
     @Binding var isPresented: Bool
@@ -1658,15 +1652,12 @@ struct PotionShopLayoutOverlay: View {
                     .font(.system(size: 10).italic())
                     .foregroundColor(.cyan.opacity(0.8))
 
-                // 👁 CHARACTER OPACITY (debug) — June 26, 2026
-                Text("👁 Character Opacity (debug)")
-                    .font(.caption2.bold())
-                    .foregroundColor(.yellow)
-                Text("Fades the whole character per slot. 1.00 = fully visible. Slot 1 = active (front), Slot 2 = waiting (behind).")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                sliderRow("Slot 1 Opacity (active)", value: $layoutConfig.slot1Opacity, range: 0.0...1.0, format: "%.2f")
-                sliderRow("Slot 2 Opacity (waiting)", value: $layoutConfig.slot2Opacity, range: 0.0...1.0, format: "%.2f")
+                // ─── 🦶 FEET PLANTING + 🧪 H×W TEST (JULY 11, 2026) ────
+                // Extracted into its own builder — the inline version
+                // blew the SwiftUI type-checker's time budget.
+                feetPlantingSection
+
+                // JULY 11, 2026: opacity sliders removed (no longer relevant).
 
                 // Feet-anchor mode (May 30, 2026) — Day 3 Round 2 only.
                 Text("👣 Feet-Anchor (Day 3 R2 only)")
@@ -2950,8 +2941,120 @@ struct PotionShopLayoutOverlay: View {
     // recording, with zero changes at the ~130 call sites. The optional
     // `tier` parameter adds the where-is-this-value-from dot + ⊘ clear
     // button (used by the focused editor's HP badge rows).
+    /// JULY 11, 2026: feet planting + H×W test round, extracted from the
+    /// Auto-Layout tab body (type-checker relief). Lives in the DRAWER.
+    /// Stable undo-token for the feet-plant toggle (EditorHistory merges
+    /// consecutive steps by token, same as each slider's own UUID).
+    private static let feetPlantUndoToken = UUID()
+
+    private var feetPlantBinding: Binding<Bool> {
+        Binding(
+            get: { PotionShopLayoutConfig.shared.feetPlantOnArt },
+            set: { newVal in
+                PotionShopEditorHistory.shared.beginChange(
+                    token: Self.feetPlantUndoToken, label: "Plant feet on art",
+                    current: PotionShopLayoutConfig.shared.feetPlantOnArt ? 1.0 : 0.0,
+                    read: { PotionShopLayoutConfig.shared.feetPlantOnArt ? 1.0 : 0.0 },
+                    apply: { PotionShopLayoutConfig.shared.feetPlantOnArt = $0 > 0.5 }
+                )
+                PotionShopLayoutConfig.shared.feetPlantOnArt = newVal
+                PotionShopEditorHistory.shared.updateLast(
+                    token: Self.feetPlantUndoToken, newValue: newVal ? 1.0 : 0.0)
+            }
+        )
+    }
+
+    /// All computation lives OUT of the view builders (type-checker relief).
+    private var layoutTestPageLabel: String {
+        let pages = max(1, (gs.layoutTestReps.count + 2) / 3)
+        let withinCycle = (gs.layoutTestPage % pages) + 1
+        let rotation = gs.layoutTestPage / pages
+        // rotation shifts every combo one slot per full cycle — keep
+        // paging past the last page to walk combos through other slots.
+        return "Page \(withinCycle)/\(pages) · rot \(rotation)"
+    }
+    private var trimmedExportNames: String {
+        PotionShopImageLoader.feetInsetAudit()
+            .filter { !$0.aspectOK }
+            .map { $0.key }
+            .joined(separator: ", ")
+    }
+
+    @ViewBuilder
+    private var feetPlantingSection: some View {
+        feetPlantToggleBlock
+        feetTestRoundBlock
+        feetConformanceBlock
+    }
+
+    @ViewBuilder
+    private var feetPlantToggleBlock: some View {
+        Text("🦶 Feet Planting (template line)")
+            .font(.caption2.bold())
+            .foregroundColor(.mint)
+        Toggle(isOn: feetPlantBinding) {
+            Text("Plant feet on the template floor line")
+                .font(.system(size: 11))
+                .foregroundColor(.white)
+        }
+        .tint(.mint)
+        Text("Positions every canvas by the template constant (floor y=1500 of 1536). Never crops — hems and perspective feet render below the line as drawn. Toggle to compare.")
+            .font(.system(size: 10))
+            .foregroundColor(.white.opacity(0.7))
+    }
+
+    @ViewBuilder
+    private var feetTestRoundBlock: some View {
+        HStack(spacing: 8) {
+            Button {
+                gs.startLayoutTestRound()
+            } label: {
+                Label("🧪 H×W test round", systemImage: "testtube.2")
+            }
+            .buttonStyle(PotionShopDrawerPillStyle())
+            if gs.isLayoutTestRound {
+                Button {
+                    gs.layoutTestNextPage()
+                } label: {
+                    Label(layoutTestPageLabel, systemImage: "arrow.right.circle")
+                }
+                .buttonStyle(PotionShopDrawerPillStyle())
+            }
+        }
+        Text("One character per H×W combo, 3 per page — swap pages to walk every combo through every slot. No attacks, no expiry; run untouched.")
+            .font(.system(size: 10))
+            .foregroundColor(.white.opacity(0.7))
+    }
+
+    @ViewBuilder
+    private var feetConformanceBlock: some View {
+        let names: String = trimmedExportNames
+        if names.isEmpty {
+            Text("✅ All exports match the 2:3 template canvas.")
+                .font(.system(size: 10))
+                .foregroundColor(.green.opacity(0.9))
+        } else {
+            Text("⚠️ TRIMMED EXPORTS (re-export full canvas): " + names)
+                .font(.system(size: 10).bold())
+                .foregroundColor(.orange)
+        }
+    }
+
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String, tier: PotionShopTunerTier? = nil) -> some View {
         PotionShopTunerRow(label: label, value: value, range: range, format: format, tier: tier)
+    }
+}
+
+// JULY 11, 2026: shared pill style for the drawer's action buttons —
+// keeps the button bodies tiny for the type-checker.
+struct PotionShopDrawerPillStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.purple.opacity(configuration.isPressed ? 0.55 : 0.35)))
+            .foregroundColor(.white)
     }
 }
 

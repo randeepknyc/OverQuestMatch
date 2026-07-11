@@ -957,7 +957,20 @@ struct PotionShopCustomerInSceneView: View {
                 * 1.5
                 * CGFloat(customerSceneBaseScale)
                 * CGFloat(effectiveHeightForSlot)
-            return sceneSize.height * floorFrac - renderedHeight / 2
+            let frameBottomOnFloor = sceneSize.height * floorFrac - renderedHeight / 2
+            // JULY 11, 2026: FEET PLANTING — shift down by the art's
+            // measured bottom inset so the VISIBLE feet (not the frame
+            // bottom) land on the floor line. Auto-measured per asset.
+            if layoutConfig.feetPlantOnArt {
+                // rev 2 (July 11): plant by the SHARED TEMPLATE constant
+                // (median measured inset) — every character lands on the
+                // same line, exactly as the art template intends. Per-
+                // character deviations are an ART issue; see the feet
+                // audit in the debug menu.
+                let inset = PotionShopImageLoader.templateFeetInsetFraction()
+                return frameBottomOnFloor + inset * renderedHeight
+            }
+            return frameBottomOnFloor
         }
 
         // Use permutation-aware Y position lookup (auto-layout on Day 3+).
@@ -1331,10 +1344,22 @@ struct PotionShopCustomerInSceneView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if PotionShopLayoutConfig.shared.layoutEditorIsOpen {
-                        PotionShopLayoutConfig.shared.selectedCharacterId = customer.charKey
-                        PotionShopLayoutConfig.shared.selectedSlotIndex = min(queueIndex, 2)
-                        PotionShopEditorHistory.shared.jumpRequest =
-                            PotionShopEditorJump(target: .autoLayout)
+                        let cfg = PotionShopLayoutConfig.shared
+                        let mySlot = min(queueIndex, 2)
+                        // JULY 11, 2026: tapping the SELECTED customer again
+                        // UNSELECTS — back to the master sliders.
+                        if cfg.selectedSlotIndex == mySlot,
+                           cfg.selectedCharacterId == customer.charKey {
+                            // selectedCharacterId is NON-optional (defaults
+                            // to a name); clearing the SLOT is what returns
+                            // the drawer to the master sliders.
+                            cfg.selectedSlotIndex = nil
+                        } else {
+                            cfg.selectedCharacterId = customer.charKey
+                            cfg.selectedSlotIndex = mySlot
+                            PotionShopEditorHistory.shared.jumpRequest =
+                                PotionShopEditorJump(target: .autoLayout)
+                        }
                     }
                 }
                 .gesture(
@@ -1767,16 +1792,25 @@ struct PotionShopConditionalMatchedGeometry: ViewModifier {
 struct PotionShopProfileRowView: View {
     @Bindable var gs: PotionShopGameState
 
+    /// JULY 11, 2026: the inspected customer, ONLY if it still resolves to
+    /// a live waiting member of the current queue. A dangling inspectedId
+    /// (customers replaced underneath it) used to hide the buttons while
+    /// rendering no strip — an empty row.
+    private var validInspected: PotionShopCustomer? {
+        guard let id = gs.inspectedId,
+              let cust = gs.customers.first(where: { $0.id == id }),
+              cust.status == .waiting else { return nil }
+        return cust
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
                 PotionShopProfileButtonsRow(gs: gs)
-                    .opacity(gs.inspectedId == nil ? 1.0 : 0.0)
+                    .opacity(validInspected == nil ? 1.0 : 0.0)
                     .animation(.easeInOut(duration: 0.2), value: gs.inspectedId)
 
-                if let inspectedId = gs.inspectedId,
-                   let inspected = gs.customers.first(where: { $0.id == inspectedId }),
-                   inspected.status == .waiting {
+                if let inspected = validInspected {
                     PotionShopInspectStripView(gs: gs, customer: inspected)
                 }
             }
