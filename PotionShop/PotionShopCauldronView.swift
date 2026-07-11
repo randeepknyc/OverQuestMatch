@@ -1361,6 +1361,24 @@ struct PotionShopDiceTrayView: View {
                             diceFlight: diceFlight,
                             dieScale: dieScale
                         )
+                        // JULY 10, 2026 (PLAYTEST V1): FOCUS-FREE dice read
+                        // as a gift in the tray — a soft glow + "FREE" pill.
+                        // ✏️ Placeholder until you draw FF die art; swap the
+                        // pill for your own badge asset whenever ready.
+                        .shadow(color: die.isFocusFree ? .white.opacity(0.8) : .clear,
+                                radius: die.isFocusFree ? 6 : 0)
+                        .overlay(alignment: .top) {
+                            if die.isFocusFree {
+                                Text("FREE")
+                                    .font(.system(size: 9, weight: .heavy))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1.5)
+                                    .background(Capsule().fill(Color.white.opacity(0.95)))
+                                    .offset(y: -8)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     } else {
                         // Empty slot. JULY 2, 2026: the dashed placeholder
                         // outline is GONE (user request) — the slot is now

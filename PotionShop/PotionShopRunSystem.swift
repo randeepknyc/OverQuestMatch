@@ -69,6 +69,19 @@ struct PotionShopBoon: Identifiable {
         /// Opens the DIE-UPGRADE PICKER: the player chooses a die type and
         /// its first die tiers up (basic → silver → gold).
         case dieUpgrade
+        // ─── JULY 10, 2026: PLAYTEST V1 cards ────────────────────────
+        /// FOCUS-FREE DIE: adds a permanent extra die of this type to the
+        /// deck that costs NO Focus to place. Dealt like any other die of
+        /// its lane (so each pick raises the odds your dealt die of that
+        /// type is the free one). Only heal / shield / potency.
+        case ffDie(type: PotionShopDieType)
+        /// CURSE: +2 to all potency dice, −1 to all heal dice. A tempting
+        /// deal with teeth — the round pool's one trap.
+        case bitterDregs
+        /// RELIC: +1 max composure (stacks — the run's ceiling grows).
+        case ironKettle(Int)
+        /// RELIC: once per day, the first flame you'd lose relights itself.
+        case emberCharm
     }
     let effect: Effect
 }
@@ -101,11 +114,18 @@ struct PotionShopRunState: Codable {
     var pendingDieUpgrades: Int = 0
     /// True once the Day-2 magic (mirror) die has been added to the deck.
     var magicDieGranted: Bool = false
+    // ─── JULY 10, 2026: PLAYTEST V1 relic state ──────────────────────
+    /// Iron Kettle stacks: added to PotionShopConfig.maxComposure wherever
+    /// the composure CEILING is read (gs.effectiveMaxComposure).
+    var maxCompBonus: Int = 0
+    /// True = Ember Charm owned (once-per-day flame protection).
+    var emberCharm: Bool = false
 
     // Custom Codable so saves from BEFORE these fields still decode.
     private enum CodingKeys: String, CodingKey {
         case deck, boonsTaken, typeBonuses,
-             healAtDayEnd, shieldAtDayStart, pendingDieUpgrades, magicDieGranted
+             healAtDayEnd, shieldAtDayStart, pendingDieUpgrades, magicDieGranted,
+             maxCompBonus, emberCharm
     }
     init() {}
     init(from decoder: Decoder) throws {
@@ -117,6 +137,8 @@ struct PotionShopRunState: Codable {
         shieldAtDayStart = try c.decodeIfPresent(Int.self, forKey: .shieldAtDayStart) ?? 0
         pendingDieUpgrades = try c.decodeIfPresent(Int.self, forKey: .pendingDieUpgrades) ?? 0
         magicDieGranted = try c.decodeIfPresent(Bool.self, forKey: .magicDieGranted) ?? false
+        maxCompBonus = try c.decodeIfPresent(Int.self, forKey: .maxCompBonus) ?? 0
+        emberCharm = try c.decodeIfPresent(Bool.self, forKey: .emberCharm) ?? false
     }
 
     /// Seed the starting deck once at run start. Mirrors the old hardcoded
@@ -143,6 +165,8 @@ struct PotionShopRunState: Codable {
         shieldAtDayStart = 0
         pendingDieUpgrades = 0
         magicDieGranted = false
+        maxCompBonus = 0
+        emberCharm = false
     }
 
     /// Apply a chosen boon to the run deck.
@@ -189,6 +213,29 @@ struct PotionShopRunState: Codable {
         case .dieUpgrade:
             // GameView watches this counter and presents the picker overlay.
             pendingDieUpgrades += 1
+        case let .ffDie(type):
+            // JULY 10, 2026 (PLAYTEST V1): a FOCUS-FREE die joins the lane
+            // permanently. Inherits the lane's best upgraded faces (same
+            // rule as .addDie — a basic die would dilute an upgraded lane).
+            var ff = PotionShopBagDie(
+                id: "die_\(type.rawValue)_ff_\(UUID().uuidString.prefix(4))",
+                type: type,
+                tier: .basic
+            )
+            ff.customFaces = deck
+                .filter { $0.type == type }
+                .compactMap { $0.customFaces }
+                .max(by: { $0.reduce(0, +) < $1.reduce(0, +) })
+            ff.isFocusFree = true
+            deck.append(ff)
+        case .bitterDregs:
+            // The curse: both edges at once, via the same type-bonus table.
+            typeBonuses[.potency, default: 0] += 2
+            typeBonuses[.heal, default: 0] -= 1
+        case let .ironKettle(amount):
+            maxCompBonus += amount
+        case .emberCharm:
+            emberCharm = true
         }
         boonsTaken.append(boon.name)
     }
@@ -206,7 +253,53 @@ enum PotionShopBoonPool {
     // The old pool's stat piles (+2s everywhere) outgrew every threat
     // (§67.3 finding 1). These start small and creative; EDIT FREELY —
     // each row is one card: (name, blurb, emoji, effect).
-    static let all: [PotionShopBoon] = [
+    /// JULY 10, 2026 (PLAYTEST V1): the pool SPLIT in two.
+    ///   • ROUND pool — offered at every mid-day round boundary.
+    ///   • RELIC pool — offered when a DAY is completed ("Choose a Relic").
+    /// `all` remains as the combined list (debug menus and old call sites).
+    static var all: [PotionShopBoon] { roundPool + relicPool }
+
+    /// How many Focus-Free dice one lane may own. At the cap, that FF card
+    /// stops being offered (pool filter — same rule as an owned Mended
+    /// Spirit; a maxed card must NEVER be a dead pick).
+    static let ffCapPerLane = 1
+
+    // ✏️ EDIT FREELY — names, blurbs, emoji are yours.
+    static let roundPool: [PotionShopBoon] = [
+        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die — your pick",
+                       emoji: "⬆️", effect: .dieUpgrade),
+        PotionShopBoon(name: "Potent Brew", blurb: "+1 to all potency dice",
+                       emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
+        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to all heal dice",
+                       emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
+        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to all stability dice",
+                       emoji: "🔥", effect: .typeWideBonus(type: .stability, amount: 1)),
+        // The FOCUS-FREE dice (lab-tuned: potency confirmed essential —
+        // 31% → 76% completion in the pool tests; cap 1 per lane).
+        PotionShopBoon(name: "Focus-Free Heal", blurb: "Extra heal die — costs no Focus",
+                       emoji: "✨", effect: .ffDie(type: .heal)),
+        PotionShopBoon(name: "Focus-Free Shield", blurb: "Extra shield die — costs no Focus",
+                       emoji: "✨", effect: .ffDie(type: .shield)),
+        PotionShopBoon(name: "Focus-Free Potency", blurb: "Extra potency die — costs no Focus",
+                       emoji: "✨", effect: .ffDie(type: .potency)),
+        // The trap — rare and loud by design (§ trap guidance).
+        PotionShopBoon(name: "Bitter Dregs", blurb: "+2 all potency, but −1 all heal",
+                       emoji: "☕", effect: .bitterDregs),
+    ]
+
+    static let relicPool: [PotionShopBoon] = [
+        PotionShopBoon(name: "Mended Spirit", blurb: "Relic: full heal at day's end",
+                       emoji: "💖", effect: .relicHealAtDayEnd),
+        PotionShopBoon(name: "Warded Morning", blurb: "Relic: +5 shield every morning",
+                       emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
+        PotionShopBoon(name: "Iron Kettle", blurb: "Relic: +1 max composure",
+                       emoji: "🫖", effect: .ironKettle(1)),
+        PotionShopBoon(name: "Ember Charm", blurb: "Relic: first lost flame relights, once a day",
+                       emoji: "🕯️", effect: .emberCharm),
+    ]
+
+    /// LEGACY layout of the old single pool (kept for reference):
+    static let legacyAll: [PotionShopBoon] = [
         PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die — your pick",
                        emoji: "⬆️", effect: .dieUpgrade),
         PotionShopBoon(name: "Mended Spirit", blurb: "Relic: full heal at day's end",
@@ -231,11 +324,33 @@ enum PotionShopBoonPool {
     /// player already owns are excluded — a re-offered Mended Spirit was
     /// a dead pick. (Warded Morning stays offerable: its shield STACKS.)
     static func draw(_ n: Int = 3, owned run: PotionShopRunState? = nil) -> [PotionShopBoon] {
-        var pool = all
-        if let run, run.healAtDayEnd {
+        // JULY 10, 2026 (PLAYTEST V1): mid-day menus draw from the ROUND
+        // pool. FF cards leave the draw once the lane owns its cap of
+        // Focus-Free dice — never a dead pick.
+        var pool = roundPool
+        if let run {
             pool.removeAll {
-                if case .relicHealAtDayEnd = $0.effect { return true }
+                if case let .ffDie(type) = $0.effect {
+                    let owned = run.deck.filter { $0.type == type && $0.isFocusFree == true }.count
+                    return owned >= ffCapPerLane
+                }
                 return false
+            }
+        }
+        return Array(pool.shuffled().prefix(n))
+    }
+
+    /// JULY 10, 2026 (PLAYTEST V1): the DAY-COMPLETION relic menu.
+    /// One-shot relics the player owns are excluded (Mended Spirit,
+    /// Ember Charm); Warded Morning and Iron Kettle STACK, so they stay.
+    static func drawRelics(_ n: Int = 3, owned run: PotionShopRunState? = nil) -> [PotionShopBoon] {
+        var pool = relicPool
+        if let run {
+            if run.healAtDayEnd {
+                pool.removeAll { if case .relicHealAtDayEnd = $0.effect { return true }; return false }
+            }
+            if run.emberCharm {
+                pool.removeAll { if case .emberCharm = $0.effect { return true }; return false }
             }
         }
         return Array(pool.shuffled().prefix(n))

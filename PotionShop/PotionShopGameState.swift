@@ -140,6 +140,30 @@ class PotionShopGameState {
     /// at maxPlacementsPerBrew; grows later via boons/relics. Was a frozen
     /// constant before.
     var focus: Int = PotionShopConfig.maxPlacementsPerBrew
+    // ─── JULY 10, 2026: PLAYTEST V1 ──────────────────────────────────
+    /// The run's composure CEILING: config value + Iron Kettle stacks.
+    /// Use this INSTEAD of PotionShopConfig.maxComposure anywhere the
+    /// ceiling is read (rest clamps, heal clamps, full restores, UI).
+    var effectiveMaxComposure: Int { PotionShopConfig.maxComposure + run.maxCompBonus }
+    /// Ember Charm: true once today's free flame-save has been spent.
+    var emberUsedToday: Bool = false
+    /// True while the current boon offer is the DAY-COMPLETION relic menu
+    /// (GameView titles it "Choose a Relic" instead of "Choose a Boon").
+    var boonOfferIsRelic: Bool = false
+    /// Placements that COUNT toward Focus — Focus-Free dice are free.
+    var nonFreePlacementCount: Int { placements.values.filter { !$0.isFocusFree }.count }
+
+    /// JULY 10, 2026 (PLAYTEST V1): an ATTACK-driven flame loss. Ember
+    /// Charm relights the first one each day. Deliberately NOT used for
+    /// the brew-spend loop — spending flames to brew is the fire economy's
+    /// intended cost; the charm shields the hearth from BLOWS.
+    func loseFlameToAttack() {
+        if run.emberCharm && !emberUsedToday {
+            emberUsedToday = true
+            return
+        }
+        fire = max(0, fire - 1)
+    }
     var potionsBrewed: Int = 0
     /// JULY 5, 2026: composure as the round actually ENDED — captured in
     /// advanceRound BEFORE the rest heal / Mended Spirit restore it, so the
@@ -599,13 +623,24 @@ class PotionShopGameState {
             let scaledWaiting = char.waitingAttack > 0
                 ? max(1, Int((Double(char.waitingAttack) * atkMult).rounded()))
                 : 0
+            // JULY 10, 2026 (PLAYTEST V1): PATIENCE JITTER — each spawn's
+            // patience varies ±2 around the character's base (floor 3), so
+            // the same face plays differently round to round WITHOUT
+            // editing your 24 characters' stats. Bosses keep exact values.
+            // Beatability: floor 3 only reaches chars with base ≤5 — the
+            // small-HP tier — so every jittered spawn stays killable by a
+            // focused player. Re-rolled at round start (saves are at round
+            // boundaries, so nothing mid-round depends on it).
+            let jitteredPatience = bossOverride != nil
+                ? char.patience
+                : max(3, char.patience + Int.random(in: -2...2))
             return PotionShopCustomer(
                 id: UUID(),
                 charKey: id,
                 hp: scaledHP,
                 maxHp: scaledHP,
-                patience: char.patience,
-                maxPatience: char.patience,
+                patience: jitteredPatience,
+                maxPatience: jitteredPatience,
                 status: .waiting,
                 activeAttack: scaledActive,
                 waitingAttack: scaledWaiting,
@@ -685,13 +720,14 @@ class PotionShopGameState {
         // stats as normal spawns (weekly attack ramp; expire = attack + 1).
         let swapMult = PotionShopConfig.attackDayMultiplier(forDay: dayNumber)
         let swapActive = max(1, Int((Double(char.activeAttack) * swapMult).rounded()))
+        let swapJitter = max(3, char.patience + Int.random(in: -2...2))   // JULY 10: ONE roll for both
         let newCustomer = PotionShopCustomer(
             id: UUID(),
             charKey: newKey,
             hp: char.hp,
             maxHp: char.hp,
-            patience: char.patience,
-            maxPatience: char.patience,
+            patience: swapJitter,
+            maxPatience: swapJitter,
             status: .waiting,
             activeAttack: swapActive,
             waitingAttack: char.waitingAttack > 0 ? max(1, Int((Double(char.waitingAttack) * swapMult).rounded())) : 0,
@@ -748,7 +784,7 @@ class PotionShopGameState {
         dayEndComposure = composure
         // Apply between-round composure rest
         composure = min(
-            PotionShopConfig.maxComposure,
+            effectiveMaxComposure,   // JULY 10: Iron Kettle raises the ceiling
             composure + PotionShopConfig.composureRestBetweenRounds
         )
         roundIndex += 1
@@ -760,7 +796,7 @@ class PotionShopGameState {
             // JULY 4, 2026: "Mended Spirit" relic — full composure restore
             // at the end of every day (applies before the day-won screen).
             if run.healAtDayEnd {
-                composure = PotionShopConfig.maxComposure
+                composure = effectiveMaxComposure   // JULY 10: full = the RUN's ceiling
                 composureFlashKind = .heal
                 composureFlashCounter += 1
             }
@@ -795,7 +831,14 @@ class PotionShopGameState {
     private var boonLeadsToDay = false
     func offerBoons(thenAdvanceToDay: Bool) {
         boonLeadsToDay = thenAdvanceToDay
-        boonOffer = PotionShopBoonPool.draw(3, owned: run)
+        // JULY 10, 2026 (PLAYTEST V1): the pool SPLIT. Completing a day
+        // offers a RELIC (Warded / Mended / Iron Kettle / Ember Charm);
+        // mid-day round boundaries offer the ROUND pool (upgrades, +1
+        // cards, Focus-Free dice, Bitter Dregs).
+        boonOfferIsRelic = thenAdvanceToDay
+        boonOffer = thenAdvanceToDay
+            ? PotionShopBoonPool.drawRelics(3, owned: run)
+            : PotionShopBoonPool.draw(3, owned: run)
         phase = .choosingBoon
     }
 
@@ -880,8 +923,9 @@ class PotionShopGameState {
     /// on the last day, this stays put (the dayWon overlay should use
     /// resetGame() instead for the final-day case).
     func advanceDay() {
+        emberUsedToday = false   // JULY 10: Ember Charm recharges each morning
         composure = min(
-            PotionShopConfig.maxComposure,
+            effectiveMaxComposure,   // JULY 10: Iron Kettle raises the ceiling
             composure + PotionShopConfig.composureRestBetweenDays
         )
         guard let nextId = PotionShopData.nextDayId(after: dayId) else {
@@ -967,7 +1011,7 @@ class PotionShopGameState {
 
     func placeDie(handIdx: Int, nodeId: Int) {
         if placements[nodeId] != nil { return }
-        if placements.count >= focus { return }
+        if nonFreePlacementCount >= focus { return }
         // JULY 4, 2026: HEAL is limited to ONCE PER TURN — a second heal
         // die can't be placed while one is already on the board.
         if handIdx < hand.count, hand[handIdx].type == .heal,
@@ -1024,7 +1068,7 @@ class PotionShopGameState {
             returnDraggedDie()
             return
         }
-        if placements.count >= focus {
+        if nonFreePlacementCount >= focus {
             // At cap - return die to hand
             returnDraggedDie()
             return
@@ -1202,7 +1246,7 @@ class PotionShopGameState {
         guard dieIndex < hand.count else { return false }
         
         // Check if at cap
-        if placements.count >= focus {
+        if nonFreePlacementCount >= focus {
             return false
         }
         
@@ -1595,6 +1639,9 @@ class PotionShopGameState {
         }
         let drawn = lanePicks
 
+        // JULY 10, 2026 (PLAYTEST V1): remember which drawn bag dice are
+        // FOCUS-FREE so the flag can ride onto the hand dice below.
+        let drawnFF = drawn.map { $0.isFocusFree == true }
         hand = drawn.enumerated().map { (i, bd) in
             // JUNE 18, 2026: a die's total carried bonus = its own per-die
             // boon bonus (bd.rule.bonusValue) + any TYPE-WIDE run bonus for
@@ -1640,6 +1687,11 @@ class PotionShopGameState {
                     ruleBonus: combinedBonus
                 )
             }
+        }
+        // JULY 10, 2026 (PLAYTEST V1): mark the hand's Focus-Free dice
+        // (indices align — the map above enumerates the same `drawn`).
+        for i in hand.indices where i < drawnFF.count && drawnFF[i] {
+            hand[i].isFocusFree = true
         }
         selectedHandIndex = nil
         // Bump the 3D spin session so every cube REBUILDS its scene on the
@@ -1734,8 +1786,8 @@ class PotionShopGameState {
 
         // ─── PHASE 1: Heal + Shield apply to player ─────────────────
         if preview.healing > 0 {
-            let healed = min(PotionShopConfig.maxComposure - composure, preview.healing)
-            composure = min(PotionShopConfig.maxComposure, composure + preview.healing)
+            let healed = min(effectiveMaxComposure - composure, preview.healing)
+            composure = min(effectiveMaxComposure, composure + preview.healing)
             if healed > 0 {
                 ednarPose = .heal
                 emitFloatingNumber(
@@ -1851,7 +1903,7 @@ class PotionShopGameState {
             // attack ≥ fireBigHitThreshold knocks an extra flame out. Early
             // attacks (2–4) never trigger this; late-game double digits do.
             if activeWillAttack >= PotionShopConfig.fireBigHitThreshold {
-                fire = max(0, fire - 1)
+                loseFlameToAttack()   // JULY 10: Ember Charm may relight the first one today
             }
             try? await sleep(seconds: PotionShopBrewAnimator.activeAttackDuration)
             customerAttackingIds.remove(activeId)
@@ -1875,7 +1927,7 @@ class PotionShopGameState {
                 // shakes the cauldron (same big-hit rule as the active).
                 // JULY 2, 2026: reads the DAY-SCALED value set at spawn.
                 if customers[cIdx].waitingAttack >= PotionShopConfig.fireBigHitThreshold {
-                    fire = max(0, fire - 1)
+                    loseFlameToAttack()   // JULY 10: Ember Charm may relight the first one today
                 }
                 // Small gap before the next waiter shakes, for a rippling
                 // down-the-line feel. Tune via waiterStaggerDelay.
@@ -2096,7 +2148,7 @@ class PotionShopGameState {
         lines.append("Day: \(dayId), Round: \(currentRoundLabel)")
         lines.append("Customers spawned: \(customers.count)")
         lines.append("Queue length: \(queue.count)")
-        lines.append("Composure: \(composure) / \(PotionShopConfig.maxComposure)")
+        lines.append("Composure: \(composure) / \(effectiveMaxComposure)")
         lines.append("Hand: \(hand.count) dice")
 
         guard let firstId = queue.first,

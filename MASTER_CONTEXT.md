@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** July 10, 2026 — added 🧠 MEMORY ARCHITECTURE (the 2.8GB saga resolution + the global image-loading rule)  
+> **Last Updated:** July 11, 2026 — CAULDRON **PLAYTEST V1 built** (hpGrowth 1.07→1.09, split round/relic pools, Focus-Free dice cap-1/lane, Bitter Dregs, Iron Kettle, Ember Charm, patience jitter). Balance lab **v3.3** models the game's tap-to-swap targeting (earlier labs understated the player) + ⭐ PLAYTEST V1 preset. Layout bake batches 2–4 merged; editor exports proved CUMULATIVE (only the last of a stack matters). Full detail: CAULDRON_CONTEXT **§73**. — Previously July 10: 🧠 MEMORY ARCHITECTURE (the 2.8GB saga resolution + the global image-loading rule)  
 > **Project Status:** Active Development — current focus is **Ednar's Potion Cauldron** (a dice-roguelite in `PotionShop/`). That game has its own authoritative doc, `CAULDRON_CONTEXT.md`.
 
 ---

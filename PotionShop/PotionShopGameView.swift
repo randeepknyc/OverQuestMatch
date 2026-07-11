@@ -2986,7 +2986,7 @@ struct PotionShopBoonMenuView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Text("Choose a Boon")
+                Text(gs.boonOfferIsRelic ? "Choose a Relic" : "Choose a Boon")   // JULY 10: pool split
                     .font(Font.gameScore(size: 39))
                     .foregroundColor(.white)
                 Text("Pick one — it joins your deck for the rest of the run")

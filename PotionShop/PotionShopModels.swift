@@ -640,7 +640,12 @@ struct PotionShopConfig {
     // to buckets. Day 1 = ×1.0. NOTE: at ×1.07/day, Day 30 ≈ 7× Day 1 — late
     // days are brutal until player-power growth (Focus/boons/relics) exists.
     // `hpGrowthPerDay` is the master dial: lower to ~1.04 for a gentler curve.
-    static let hpGrowthPerDay: Double = 1.07
+    // JULY 10, 2026 (PLAYTEST V1): 1.07 → 1.09 — THE one threat change.
+    // Compounding, so weeks 3–4 get much meaner ("significantly harder as
+    // it goes"). Lab-measured: 17% of strong runs reach Day 30, median
+    // death Day 14. FALLBACK if playtesters can't crack week 2: 1.08
+    // (≈3× completions, one number).
+    static let hpGrowthPerDay: Double = 1.09
     static let hpBucketStep = 2
     static func hpDayMultiplier(forDay day: Int) -> Double {
         let d = max(1, min(30, day))   // full 30-day campaign curve
@@ -883,6 +888,9 @@ struct PotionShopDie: Identifiable, Equatable {
     /// tier's canonical array; set = this die's own face list (built by the
     /// upgrade picker's floor/ceiling bumps). Copied from the bag die.
     var customFaces: [Int]? = nil
+    /// JULY 10, 2026 (PLAYTEST V1): copied from the bag die — true = this
+    /// dealt die is FOCUS-FREE (doesn't count against Focus when placed).
+    var isFocusFree: Bool = false
     /// JUNE 18, 2026 (run system test): flat bonus this die carries from a
     /// boon (e.g. an upgraded potency = +2). Added to value in computeBrew.
     /// 0 for ordinary dice.
@@ -927,6 +935,12 @@ struct PotionShopBagDie: Codable {
     /// e.g. a boon-upgraded die with +2 bonus value. Default = no bonus.
     /// Rides with the die through the deck so its effect persists for the run.
     var rule: PotionShopDieRule = PotionShopDieRule()
+    /// JULY 10, 2026 (PLAYTEST V1): FOCUS-FREE die — placing it does NOT
+    /// count against Focus. Earned from the boon pool ("Focus-Free Heal"
+    /// etc.): a PERMANENT lane member, dealt like any other die of its
+    /// type. Optional so saves from before this field still decode
+    /// (nil/false = a normal die).
+    var isFocusFree: Bool? = nil
 }
 
 // MARK: - Cauldron board topology (JULY 2, 2026 — BOARD LIBRARY SYSTEM)
