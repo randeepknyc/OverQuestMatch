@@ -57,6 +57,83 @@ struct PotionShopImageLoader {
         "imageio \(statImageIODecodes) · at-size \(statAtSizeDecodes) · full-res fallback \(statFallbackDecodes) (≈\(statFallbackFullResMB)MB) · small pass \(statPassThroughs)"
     }
 
+    // ═══ JULY 10, 2026 — CASE REOPENED (live 2273MB on icon-launched runs).
+    // Two discriminating instruments; both mutated only on decodeQueue.
+    //
+    // (1) EXPOSURE LEDGER: for every catalog asset that passes through the
+    // at-size / fallback paths, record what its FULL-RES decode would cost.
+    // If iOS is secretly materializing full-res behind preparingThumbnail,
+    // the exposure total will ≈ the live figure and the top list names the
+    // guilty assets and their pixel sizes.
+    private(set) static var namedSrcExposure: [String: Int] = [:]   // name → bytes
+    private static func recordExposure(_ name: String, w: CGFloat, h: CGFloat) {
+        namedSrcExposure[name] = Int(w * h * 4)
+    }
+    static var exposureText: String {
+        decodeQueue.sync {
+            guard !namedSrcExposure.isEmpty else { return "exposure: none recorded" }
+            let totalMB = namedSrcExposure.values.reduce(0, +) / 1_048_576
+            let top = namedSrcExposure.sorted { $0.value > $1.value }.prefix(3)
+                .map { "\($0.key) \($0.value / 1_048_576)MB" }
+                .joined(separator: ", ")
+            return "if full-res pinned ≈\(totalMB)MB / \(namedSrcExposure.count) assets · top: \(top)"
+        }
+    }
+
+    // (2) LIVENESS CENSUS: a weak registry of every image this loader has
+    // handed out. The census sums the ones STILL ALIVE right now — if game
+    // code is retaining our outputs (why purging frees nothing), the alive
+    // total ≈ the live figure and the family grouping names who.
+    private final class PSWeakImage {
+        weak var img: UIImage?
+        let name: String
+        let bytes: Int
+        init(_ i: UIImage, _ n: String) {
+            img = i; name = n
+            bytes = Int(i.size.width * i.scale * i.size.height * i.scale * 4)
+        }
+    }
+    private static var liveRegistry: [ObjectIdentifier: PSWeakImage] = [:]
+    // JULY 10, 2026 (decode-storm hunt): decodes per asset name + the set
+    // of distinct pixel sizes each was decoded at. A healthy session shows
+    // every name ×1-3; a name at ×hundreds is being re-decoded per frame —
+    // its key must be churning (animated size) or its entry thrashing out.
+    private(set) static var decodeCounts: [String: Int] = [:]
+    private(set) static var decodeSizes: [String: Set<Int>] = [:]
+    private static func registerLive(_ img: UIImage, name: String) {
+        liveRegistry[ObjectIdentifier(img)] = PSWeakImage(img, name)
+        decodeCounts[name, default: 0] += 1
+        decodeSizes[name, default: []].insert(Int(max(img.size.width, img.size.height) * img.scale))
+    }
+    static var decodeStormText: String {
+        decodeQueue.sync {
+            let total = decodeCounts.values.reduce(0, +)
+            guard total > 0 else { return "decodes by name: none yet" }
+            let top = decodeCounts.sorted { $0.value > $1.value }.prefix(3)
+                .map { "\($0.key) ×\($0.value) @\(decodeSizes[$0.key]?.count ?? 1) sizes" }
+                .joined(separator: ", ")
+            return "decodes \(total) · hottest: \(top)"
+        }
+    }
+    static var livenessCensusText: String {
+        decodeQueue.sync {
+            liveRegistry = liveRegistry.filter { $0.value.img != nil }   // prune dead
+            guard !liveRegistry.isEmpty else { return "alive loader images: 0" }
+            // Group by asset family: trailing frame digits stripped.
+            var families: [String: Int] = [:]
+            var totalBytes = 0
+            for e in liveRegistry.values {
+                let fam = String(e.name.reversed().drop(while: { $0.isNumber }).reversed())
+                families[fam, default: 0] += e.bytes
+                totalBytes += e.bytes
+            }
+            let top = families.sorted { $0.value > $1.value }.prefix(3)
+                .map { "\($0.key) \($0.value / 1_048_576)MB" }
+                .joined(separator: ", ")
+            return "alive loader images: \(liveRegistry.count) ≈\(totalBytes / 1_048_576)MB · top: \(top)"
+        }
+    }
+
     private static let downsampleCache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
         // JULY 2, 2026 (v2 — the 1969MB lesson): the cache is budgeted in
@@ -155,6 +232,7 @@ struct PotionShopImageLoader {
             if let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) {
                 let image = UIImage(cgImage: cg)
                 statImageIODecodes += 1
+                registerLive(image, name: name)   // JULY 10: liveness census
                 let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
                 downsampleCache.setObject(image, forKey: cacheKey, cost: cost)
                 return image
@@ -164,6 +242,7 @@ struct PotionShopImageLoader {
         let srcPixW = base.size.width * base.scale
         let srcPixH = base.size.height * base.scale
         guard srcPixW > 0, srcPixH > 0 else { return nil }
+        recordExposure(name, w: srcPixW, h: srcPixH)   // JULY 10: exposure ledger
         let maxSide = max(srcPixW, srcPixH)
         // Genuinely tiny sources (icons, dice) pass through uncached-cost-free-ish:
         // cache them WITH cost so even these obey the budget.
@@ -202,6 +281,7 @@ struct PotionShopImageLoader {
             statFallbackFullResMB += Int(srcPixW * srcPixH * 4 / 1_048_576)
             print("⚠️ PS image: FULL-RES fallback decode for '\(name)' (\(Int(srcPixW))×\(Int(srcPixH)))")
         }
+        registerLive(image, name: name)   // JULY 10: liveness census
         let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
         downsampleCache.setObject(image, forKey: cacheKey, cost: cost)
         return image
@@ -241,6 +321,7 @@ struct PotionShopImageLoader {
            let img = UIImage(contentsOfFile: path) {
             let cost = Int(img.size.width * img.scale * img.size.height * img.scale * 4)
             looseFileCache.setObject(img, forKey: key, cost: cost)
+            registerLive(img, name: name)   // JULY 10: liveness census
             return img
         }
         missingNames.insert(name)
@@ -1161,6 +1242,39 @@ final class PotionShopMemoryWatchdog {
 
     /// Latest sampled footprint in MB (-1 until first sample).
     var footprintMB: Int = -1
+    /// JULY 10, 2026 (case reopened): the footprint BROKEN INTO BUCKETS,
+    /// sampled alongside footprintMB. This is the phantom-vs-real
+    /// discriminator, in-app, no Xcode needed:
+    ///   live       = internal (genuinely in-use, dirty memory)
+    ///   compressed = cold memory the system squeezed
+    ///   reusable   = marked instantly-reclaimable — the "phantom" bucket;
+    ///                if THIS is where the gigabytes live, the number is
+    ///                bookkeeping, not real pressure
+    ///   headroom   = how many MB iOS says we may still allocate before
+    ///                the limit — huge headroom + huge footprint = iOS
+    ///                itself doesn't believe the footprint is real
+    var vmBreakdownText: String = "sampling…"
+    /// JULY 10, 2026 (bimodal-launch investigation): footprint sampled
+    /// every second for the FIRST 60s after launch. One screenshot of a
+    /// bad launch now shows the exact second the balloon inflates —
+    /// instant (startup allocation) vs ramp (runaway loop).
+    var launchCurveText: String = "launch curve: recording…"
+    private var launchSamples: [Int] = []
+    private var launchTimer: Timer? = nil
+    /// JULY 10, 2026 (endgame): a walk of the live CoreAnimation layer
+    /// tree — layer count, total backing-store bytes (layers holding
+    /// contents, scale-adjusted), and the biggest offenders by class and
+    /// pixel size. The 2.8GB launches profile as render-surface memory
+    /// (live, incompressible, flushed on backgrounding) — this names the
+    /// view that ballooned. Refreshed every sample + on demand.
+    var layerAuditText: String = "layer audit: pending…"
+    /// JULY 10, 2026 (the title-flow lead): the splash/title/map screens
+    /// draw ~30 full-screen assets via raw SwiftUI Image(name) — the ONE
+    /// path the memory saga never audited. iOS decodes those at FULL
+    /// resolution into its process-wide cache; the game then inherits
+    /// them. This line reads their DIMENSIONS (metadata only, no decode)
+    /// and reports what displaying them all costs.
+    var titleFlowText: String = "title-flow art: probing…"
     /// Non-nil while the warning banner should show.
     var warningText: String? = nil
 
@@ -1173,9 +1287,28 @@ final class PotionShopMemoryWatchdog {
 
     func start() {
         guard timer == nil else { return }
+        titleFlowText = Self.titleFlowExposure()   // JULY 10: once, cheap
         sample()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.sample()
+        }
+        // JULY 10, 2026: launch-curve sampler — 1s cadence, first 60s only.
+        launchSamples = []
+        launchTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.launchSamples.append(Self.currentFootprintMB())
+            // Show a strided view so the line stays readable (~15 points).
+            let stride = max(1, self.launchSamples.count / 15)
+            let pts = self.launchSamples.enumerated()
+                .filter { $0.offset % stride == 0 || $0.offset == self.launchSamples.count - 1 }
+                .map { "\($0.element)" }
+                .joined(separator: " → ")
+            self.launchCurveText = "launch curve (MB): \(pts)"
+            if self.launchSamples.count >= 60 {
+                self.launchTimer?.invalidate()
+                self.launchTimer = nil
+                self.launchCurveText += " · (first 60s)"
+            }
         }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -1189,6 +1322,8 @@ final class PotionShopMemoryWatchdog {
 
     private func sample() {
         footprintMB = Self.currentFootprintMB()
+        vmBreakdownText = Self.currentVMBreakdownText()   // JULY 10, 2026
+        layerAuditText = Self.runLayerAudit()             // JULY 10, 2026
         guard footprintMB > Self.softLimitMB else { return }
         // Self-limit: purge at most once per 30s, and shout.
         if Date().timeIntervalSince(lastPurge) > 30 {
@@ -1218,5 +1353,92 @@ final class PotionShopMemoryWatchdog {
         }
         guard kr == KERN_SUCCESS else { return -1 }
         return Int(info.phys_footprint / 1_048_576)
+    }
+
+    /// JULY 10, 2026 — the footprint broken into its VM buckets, from the
+    /// SAME task_vm_info call the footprint uses. Formatted for the debug
+    /// menu; screenshot this line whenever the footprint reads big.
+    static func currentVMBreakdownText() -> String {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size
+        )
+        let kr = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return "breakdown unavailable" }
+        let mb: (UInt64) -> Int = { Int($0 / 1_048_576) }
+        // `internal` is a Swift keyword — backticks reach the C field.
+        let live = mb(UInt64(max(0, info.`internal`)))
+        let comp = mb(UInt64(max(0, info.compressed)))
+        let reus = mb(UInt64(max(0, info.reusable)))
+        let head = mb(UInt64(max(0, info.limit_bytes_remaining)))
+        let headText = head == 0 ? "n/a" : "\(head)"
+        return "live \(live) · compressed \(comp) · reusable \(reus) · headroom \(headText) (MB)"
+    }
+
+    /// JULY 10, 2026 — dimension probe of every splash/title/map asset.
+    /// UIImage(named:).size reads metadata without decoding pixels, so
+    /// this measures the exposure without creating it.
+    static func titleFlowExposure() -> String {
+        var names = ["splash_screen", "title_screen01", "title_screen",
+                     "title_logo", GameAssets.mapBackground]
+        names += (1...3).map { "splashrk\($0)" }
+        names += (1...3).map { "splashmilo\($0)" }
+        names += (1...8).map { "splash_bg_\($0)" }
+        names += (1...17).map { "leaf\($0)" }
+        var total = 0
+        var found = 0
+        var top: [(String, Int)] = []
+        for n in names {
+            guard let img = UIImage(named: n) else { continue }
+            let bytes = Int(img.size.width * img.scale * img.size.height * img.scale * 4)
+            total += bytes
+            found += 1
+            top.append((n, bytes))
+        }
+        guard found > 0 else { return "title-flow art: none found" }
+        let topText = top.sorted { $0.1 > $1.1 }.prefix(3)
+            .map { "\($0.0) \($0.1 / 1_048_576)MB" }
+            .joined(separator: ", ")
+        return "title-flow art: \(found) assets ≈\(total / 1_048_576)MB if all decode · top: \(topText)"
+    }
+
+    /// JULY 10, 2026 — walk every window's layer tree. Runs on the main
+    /// thread (the watchdog timer lives on the main runloop). Reports:
+    /// layer count · estimated contents bytes · top offenders (class,
+    /// point size, estimated MB) · and the largest-BOUNDS layer even if
+    /// it holds no contents (an absurd frame is the tell either way).
+    static func runLayerAudit() -> String {
+        var count = 0
+        var contentsBytes = 0
+        var top: [(cls: String, w: Int, h: Int, mb: Int)] = []
+        var maxDim: (cls: String, w: Int, h: Int) = ("—", 0, 0)
+
+        func walk(_ layer: CALayer) {
+            count += 1
+            let w = layer.bounds.width, h = layer.bounds.height
+            if max(w, h) > CGFloat(max(maxDim.w, maxDim.h)) {
+                maxDim = (String(describing: type(of: layer)), Int(w), Int(h))
+            }
+            if layer.contents != nil, w > 0, h > 0 {
+                let scale = max(1, layer.contentsScale)
+                let bytes = Int(w * scale * h * scale * 4)
+                contentsBytes += bytes
+                top.append((String(describing: type(of: layer)), Int(w), Int(h), bytes / 1_048_576))
+            }
+            layer.sublayers?.forEach(walk)
+        }
+        for scene in UIApplication.shared.connectedScenes {
+            (scene as? UIWindowScene)?.windows.forEach { walk($0.layer) }
+        }
+        guard count > 0 else { return "layer audit: no windows reachable" }
+        let topText = top.sorted { $0.mb > $1.mb }.prefix(3)
+            .map { "\($0.cls) \($0.w)×\($0.h)pt \($0.mb)MB" }
+            .joined(separator: ", ")
+        return "layers \(count) · contents ≈\(contentsBytes / 1_048_576)MB · top: \(topText)"
+            + " · biggest bounds: \(maxDim.cls) \(maxDim.w)×\(maxDim.h)pt"
     }
 }

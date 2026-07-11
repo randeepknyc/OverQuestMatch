@@ -102,6 +102,54 @@ struct PotionShopDebugMenu: View {
                     Text(PotionShopImageLoader.decodeStatsText)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                    // JULY 10, 2026 (case reopened): the footprint split
+                    // into VM buckets — live / compressed / reusable /
+                    // headroom. If the footprint is big, THIS line says
+                    // whether it's real (live/compressed hold it) or
+                    // bookkeeping (reusable holds it, headroom is huge).
+                    Text(PotionShopMemoryWatchdog.shared.vmBreakdownText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    // JULY 10, 2026: the two discriminators. Line 1 —
+                    // what full-res pinning WOULD cost (≈ live figure =
+                    // hidden-cache pinning confirmed, offenders named).
+                    // Line 2 — loader outputs still alive (≈ live figure =
+                    // something retains our images; family names who).
+                    Text(PotionShopImageLoader.exposureText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(PotionShopImageLoader.livenessCensusText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    // JULY 10, 2026: the launch curve — footprint per
+                    // second for the first minute. On a BAD (2800) launch
+                    // this line alone says whether it inflated instantly
+                    // or ramped.
+                    Text(PotionShopMemoryWatchdog.shared.launchCurveText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    // JULY 10, 2026: the layer audit — names the view
+                    // whose backing stores hold the missing gigabytes.
+                    Text(PotionShopMemoryWatchdog.shared.layerAuditText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    // JULY 10, 2026: the decode-storm profiler. at-size
+                    // ~30/second means some view re-decodes every frame —
+                    // this line names it.
+                    Text(PotionShopImageLoader.decodeStormText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    // JULY 10, 2026: what the splash/title/map art costs
+                    // if it all decodes — the prime balloon suspect.
+                    Text(PotionShopMemoryWatchdog.shared.titleFlowText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Button {
+                        PotionShopMemoryWatchdog.shared.layerAuditText =
+                            PotionShopMemoryWatchdog.runLayerAudit()
+                    } label: {
+                        Label("Audit layers now", systemImage: "square.3.layers.3d")
+                    }
                     Button {
                         PotionShopImageLoader.purgeDownsampleCache()
                     } label: {

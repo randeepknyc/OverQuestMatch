@@ -4,6 +4,11 @@
 //
 //  Updated to navigate to game selector
 //
+//  JULY 10, 2026 — LAUNCH-BALLOON FIX (see TitleScreenView header): the
+//  map background now loads through the budgeted at-size loader. This
+//  screen stays mounted UNDER the game via fullScreenCover, so its
+//  full-res decode used to sit pinned for the whole play session.
+//
 
 import SwiftUI
 
@@ -14,7 +19,11 @@ struct MapScreenView: View {
     var body: some View {
         ZStack {
             // Background - use map placeholder image
-            if let uiImage = UIImage(named: GameAssets.mapBackground) {
+            // JULY 10, 2026: budgeted at-size load (never full-res).
+            if let uiImage = PotionShopImageLoader.loadDisplayImage(
+                named: GameAssets.mapBackground,
+                displaySize: UIScreen.main.bounds.height
+            ) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)

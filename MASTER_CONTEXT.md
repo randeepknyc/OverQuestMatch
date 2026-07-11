@@ -1,7 +1,7 @@
 # MASTER PROJECT CONTEXT
 **OverQuestMatch3 - Multi-Game iOS Application**
 
-> **Last Updated:** June 28, 2026  
+> **Last Updated:** July 10, 2026 — added 🧠 MEMORY ARCHITECTURE (the 2.8GB saga resolution + the global image-loading rule)  
 > **Project Status:** Active Development — current focus is **Ednar's Potion Cauldron** (a dice-roguelite in `PotionShop/`). That game has its own authoritative doc, `CAULDRON_CONTEXT.md`.
 
 ---
@@ -158,6 +158,20 @@ Later, when ready to connect games:
 2. Create `ProgressManager.swift` to track unlocks
 3. Replace dev switcher with map screen in `OverQuestMatch3App.swift`
 4. Map launches individual games based on player progress
+
+---
+
+## 🧠 MEMORY ARCHITECTURE (July 10, 2026 — read before adding ANY full-screen art)
+
+**THE ONE RULE: every drawn-art image in the ENTIRE APP routes through `PotionShopImageLoader.loadDisplayImage(named:displaySize:)`** — the budgeted, 2048px-capped, at-size decoder living in `PotionShopModels.swift`. Raw SwiftUI `Image("name")` decodes at FULL export resolution into Apple's process-wide cache and is forbidden for drawn art on every screen: game screens AND app-level screens (splash, title, map, selector). SF Symbols and tiny UI glyphs are fine raw.
+
+**Why this rule is global (the 2.8GB saga, resolved July 10):** the splash/title/map flow drew ~28 full-screen PNGs (~134MB decoded EACH — exports are ~4,000×8,600px) via raw `Image("…")`. Because all games open inside the same process via fullScreenCover, Ednar's Potion Cauldron inherited up to ≈2.66GB of decoded title art, sized by how long the user lingered before entering — weeks of "bimodal" 200MB-vs-2,800MB launches. Fixed by routing `TitleScreenView`, `DeveloperSplashView`, and `MapScreenView` through the loader (leaves at half screen height to fit the budget) and stopping three never-invalidated animation Timers in those files. Post-fix: flat ~190MB launches. Full detail, instruments, and rules: **CAULDRON_CONTEXT.md §72**.
+
+**Cross-game facts to respect:**
+- `MapScreenView` and `GameSelectorView` stay MOUNTED underneath a running game (fullScreenCover) — anything they hold stays resident all session.
+- `GameSelectorView` purges image caches on game dismissal (`purgeInterGameCaches`).
+- Every repeating `Timer` in a SwiftUI view MUST be stored and invalidated in `onDisappear` — three "runs forever after the screen is gone" leaks were found in the title flow.
+- The Potion Cauldron debug menu's Memory panel is the shared diagnostic instrument set (footprint, VM buckets, exposure ledger, liveness census, launch curve, layer audit, decode profiler, title-flow probe) — screenshot the whole panel for any future memory anomaly in ANY game.
 
 ---
 

@@ -2,6 +2,17 @@
 //  TitleScreenView.swift
 //  OverQuestMatch3
 //
+//  JULY 10, 2026 — THE LAUNCH-BALLOON FIX. This screen (with the splash)
+//  used to draw ~20 full-screen PNGs via raw Image("name"). iOS decoded
+//  each at FULL export resolution (~134MB apiece!) into its process-wide
+//  cache — the bimodal 1.1–2.8GB launches, sized by how long you lingered
+//  here. Every image now routes through the game's budgeted at-size
+//  loader (2048px cap, ~120MB evicting budget). Leaves decode at half
+//  screen height so all 17 frames fit the budget without thrash — at
+//  10fps in motion the difference is invisible. Also: the leaf timer now
+//  actually STOPS when this screen disappears (it used to run forever).
+//  Visuals and all timing knobs are unchanged.
+//
 
 import SwiftUI
 
@@ -24,6 +35,20 @@ struct TitleScreenView: View {
     
     // ✨ Screen fade-in animation state (for splash → title transition)
     @State private var screenOpacity: Double = 0.0
+
+    // JULY 10, 2026: balloon fix — keeps leaf/timer work stoppable.
+    @State private var animActive = true
+
+    /// JULY 10, 2026: budgeted at-size image (never full-res). Falls back
+    /// to the raw asset only if the loader finds nothing (missing asset).
+    @ViewBuilder
+    private func psArt(_ name: String, pts: CGFloat) -> some View {
+        if let img = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: pts) {
+            Image(uiImage: img).resizable()
+        } else {
+            Image(name).resizable()
+        }
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -32,8 +57,7 @@ struct TitleScreenView: View {
                 // BASE BACKGROUND - "title_screen01.png" (SHOWS FIRST)
                 // ═══════════════════════════════════════════════════════════════
                 // This is the BOTTOM layer - always visible
-                Image("title_screen01")
-                    .resizable()
+                psArt("title_screen01", pts: geometry.size.height)
                     .aspectRatio(contentMode: .fill)
                     .frame(
                         width: geometry.size.width,
@@ -46,8 +70,7 @@ struct TitleScreenView: View {
                 // ✨ FIXED: FINAL BACKGROUND - "title_screen.png" (FADES IN ON TOP)
                 // ═══════════════════════════════════════════════════════════════
                 // Starts invisible (opacity 0), fades in to reveal final image
-                Image("title_screen")
-                    .resizable()
+                psArt("title_screen", pts: geometry.size.height)
                     .aspectRatio(contentMode: .fill)
                     .frame(
                         width: geometry.size.width,
@@ -60,8 +83,9 @@ struct TitleScreenView: View {
                 // ✨ LEAF ANIMATION LAYER (ON TOP OF BACKGROUNDS)
                 // ═══════════════════════════════════════════════════════════════
                 // Cycles through leaf1.png → leaf17.png with 2 second delay
-                Image("leaf\(currentLeafFrame)")
-                    .resizable()
+                // Half screen height: 17 frames fit the cache budget; at
+                // 10fps in motion the resolution difference is invisible.
+                psArt("leaf\(currentLeafFrame)", pts: geometry.size.height / 2)
                     .aspectRatio(contentMode: .fit)
                     .frame(
                         width: geometry.size.width,
@@ -77,8 +101,7 @@ struct TitleScreenView: View {
                     Spacer()
                         .frame(height: geometry.size.height * 0.15)
                     
-                    Image("title_logo")
-                        .resizable()
+                    psArt("title_logo", pts: geometry.size.width)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geometry.size.width * 1.0)
                         .offset(y: logoOffset)
@@ -117,6 +140,7 @@ struct TitleScreenView: View {
         .ignoresSafeArea()
         .opacity(screenOpacity)
         .onAppear {
+            animActive = true   // JULY 10: (re)arm the leaf loop
             // Fade in entire screen when appearing after splash
             withAnimation(.easeIn(duration: 0.2)) {
                 screenOpacity = 1.0
@@ -125,6 +149,12 @@ struct TitleScreenView: View {
             startBackgroundFade()  // ✅ Start background fade (01 → final)
             startAnimation()
             startLeafAnimation()
+        }
+        .onDisappear {
+            // JULY 10, 2026: the leaf timer used to keep firing FOREVER
+            // after this screen was gone (it re-scheduled itself in a
+            // loop). Kill the whole chain the moment we disappear.
+            animActive = false
         }
     }
     
@@ -155,6 +185,8 @@ struct TitleScreenView: View {
         let loopPauseDelay = 2.0    // Pause AFTER leaf17 before restarting (2 seconds)
         
         Timer.scheduledTimer(withTimeInterval: frameDelay, repeats: true) { timer in
+            // JULY 10, 2026: stop dead once the title screen is gone.
+            guard animActive else { timer.invalidate(); return }
             if currentLeafFrame < 17 {
                 // Normal playback: leaf1 → leaf17
                 currentLeafFrame += 1
@@ -164,6 +196,7 @@ struct TitleScreenView: View {
                 
                 // Wait for loop pause, then restart from leaf1
                 DispatchQueue.main.asyncAfter(deadline: .now() + loopPauseDelay) {
+                    guard animActive else { return }   // JULY 10
                     currentLeafFrame = 1
                     startLeafAnimation()  // Restart the animation
                 }
