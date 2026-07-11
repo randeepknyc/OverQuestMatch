@@ -626,9 +626,18 @@ class PotionShopLayoutConfig {
     // NOTE: cell-Y bakes that were compensating for art padding may now
     // overshoot — re-true them in the 🧪 H×W test round.
     var feetPlantOnArt: Bool = true
+
+    // ═══ BAKE STAMP ════════════════════════════════════════════════════
+    // Shown in the drawer's Auto-Layout tab. If the app on your device
+    // shows an OLDER batch than the last one Claude baked, the binary is
+    // stale — paste the latest LayoutConfig and BUILD before tuning,
+    // or every relaunch reverts to the old compiled values.
+    // (Claude updates this line with every bake batch.)
+    static let layoutBakeStamp = "batch 14 · Jul 11, 7:05 PM"
+
     var autoLayoutFeetYActive: Double = 0.8297092318534851  // BAKED JULY 11, 2026 (user-tuned, batch 11)
     /// Floor Y-fraction for waiting1 slot (queue[1]).
-    var autoLayoutFeetYWaiting1: Double = 0.7414326220750809  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+    var autoLayoutFeetYWaiting1: Double = 0.7432056665420532  // BAKED JULY 11, 2026 (user-tuned, batch 14)
     /// Floor Y-fraction for waiting2 slot (queue[2]).
     var autoLayoutFeetYWaiting2: Double = 0.873624175786972  // BAKED JULY 11, 2026 (user-tuned, batch 8)
 
@@ -654,7 +663,7 @@ class PotionShopLayoutConfig {
     var autoLayoutActiveWidth: Double = 1.0
     var autoLayoutActiveHeight: Double = 1.0
     var autoLayoutActiveX: Double = -19.503986835479736  // BAKED JULY 11, 2026 (user-tuned, batch 10)
-    var autoLayoutActiveY: Double = 24.468159675598145  // BAKED JULY 11, 2026 (user-tuned, batch 4)
+    var autoLayoutActiveY: Double = 20.212841033935547  // BAKED JULY 11, 2026 (user-tuned, batch 14)
 
     var autoLayoutWaiting1Width: Double = 1.0
     var autoLayoutWaiting1Height: Double = 1.0
@@ -1219,7 +1228,7 @@ class PotionShopLayoutConfig {
     /// Overrides the widthBucket-driven xFractions math so X is slot-locked
     /// regardless of which character is in the slot.
     var autoLayoutSlotXFractionActive: Double = 0.5596719467639923  // BAKED JULY 11, 2026 (user-tuned, batch 10)
-    var autoLayoutSlotXFractionWaiting1: Double = 0.7530740374326705  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+    var autoLayoutSlotXFractionWaiting1: Double = 0.7806893044710159  // BAKED JULY 11, 2026 (user-tuned, batch 14)
     var autoLayoutSlotXFractionWaiting2: Double = 0.8397250872850418  // BAKED JULY 11, 2026 (user-tuned, batch 10)
 
     // MARK: - Layout Editor state (May 25, 2026)
@@ -1394,16 +1403,16 @@ class PotionShopLayoutConfig {
         // ─── Per-cell overrides (June 2, 2026) ─────────────────────
         // 11 tuned (slot × height × width) cells for Day 3 R3 feet-anchor.
         // slot 0 = active, 1 = waiting1, 2 = waiting2.
-        bake(slot: 0, height: .medium, width: .medium, size: 1.0331560164690017, x: -4.96450662612915, y: -9.219872951507568)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 0, height: .medium, width: .medium, size: 1.0331560164690017, x: -4.96450662612915, y: -4.964554309844971)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 0, height: .medium, width: .skinny, size: 1.0723404258489608, x: -2.4822592735290527, y: -9.929084777832031)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 0, height: .medium, width: .wide, size: 1.0331560671329498, x: -5.6737542152404785, y: -7.801413536071777)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 0, height: .superShort, width: .medium, size: 0.941223394870758, x: 4.964542388916016, y: 9.219861030578613)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 0, height: .superShort, width: .skinny, size: 1.0180851131677626, x: 16.666674613952637, y: -3.5460948944091797)
+        bake(slot: 0, height: .superShort, width: .skinny, size: 0.9909574568271637, x: 16.666674613952637, y: -3.5460948944091797)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 0, height: .tall, width: .skinny, size: 1.0165780633687973, x: -11.347520351409912, y: -2.482283115386963)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 1, height: .medium, width: .skinny, size: 1.0278369605541229, x: -17.730486392974854, y: -26.241135597229004)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 1, height: .medium, width: .medium, size: 0.9178191840648651, x: -26.595735549926758, y: -8.510637283325195)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 1, height: .medium, width: .medium, size: 0.9389184892177582, x: -33.68793725967407, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 0, height: .tall, width: .medium, size: 1.0060284107923507, x: -9.219861030578613, y: -7.446801662445068)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
-        bake(slot: 1, height: .superShort, width: .skinny, size: 0.9464539408683776, x: -3.191494941711426, y: -9.219849109649658)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .superShort, width: .skinny, size: 0.9464539408683776, x: -14.184403419494629, y: -18.085098266601562)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 1, height: .floater, width: .medium, size: 0.9223404347896575, x: -20.567381381988525, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 2, height: .floater, width: .medium, size: 0.8916667073965072, x: 26.241135597229004, y: 13.829803466796875)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bake(slot: 0, height: .floater, width: .medium, size: 1.0452127695083617, x: 2.482271194458008, y: 20.56736946105957)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
@@ -1411,15 +1420,15 @@ class PotionShopLayoutConfig {
         bake(slot: 1, height: .tall, width: .medium, size: 0.9992021530866622, x: -36.170196533203125, y: -18.439722061157227)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bake(slot: 2, height: .superShort, width: .skinny, size: 0.8570035487413405, x: 20.921993255615234, y: -3.191494941711426)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 2, height: .tall, width: .medium, size: 0.9504432708024979, x: 2.1276473999023438, y: -4.255330562591553)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
-        bake(slot: 2, height: .medium, width: .medium, size: 0.9097518116235732, x: 6.382989883422852, y: -6.0283660888671875)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bake(slot: 2, height: .medium, width: .medium, size: 0.9609929233789443, x: 6.382989883422852, y: -8.865249156951904)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 2, height: .short, width: .wide, size: 0.8675532519817353, x: nil, y: -4.255318641662598)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bake(slot: 1, height: .medium, width: .wide, size: 0.9765957474708558, x: -24.11351203918457, y: -18.43973398208618)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 1, height: .short, width: .wide, size: 0.890691527724266, x: 12.056756019592285, y: -2.836883068084717)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
         bake(slot: 1, height: .tall, width: .wide, size: 1.0172872573137284, x: -30.4964542388916, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 1, height: .superShort, width: .medium, size: 0.8921985775232315, x: -9.556269645690918, y: -4.612767696380615)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 1, height: .superShort, width: .medium, size: 0.8921985775232315, x: -25.513720512390137, y: -4.612767696380615)  // BAKED JULY 11, 2026 (user-tuned, batch 13)
         bake(slot: 1, height: .tallHat, width: .medium, size: 0.9781028479337692, x: -16.312038898468018, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 2, height: .medium, width: .wide, size: 0.9730496764183043, x: -15.354609489440918, y: -8.865249156951904)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bake(slot: 2, height: .medium, width: .wide, size: 0.9730496764183043, x: -7.198584079742432, y: -8.865249156951904)  // BAKED JULY 11, 2026 (user-tuned, batch 13)
         bake(slot: 2, height: .medium, width: .skinny, size: 0.9640071243047714, x: 14.184403419494629, y: -11.702132225036621)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 2, height: .tall, width: .skinny, size: 0.9398936688899993, x: 3.191494941711426, y: -2.836883068084717)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bake(slot: 2, height: .tall, width: .wide, size: 0.9429078698158264, x: -13.120567798614502, y: -7.446813583374023)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
@@ -1442,7 +1451,7 @@ class PotionShopLayoutConfig {
         bakeHp(height: .superShort, width: .medium, size: 76.76773011684418, x: -48.244696855545044, y: -43.17375421524048)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHp(height: .short,      width: .wide,   size: 52.03369140625,      x: -64.73404169082642,   y: -33.59929323196411)
         bakeHp(height: .medium,     width: .skinny, size: nil,                 x: -54.36168909072876,   y: -6.382966041564941)
-        bakeHp(height: .medium, width: .medium, size: nil, x: 3.6170482635498047, y: -34.397149085998535)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHp(height: .medium, width: .medium, size: 70.2063924074173, x: 3.6170482635498047, y: -34.397149085998535)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bakeHp(height: .medium,     width: .wide,   size: 52.83156007528305,  x: 58.40427875518799,    y: -18.794310092926025)  // BAKED JULY 7, 2026 (user-tuned, batch 1) — x sign-flipped per paste
         bakeHp(height: .tall,       width: .skinny, size: 54.10815745592117,   x: -50.53192377090454,   y: -12.854611873626709)
         bakeHp(height: .tall,       width: .medium, size: nil,                 x: -43.61702799797058,   y: 22.2517728805542)
@@ -1454,15 +1463,15 @@ class PotionShopLayoutConfig {
         // ─── HP badge per-SLOT overrides (June 3-4, 2026) ──────────
         // Slot-specific deltas — win over shared HxW field-by-field at resolve time.
         bakeHpSlot(slot: 0, height: .superShort, width: .skinny, size: 55.78369319438934,   x: -70.05320191383362,   y: -41.75530672073364)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
-        bakeHpSlot(slot: 0, height: .tall, width: .medium, size: nil, x: -45.7446813583374, y: 28.63473892211914)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
-        bakeHpSlot(slot: 1, height: .medium, width: .medium, size: 57.14007019996643, x: -38.93614411354065, y: -40.42552709579468)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpSlot(slot: 0, height: .tall, width: .medium, size: nil, x: -45.7446813583374, y: 2.039003372192383)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeHpSlot(slot: 1, height: .medium, width: .medium, size: 57.14007019996643, x: -50.10634660720825, y: -30.851054191589355)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bakeHpSlot(slot: 1, height: .superShort, width: .skinny, size: 58.89538824558258, x: -50.372350215911865, y: -60.54964065551758)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 2, height: .medium, width: .medium, size: 60.41134595870972, x: -45.851075649261475, y: -15.248215198516846)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 2, height: .superShort, width: .skinny, size: 70.2251785993576, x: -41.861701011657715, y: -68.35105419158936)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 0, height: .medium, width: .wide, size: nil, x: -54.36170697212219, y: -5.3191304206848145)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bakeHpSlot(slot: 0, height: .tallHat, width: .medium, size: nil, x: -48.40427041053772, y: 25.08864402770996)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bakeHpSlot(slot: 1, height: .medium, width: .skinny, size: nil, x: -50.106364488601685, y: -11.702120304107666)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bakeHpSlot(slot: 1, height: .medium, width: .wide, size: nil, x: -53.29785346984863, y: -6.382966041564941)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 1, height: .medium, width: .wide, size: nil, x: -43.191468715667725, y: -6.382966041564941)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bakeHpSlot(slot: 1, height: .short, width: .wide, size: 71.58156096935272, x: -47.180843353271484, y: -66.57801866531372)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 1, height: .superShort, width: .medium, size: 67.59219884872437, x: -32.819151878356934, y: -69.06026601791382)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 1, height: .tall, width: .medium, size: 51.23581737279892, x: -40.418654680252075, y: -6.826233863830566)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
@@ -1470,7 +1479,7 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 2, height: .floater, width: .medium, size: 62.88475036621094, x: -15.000003576278687, y: -52.127647399902344)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHpSlot(slot: 2, height: .medium,    width: .skinny, size: nil,                x: -13.93616795539856,   y: -33.33332538604736)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
         bakeHpSlot(slot: 2, height: .short, width: .wide, size: 69.0283715724945, x: -59.0890109539032, y: -74.02483224868774)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bakeHpSlot(slot: 0, height: .medium, width: .medium, size: nil, x: -61.27658486366272, y: 8.156037330627441)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bakeHpSlot(slot: 0, height: .medium, width: .medium, size: 56.16383731365204, x: -61.27658486366272, y: -14.893603324890137)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bakeHpSlot(slot: 2, height: .floater,   width: .skinny, size: nil,                x: -15.724915266036987,  y: -48.22695255279541)  // BAKED JULY 11, 2026 (user-tuned, batch 4)
         bakeHpSlot(slot: 0, height: .floater,   width: .medium, size: nil,                x: -54.893624782562256,  y: -20.567357540130615)  // BAKED JULY 11, 2026 (user-tuned, batch 8)
         bakeHpSlot(slot: 1, height: .floater, width: .skinny, size: 63.363471031188965, x: -29.02277112007141, y: -34.04254913330078)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
@@ -1643,6 +1652,22 @@ class PotionShopLayoutConfig {
                              frontHeight: "medium", frontWidth: "medium",
                              backHeight: "", backWidth: "",
                              dx: -4.609930515289307, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .medium,
+                             frontHeight: "tall", frontWidth: "medium",
+                             backHeight: "floater", backWidth: "medium",
+                             dx: 21.27659320831299, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeCharacterContext(slot: 1, myHeight: .medium, myWidth: .wide,
+                             frontHeight: "medium", frontWidth: "wide",
+                             backHeight: "superShort", backWidth: "medium",
+                             dx: 20.56736946105957, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeCharacterContext(slot: 1, myHeight: .superShort, myWidth: .skinny,
+                             frontHeight: "medium", frontWidth: "medium",
+                             backHeight: "floater", backWidth: "medium",
+                             dx: 14.539003372192383, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeCharacterContext(slot: 1, myHeight: .tall, myWidth: .medium,
+                             frontHeight: "floater", frontWidth: "medium",
+                             backHeight: "medium", backWidth: "medium",
+                             dx: -13.82979154586792, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to

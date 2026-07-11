@@ -2989,6 +2989,11 @@ struct PotionShopLayoutOverlay: View {
 
     @ViewBuilder
     private var feetPlantToggleBlock: some View {
+        // Which bake batch this BINARY contains — if it lags the last
+        // batch Claude baked, rebuild before tuning (stale-binary guard).
+        Text("📦 Compiled layout: \(PotionShopLayoutConfig.layoutBakeStamp)")
+            .font(.caption2.bold())
+            .foregroundColor(.orange)
         Text("🦶 Feet Planting (template line)")
             .font(.caption2.bold())
             .foregroundColor(.mint)
