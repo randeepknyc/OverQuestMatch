@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1536" width="1024" height="1536">
+  <!--
+    Character Drawing Guide v2 — June 1, 2026
+    Canvas: 1024 × 1536
+    Floor: y=1500
+    Buckets: supertall / tall / medium / short / superShort (no floater)
+
+    Option 2 — Single Universal Foot Anchor:
+    Every character, regardless of width or pose, places the LEFTMOST TIP
+    of their screen-left foot exactly on the black dot at (300, 1500).
+  -->
+
+  <!-- White background; export with transparent BG -->
+  <rect x="0" y="0" width="1024" height="1536" fill="#ffffff"/>
+
+  <!-- ─── DO-NOT-DRAW margins (red @ 30%) ─────────────────────── -->
+  <rect x="0"   y="0"     width="1024" height="96"   fill="#D9614C" fill-opacity="0.30"/>
+  <rect x="0"   y="1500"  width="1024" height="36"   fill="#D9614C" fill-opacity="0.30"/>
+  <rect x="0"   y="96"    width="96"   height="1404" fill="#D9614C" fill-opacity="0.30"/>
+  <rect x="928" y="96"    width="96"   height="1404" fill="#D9614C" fill-opacity="0.30"/>
+
+  <!-- ─── Body width bands (green, nested) ────────────────────── -->
+  <rect x="96"  y="96" width="832" height="1404" fill="#8FD97A" fill-opacity="0.20"/>
+  <rect x="272" y="96" width="480" height="1404" fill="#8FD97A" fill-opacity="0.30"/>
+  <rect x="352" y="96" width="320" height="1404" fill="#8FD97A" fill-opacity="0.40"/>
+
+  <!-- ─── Head boxes ──────────────────────────────────────────── -->
+  <rect x="384" y="96"  width="256" height="384" fill="#D95BBF" fill-opacity="0.30"/>
+  <rect x="384" y="192" width="256" height="256" fill="#7E5BD9" fill-opacity="0.30"/>
+  <rect x="384" y="384" width="256" height="256" fill="#2C7CD9" fill-opacity="0.30"/>
+  <rect x="384" y="576" width="256" height="224" fill="#5BAEFF" fill-opacity="0.30"/>
+  <rect x="384" y="768" width="256" height="224" fill="#A0D8FF" fill-opacity="0.30"/>
+
+  <!-- ─── Floor line ──────────────────────────────────────────── -->
+  <rect x="0" y="1497" width="1024" height="6" fill="#FFD93D" fill-opacity="0.85"/>
+
+  <!-- ─── SINGLE UNIVERSAL FOOT ANCHOR (300, 1500) ────────────── -->
+  <!-- Big bold marker so artist can't miss it. EVERY character's
+       LEFT foot tip toe pixel goes exactly here. -->
+  <g>
+    <!-- Outer high-vis ring (cyan) -->
+    <circle cx="300" cy="1500" r="36" fill="none" stroke="#00B8FF" stroke-width="3"/>
+    <!-- Inner crosshair lines -->
+    <line x1="260" y1="1500" x2="340" y2="1500" stroke="#000" stroke-width="4"/>
+    <line x1="300" y1="1460" x2="300" y2="1540" stroke="#000" stroke-width="4"/>
+    <!-- Central solid dot -->
+    <circle cx="300" cy="1500" r="12" fill="#000"/>
+    <!-- Inner mid-ring -->
+    <circle cx="300" cy="1500" r="22" fill="none" stroke="#000" stroke-width="2"/>
+  </g>
+
+  <!-- Anchor callout label -->
+  <g font-family="Helvetica, Arial, sans-serif" font-weight="bold" fill="#003E55">
+    <text x="360" y="1494" font-size="18">← LEFT foot tip HERE</text>
+    <text x="360" y="1516" font-size="13" font-weight="normal" fill="#000">(every character, every width — universal anchor)</text>
+  </g>
+
+  <!-- Centerline (faint) -->
+  <line x1="512" y1="0" x2="512" y2="1536" stroke="#888" stroke-width="1" stroke-dasharray="6 8"/>
+
+  <!-- ─── Bucket labels ───────────────────────────────────────── -->
+  <g font-family="Helvetica, Arial, sans-serif" font-weight="bold" font-size="22" fill="#ffffff">
+    <text x="396" y="118">SUPERTALL</text>
+    <text x="396" y="214">TALL</text>
+    <text x="396" y="406">MEDIUM</text>
+    <text x="396" y="598">SHORT</text>
+    <text x="396" y="790">SUPER SHORT</text>
+  </g>
+
+  <!-- Width band labels -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#2C5E1F">
+    <text x="104" y="120">WIDE band</text>
+    <text x="280" y="138">MEDIUM band</text>
+    <text x="360" y="156">SKINNY band</text>
+  </g>
+
+  <!-- Floor label -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold">
+    <text x="20" y="1492" fill="#8A6F00">FLOOR · y=1500</text>
+  </g>
+
+  <!-- DO-NOT-DRAW label -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#9A2E20" font-weight="bold">
+    <text x="20" y="60">DO NOT DRAW (red zones — safe-area margin)</text>
+  </g>
+
+  <!-- Header label -->
+  <rect x="0" y="0" width="1024" height="22" fill="#000" fill-opacity="0.80"/>
+  <text x="8" y="16" font-family="Courier, monospace" font-size="12" fill="#ffffff">
+    Character Template v2 · 1024×1536 · floor y=1500 · UNIVERSAL foot anchor (300, 1500)
+  </text>
+
+  <!-- Notes block — top right -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#003E55">
+    <rect x="640" y="32" width="370" height="60" fill="#E0F7FF" fill-opacity="0.85" stroke="#00B8FF" stroke-width="1"/>
+    <text x="650" y="50" font-weight="bold">Rule: LEFT foot tip on the cyan dot.</text>
+    <text x="650" y="68">Body extends right + up from that anchor.</text>
+    <text x="650" y="84">Width band sets max body silhouette span.</text>
+  </g>
+
+  <!-- 100px grid -->
+  <g stroke="#dddddd" stroke-width="0.5">
+    <line x1="100"  y1="0" x2="100"  y2="1536"/>
+    <line x1="200"  y1="0" x2="200"  y2="1536"/>
+    <line x1="300"  y1="0" x2="300"  y2="1536"/>
+    <line x1="400"  y1="0" x2="400"  y2="1536"/>
+    <line x1="500"  y1="0" x2="500"  y2="1536"/>
+    <line x1="600"  y1="0" x2="600"  y2="1536"/>
+    <line x1="700"  y1="0" x2="700"  y2="1536"/>
+    <line x1="800"  y1="0" x2="800"  y2="1536"/>
+    <line x1="900"  y1="0" x2="900"  y2="1536"/>
+    <line x1="0" y1="100"  x2="1024" y2="100"/>
+    <line x1="0" y1="200"  x2="1024" y2="200"/>
+    <line x1="0" y1="300"  x2="1024" y2="300"/>
+    <line x1="0" y1="400"  x2="1024" y2="400"/>
+    <line x1="0" y1="500"  x2="1024" y2="500"/>
+    <line x1="0" y1="600"  x2="1024" y2="600"/>
+    <line x1="0" y1="700"  x2="1024" y2="700"/>
+    <line x1="0" y1="800"  x2="1024" y2="800"/>
+    <line x1="0" y1="900"  x2="1024" y2="900"/>
+    <line x1="0" y1="1000" x2="1024" y2="1000"/>
+    <line x1="0" y1="1100" x2="1024" y2="1100"/>
+    <line x1="0" y1="1200" x2="1024" y2="1200"/>
+    <line x1="0" y1="1300" x2="1024" y2="1300"/>
+    <line x1="0" y1="1400" x2="1024" y2="1400"/>
+  </g>
+</svg>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1290 762"
+     width="1290" height="762">
+  <!--
+    Day 3 Background Drawing Template — 1290 × 762
+    May 30, 2026
+    Open this SVG as a Reference layer in Procreate or Photoshop, then
+    draw your background art on a new layer above it. Hide this layer
+    before exporting the final PNG.
+  -->
+
+  <!-- Canvas outline -->
+  <rect x="0" y="0" width="1290" height="762" fill="#ffffff"/>
+  <rect x="0" y="0" width="1290" height="762" fill="none" stroke="#000" stroke-width="2"/>
+
+  <!-- 100px reference grid (faint) -->
+  <g stroke="#cccccc" stroke-width="0.5">
+    <line x1="100" y1="0" x2="100" y2="762"/>
+    <line x1="200" y1="0" x2="200" y2="762"/>
+    <line x1="300" y1="0" x2="300" y2="762"/>
+    <line x1="400" y1="0" x2="400" y2="762"/>
+    <line x1="500" y1="0" x2="500" y2="762"/>
+    <line x1="600" y1="0" x2="600" y2="762"/>
+    <line x1="700" y1="0" x2="700" y2="762"/>
+    <line x1="800" y1="0" x2="800" y2="762"/>
+    <line x1="900" y1="0" x2="900" y2="762"/>
+    <line x1="1000" y1="0" x2="1000" y2="762"/>
+    <line x1="1100" y1="0" x2="1100" y2="762"/>
+    <line x1="1200" y1="0" x2="1200" y2="762"/>
+    <line x1="0" y1="100" x2="1290" y2="100"/>
+    <line x1="0" y1="200" x2="1290" y2="200"/>
+    <line x1="0" y1="300" x2="1290" y2="300"/>
+    <line x1="0" y1="400" x2="1290" y2="400"/>
+    <line x1="0" y1="500" x2="1290" y2="500"/>
+    <line x1="0" y1="600" x2="1290" y2="600"/>
+    <line x1="0" y1="700" x2="1290" y2="700"/>
+  </g>
+
+  <!-- Top safe zone (always visible) -->
+  <rect x="0" y="0" width="1290" height="80" fill="#fff59d" fill-opacity="0.40"/>
+  <text x="645" y="50" font-family="-apple-system, Helvetica" font-size="22"
+        font-weight="bold" fill="#5b5400" text-anchor="middle">
+    TOP SAFE ZONE — detail here will always be visible
+  </text>
+
+  <!-- Bottom safe zone (always visible — floor area) -->
+  <rect x="0" y="684" width="1290" height="78" fill="#fff59d" fill-opacity="0.40"/>
+  <text x="645" y="730" font-family="-apple-system, Helvetica" font-size="20"
+        font-weight="bold" fill="#5b5400" text-anchor="middle">
+    BOTTOM SAFE ZONE — floor / shadows / foreground details (Day 3 floor removed)
+  </text>
+
+  <!-- Ednar slot -->
+  <rect x="54" y="80" width="228" height="604" fill="#5b9bd5" fill-opacity="0.30"
+        stroke="#2e75b6" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="168" y="370" font-family="-apple-system, Helvetica" font-size="28"
+        font-weight="bold" fill="#1f4e79" text-anchor="middle">EDNAR</text>
+  <text x="168" y="400" font-family="-apple-system, Helvetica" font-size="14"
+        fill="#1f4e79" text-anchor="middle">x ≈ 168 (13%)</text>
+
+  <!-- Active customer slot (queue[0]) -->
+  <rect x="466" y="80" width="228" height="604" fill="#ed7d31" fill-opacity="0.30"
+        stroke="#c00000" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="580" y="370" font-family="-apple-system, Helvetica" font-size="26"
+        font-weight="bold" fill="#7f2704" text-anchor="middle">ACTIVE</text>
+  <text x="580" y="400" font-family="-apple-system, Helvetica" font-size="14"
+        fill="#7f2704" text-anchor="middle">queue[0] · x ≈ 580 (45%)</text>
+
+  <!-- Waiter 1 slot (queue[1]) — position varies with width buckets -->
+  <rect x="784" y="80" width="228" height="604" fill="#70ad47" fill-opacity="0.25"
+        stroke="#548235" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="898" y="370" font-family="-apple-system, Helvetica" font-size="24"
+        font-weight="bold" fill="#385723" text-anchor="middle">WAITER 1</text>
+  <text x="898" y="400" font-family="-apple-system, Helvetica" font-size="13"
+        fill="#385723" text-anchor="middle">queue[1] · x varies (700–940)</text>
+
+  <!-- Waiter 2 slot (queue[2]) -->
+  <rect x="944" y="80" width="228" height="604" fill="#7030a0" fill-opacity="0.22"
+        stroke="#5b1a89" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="1058" y="370" font-family="-apple-system, Helvetica" font-size="24"
+        font-weight="bold" fill="#3b0764" text-anchor="middle">WAITER 2</text>
+  <text x="1058" y="400" font-family="-apple-system, Helvetica" font-size="13"
+        fill="#3b0764" text-anchor="middle">queue[2] · x ≈ 1058 (82%)</text>
+
+  <!-- Center vertical line -->
+  <line x1="645" y1="0" x2="645" y2="762" stroke="#888" stroke-width="1" stroke-dasharray="2 4"/>
+  <text x="650" y="20" font-family="-apple-system, Helvetica" font-size="10"
+        fill="#888">center x=645</text>
+
+  <!-- Horizontal center -->
+  <line x1="0" y1="381" x2="1290" y2="381" stroke="#888" stroke-width="1" stroke-dasharray="2 4"/>
+  <text x="10" y="376" font-family="-apple-system, Helvetica" font-size="10"
+        fill="#888">center y=381</text>
+
+  <!-- Labels at corners -->
+  <text x="10" y="20" font-family="monospace" font-size="11" fill="#666">
+    Day 3 BG template — 1290 × 762
+  </text>
+  <text x="1280" y="755" font-family="monospace" font-size="10"
+        fill="#666" text-anchor="end">draw on layer above this</text>
+</svg>
