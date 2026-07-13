@@ -3176,6 +3176,27 @@ struct PotionShopDrawerPillStyle: ButtonStyle {
 // Also shows a small current-deck summary so you can SEE the deck growing.
 
 struct PotionShopBoonMenuView: View {
+    /// JULY 12: "Your deck" strip icon size. ✏️ CHANGE THIS NUMBER to
+    /// resize the mini dice in the boon/relic menu's deck summary.
+    private let deckDieIconSize: CGFloat = 35
+
+    /// JULY 12: real die art (mini), same assets as the upgrade picker,
+    /// via the budgeted loader (§72 — never load full-res). Falls back to
+    /// the old colored square if an asset is missing.
+    @ViewBuilder
+    private func deckDieIcon(_ type: PotionShopDieType) -> some View {
+        if let img = PotionShopImageLoader.loadDisplayImage(named: type.assetName, displaySize: deckDieIconSize) {
+            Image(uiImage: img)
+                .resizable()
+                .scaledToFit()
+                .frame(width: deckDieIconSize, height: deckDieIconSize)
+        } else {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(type.color)
+                .frame(width: deckDieIconSize, height: deckDieIconSize)
+        }
+    }
+
     @Bindable var gs: PotionShopGameState
 
     /// Deck counts grouped by die type, sorted for stable display order.
@@ -3197,7 +3218,7 @@ struct PotionShopBoonMenuView: View {
                 Text(gs.boonOfferIsRelic ? "Choose a Relic" : "Choose a Boon")   // JULY 10: pool split
                     .font(Font.gameScore(size: 39))
                     .foregroundColor(.white)
-                Text("Pick one — it joins your deck for the rest of the run")
+                Text("Pick one or Skip!")
                     .font(Font.gameUI(size: 30))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -3252,7 +3273,7 @@ struct PotionShopBoonMenuView: View {
                     }
                 } label: {
                     Text("Skip Boon")
-                        .font(Font.gameUI(size: 14))
+                        .font(Font.gameUI(size: 20))
                         .foregroundColor(.white.opacity(0.6))
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
@@ -3270,16 +3291,9 @@ struct PotionShopBoonMenuView: View {
                     HStack(spacing: 10) {
                         ForEach(deckCounts, id: \.type) { entry in
                             HStack(spacing: 4) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(entry.type.color)
-                                    .frame(width: 18, height: 18)
-                                    .overlay(
-                                        Text(entry.type.abbr)
-                                            .font(.system(size: 6, weight: .bold))
-                                            .foregroundColor(.white)
-                                    )
+                                deckDieIcon(entry.type)
                                 Text("×\(entry.count)")
-                                    .font(Font.gameUI(size: 14))
+                                    .font(Font.gameUI(size: 23))
                                     .foregroundColor(.white.opacity(0.8))
                             }
                         }

@@ -41,10 +41,10 @@ struct PotionShopUpgradePickerView: View {
 
             VStack(spacing: 10) {
                 Text("Upgrade a Die")
-                    .font(Font.gameScore(size: 24))
+                    .font(Font.gameScore(size: 32))
                     .foregroundColor(.white)
                 Text("Tap a face to raise it by 1")
-                    .font(Font.gameUI(size: 13))
+                    .font(Font.gameUI(size: 22))
                     .foregroundColor(.white.opacity(0.75))
 
                 ScrollView {
@@ -58,7 +58,7 @@ struct PotionShopUpgradePickerView: View {
 
                 if gs.run.pendingDieUpgrades > 1 {
                     Text("\(gs.run.pendingDieUpgrades) upgrades to spend")
-                        .font(Font.gameUI(size: 12))
+                        .font(Font.gameUI(size: 20))
                         .foregroundColor(.yellow)
                 }
             }
@@ -85,14 +85,14 @@ struct PotionShopUpgradePickerView: View {
             HStack(spacing: 10) {
                 dieArt(type)
                 Text(type.label)
-                    .font(Font.gameUI(size: 15))
+                    .font(Font.gameUI(size: 25))
                     .foregroundColor(.white)
                 Spacer()
                 if let die {
-                    faceStrip(die.effectiveFaces, color: type.color.opacity(0.9), size: 15)
+                    faceStrip(die.effectiveFaces, color: type.color.opacity(0.9), size: 20)
                 } else {
                     Text(gs.run.deck.contains(where: { $0.type == type }) ? "maxed" : "none in deck")
-                        .font(Font.gameUI(size: 12))
+                        .font(Font.gameUI(size: 20))
                         .foregroundColor(.white.opacity(0.45))
                 }
             }
@@ -238,11 +238,11 @@ struct PotionShopMagicIntroView: View {
                 }
 
                 Text("The Magic Die")
-                    .font(Font.gameUI(size: 18))
+                    .font(Font.gameUI(size: 26))
                     .foregroundColor(PotionShopDieType.magic.color)
 
-                Text("It mirrors! Place it and it copies whatever die sits directly across the cauldron — same effect, same power, boosts included. Across from nothing, it does nothing.")
-                    .font(Font.gameUI(size: 14))
+                Text("The magic die mirrors whatever die sits directly across the cauldron, doubling the value of that die.")
+                    .font(Font.gameUI(size: 23))
                     .foregroundColor(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -253,7 +253,7 @@ struct PotionShopMagicIntroView: View {
                     }
                 } label: {
                     Text("Got it")
-                        .font(Font.gameUI(size: 16))
+                        .font(Font.gameUI(size: 20))
                         .foregroundColor(PotionShopTheme.ink)
                         .padding(.horizontal, 34)
                         .padding(.vertical, 10)

@@ -266,56 +266,56 @@ enum PotionShopBoonPool {
 
     // ✏️ EDIT FREELY — names, blurbs, emoji are yours.
     static let roundPool: [PotionShopBoon] = [
-        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die — your pick",
+        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die",
                        emoji: "⬆️", effect: .dieUpgrade),
-        PotionShopBoon(name: "Potent Brew", blurb: "+1 to all potency dice",
+        PotionShopBoon(name: "Potent Brew", blurb: "+1 all potency",
                        emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
-        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to all heal dice",
+        PotionShopBoon(name: "Healing Mastery", blurb: "+1 all heal",
                        emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
-        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to all stability dice",
+        PotionShopBoon(name: "Stoked Coals", blurb: "+1 all stability",
                        emoji: "🔥", effect: .typeWideBonus(type: .stability, amount: 1)),
         // The FOCUS-FREE dice (lab-tuned: potency confirmed essential —
         // 31% → 76% completion in the pool tests; cap 1 per lane).
-        PotionShopBoon(name: "Focus-Free Heal", blurb: "Extra heal die — costs no Focus",
+        PotionShopBoon(name: "Focus-Free Heal", blurb: "Free heal die",
                        emoji: "✨", effect: .ffDie(type: .heal)),
-        PotionShopBoon(name: "Focus-Free Shield", blurb: "Extra shield die — costs no Focus",
+        PotionShopBoon(name: "Focus-Free Shield", blurb: "Free shield die",
                        emoji: "✨", effect: .ffDie(type: .shield)),
-        PotionShopBoon(name: "Focus-Free Potency", blurb: "Extra potency die — costs no Focus",
+        PotionShopBoon(name: "Focus-Free Potency", blurb: "Free potency die",
                        emoji: "✨", effect: .ffDie(type: .potency)),
         // The trap — rare and loud by design (§ trap guidance).
-        PotionShopBoon(name: "Bitter Dregs", blurb: "+2 all potency, but −1 all heal",
+        PotionShopBoon(name: "Bitter Dregs", blurb: "+2 potency, −1 heal",
                        emoji: "☕", effect: .bitterDregs),
     ]
 
     static let relicPool: [PotionShopBoon] = [
-        PotionShopBoon(name: "Mended Spirit", blurb: "Relic: full heal at day's end",
+        PotionShopBoon(name: "Mended Spirit", blurb: "Full heal nightly",
                        emoji: "💖", effect: .relicHealAtDayEnd),
-        PotionShopBoon(name: "Warded Morning", blurb: "Relic: +5 shield every morning",
+        PotionShopBoon(name: "Warded Morning", blurb: "+5 shield mornings",
                        emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
-        PotionShopBoon(name: "Iron Kettle", blurb: "Relic: +1 max composure",
+        PotionShopBoon(name: "Iron Kettle", blurb: "+1 max composure",
                        emoji: "🫖", effect: .ironKettle(1)),
-        PotionShopBoon(name: "Ember Charm", blurb: "Relic: first lost flame relights, once a day",
+        PotionShopBoon(name: "Ember Charm", blurb: "Relights one flame daily",
                        emoji: "🕯️", effect: .emberCharm),
     ]
 
     /// LEGACY layout of the old single pool (kept for reference):
     static let legacyAll: [PotionShopBoon] = [
-        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die — your pick",
+        PotionShopBoon(name: "Die Upgrade", blurb: "Upgrade a die",
                        emoji: "⬆️", effect: .dieUpgrade),
-        PotionShopBoon(name: "Mended Spirit", blurb: "Relic: full heal at day's end",
+        PotionShopBoon(name: "Mended Spirit", blurb: "Full heal nightly",
                        emoji: "💖", effect: .relicHealAtDayEnd),
-        PotionShopBoon(name: "Warded Morning", blurb: "Relic: +5 shield every morning",
+        PotionShopBoon(name: "Warded Morning", blurb: "+5 shield mornings",
                        emoji: "🛡️", effect: .relicShieldAtDayStart(5)),
         // JULY 5, 2026 (boon audit): the three "add a die" cards were DEAD
         // under type-draw dealing — die count doesn't change what's dealt,
         // and a fresh basic die could even DILUTE an upgraded lane. Replaced
         // with type-wide +1s (half the old §pre-67 values; verified consumed
         // by the brew math). ✏️ EDIT FREELY — these are your cards.
-        PotionShopBoon(name: "Potent Brew", blurb: "+1 to all potency dice",
+        PotionShopBoon(name: "Potent Brew", blurb: "+1 all potency",
                        emoji: "⚗️", effect: .typeWideBonus(type: .potency, amount: 1)),
-        PotionShopBoon(name: "Healing Mastery", blurb: "+1 to all heal dice",
+        PotionShopBoon(name: "Healing Mastery", blurb: "+1 all heal",
                        emoji: "💚", effect: .typeWideBonus(type: .heal, amount: 1)),
-        PotionShopBoon(name: "Stoked Coals", blurb: "+1 to all stability dice",
+        PotionShopBoon(name: "Stoked Coals", blurb: "+1 all stability",
                        emoji: "🔥", effect: .typeWideBonus(type: .stability, amount: 1)),
     ]
 
