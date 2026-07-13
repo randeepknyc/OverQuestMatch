@@ -4623,5 +4623,17 @@ Batches 16→20 this session; **stamp = "batch 20 · Jul 12, 4:00 AM"**. Baked d
 - `hand` dice: PotionShopDie type is `let` — rebuild, don't mutate. PotionShopCustomer is memberwise-constructible (tutorial trio uses it).
 - Hold-to-peek (§75-era, this session): 0.4s long-press (maxDistance 8; drag needs 10pt) on tray die → parchment card (name, lane faces from gs.run.deck, ✏️ peekBlurb). PotionShopDie in hand has NO faces — look up the deck lane.
 
-### §76.6 Open items
-FF die visual marking (user's next-turn item, still pending). "Live Preview" step still has a built-in hpBadge0 reveal that may double the user's circle (Yell's was removed). Tutorial copy edits via the script table. Boon/relic menu sizing = next request. TestFlight friends build: disable Enna's Tavern + Shop of Oddities (GameSelectorView cards ~lines 60-90) + both debug entries.
+### §76.6 Late-session additions (post-§76 write-up, same night)
+- **Batch 21 baked** (short·wide char cell x→−32.3; slot-2 badge →(−64.5,−14.2)); stamp = "batch 21 · Jul 12". The export's REMOVED badge value was a stale pre-batch-16 device override — bake asserted on size instead.
+- **5×-TAP DEBUG UNLOCK designed, NOT built** (user-approved): one @AppStorage("debugUnlocked") for both games, 5 rapid taps (~2s) toggles; potion tap target = the "Day N" label (gear opens settings), unlocked button renders UNDER the gear (moved from bottom-right); Match3 = hammer hidden, tap target = score/title. TestFlight ships debug HIDDEN, not removed.
+- **Friends/TestFlight build plan**: remove Enna's Tavern + Shop of Oddities cards (GameSelectorView ~60-90; launch cases ~232-240 may stay). Upload walkthrough given (Archive → Distribute → App Store Connect → TestFlight external group/public link; first external build = Beta App Review; encryption exempt).
+- **Boon menu "Your deck" strip → real mini die art** via budgeted loader with code-square fallback; size = `deckDieIconSize` (top of PotionShopBoonMenuView, GameView ~3178); ×count font = gameUI 14 (~3272).
+- **Boon/relic blurbs machine-shortened to 2-4 words** (stopgap vs ellipsizing; PotionShopRunSystem ~269-318; "Relic:" prefixes dropped — menu title covers it). USER WILL HAND-WRITE final copy.
+- **User hand-edited UpgradePicker sizes themselves** (title 32, subtitle 22, type-label still 15, face strip 20, chips 24) — audited clean; fonts/frames have NO memory impact (displaySize values untouched).
+- Sizing map given: boon card emoji .system(36) GameView ~3209, card height 150; picker type label = `Text(type.label)` gameUI 15 in typeRow; face-strip call = line ~92 (size + .opacity(0.9)); type palette = PotionShopDieType.color, Models ~859 — **Claude should sample real asset colors, not hand-tweak decimals**.
+
+### §76.7 Open items
+- 5×-tap debug unlock build (item #1 next session) + friends-build trims + TestFlight upload.
+- **ART & COPY PASS (user)**: hand-write all copy (boon/relic blurbs, tutorial script, peek cards); hand-drawn menu borders/interiors/icons; per-type PNG face squares (~100×100, plain center, face_potency.png etc.) → Claude wires via loader + fallback, same pattern as deck strip.
+- FF die visual marking (pending). "Live Preview" step's built-in hpBadge0 reveal may double the user's circle (Yell's removed).
+- v0/v1 dual-zip build (V1_BUILD_SPEC.md; user says when). Content pack authoring → validate/merge. healPity parked. Overhaul items 1-4 approved-in-principle. Blocked-nodes/events Swift port after lab validation.
