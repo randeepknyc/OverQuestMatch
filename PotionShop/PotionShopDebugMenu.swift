@@ -1203,6 +1203,12 @@ struct PotionShopDebugMenu: View {
         \(cfg.tutCircles.enumerated().map { i, c in
             "tutCircle\(i + 1): step \(c.step + 1), x \(String(format: "%.1f", c.x)), y \(String(format: "%.1f", c.y)), size \(String(format: "%.1f", c.size)), lineWidth \(String(format: "%.1f", c.lineWidth))"
         }.joined(separator: "\n"))
+        \(cfg.tutNudges.sorted(by: { $0.key < $1.key }).map { k, n in
+            "tutNudge[\(k)]: dx \(String(format: "%.1f", n.dx)), dy \(String(format: "%.1f", n.dy)), dw \(String(format: "%.1f", n.dw)), dh \(String(format: "%.1f", n.dh))"
+        }.joined(separator: "\n"))
+        \(cfg.tutManualReveals.enumerated().map { i, r in
+            "tutReveal\(i + 1): step \(r.step + 1), x \(String(format: "%.1f", r.x)), y \(String(format: "%.1f", r.y)), w \(String(format: "%.1f", r.w)), h \(String(format: "%.1f", r.h))"
+        }.joined(separator: "\n"))
         
         ═══════════════════════════════════════════════════════════════
         

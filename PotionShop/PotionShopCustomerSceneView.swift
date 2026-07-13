@@ -1325,6 +1325,21 @@ struct PotionShopCustomerInSceneView: View {
                     // around the character body when the layout editor is open
                     // and this customer is selected. Width/height are clamped
                     // to a positive minimum so SwiftUI never sees a 0-size frame.
+                    // JULY 12, 2026 (SHAPED HIGHLIGHTS): publish this
+                    // customer's VISUAL frame. Extracted to its own tiny
+                    // struct — the §74.8 type-checker law: no closures with
+                    // math inside this giant body.
+                    PotionShopTutFramePublisher(
+                        gs: gs,
+                        key: "customer\(queueIndex)",
+                        baseSize: PotionShopSceneLayout.portraitDiameter * scale,
+                        sx: customerSceneBaseScale * effectiveWidth,
+                        sy: customerSceneBaseScale * effectiveHeight,
+                        dx: effectiveX,
+                        dy: effectiveY,
+                        image: char.scenePortrait
+                    )
+
                     if isEditorSelected {
                         let ringW = max(20.0, PotionShopSceneLayout.portraitDiameter * scale * customerSceneBaseScale * effectiveWidth)
                         let ringH = max(30.0, PotionShopSceneLayout.portraitDiameter * scale * 1.5 * customerSceneBaseScale * effectiveHeight)
@@ -1507,6 +1522,16 @@ struct PotionShopCustomerInSceneView: View {
                     // exact badge position/size configured in the debug menu.
                     PotionShopDamageBurst(trigger: burstTick, scale: scale)
                 }
+                // JULY 12 (SHAPED HIGHLIGHTS): the badge's .offset below is
+                // render-only, so the same values ride along as dx/dy.
+                .background(PotionShopPlainFramePublisher(
+                    gs: gs,
+                    key: "hpBadge\(queueIndex)",
+                    clipCircle: true,
+                    style: .reveal,   // JULY 12: reveal the REAL badge (number and all)
+                    dx: effectiveX + headOffsetX + hpOffX * scale,
+                    dy: effectiveY + headOffsetY + hpOffY * scale
+                ))
                 // Include effectiveX/Y so the badge tracks the body within the slot.
                 .offset(
                     x: effectiveX + headOffsetX + hpOffX * scale,
@@ -1832,8 +1857,15 @@ struct PotionShopProfileButtonsRow: View {
 
     var body: some View {
         HStack(spacing: 18) {
-            ForEach(gs.customers) { cust in
+            ForEach(Array(gs.customers.enumerated()), id: \.element.id) { i, cust in
                 PotionShopProfileButtonView(gs: gs, customer: cust)
+                    // JULY 12 (SHAPED HIGHLIGHTS): circular portrait glow.
+                    .background(PotionShopPlainFramePublisher(
+                        gs: gs,
+                        key: "profile\(i)",
+                        image: PotionShopData.character(cust.charKey)?.portrait,
+                        clipCircle: true
+                    ))
             }
         }
         .frame(maxWidth: .infinity)
@@ -2029,6 +2061,7 @@ struct PotionShopInspectStripView: View {
                                 .foregroundColor(PotionShopTheme.ink)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
+                                .background(PotionShopPlainFramePublisher(gs: gs, key: "inspectName", style: .underline))
                             Text("•")
                                 .foregroundColor(PotionShopTheme.muted)
                             HStack(spacing: 5) {
@@ -2037,6 +2070,7 @@ struct PotionShopInspectStripView: View {
                                         .font(Font.gameUI(size: 28))
                                         .foregroundColor(PotionShopTheme.accent)
                                         .lineLimit(1)
+                                        .background(PotionShopPlainFramePublisher(gs: gs, key: "inspectTrait", style: .underline))
                                 }
                                 Text("\(attackForSubtitle)")
                                     .font(Font.gameUI(size: 33))
@@ -2526,4 +2560,45 @@ func PotionShopLerpColor(_ a: Color, _ b: Color, _ t: Double) -> Color {
         blue: Double(ab + (bb - ab) * f),
         opacity: Double(aa + (ba - aa) * f)
     )
+}
+
+
+// MARK: - Shaped-highlight frame publisher (July 12, 2026)
+//
+// Publishes an element's VISUAL rect (scaleEffect/offset applied by hand,
+// since those transforms are render-only and GeometryReader can't see
+// them). Kept as its own struct so the customer view's enormous body
+// stays type-checkable (§74.8).
+
+private struct PotionShopTutFramePublisher: View {
+    let gs: PotionShopGameState
+    let key: String
+    let baseSize: CGFloat
+    let sx: CGFloat
+    let sy: CGFloat
+    let dx: CGFloat
+    let dy: CGFloat
+    let image: String?
+
+    var body: some View {
+        Color.clear
+            .frame(width: baseSize, height: baseSize * 1.5)
+            .background(
+                GeometryReader { g in
+                    Color.clear
+                        .onAppear { publish(g.frame(in: .global)) }
+                        .onChange(of: g.frame(in: .global)) { _, f in publish(f) }
+                }
+            )
+            .allowsHitTesting(false)
+    }
+
+    private func publish(_ f: CGRect) {
+        let w: CGFloat = f.width * sx
+        let h: CGFloat = f.height * sy
+        let rect = CGRect(x: f.midX - w / 2 + dx,
+                          y: f.midY - h / 2 + dy,
+                          width: w, height: h)
+        gs.publishTutHighlight(key, frame: rect, image: image)
+    }
 }

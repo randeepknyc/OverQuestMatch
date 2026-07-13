@@ -428,6 +428,9 @@ struct PotionShopCauldronView: View {
                             height: baseGeometry.bowlH * cauldronArtScale * cauldronArtHeight   // base × uniform × height
                         )
                         // NO .clipped() - allows image to escape frame bounds
+                        // JULY 12 (tutorial): the whole cauldron publishes for
+                        // the 0%-reveal highlight.
+                        .background(PotionShopPlainFramePublisher(gs: gs, key: "cauldron", style: .reveal))
                         .position(
                             x: g.bowlCenterX + cauldronArtXOffset,
                             y: g.bowlOriginY + g.bowlH / 2 + cauldronArtYOffset
@@ -494,6 +497,11 @@ struct PotionShopCauldronView: View {
 
                 // ── STABILITY FIRE METER (under the cauldron) ──────────────
                 PotionShopFireMeterView(current: gs.fire, maxPieces: PotionShopConfig.maxFire)
+                    // JULY 12: the fire beats REVEAL the real animated flames.
+                    // The flame row's flames sit on render-only offsets, so the
+                    // published frame is just the anchor — size/stretch it with
+                    // the fireRow nudge sliders (drawer → 🎓 → Reveal Spots).
+                    .background(PotionShopPlainFramePublisher(gs: gs, key: "fireRow", style: .reveal))
                     .position(
                         x: g.bowlCenterX,                 // centered under the bowl
                         y: g.bowlOriginY + g.bowlH + 12   // 12 = gap below bowl; nudge to taste
@@ -542,6 +550,15 @@ struct PotionShopCauldronView: View {
                 // BREW BUTTON (conditionally shown)
                 if showBrewButton {
                     PotionShopBrewSignView(gs: gs)
+                        // JULY 12 (SHAPED HIGHLIGHTS): brew sign is code-drawn,
+                        // so it publishes a frame-style highlight ("brewSpoon").
+                        .background(GeometryReader { g in
+                            Color.clear
+                                .onAppear { gs.publishTutHighlight("brewSpoon", frame: g.frame(in: .global), image: nil, style: .reveal) }
+                                .onChange(of: g.frame(in: .global)) { _, f in
+                                    gs.publishTutHighlight("brewSpoon", frame: f, image: nil, style: .reveal)
+                                }
+                        })
                         .position(
                             x: g.totalW + brewXOffset,
                             y: g.bowlOriginY + g.bowlH * brewYPercent
@@ -722,7 +739,7 @@ struct PotionShopNodeButtonView: View {
 
     private var placedDie: PotionShopDie? { gs.placements[nodeIndex] }
     private var dieSelected: Bool { gs.selectedHandIndex != nil }
-    private var atCap: Bool { gs.placements.count >= gs.focus }
+    private var atCap: Bool { gs.nonFreePlacementCount >= gs.focus }   // JULY 11: FF dice are free — count only focus-costing placements (logic gates already did)
     private var canBePlacedOn: Bool { dieSelected && !atCap && placedDie == nil && !isDraggingFromHere }
     private var isDraggingDie: Bool { gs.draggedDie != nil }
     private var canReceiveDrop: Bool {
@@ -1361,6 +1378,15 @@ struct PotionShopDiceTrayView: View {
                             diceFlight: diceFlight,
                             dieScale: dieScale
                         )
+                        // JULY 12 (SHAPED HIGHLIGHTS): every tray die
+                        // publishes its frame + type group, so the tutorial
+                        // can light "all potency dice" wherever they landed.
+                        .background(PotionShopPlainFramePublisher(
+                            gs: gs,
+                            key: "die\(slotIndex)",
+                            group: "dice.\(die.type)",
+                            style: .reveal   // JULY 12 rev 2: dice REVEAL like everything else — the shaped re-render failed in play (3D cubes have no flat PNG to redraw)
+                        ))
                         // JULY 10, 2026 (PLAYTEST V1): FOCUS-FREE dice read
                         // as a gift in the tray — a soft glow + "FREE" pill.
                         // ✏️ Placeholder until you draw FF die art; swap the
@@ -1497,6 +1523,11 @@ struct PotionShopDiceDropInModifier: ViewModifier {
 // MARK: - One die in the tray
 
 struct PotionShopDieButtonView: View {
+    /// JULY 11, 2026 — HOLD-TO-PEEK: true while the finger holds still on
+    /// this die (0.4s); shows the info card. Any movement or release hides
+    /// it (movement past 8pt cancels the press; the drag needs 10pt, so
+    /// drags never fight the peek).
+    @State private var showPeek = false
     @Bindable var gs: PotionShopGameState
     let die: PotionShopDie
     let index: Int
@@ -1512,7 +1543,7 @@ struct PotionShopDieButtonView: View {
     @State private var landPopScale: CGFloat = 1.0
 
     private var isSelected: Bool { gs.selectedHandIndex == index }
-    private var atCap: Bool { gs.placements.count >= gs.focus }
+    private var atCap: Bool { gs.nonFreePlacementCount >= gs.focus }   // JULY 11: FF dice are free — count only focus-costing placements (logic gates already did)
 
     var body: some View {
         let scaledSize = PotionShopCauldronLayout.dieSize * dieScale
@@ -1602,7 +1633,7 @@ struct PotionShopDieButtonView: View {
         .scaleEffect(landPopScale)
         .opacity(atCap && !isSelected ? 0.5 : 1.0)
         .offset(dragOffset)
-        .zIndex(isDragging ? 1000 : 0)
+        .zIndex((isDragging || showPeek) ? 1000 : 0)
         .shadow(
             color: isDragging ? die.type.color.opacity(0.5) : .clear,
             radius: isDragging ? 12 : 0
@@ -1685,7 +1716,103 @@ struct PotionShopDieButtonView: View {
                 gs.selectHand(index)
             }
         }
+        // JULY 11, 2026 — HOLD-TO-PEEK (quality of life): hold a tray die
+        // still for 0.4s → a parchment card describes it (name, faces,
+        // what it does, FREE note). Release or move → gone. Quick taps
+        // still select; drags still place.
+        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 8) {
+            HapticManager.shared.diePlaced()
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { showPeek = true }
+        } onPressingChanged: { pressing in
+            if !pressing {
+                withAnimation(.easeOut(duration: 0.15)) { showPeek = false }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if showPeek {
+                PotionShopDiePeekCard(
+                    die: die,
+                    faces: gs.run.deck.first(where: { $0.type == die.type })?.effectiveFaces)
+                    .offset(y: -(PotionShopCauldronLayout.dieSize * dieScale + 16))
+                    .transition(.scale(scale: 0.85, anchor: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+        }
         .disabled(gs.isAnimating)
+    }
+}
+
+// MARK: - Hold-to-peek info card (July 11, 2026)
+//
+// The die dossier: name, its ACTUAL current faces (stays truthful as
+// lanes upgrade), a one-line blurb, and special notes (FREE, mirror).
+// Rendered above the held die; never intercepts touches.
+
+struct PotionShopDiePeekCard: View {
+    let die: PotionShopDie          // the HAND die (rolled value + type)
+    let faces: [Int]?               // the lane's current faces, from the deck
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(die.type.color)
+                    .frame(width: 12, height: 12)
+                Text(die.type.label)
+                    .font(Font.gameUI(size: 14))
+                    .foregroundColor(.white)
+                if die.isFocusFree == true {
+                    Text("FREE")
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 5).padding(.vertical, 1.5)
+                        .background(Capsule().fill(Color.white.opacity(0.95)))
+                }
+            }
+            if die.type != .magic, let faces {
+                HStack(spacing: 2) {
+                    ForEach(Array(faces.enumerated()), id: \.offset) { _, v in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(die.type.color.opacity(0.9))
+                            .frame(width: 15, height: 15)
+                            .overlay(Text("\(v)")
+                                .font(Font.gameScore(size: 10))
+                                .foregroundColor(.white))
+                            .overlay(RoundedRectangle(cornerRadius: 3)
+                                .stroke(Color.white.opacity(0.6), lineWidth: 0.7))
+                    }
+                }
+            }
+            Text(die.type.peekBlurb + (die.isFocusFree == true ? "\nCosts NO focus to place." : ""))
+                .font(Font.gameUI(size: 11))
+                .foregroundColor(.white.opacity(0.92))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .frame(width: 200, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(red: 0.13, green: 0.11, blue: 0.16).opacity(0.96))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(die.type.color.opacity(0.7), lineWidth: 1.2)
+        )
+        .shadow(color: .black.opacity(0.45), radius: 8, y: 3)
+    }
+}
+
+private extension PotionShopDieType {
+    /// One-liners for the hold-to-peek card. ✏️ Edit freely — pure copy.
+    var peekBlurb: String {
+        switch self {
+        case .potency:   return "Damages the customer's order — the heart of every brew."
+        case .heal:      return "Restores your composure. Only ONE heal counts per turn."
+        case .shield:    return "Adds shield — soaks customer hits before your composure does."
+        case .stability: return "Feeds the hearth. Dead fire = half-strength brews."
+        case .boost:     return "Adds its value to every die it touches. Placement matters!"
+        case .magic:     return "The mirror — copies whatever die sits directly across the cauldron."
+        }
     }
 }
 

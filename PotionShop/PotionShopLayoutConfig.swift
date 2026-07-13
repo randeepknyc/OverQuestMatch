@@ -633,7 +633,7 @@ class PotionShopLayoutConfig {
     // stale — paste the latest LayoutConfig and BUILD before tuning,
     // or every relaunch reverts to the old compiled values.
     // (Claude updates this line with every bake batch.)
-    static let layoutBakeStamp = "batch 14 · Jul 11, 7:05 PM"
+    static let layoutBakeStamp = "batch 21 · Jul 12, 12:25 PM"
 
     var autoLayoutFeetYActive: Double = 0.8297092318534851  // BAKED JULY 11, 2026 (user-tuned, batch 11)
     /// Floor Y-fraction for waiting1 slot (queue[1]).
@@ -1292,8 +1292,8 @@ class PotionShopLayoutConfig {
     // ─── TUTORIAL OVERLAY LAYOUT (July 4, 2026) ─────────────────────────
     // Edited live in debug menu → "🎓 Tutorial Layout". With edit mode ON,
     // the tutorial CARD can also be DRAGGED on screen per step.
-    var tutCardOffsetX: [Double] = [0, 0, 0, 0]   // per step 1–4
-    var tutCardOffsetY: [Double] = [0, 0, 0, 0]
+    var tutCardOffsetX: [Double] = [0.33, 1.33, -9.00, 8.67, 0.67, -2.00, 5.27, 0.67, -4.00, -3.33, -4.99, 1.67, -1.66, 22.00, 0.67, 4.66, 6.00, 2.00, 10.00, 1.00]  // BAKED JULY 12 batch 20  // BAKED JULY 12, 2026 (user-tuned, batch 16)   // per step 1–4
+    var tutCardOffsetY: [Double] = [0.33, 95.50, 252.33, 161.67, 360.67, 367.00, 370.67, 94.00, 374.00, 355.67, 231.00, 136.00, 156.00, 44.33, 130.00, 355.33, 293.33, 285.00, 371.00, 3.67]  // BAKED JULY 12 batch 20  // BAKED JULY 12, 2026 (user-tuned, batch 16)
     var tutCardMaxWidth: Double = 340
     var tutDimWatch: Double = 0.6    // screen fade, watch steps (1–3)
     var tutDimDoIt: Double = 0.35    // screen fade, do-it step (4)
@@ -1312,15 +1312,98 @@ class PotionShopLayoutConfig {
         var size: Double = 70
         var lineWidth: Double = 3.5
     }
-    var tutCircles: [TutorialCircle] = [TutorialCircle()]   // the classic step-3 circle
+    /// JULY 12, 2026: seeded spotlight circles for the FULL 20-step
+    /// tutorial (positions read off an iPhone 15 Pro screenshot — offsets
+    /// from screen CENTER). Drag any of them in edit mode; these are just
+    /// sane starting points. Steps 0, 9 and 19 are text-only (no circle).
+    // BAKED JULY 12, 2026 (user-tuned, batch 19)
+    static func defaultTutManualReveals() -> [TutManualReveal] {
+        [
+            TutManualReveal(step: 6,  x: -35.4, y: -93.5,  w: 56.7,  h: 45.6),   // composure detail
+            TutManualReveal(step: 13, x: 116.4, y: -379.8, w: 139.5, h: 31.6),   // focus row
+            TutManualReveal(step: 14, x: 149.6, y: -5.1,   w: 120.0, h: 70.7),   // brew sign
+            TutManualReveal(step: 11, x: -150.0, y: 387.4, w: 88.6, h: 80.0),    // batch 20: tray die (practice place)
+            TutManualReveal(step: 18, x: -73.9, y: 389.1,  w: 77.5, h: 75.2),    // batch 20: tray die (other dice)
+        ]
+    }
+
+    // BAKED JULY 12, 2026 (user-tuned, batch 18)
+    static func defaultTutNudges() -> [String: TutNudge] {
+        [
+            "composureBar": TutNudge(dx: 0.0,  dy: -14.2, dw: 0.0,  dh: 0.0),
+            "fireRow":      TutNudge(dx: -36.7, dy: -21.7, dw: 247.4, dh: -15.4),  // batch 19
+            "inspectName":  TutNudge(dx: 1.8,  dy: -4.4,  dw: 14.3, dh: -17.0),
+            "todIcon":      TutNudge(dx: 0.0,  dy: -3.1,  dw: 0.0,  dh: 11.7),
+        ]
+    }
+
+    static func defaultTutCircles() -> [TutorialCircle] {  // BAKED JULY 12, 2026 (user-tuned, batch 20)
+        // User-placed (export steps 1-based → 0-based).
+        [
+            TutorialCircle(step: 3, x: -38.3, y: -270.0, size: 64.1),
+            TutorialCircle(step: 3, x: 25.3, y: -301.0, size: 63.6),
+            TutorialCircle(step: 3, x: 118.7, y: -313.3, size: 55.9),
+            TutorialCircle(step: 4, x: -82.3, y: -75.3, size: 70.0),
+            TutorialCircle(step: 4, x: 0.7, y: -76.0, size: 70.0),
+            TutorialCircle(step: 4, x: 81.3, y: -75.3, size: 70.0),
+            TutorialCircle(step: 8, x: -82.3, y: -75.7, size: 70.0),
+            TutorialCircle(step: 8, x: 0.3, y: -75.7, size: 70.0),
+            TutorialCircle(step: 8, x: 81.0, y: -73.7, size: 70.0),
+            TutorialCircle(step: 9, x: -83.0, y: -73.7, size: 70.0),
+            TutorialCircle(step: 9, x: 1.7, y: -75.0, size: 70.0),
+            TutorialCircle(step: 9, x: 84.3, y: -75.7, size: 70.0),
+            TutorialCircle(step: 12, x: -38.3, y: -267.7, size: 63.1),
+            TutorialCircle(step: 15, x: -41.2, y: -271.2, size: 62.9),
+            TutorialCircle(step: 15, x: 24.0, y: -303.0, size: 59.1),
+            TutorialCircle(step: 15, x: 120.3, y: -311.5, size: 55.5),
+        ]
+    }
+
+    /// JULY 12, 2026: pad the per-step card-offset arrays out to the
+    /// script's step count (old 4-slot exports keep their values).
+    func ensureTutArrays(stepCount: Int) {
+        while tutCardOffsetX.count < stepCount { tutCardOffsetX.append(0) }
+        while tutCardOffsetY.count < stepCount { tutCardOffsetY.append(0) }
+    }
+
+    var tutCircles: [TutorialCircle] = PotionShopLayoutConfig.defaultTutCircles()
+
+    /// JULY 12: per-SPOT nudge for shaped/reveal highlights — the published
+    /// frame is the starting point; these sliders (drawer → 🎓 Tutorial →
+    /// Reveal Spots) move/resize it. Keyed by highlight key ("focusPips",
+    /// "fireRow", "customer0", "dice.potency"…). Exported + baked like
+    /// everything else.
+    struct TutNudge: Equatable {
+        var dx: Double = 0
+        var dy: Double = 0
+        var dw: Double = 0
+        var dh: Double = 0
+    }
+    var tutNudges: [String: TutNudge] = PotionShopLayoutConfig.defaultTutNudges()
+    func tutNudge(for key: String) -> TutNudge { tutNudges[key] ?? TutNudge() }
+
+    /// JULY 12: MANUAL reveal rects — user-added 0%-opacity holes for spots
+    /// with no published element (➕ Reveal in the drawer's 🎓 tab).
+    /// Center-relative coords, same space as the dotted circles.
+    struct TutManualReveal: Identifiable, Equatable {
+        let id = UUID()
+        var step: Int = 0
+        var x: Double = 0
+        var y: Double = 0
+        var w: Double = 120
+        var h: Double = 80
+    }
+    var tutManualReveals: [TutManualReveal] = PotionShopLayoutConfig.defaultTutManualReveals()
 
     func resetTutorialLayout() {
-        tutCardOffsetX = [0, 0, 0, 0]
-        tutCardOffsetY = [0, 0, 0, 0]
+        tutCardOffsetX = Array(repeating: 0, count: 20)
+        tutCardOffsetY = Array(repeating: 0, count: 20)
         tutCardMaxWidth = 340
         tutDimWatch = 0.6
         tutDimDoIt = 0.35
-        tutCircles = [TutorialCircle()]
+        tutCircles = PotionShopLayoutConfig.defaultTutCircles()
+        tutNudges = PotionShopLayoutConfig.defaultTutNudges()
+        tutManualReveals = PotionShopLayoutConfig.defaultTutManualReveals()
     }
 
     private init() {
@@ -1410,7 +1493,7 @@ class PotionShopLayoutConfig {
         bake(slot: 0, height: .superShort, width: .skinny, size: 0.9909574568271637, x: 16.666674613952637, y: -3.5460948944091797)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 0, height: .tall, width: .skinny, size: 1.0165780633687973, x: -11.347520351409912, y: -2.482283115386963)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 1, height: .medium, width: .skinny, size: 1.0278369605541229, x: -17.730486392974854, y: -26.241135597229004)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 1, height: .medium, width: .medium, size: 0.9389184892177582, x: -33.68793725967407, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bake(slot: 1, height: .medium, width: .medium, size: 0.9976951032876968, x: -33.68793725967407, y: -24.11346435546875)  // BAKED JULY 12, 2026 (user-tuned, batch 16)
         bake(slot: 0, height: .tall, width: .medium, size: 1.0060284107923507, x: -9.219861030578613, y: -7.446801662445068)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bake(slot: 1, height: .superShort, width: .skinny, size: 0.9464539408683776, x: -14.184403419494629, y: -18.085098266601562)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
         bake(slot: 1, height: .floater, width: .medium, size: 0.9223404347896575, x: -20.567381381988525, y: nil)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
@@ -1420,10 +1503,10 @@ class PotionShopLayoutConfig {
         bake(slot: 1, height: .tall, width: .medium, size: 0.9992021530866622, x: -36.170196533203125, y: -18.439722061157227)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bake(slot: 2, height: .superShort, width: .skinny, size: 0.8570035487413405, x: 20.921993255615234, y: -3.191494941711426)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 2, height: .tall, width: .medium, size: 0.9504432708024979, x: 2.1276473999023438, y: -4.255330562591553)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
-        bake(slot: 2, height: .medium, width: .medium, size: 0.9609929233789443, x: 6.382989883422852, y: -8.865249156951904)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bake(slot: 2, height: .medium, width: .medium, size: 0.9941489309072493, x: 6.382989883422852, y: -16.66666269302368)  // BAKED JULY 12, 2026 (user-tuned, batch 16)
         bake(slot: 2, height: .short, width: .wide, size: 0.8675532519817353, x: nil, y: -4.255318641662598)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bake(slot: 1, height: .medium, width: .wide, size: 0.9765957474708558, x: -24.11351203918457, y: -18.43973398208618)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bake(slot: 1, height: .short, width: .wide, size: 0.890691527724266, x: 12.056756019592285, y: -2.836883068084717)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
+        bake(slot: 1, height: .short, width: .wide, size: 0.890691527724266, x: -32.269489765167236, y: -2.836883068084717)  // BAKED JULY 12, 2026 (user-tuned, batch 21)
         bake(slot: 1, height: .tall,    width: .skinny, size: 0.9404255390167235, x: -9.574472904205322,   y: -8.156025409698486)
         bake(slot: 1, height: .tall, width: .wide, size: 1.0172872573137284, x: -30.4964542388916, y: -16.312050819396973)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bake(slot: 1, height: .superShort, width: .medium, size: 0.8921985775232315, x: -25.513720512390137, y: -4.612767696380615)  // BAKED JULY 11, 2026 (user-tuned, batch 13)
@@ -1464,9 +1547,9 @@ class PotionShopLayoutConfig {
         // Slot-specific deltas — win over shared HxW field-by-field at resolve time.
         bakeHpSlot(slot: 0, height: .superShort, width: .skinny, size: 55.78369319438934,   x: -70.05320191383362,   y: -41.75530672073364)  // BAKED JULY 10, 2026 (user-tuned, batch 2)
         bakeHpSlot(slot: 0, height: .tall, width: .medium, size: nil, x: -45.7446813583374, y: 2.039003372192383)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
-        bakeHpSlot(slot: 1, height: .medium, width: .medium, size: 57.14007019996643, x: -50.10634660720825, y: -30.851054191589355)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeHpSlot(slot: 1, height: .medium, width: .medium, size: 57.14007019996643, x: -50.638264417648315, y: -6.73757791519165)  // BAKED JULY 12, 2026 (user-tuned, batch 16)
         bakeHpSlot(slot: 1, height: .superShort, width: .skinny, size: 58.89538824558258, x: -50.372350215911865, y: -60.54964065551758)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
-        bakeHpSlot(slot: 2, height: .medium, width: .medium, size: 60.41134595870972, x: -45.851075649261475, y: -15.248215198516846)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
+        bakeHpSlot(slot: 2, height: .medium, width: .medium, size: 60.41134595870972, x: -64.4680917263031, y: -14.184391498565674)  // BAKED JULY 12, 2026 (user-tuned, batch 21)
         bakeHpSlot(slot: 2, height: .superShort, width: .skinny, size: 70.2251785993576, x: -41.861701011657715, y: -68.35105419158936)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpSlot(slot: 0, height: .medium, width: .wide, size: nil, x: -54.36170697212219, y: -5.3191304206848145)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bakeHpSlot(slot: 0, height: .tallHat, width: .medium, size: nil, x: -48.40427041053772, y: 25.08864402770996)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
@@ -1484,7 +1567,7 @@ class PotionShopLayoutConfig {
         bakeHpSlot(slot: 0, height: .floater,   width: .medium, size: nil,                x: -54.893624782562256,  y: -20.567357540130615)  // BAKED JULY 11, 2026 (user-tuned, batch 8)
         bakeHpSlot(slot: 1, height: .floater, width: .skinny, size: 63.363471031188965, x: -29.02277112007141, y: -34.04254913330078)  // BAKED JULY 11, 2026 (user-tuned, batch 10)
         bakeHpSlot(slot: 2, height: .superShort, width: .medium, size: 71.98050200939178, x: -17.39364266395569, y: -68.70566606521606)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
-        bakeHpSlot(slot: 2, height: .tall, width: .medium, size: nil, x: -20.744705200195312, y: 1.3297796249389648)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpSlot(slot: 2, height: .tall, width: .medium, size: nil, x: -19.680869579315186, y: 6.2943220138549805)  // BAKED JULY 11, 2026 (user-tuned, batch 15)
         bakeHpSlot(slot: 2, height: .tall,      width: .wide,   size: nil,                x: -45.7446813583374,    y: nil)
         bakeHpSlot(slot: 2, height: .tallHat, width: .medium, size: 68.70922088623047, x: -0.5319178104400635, y: -21.36526107788086)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
         bakeHpSlot(slot: 0, height: .medium, width: .skinny, size: nil, x: nil, y: 9.219861030578613)  // BAKED JULY 11, 2026 (user-tuned, batch 9)
@@ -1543,7 +1626,7 @@ class PotionShopLayoutConfig {
         bakeHpContext(slot: 2, myHeight: .tall, myWidth: .skinny, nbrHeight: .tallHat, nbrWidth: .wide, dx: 17.02127456665039, dy: -9.574472904205322, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 11)
         bakeHpContext(slot: 1, myHeight: .medium, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 8.86523723602295, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
         bakeHpContext(slot: 2, myHeight: .medium, myWidth: .medium, nbrHeight: .medium, nbrWidth: .medium, dx: 24.822688102722168, dy: -23.404252529144287, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
-        bakeHpContext(slot: 2, myHeight: .medium, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 52.83687114715576, dy: -43.97163391113281, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
+        bakeHpContext(slot: 2, myHeight: .medium, myWidth: .medium, nbrHeight: .tall, nbrWidth: .medium, dx: 52.83687114715576, dy: -40.78013896942139, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 15)
         bakeHpContext(slot: 2, myHeight: .tall, myWidth: .medium, nbrHeight: .medium, nbrWidth: .medium, dx: -24.113476276397705, dy: -17.73049831390381, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 12)
 
         // ── CHARACTER contextual nudges (June 24, 2026) ──
@@ -1668,6 +1751,10 @@ class PotionShopLayoutConfig {
                              frontHeight: "floater", frontWidth: "medium",
                              backHeight: "medium", backWidth: "medium",
                              dx: -13.82979154586792, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 14)
+        bakeCharacterContext(slot: 1, myHeight: .short, myWidth: .wide,
+                             frontHeight: "floater", frontWidth: "medium",
+                             backHeight: "superShort", backWidth: "skinny",
+                             dx: -35.10638475418091, dy: 0.0, sizeMul: 1.0)  // BAKED JULY 11, 2026 (user-tuned, batch 15)
     }
 
     /// HP badge twin of `bake()`. Nil fields skip writing → fall back to

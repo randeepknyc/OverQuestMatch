@@ -19,29 +19,110 @@ import SwiftUI
 
 /// All step text, scripted values, and timing live here.
 /// Edit this one enum to change copy, timings, or the scripted hand.
+// MARK: - Tutorial script (JULY 11, 2026 — full rebuild, user-authored copy)
+//
+// The tutorial is now DATA: one step per row. Each row = one dialog box.
+// gate: .tap = tap/Next advances · .placePotency / .brew = the player must
+// DO the thing. effect fires when the step appears. glow adds a pulsing
+// green ring behind that step's dotted circles (the patience beat).
+// Circles are still positioned in-app: editor drawer → 🎓 Tutorial,
+// edit mode, ➕ Circle — exactly as before, per step.
+// ✏️ ALL text below is the designer's copy — edit freely.
+
+enum PotionShopTutGate { case tap, placePotency, brew }
+enum PotionShopTutEffect { case none, cycleTOD, openProfile, closeProfile, flameMinusOne, flameAllOut }
+
+struct PotionShopTutStep {
+    let title: String
+    let body: String
+    var gate: PotionShopTutGate = .tap
+    var effect: PotionShopTutEffect = .none
+    var glow: Bool = false
+    var centered: Bool = false
+    /// JULY 12: SHAPED highlights — registry keys ("customer0", "brewSpoon").
+    /// PNG elements re-render in their own silhouette above the dim with a
+    /// glow; code-drawn elements get a glowing frame + a matching cutout.
+    var highlights: [String] = []
+}
+
 enum PotionShopTutorialConstants {
 
-    // ── Step text (placeholder copy — easy to tweak) ─────────────
+    static let script: [PotionShopTutStep] = [
+        PotionShopTutStep(title: "Welcome!",
+            body: "Welcome to Ednar's Potion Shop! Your job is to help Ednar learn to be the best wizard by making potions, and keeping the shop open as long as possible.",
+            centered: true),
+        PotionShopTutStep(title: "The Shop Day",
+            body: "The shop is open every day — Morning, Afternoon, Evening, and Night.",
+            effect: .cycleTOD,
+            highlights: ["todIcon"]),
+        PotionShopTutStep(title: "Customers",
+            body: "Customers arrive and ask for potions.",
+            highlights: ["customer0", "customer1", "customer2"]),
+        PotionShopTutStep(title: "The Order",
+            body: "Each customer wants a potion comprised of a potency value.",
+            highlights: ["hpBadge0", "hpBadge1", "hpBadge2"]),
+        PotionShopTutStep(title: "Choosing Customers",
+            body: "You can choose which customer to service by clicking their profile picture button.",
+            highlights: ["profile0", "profile1", "profile2"]),
+        PotionShopTutStep(title: "The Profile",
+            body: "When you click the profile, you'll see the customer's Name.",
+            effect: .openProfile,
+            highlights: ["inspectName"]),
+        PotionShopTutStep(title: "Traits",
+            body: "Their trait value — some customers can be annoyed when you don't serve them and may yell at you.",
+            highlights: ["inspectTrait"]),
+        PotionShopTutStep(title: "Composure",
+            body: "If they yell or get angry/annoyed with you, you'll lose composure. If your composure reaches 0 you'll have to close the shop, study up, and start over.",
+            effect: .closeProfile,
+            highlights: ["composureBar"]),
+        PotionShopTutStep(title: "Patience",
+            body: "Each customer also has a patience timer.",
+            glow: true,
+            highlights: ["profile0", "profile1", "profile2"]),
+        PotionShopTutStep(title: "Patience Runs Out",
+            body: "If their patience runs out before you can fulfill an order, the customer will leave and may damage you while leaving."),
+        PotionShopTutStep(title: "Brewing 101",
+            body: "You create potions by taking potency dice…",
+            highlights: ["dice.potency"]),
+        PotionShopTutStep(title: "Into the Cauldron",
+            body: "…and placing them into the cauldron.",
+            gate: .placePotency,
+            highlights: ["cauldron"]),
+        PotionShopTutStep(title: "Live Preview",
+            body: "You'll see the potion value decrease to their affected value.",
+            highlights: ["hpBadge0"]),
+        PotionShopTutStep(title: "Focus",
+            body: "You have a certain amount of focus per turn that limits how many dice you can put into the cauldron.",
+            highlights: ["focusPips"]),
+        PotionShopTutStep(title: "Brew!",
+            body: "Once you're ready to brew, select \"BREW\".",
+            gate: .brew,
+            highlights: ["brewSpoon"]),
+        PotionShopTutStep(title: "The Yell",
+            body: "The customer's potion value will go down. If you don't fulfill their order they may yell at you, signified by the !"),   // JULY 12: hpBadge0 reveal removed — the user's placed circles cover this beat
+        PotionShopTutStep(title: "The Fire",
+            body: "The more you brew, the harder it is on the cauldron. The fire decreases depending on the strength of your brew.",
+            effect: .flameMinusOne,
+            highlights: ["fireRow"]),
+        PotionShopTutStep(title: "Dead Fire",
+            body: "When the fire goes out altogether your brews are halved for every turn til it's restored. Tend to the fire by using the Stability die!",
+            effect: .flameAllOut,
+            highlights: ["fireRow"]),
+        PotionShopTutStep(title: "The Other Dice",
+            body: "There are several other dice: Heal, will heal this many composure, Shield, will add to your composure, Boost, will add a boost value to your brew, and indicate which spaces are affected.",
+            highlights: ["dice.heal", "dice.shield", "dice.boost", "dice.stability"]),   // JULY 12: stability joins — all four non-potency dice light up
+        PotionShopTutStep(title: "",
+            body: "LET'S GET BREWING!",
+            centered: true),   // JULY 12 rev 2: plain TAP — straight to Day 1 (the step-15 brew already spent the dice)
+    ]
 
-    static let step1Title = "Welcome!"
-    static let step1Body  = "Welcome to Ednar's potion shop! Your job is to make potions for customers and keep the shop open as long as possible."
+    /// JULY 12: the finale card after the final brew. ✏️
+    static let finaleBody = "Let's Open the Shop!"
 
-    static let step2Title = "Customers Arrive"
-    static let step2Body  = "Customers arrive and line up. Each one wants a potion of a certain strength."
+    /// Shown over the first boon offer after the tutorial round. ✏️
+    static let boonTipBody = "Every round, you'll be presented with some boons — choose to upgrade your dice, or build bonuses to each round."
 
-    static let step3Title = "Potion Value"
-    static let step3Body  = "This is the potion value your customer wants. Match or exceed it to satisfy them!"
-
-    static let step4Title = "Your Turn!"
-    static let step4Body  = "Now you try — drag dice from the tray onto the cauldron, then press BREW."
-
-    // ── Scripted opening hand (fixed values for the tutorial) ────
-    // Five dice: type + value. Kept simple for the first-ever brew.
-    // ⚠️ RULE: every value must be a face its die can ACTUALLY roll
-    // (see PotionShopDieTier.faces(for:)). Current basic faces (§69.1):
-    // potency/shield max 2 · heal max 3 (the only 3) · boost max 2.
-    // JULY 4, 2026: potency 3s → 2s (the §69.1 curve made 3 impossible).
-
+    // ── Scripted opening hand (unchanged from the 4-step tutorial) ────
     static let scriptedHand: [(type: PotionShopDieType, value: Int)] = [
         (.potency,  2),
         (.potency,  2),
@@ -51,12 +132,11 @@ enum PotionShopTutorialConstants {
     ]
 
     // ── Visual timing ────────────────────────────────────────────
-
-    /// Duration of the boiling-circle draw animation (step 3).
     static let boilCircleDuration: Double = 0.8
-    /// Pulse scale range for the boil effect.
     static let boilPulseMin: CGFloat = 0.97
     static let boilPulseMax: CGFloat = 1.03
+    /// Seconds per time-of-day icon during the cycle beat.
+    static let todCycleInterval: Double = 0.8
 }
 
 // MARK: - Tutorial state
@@ -67,17 +147,26 @@ class PotionShopTutorialState {
     /// Whether the tutorial overlay is currently showing.
     var isActive: Bool = false
 
-    /// Current step index (0–3). Reset to 0 when `isActive` is set true.
+    /// Current step index. Reset to 0 when `isActive` is set true.
     var currentStep: Int = 0
 
-    /// JULY 3, 2026: total number of tutorial steps — the ONE number to
-    /// change when adding steps. The debug menu's stepper ("Step X of Y"),
-    /// the brew-step check below, and advance() all derive from it.
-    let stepCount: Int = 4
+    /// JULY 11, 2026: step count now derives from the SCRIPT — add a row
+    /// to PotionShopTutorialConstants.script and everything follows.
+    var stepCount: Int { PotionShopTutorialConstants.script.count }
 
-    /// JULY 3, 2026: GameView finishes the tutorial when the player brews
-    /// during the do-it step — defined as the LAST step, via stepCount.
-    var currentStepIsBrewStep: Bool { currentStep >= stepCount - 1 }
+    /// The current step's row (bounds-safe).
+    var step: PotionShopTutStep {
+        let s = PotionShopTutorialConstants.script
+        return s[min(max(0, currentStep), s.count - 1)]
+    }
+
+    /// GameView advances the tutorial when the player brews during a
+    /// brew-gated step (was "finish" in the 4-step version).
+    var currentStepIsBrewStep: Bool { step.gate == .brew }
+
+    /// JULY 11, 2026: true after completing (not skipping) the tutorial —
+    /// GameView shows the boon explainer over the first boon offer.
+    var pendingBoonTip: Bool = false
 
     /// UserDefaults key for first-run tracking.
     static let hasSeenKey = "ps_hasSeenTutorial"
@@ -95,6 +184,10 @@ class PotionShopTutorialState {
     }
 
     /// Advance to the next step, or finish if on the last step.
+    /// JULY 12: true after the FINAL brew — swaps the card to the
+    /// "Let's Open the Shop!" finale; tapping it starts the real Day 1.
+    var showFinale: Bool = false
+
     func advance() {
         if currentStep < stepCount - 1 {
             currentStep += 1
@@ -107,6 +200,7 @@ class PotionShopTutorialState {
     func finish() {
         isActive = false
         hasSeenTutorial = true
+        showFinale = false
     }
 }
 
@@ -139,17 +233,70 @@ struct PotionShopTutorialOverlay: View {
             // interactive. Steps 0–3: dim everything.
             // JULY 4, 2026: dim levels are config knobs (debug → 🎓 Tutorial
             // Layout): tutDimWatch for steps 1–3, tutDimDoIt for step 4.
-            Color.black.opacity(step < 3 ? cfg.tutDimWatch : cfg.tutDimDoIt)
-                .ignoresSafeArea()
-                .allowsHitTesting(step < 3)  // steps 0-2 block taps on game
-                .onTapGesture {
-                    // JULY 4, 2026 (evening 5): EDIT MODE FREEZES the
-                    // tutorial — no tap-to-advance, so drags edit instead
-                    // of skipping steps. Navigate with the edit toolbar.
-                    if step < 3, !cfg.tutorialEditMode {
+            // JULY 11, 2026 (rebuild) + JULY 12 SPOTLIGHT: the dim is now a
+            // MASK — every dotted circle on the current step punches a HOLE
+            // through it, so the element underneath shows at FULL brightness.
+            // That's the highlight: position a circle over anything (drag in
+            // edit mode / sliders in drawer → 🎓 Tutorial) and it spotlights.
+            // .tap steps block the game (tap anywhere advances); practice
+            // gates (.placePotency / .brew) leave the game interactive.
+            // JULY 12 ALIGNMENT FIX: ignoresSafeArea lives on the COLOR only.
+            // The ZStack (and therefore the holes) now shares the safe-area
+            // coordinate space the dotted rings use — holes and rings align
+            // exactly. The color still floods the whole screen.
+            ZStack {
+                Color.black.opacity(tutorial.step.gate == .tap ? cfg.tutDimWatch : cfg.tutDimDoIt)
+                    .ignoresSafeArea()
+                ForEach(Array(cfg.tutCircles.enumerated()), id: \.element.id) { pair in
+                    if pair.element.step == step {
+                        Circle()
+                            .fill(Color.black)
+                            .frame(width: pair.element.size, height: pair.element.size)
+                            .offset(x: pair.element.x, y: pair.element.y)
+                            .blendMode(.destinationOut)
+                    }
+                }
+                // JULY 12: MANUAL reveal rects (user-added via ➕ Reveal).
+                ForEach(cfg.tutManualReveals) { r in
+                    if r.step == step {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black)
+                            .frame(width: r.w, height: r.h)
+                            .offset(x: r.x, y: r.y)
+                            .blendMode(.destinationOut)
+                    }
+                }
+                // JULY 12: frame-style shaped highlights (code-drawn
+                // elements like the brew sign) punch matching holes.
+                GeometryReader { mg in
+                    let o = mg.frame(in: .global).origin
+                    ForEach(matchedHighlights(tutorial.step.highlights), id: \.0) { _, h in
+                        // reveal → clean hole · underline → padded hole ·
+                        // shaped w/o image → ring's hole. Shaped PNGs re-draw
+                        // above instead, no hole needed.
+                        if h.style == .reveal || h.style == .underline || h.image == nil {
+                            let pad: CGFloat = h.style == .underline ? 24 : 10
+                            RoundedRectangle(cornerRadius: h.clipCircle ? (h.frame.width + pad) / 2 : 12)
+                                .fill(Color.black)
+                                .frame(width: h.frame.width + pad, height: h.frame.height + pad)
+                                .position(x: h.frame.midX - o.x, y: h.frame.midY - o.y)
+                                .blendMode(.destinationOut)
+                        }
+                    }
+                }
+            }
+            .compositingGroup()
+            .animation(nil, value: tutorial.currentStep)   // JULY 12: holes SNAP too
+            .allowsHitTesting(tutorial.step.gate == .tap)
+            .onTapGesture {
+                if tutorial.step.gate == .tap, !cfg.tutorialEditMode {
+                    if tutorial.currentStep == tutorial.stepCount - 1 {
+                        completeTutorial()
+                    } else {
                         advanceWithAnimation()
                     }
                 }
+            }
 
             // ── SPOTLIGHT / HIGHLIGHT ────────────────────────────
             // JULY 4, 2026 (evening 3): dotted circles are a configurable
@@ -159,8 +306,78 @@ struct PotionShopTutorialOverlay: View {
             // Edit mode: drag any circle; sliders live in 🎓 Tutorial Layout.
             ForEach(Array(cfg.tutCircles.enumerated()), id: \.element.id) { pair in
                 if pair.element.step == step {
+                    // JULY 11: glow steps (patience beat) pulse a hard
+                    // green ring UNDER the dotted circle.
+                    if tutorial.step.glow {
+                        Circle()
+                            .stroke(Color.green.opacity(0.9), lineWidth: 5)
+                            .frame(width: cfg.tutCircles[pair.offset].size * boilPulse,
+                                   height: cfg.tutCircles[pair.offset].size * boilPulse)
+                            .blur(radius: 4)
+                            .offset(x: cfg.tutCircles[pair.offset].x,
+                                    y: cfg.tutCircles[pair.offset].y)
+                            .allowsHitTesting(false)
+                    }
                     dottedCircle(index: pair.offset)
                 }
+            }
+
+            // ── JULY 12: SHAPED HIGHLIGHTS — re-render published elements
+            // above the dim. PNGs glow in their own silhouette; code-drawn
+            // frames get a glowing ring over their cutout.
+            GeometryReader { geo in
+                let o = geo.frame(in: .global).origin
+                ForEach(matchedHighlights(tutorial.step.highlights), id: \.0) { _, h in
+                    switch h.style {
+                    case .shaped:
+                        shapedHighlight(h)
+                            .position(x: h.frame.midX - o.x, y: h.frame.midY - o.y)
+                    case .underline:
+                        Capsule()
+                            .fill(PotionShopTheme.accent)
+                            .frame(width: h.frame.width + 8, height: 4)
+                            .position(x: h.frame.midX - o.x, y: h.frame.maxY - o.y + 7)
+                            .shadow(color: PotionShopTheme.accent.opacity(0.8), radius: 6)
+                    case .reveal:
+                        EmptyView()   // the hole IS the highlight
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+            .animation(nil, value: tutorial.currentStep)   // JULY 12: SNAP between steps — no lingering glow/crossfade
+
+            // ── JULY 12: FINALE — after the final brew, tap anywhere to
+            // end the tutorial and open the shop (real Day 1).
+            if tutorial.showFinale {
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { completeTutorial() }
+                    .zIndex(90)
+            }
+
+            // ── JULY 12: EDIT MODE — cyan outline on every live highlight
+            // frame for the current step, labeled, so positioning is visual.
+            if cfg.tutorialEditMode {
+                GeometryReader { geo in
+                    let o = geo.frame(in: .global).origin
+                    ForEach(matchedHighlights(tutorial.step.highlights), id: \.0) { key, h in
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.cyan, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                            .frame(width: h.frame.width, height: h.frame.height)
+                            .overlay(alignment: .top) {
+                                Text(key)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.cyan)
+                                    .padding(2)
+                                    .background(Color.black.opacity(0.7))
+                                    .offset(y: -14)
+                            }
+                            .position(x: h.frame.midX - o.x, y: h.frame.midY - o.y)
+                    }
+                }
+                .allowsHitTesting(false)
+                .zIndex(70)
             }
 
             // ── ✏️ EDIT TOOLBAR (July 4, 2026 — evening 5) ────────────
@@ -214,33 +431,17 @@ struct PotionShopTutorialOverlay: View {
 
             // ── TEXT CARD ────────────────────────────────────────
             VStack {
-                if step == 0 {
-                    // Step 1: centered
+                if tutorial.step.centered {
                     Spacer()
-                    tutorialCard(title: PotionShopTutorialConstants.step1Title,
-                                 body: PotionShopTutorialConstants.step1Body,
-                                 showNext: true)
-                    Spacer()
-                } else if step == 1 {
-                    // Step 2: top third (above customer scene)
-                    Spacer().frame(height: 60)
-                    tutorialCard(title: PotionShopTutorialConstants.step2Title,
-                                 body: PotionShopTutorialConstants.step2Body,
-                                 showNext: true)
-                    Spacer()
-                } else if step == 2 {
-                    // Step 3: top area (HP badge highlight is in the scene)
-                    Spacer().frame(height: 60)
-                    tutorialCard(title: PotionShopTutorialConstants.step3Title,
-                                 body: PotionShopTutorialConstants.step3Body,
-                                 showNext: true)
+                    tutorialCard(title: cardTitle,
+                                 body: cardBody,
+                                 showNext: cardShowNext)
                     Spacer()
                 } else {
-                    // Step 4: top area, cauldron/tray interactive below
                     Spacer().frame(height: 60)
-                    tutorialCard(title: PotionShopTutorialConstants.step4Title,
-                                 body: PotionShopTutorialConstants.step4Body,
-                                 showNext: false)
+                    tutorialCard(title: cardTitle,
+                                 body: cardBody,
+                                 showNext: cardShowNext)
                     Spacer()
                 }
             }
@@ -275,13 +476,21 @@ struct PotionShopTutorialOverlay: View {
         }
         .animation(.easeInOut(duration: 0.35), value: tutorial.currentStep)
         .onAppear {
+            cfg.ensureTutArrays(stepCount: tutorial.stepCount)   // JULY 12: 20-step arrays
             animateCardIn()
+            applyStepEffect()
         }
-        .onChange(of: tutorial.currentStep) { _, newStep in
+        .onChange(of: tutorial.currentStep) { oldStep, newStep in
             animateCardIn()
             if cfg.tutCircles.contains(where: { $0.step == newStep }) {
                 startBoilAnimation()
             }
+            // Leaving the dead-fire beat relights the hearth.
+            let script = PotionShopTutorialConstants.script
+            if oldStep < script.count, script[oldStep].effect == .flameAllOut {
+                withAnimation { gs.fire = PotionShopConfig.maxFire }
+            }
+            applyStepEffect()
         }
         // Circles on step 1 need the draw animation at first appearance too.
         .onAppear {
@@ -289,6 +498,116 @@ struct PotionShopTutorialOverlay: View {
                 startBoilAnimation()
             }
         }
+        // ── JULY 11: practice gate — placing the potency die advances.
+        // (Fallback: if the dealt hand somehow has no potency, ANY
+        // placement advances so the tutorial can't dead-end.)
+        .onChange(of: gs.placements.count) { _, count in
+            guard tutorial.step.gate == .placePotency, count > 0 else { return }
+            let placedPotency = gs.placements.values.contains { $0.type == .potency }
+            let handHasPotency = gs.hand.contains { $0.type == .potency } || placedPotency
+            if placedPotency || !handHasPotency {
+                advanceWithAnimation()
+            }
+        }
+        // ── JULY 11: time-of-day cycle beat — loops the header icon
+        // while its step is showing; clears the override on leave/skip.
+        .task(id: tutorial.currentStep) {
+            guard tutorial.step.effect == .cycleTOD else {
+                gs.tutorialTODOverride = nil
+                return
+            }
+            var i = 0
+            while !Task.isCancelled && tutorial.step.effect == .cycleTOD && tutorial.isActive {
+                gs.tutorialTODOverride = i % 4
+                i += 1
+                try? await Task.sleep(nanoseconds: UInt64(PotionShopTutorialConstants.todCycleInterval * 1_000_000_000))
+            }
+            gs.tutorialTODOverride = nil
+        }
+        // ── JULY 11: skip/finish cleanup — undo any scripted state.
+        // JULY 12 (rev 3): exit cleanup MOVED to GameView — this view is
+        // unmounted the same frame isActive flips, so an onChange here
+        // never fires. (That was the "overlay off, same customers" bug.)
+    }
+
+    // ── JULY 12: highlight matching — a script key matches an entry's
+    // own key OR its group ("dice.potency" lights every potency die).
+    private func matchedHighlights(_ keys: [String]) -> [(String, PotionShopTutHighlight)] {
+        guard !keys.isEmpty else { return [] }
+        var out: [(String, PotionShopTutHighlight)] = []
+        for (k, h) in gs.tutHighlights {
+            if keys.contains(k) || (h.group.map { keys.contains($0) } ?? false) {
+                // JULY 12: apply the drawer's per-spot nudge (group members
+                // share their GROUP's nudge, so "dice.potency" moves as one).
+                var adjusted = h
+                let nudgeKey = (h.group.map { keys.contains($0) } ?? false) ? (h.group ?? k) : k
+                let n = cfg.tutNudge(for: nudgeKey)
+                adjusted.frame = CGRect(x: h.frame.origin.x + n.dx - n.dw / 2,
+                                        y: h.frame.origin.y + n.dy - n.dh / 2,
+                                        width: max(4, h.frame.width + n.dw),
+                                        height: max(4, h.frame.height + n.dh))
+                out.append((k, adjusted))
+            }
+        }
+        return out.sorted { $0.0 < $1.0 }
+    }
+
+    // ── JULY 12: shaped-highlight renderer ───────────────────────────
+    @ViewBuilder
+    private func shapedHighlight(_ h: PotionShopTutHighlight) -> some View {
+        if let name = h.image,
+           let ui = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: max(h.frame.width, h.frame.height)) {
+            // The PNG itself, stretched to its exact visual rect (matching
+            // the scene's non-uniform scaleEffect), glowing in silhouette.
+            // Circular elements (profile portraits) re-clip to their ring.
+            // JULY 12: NO GLOW — the re-render IS the highlight: the element
+            // at 0% dim in its own silhouette.
+            Image(uiImage: ui)
+                .resizable()
+                .frame(width: h.frame.width, height: h.frame.height)
+                .clipShape(PotionShopTutClip(circle: h.clipCircle))
+        } else {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(PotionShopTheme.accent, lineWidth: 3)
+                .frame(width: h.frame.width + 10, height: h.frame.height + 10)
+                .shadow(color: PotionShopTheme.accent.opacity(0.8), radius: 10)
+        }
+    }
+
+    // ── JULY 11: step-entry effects (the scripted moments) ──────────
+    private func applyStepEffect() {
+        switch tutorial.step.effect {
+        case .none, .cycleTOD:
+            break   // cycleTOD runs in the .task above
+        case .openProfile:
+            withAnimation { gs.inspectedId = gs.customers.first?.id }
+        case .closeProfile:
+            withAnimation { gs.inspectedId = nil }
+        case .flameMinusOne:
+            withAnimation { gs.fire = max(0, gs.fire - 1) }
+        case .flameAllOut:
+            withAnimation { gs.fire = 0 }
+        }
+    }
+
+    // ── JULY 11: final-step completion — the real round continues,
+    // and the first boon offer gets the explainer + a rigged upgrade.
+    // JULY 12 (§74.8): card content EXTRACTED — ternaries inside the huge
+    // body blew up the type-checker. Plain properties keep it instant.
+    private var cardTitle: String {
+        tutorial.showFinale ? "" : tutorial.step.title
+    }
+    private var cardBody: String {
+        tutorial.showFinale ? PotionShopTutorialConstants.finaleBody : tutorial.step.body
+    }
+    private var cardShowNext: Bool {
+        tutorial.showFinale || tutorial.step.gate == .tap
+    }
+
+    private func completeTutorial() {
+        gs.rigNextBoonOffer = true
+        tutorial.pendingBoonTip = true
+        tutorial.finish()
     }
 
     // MARK: - Tutorial card
@@ -321,8 +640,10 @@ struct PotionShopTutorialOverlay: View {
                 }
                 .padding(.top, 4)
             } else {
-                // Step 4 hint
-                Text("Tap BREW when ready")
+                // Practice-gate hint (no Next — the ACTION advances)
+                Text(tutorial.step.gate == .brew
+                     ? "Tap BREW when ready"
+                     : "Drag the red potency die onto the cauldron")
                     .font(Font.gameUI(size: 28))
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.top, 4)
@@ -343,11 +664,11 @@ struct PotionShopTutorialOverlay: View {
         // JULY 4, 2026: per-step nudge from the layout config, plus LIVE
         // DRAG when edit mode is on (debug → 🎓 Tutorial Layout). Dragging
         // writes straight into the config, so the values stick.
-        .offset(x: cfg.tutCardOffsetX[min(tutorial.currentStep, 3)],
-                y: cfg.tutCardOffsetY[min(tutorial.currentStep, 3)])
+        .offset(x: cfg.tutCardOffsetX[min(tutorial.currentStep, cfg.tutCardOffsetX.count - 1)],
+                y: cfg.tutCardOffsetY[min(tutorial.currentStep, cfg.tutCardOffsetY.count - 1)])
         .gesture(cfg.tutorialEditMode ? DragGesture()
             .onChanged { v in
-                let i = min(tutorial.currentStep, 3)
+                let i = min(tutorial.currentStep, cfg.tutCardOffsetX.count - 1)
                 if dragStart == nil {
                     dragStart = CGSize(width: cfg.tutCardOffsetX[i],
                                        height: cfg.tutCardOffsetY[i])
@@ -537,5 +858,84 @@ struct PotionShopTutorialLayoutView: View {
             }
             Slider(value: value, in: range, step: step)
         }
+    }
+}
+
+
+// MARK: - Boon explainer (July 11, 2026)
+//
+// Shown by GameView over the FIRST boon offer after the tutorial round
+// (tutorial.pendingBoonTip). One tap anywhere on the card dismisses it —
+// the boon cards stay interactive around it.
+
+struct PotionShopTutorialBoonTip: View {
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack {
+            Spacer().frame(height: 70)
+            VStack(spacing: 10) {
+                Text("Boons!")
+                    .font(Font.gameUI(size: 26))
+                    .foregroundColor(.white)
+                Text(PotionShopTutorialConstants.boonTipBody)
+                    .font(Font.gameUI(size: 20))
+                    .foregroundColor(.white.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("(tap to dismiss)")
+                    .font(Font.gameUI(size: 14))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.85)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(PotionShopTheme.accent.opacity(0.6), lineWidth: 1.5))
+            .padding(.horizontal, 40)
+            .onTapGesture { withAnimation(.easeOut(duration: 0.2)) { onDismiss() } }
+            Spacer()
+        }
+    }
+}
+
+
+// MARK: - Plain frame publisher (July 12, 2026)
+//
+// For layout-positioned elements (tray dice, profile buttons) and elements
+// whose render offsets are known at the call site (HP badges — pass dx/dy).
+
+struct PotionShopPlainFramePublisher: View {
+    let gs: PotionShopGameState
+    let key: String
+    var image: String? = nil
+    var group: String? = nil
+    var clipCircle: Bool = false
+    var style: PotionShopTutHighlightStyle = .shaped
+    var dx: CGFloat = 0
+    var dy: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { g in
+            Color.clear
+                .onAppear { publish(g.frame(in: .global)) }
+                .onChange(of: g.frame(in: .global)) { _, f in publish(f) }
+                // JULY 12: a dying view TAKES ITS FRAME WITH IT — stale
+                // entries were the "random hp icons" (defeated customers'
+                // badges lingering in the registry).
+                .onDisappear { gs.tutHighlights.removeValue(forKey: key) }
+        }
+    }
+
+    private func publish(_ f: CGRect) {
+        gs.publishTutHighlight(key, frame: f.offsetBy(dx: dx, dy: dy),
+                               image: image, group: group, clipCircle: clipCircle, style: style)
+    }
+}
+
+
+// JULY 12: conditional clip — circle for portraits, no-op rect otherwise.
+struct PotionShopTutClip: Shape {
+    let circle: Bool
+    func path(in rect: CGRect) -> Path {
+        circle ? Circle().path(in: rect) : Rectangle().path(in: rect)
     }
 }

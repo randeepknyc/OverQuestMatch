@@ -270,6 +270,14 @@ struct PotionShopGameView: View {
                         .zIndex(999)
                         .transition(.opacity)
                 }
+
+                // ── JULY 11: boon explainer over the first offer after
+                // the tutorial round (tap to dismiss).
+                if tutorial.pendingBoonTip && !gs.boonOffer.isEmpty {
+                    PotionShopTutorialBoonTip { tutorial.pendingBoonTip = false }
+                        .zIndex(1001)
+                        .transition(.opacity)
+                }
             }
         }
         // Track when the layout editor is open so customer scene taps can
@@ -304,6 +312,7 @@ struct PotionShopGameView: View {
             }
             // ── Tutorial first-run check ─────────────────────────
             if !tutorial.hasSeenTutorial {
+                gs.startTutorialRound()   // JULY 12: fixed-cast pre-Day-1 round
                 tutorial.start()
             }
         }
@@ -313,9 +322,28 @@ struct PotionShopGameView: View {
                 PotionShopSave.save(gs: gs)
             }
         }
-        // ── Tutorial step 4: finish when the player brews ────────
-        .onChange(of: gs.potionsBrewed) { _, _ in
-            if tutorial.isActive && tutorial.currentStepIsBrewStep {                tutorial.finish()
+        // ── JULY 11 (tutorial rebuild): brewing during the brew-gated
+        // step ADVANCES to the post-brew beats (was finish in the 4-step).
+        // JULY 12 (rev 3): tutorial-exit handling lives HERE — the overlay
+        // unmounts the same frame isActive flips, so ITS onChange never
+        // fired (the "overlay comes off but same customers stay" bug).
+        .onChange(of: tutorial.isActive) { _, active in
+            if !active {
+                gs.tutorialTODOverride = nil
+                if gs.fire == 0 { gs.fire = PotionShopConfig.maxFire }
+                gs.endTutorialRound()
+            }
+        }
+        .onChange(of: gs.totalBrews) { _, _ in
+            if tutorial.isActive && tutorial.currentStepIsBrewStep {
+                // JULY 12: the FINAL step's brew doesn't end the tutorial
+                // directly — it raises the "Let's Open the Shop!" finale
+                // card; tapping that starts the real Day 1.
+                if tutorial.currentStep >= tutorial.stepCount - 1 {
+                    tutorial.showFinale = true
+                } else {
+                    tutorial.advance()
+                }
             }
         }
         .onReceive(purgeTimer) { _ in
@@ -568,6 +596,19 @@ struct PotionShopLayoutOverlay: View {
     @Binding var isPresented: Bool
     @Bindable var gs: PotionShopGameState
     let diceFlight: Namespace.ID
+    /// JULY 12: dictionary binding for the Reveal Spots nudge sliders.
+    private func tutNudgeBinding(_ key: String,
+                                 _ kp: WritableKeyPath<PotionShopLayoutConfig.TutNudge, Double>) -> Binding<Double> {
+        Binding(
+            get: { layoutConfig.tutNudge(for: key)[keyPath: kp] },
+            set: { v in
+                var n = layoutConfig.tutNudge(for: key)
+                n[keyPath: kp] = v
+                layoutConfig.tutNudges[key] = n
+            }
+        )
+    }
+
     /// JULY 5, 2026: the tutorial state, so the 🎓 tab can navigate steps
     /// from INSIDE the drawer (the overlay's bottom ✏️ toolbar can end up
     /// hidden underneath this very drawer while editing).
@@ -957,12 +998,71 @@ struct PotionShopLayoutOverlay: View {
                     .font(.caption2.bold())
                     .foregroundColor(.cyan)
                 sliderRow("Max width", value: $layoutConfig.tutCardMaxWidth, range: 220...420, format: "%.0f")
-                ForEach(0..<4, id: \.self) { i in
+                // JULY 12: one X/Y pair per SCRIPT step (was hardcoded 4).
+                ForEach(layoutConfig.tutCardOffsetX.indices, id: \.self) { i in
                     Text("Step \(i + 1)")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
                     sliderRow("X", value: $layoutConfig.tutCardOffsetX[i], range: -200...200, format: "%.0f")
                     sliderRow("Y", value: $layoutConfig.tutCardOffsetY[i], range: -300...300, format: "%.0f")
+                }
+
+                // JULY 12: nudge sliders for every shaped/reveal spot on the
+                // CURRENT step (published frame = start; these move/resize).
+                // Turn on ✋ Edit mode to SEE each frame outlined + labeled.
+                Text("Reveal Spots (this step)")
+                    .font(.caption2.bold())
+                    .foregroundColor(.cyan)
+                // JULY 12: manual 0%-opacity holes for spots with no
+                // published element. Same coordinate space as circles.
+                Button {
+                    layoutConfig.tutManualReveals.append(
+                        PotionShopLayoutConfig.TutManualReveal(step: tutorial.currentStep)
+                    )
+                } label: {
+                    Label("Reveal", systemImage: "plus.rectangle.fill")
+                        .font(.caption.bold())
+                        .foregroundColor(.cyan)
+                }
+                ForEach(Array(layoutConfig.tutManualReveals.enumerated()), id: \.element.id) { pair in
+                    if pair.element.step == tutorial.currentStep {
+                        HStack {
+                            Text("reveal \(pair.offset + 1)")
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                            Spacer()
+                            Button {
+                                layoutConfig.tutManualReveals.remove(at: pair.offset)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red.opacity(0.8))
+                            }
+                        }
+                        sliderRow("X", value: $layoutConfig.tutManualReveals[pair.offset].x, range: -250...250, format: "%.0f")
+                        sliderRow("Y", value: $layoutConfig.tutManualReveals[pair.offset].y, range: -480...480, format: "%.0f")
+                        sliderRow("W", value: $layoutConfig.tutManualReveals[pair.offset].w, range: 20...500, format: "%.0f")
+                        sliderRow("H", value: $layoutConfig.tutManualReveals[pair.offset].h, range: 20...500, format: "%.0f")
+                    }
+                }
+                if tutorial.isActive {
+                    ForEach(tutorial.step.highlights, id: \.self) { key in
+                        Text(key)
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                        sliderRow("X", value: tutNudgeBinding(key, \.dx), range: -250...250, format: "%.0f")
+                        sliderRow("Y", value: tutNudgeBinding(key, \.dy), range: -250...250, format: "%.0f")
+                        sliderRow("W ±", value: tutNudgeBinding(key, \.dw), range: -200...400, format: "%.0f")
+                        sliderRow("H ±", value: tutNudgeBinding(key, \.dh), range: -200...400, format: "%.0f")
+                    }
+                    if tutorial.step.highlights.isEmpty {
+                        Text("No reveal spots on this step.")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                } else {
+                    Text("Start the tutorial to edit spots live.")
+                        .font(.caption2)
+                        .foregroundColor(.yellow.opacity(0.85))
                 }
 
                 Text("Dotted Circles")

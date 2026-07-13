@@ -150,6 +150,35 @@ class PotionShopGameState {
     /// True while the current boon offer is the DAY-COMPLETION relic menu
     /// (GameView titles it "Choose a Relic" instead of "Choose a Boon").
     var boonOfferIsRelic: Bool = false
+    /// JULY 11, 2026 (tutorial rebuild): header time-of-day icon override
+    /// (0–3 = morning…night) while the tutorial's shop-day beat cycles it.
+    var tutorialTODOverride: Int? = nil
+    /// JULY 11, 2026: set when the tutorial completes — the next ROUND
+    /// boon offer is guaranteed to include a Die Upgrade card.
+    var rigNextBoonOffer: Bool = false
+    /// JULY 12, 2026 (SHAPED HIGHLIGHTS): elements publish their VISUAL
+    /// frame (+ art name, if they're a PNG) here; the tutorial re-renders
+    /// them above the dim. Keys: "customer0/1/2…" (queue index),
+    /// "brewSpoon". Same publish-your-frame pattern as traySlotPositions.
+    var tutHighlights: [String: PotionShopTutHighlight] = [:]
+    /// JULY 12: EVERY brew, lethal or not (potionsBrewed counts only
+    /// defeats). The tutorial's brew gates watch this counter.
+    var totalBrews: Int = 0
+    /// JULY 12: true while the DEDICATED TUTORIAL ROUND is running — a
+    /// pre-Day-1 round with a FIXED cast and a one-of-each-type hand, so
+    /// every tutorial highlight lands on the same thing every time.
+    /// Completing it (boon picked) restarts Day 1 Round 1 for real.
+    var isTutorialRound: Bool = false
+    /// JULY 12 (rev 3): the game state CAPTURED before the tutorial round
+    /// started — first-run: the fresh Day 1 launch state; mid-run replay:
+    /// exactly where the player was. Restored when the tutorial ends.
+    var tutorialReturnSnapshot: PotionShopSave?
+    func publishTutHighlight(_ key: String, frame: CGRect, image: String?,
+                             group: String? = nil, clipCircle: Bool = false,
+                             style: PotionShopTutHighlightStyle = .shaped) {
+        let h = PotionShopTutHighlight(frame: frame, image: image, group: group, clipCircle: clipCircle, style: style)
+        if tutHighlights[key] != h { tutHighlights[key] = h }
+    }
     /// Placements that COUNT toward Focus — Focus-Free dice are free.
     var nonFreePlacementCount: Int { placements.values.filter { !$0.isFocusFree }.count }
 
@@ -502,11 +531,70 @@ class PotionShopGameState {
 
     /// Spawn customers and deal a hand. Called at the start of each round
     /// and any time the user resets.
+    /// JULY 12, 2026: the DEDICATED TUTORIAL ROUND (pre-Day-1).
+    /// Fixed cast (⚠️ SUBSTITUTIONS — recast freely): gmarker_octo hp 12,
+    /// gmarker_oldlady hp 14, gmarker_goatguy hp 16 · attack 1 active /
+    /// 0 waiting · patience 9. Hand is dealt as ONE OF EACH die type
+    /// (potency, heal, shield, stability, boost — no mirror on Day 1).
+    func startTutorialRound() {
+        // JULY 12 (rev 3): capture the CURRENT state FIRST — the tutorial
+        // is "day 0"; ending it restores this snapshot (fresh Day 1 on a
+        // first run, or the exact mid-run state on a pause-menu replay).
+        tutorialReturnSnapshot = PotionShopSave.snapshot(from: self)
+        dayId = "day_1"
+        roundIndex = 0
+        // JULY 12 (rev 2): do NOT wipe tutHighlights here — persistent views
+        // (the header!) only publish on appear/frame-change, so a wipe left
+        // composureBar/todIcon empty forever. Stale frames are handled by
+        // the publishers' own onDisappear cleanup instead.
+        startRound()                       // real spawn: fire/flags/deck reset
+        isTutorialRound = true
+        func tut(_ key: String, hp: Int) -> PotionShopCustomer {
+            PotionShopCustomer(id: UUID(), charKey: key, hp: hp, maxHp: hp,
+                               patience: 9, maxPatience: 9, status: .waiting,
+                               activeAttack: 1, waitingAttack: 0, expireDamage: 2)
+        }
+        customers = [tut("gmarker_octo", hp: 12),
+                     tut("gmarker_oldlady", hp: 14),
+                     tut("gmarker_goatguy", hp: 16)]
+        queue = customers.map { $0.id }
+        inspectedId = nil
+        // One-of-each-type opening hand: re-deal now that isTutorialRound
+        // is set — drawFromBag itself curates the draw (JULY 12 FIX: the
+        // true-bag-draw reads run.deck directly, so curating gs.bag here
+        // was dead code and the shield could miss the hand).
+        placements.removeAll()
+        selectedHandIndex = nil
+        drawFromBag()
+    }
+
+    /// JULY 12 (rev 3): end the tutorial round — restore the pre-tutorial
+    /// snapshot (same machinery as app-relaunch resume). Idempotent; safe
+    /// to call from any tutorial-exit path.
+    func endTutorialRound() {
+        guard isTutorialRound else { return }
+        isTutorialRound = false
+        boonOffer = []
+        placements.removeAll()
+        selectedHandIndex = nil
+        inspectedId = nil
+        if let snap = tutorialReturnSnapshot {
+            tutorialReturnSnapshot = nil
+            snap.restore(into: self)
+        } else {
+            // No snapshot (defensive) — fresh Day 1 morning.
+            roundIndex = 0
+            startRound()
+        }
+    }
+
     func startRound() {
         // JULY 11, 2026: a real round always exits the H×W test round —
         // without this the test flag lingered forever and "Next page"
         // could replace a LIVE round's customers.
         isLayoutTestRound = false
+        // JULY 12: a real round always exits the tutorial round too.
+        isTutorialRound = false
         // ─── Flex day (Day 3+) path ─────────────────────────────────
         if isFlexDay {
             // Lazily generate the random rounds the first time we enter
@@ -843,6 +931,17 @@ class PotionShopGameState {
         boonOffer = thenAdvanceToDay
             ? PotionShopBoonPool.drawRelics(3, owned: run)
             : PotionShopBoonPool.draw(3, owned: run)
+        // JULY 11, 2026 (tutorial): the first offer after the tutorial
+        // must show a Die Upgrade (the explainer references it). Bounded
+        // redraw; falls through harmlessly if the pool can't provide.
+        if rigNextBoonOffer && !thenAdvanceToDay {
+            var tries = 0
+            while !boonOffer.contains(where: { if case .dieUpgrade = $0.effect { return true }; return false }), tries < 20 {
+                boonOffer = PotionShopBoonPool.draw(3, owned: run)
+                tries += 1
+            }
+            rigNextBoonOffer = false
+        }
         phase = .choosingBoon
     }
 
@@ -905,6 +1004,7 @@ class PotionShopGameState {
             phase = .dayWon
         } else {
             phase = .playing
+            if isTutorialRound { roundIndex = 0 }   // JULY 12: tutorial round → real Day 1 R1
             startRound()
         }
         // Save after boon choice (deck has changed)
@@ -918,6 +1018,7 @@ class PotionShopGameState {
             phase = .dayWon
         } else {
             phase = .playing
+            if isTutorialRound { roundIndex = 0 }   // JULY 12: tutorial round → real Day 1 R1
             startRound()
         }
         PotionShopSave.save(gs: self)
@@ -960,6 +1061,7 @@ class PotionShopGameState {
         composure = PotionShopConfig.startingComposure
         shield = 0
         potionsBrewed = 0
+        totalBrews = 0
         flexDayGeneratedRounds = []
         // JUNE 18: new run → fresh deck + cleared boons.
         run = PotionShopRunState()
@@ -1724,7 +1826,39 @@ class PotionShopGameState {
         var bag = run.deck
         if magicUsedThisRound { bag.removeAll { $0.type == .magic } }
         let typeOrder = PotionShopDieType.allCases
-        let drawn = Array(bag.shuffled().prefix(5))
+        // JULY 12 FIX: the TUTORIAL ROUND deals ONE OF EACH type (potency,
+        // heal, shield, stability, boost). This must live HERE — the July-11
+        // true-bag-draw pulls straight from run.deck, so curating gs.bag
+        // upstream did nothing (the missing-shield bug). Prefers non-FF
+        // copies; falls back to FF, then random fill, so it never crashes
+        // on a stripped deck.
+        let picked: [PotionShopBagDie]
+        if isTutorialRound {
+            // JULY 12 (rev 2): the tutorial tray holds EXACTLY one of each
+            // type for the ENTIRE tutorial — every deal and every refill.
+            // If the current deck is missing a type (removal boons on
+            // mid-run replays), a temporary basic die of that type is
+            // SYNTHESIZED for the tutorial only — never a duplicate.
+            var rest = bag.shuffled()
+            var front: [PotionShopBagDie] = []
+            for t in [PotionShopDieType.potency, .heal, .shield, .stability, .boost] {
+                if let i = rest.firstIndex(where: { $0.type == t && $0.isFocusFree != true }) {
+                    front.append(rest.remove(at: i))
+                } else if let i = rest.firstIndex(where: { $0.type == t }) {
+                    front.append(rest.remove(at: i))
+                } else {
+                    front.append(PotionShopBagDie(
+                        id: "tut_\(t.rawValue)_\(UUID().uuidString.prefix(4))",
+                        type: t,
+                        tier: .basic
+                    ))
+                }
+            }
+            picked = front
+        } else {
+            picked = Array(bag.shuffled().prefix(5))
+        }
+        let drawn = picked
             .sorted { a, b in
                 (typeOrder.firstIndex(of: a.type) ?? 0) < (typeOrder.firstIndex(of: b.type) ?? 0)
             }
@@ -1783,6 +1917,29 @@ class PotionShopGameState {
         for i in hand.indices where i < drawnFF.count && drawnFF[i] {
             hand[i].isFocusFree = true
         }
+
+        // ═══ JULY 12 (rev 3): TUTORIAL HAND — FORCED, FINAL, ALWAYS. ═══
+        // The bag pipeline has several day-1 stages; rather than curate
+        // upstream and hope, the tutorial round REPLACES the finished hand
+        // outright: one of each type, fixed values, no FF, every deal and
+        // every post-brew refill. ✏️ Edit types/values freely.
+        if isTutorialRound {
+            let script: [(PotionShopDieType, Int)] = [
+                (.potency, 2), (.stability, 1), (.boost, 1), (.heal, 2), (.shield, 1),
+            ]
+            hand = script.enumerated().map { (i, entry) in
+                PotionShopDie(
+                    id: "tutdie_\(entry.0.rawValue)",
+                    type: entry.0,
+                    tier: .basic,
+                    value: entry.1,
+                    faceValue: PotionShop3DDiceAssetMap.faceId(forType: entry.0),
+                    trayIndex: i,
+                    customFaces: nil,
+                    ruleBonus: 0
+                )
+            }
+        }
         selectedHandIndex = nil
         // Bump the 3D spin session so every cube REBUILDS its scene on the
         // next render — even ones in slots where the new faceValue happens
@@ -1836,6 +1993,11 @@ class PotionShopGameState {
         guard let activeId = queue.first,
               let activeIdx = customers.firstIndex(where: { $0.id == activeId }),
               let activeChar = PotionShopData.character(customers[activeIdx].charKey) else { return }
+
+        // JULY 12 FIX (tutorial stuck at Brew!): potionsBrewed only counts
+        // DEFEATS, so a non-lethal tutorial brew never released the brew
+        // gate. totalBrews ticks on EVERY brew — the tutorial watches this.
+        totalBrews += 1
 
         let preview = computeBrew()
         let target = currentBrewTarget
@@ -2339,4 +2501,24 @@ class PotionShopGameState {
         phase = .lost
         PotionShopSave.deleteSave()
     }
+}
+
+
+// MARK: - Shaped-highlight record (July 12, 2026)
+/// JULY 12: how a highlight renders. shaped = re-rendered art / ring;
+/// reveal = a clean 0%-opacity hole in the dim, nothing drawn;
+/// underline = padded hole + an accent underline bar (banner items).
+enum PotionShopTutHighlightStyle { case shaped, reveal, underline }
+
+struct PotionShopTutHighlight: Equatable {
+    var frame: CGRect      // VISUAL rect in global coords (transforms applied)
+    var image: String?     // scene PNG to re-render; nil = frame-style ring
+    /// JULY 12: wildcard group ("dice.potency") — a highlight key matches
+    /// this OR the entry's own key. Lets one script entry light all dice
+    /// of a type, wherever they landed in the tray.
+    var group: String? = nil
+    /// JULY 12: circular element (profile portraits) — clips the re-render
+    /// and shapes the ring/cutout as a circle.
+    var clipCircle: Bool = false
+    var style: PotionShopTutHighlightStyle = .shaped
 }

@@ -41,6 +41,10 @@ struct PotionShopHeaderView: View {
 
     /// Asset name for the current time-of-day icon.
     private var todIconName: String {
+        // JULY 11, 2026: the tutorial's shop-day beat cycles the icon.
+        if let o = gs.tutorialTODOverride {
+            return ["tod_morning", "tod_afternoon", "tod_evening", "tod_night"][min(max(0, o), 3)]
+        }
         switch gs.currentRoundTimeOfDay {
         case .morning:   return "tod_morning"
         case .afternoon: return "tod_afternoon"
@@ -51,7 +55,7 @@ struct PotionShopHeaderView: View {
 
     /// How many focus pips remain (dice NOT yet placed).
     private var focusRemaining: Int {
-        max(0, gs.focus - gs.placements.count)
+        max(0, gs.focus - gs.nonFreePlacementCount)   // JULY 11: FF dice don't drain the meter
     }
 
     /// Dynamic focus X offset — shifts left as more pips are added so the
@@ -78,11 +82,13 @@ struct PotionShopHeaderView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: cfg.headerTodIconSize, height: cfg.headerTodIconSize)
+                        .background(PotionShopPlainFramePublisher(gs: gs, key: "todIcon", style: .reveal, dy: cfg.headerTodIconOffsetY))
                         .offset(y: cfg.headerTodIconOffsetY)
                 } else {
                     Image(systemName: "sun.max.fill")
                         .font(.system(size: 20))
                         .foregroundColor(PotionShopTheme.accent)
+                        .background(PotionShopPlainFramePublisher(gs: gs, key: "todIcon", style: .reveal, dy: cfg.headerTodIconOffsetY))
                         .offset(y: cfg.headerTodIconOffsetY)
                 }
 
@@ -99,6 +105,7 @@ struct PotionShopHeaderView: View {
                     barHeight: cfg.headerBarHeight
                 )
                 .frame(maxWidth: .infinity)
+                .background(PotionShopPlainFramePublisher(gs: gs, key: "composureBar", style: .reveal, dy: cfg.headerBarOffsetY))
                 .offset(y: cfg.headerBarOffsetY)
 
                 // JULY 2, 2026 (later): the header slot now holds the
@@ -189,6 +196,7 @@ struct PotionShopHeaderView: View {
                 }
                 Spacer()
             }
+            .background(PotionShopPlainFramePublisher(gs: gs, key: "focusPips", style: .reveal, dx: focusOffsetX, dy: cfg.headerFocusOffsetY))
             .offset(x: focusOffsetX, y: cfg.headerFocusOffsetY)
         }
         .padding(.horizontal, 12)

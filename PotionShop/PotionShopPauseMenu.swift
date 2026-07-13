@@ -111,6 +111,7 @@ struct PotionShopPauseMenu: View {
             }
             zone(.yellow, PotionShopPauseMenuLayout.tutorialZone, W, H) {
                 close()
+                gs.startTutorialRound()   // JULY 12: fixed-cast pre-Day-1 round
                 tutorial.start()
             }
             zone(.green,  PotionShopPauseMenuLayout.saveExitZone, W, H) {

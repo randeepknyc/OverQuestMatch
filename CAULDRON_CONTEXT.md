@@ -7,6 +7,8 @@
 >
 > ---
 >
+> **⚠️ JULY 10–11, 2026 — PLAYTEST V1 BUILT + LAB v3.3:** the first public-playtest balance build is IMPLEMENTED. `hpGrowthPerDay` **1.07 → 1.09** (the one threat change — "significantly harder as it goes, completable": lab-measured 17% of strong runs reach Day 30, median death Day 14; fallback 1.08 ≈ 3× completions). Boon pool SPLIT: round pool (4 core + 3 **Focus-Free dice** + **Bitter Dregs** curse) vs day-completion **RELIC menu** (Warded / Mended / **Iron Kettle +1 max composure** / **Ember Charm**). Patience jitter ±2 (floor 3, bosses exempt). Balance lab v3.3 gained TAP-TO-SWAP targeting (all pre-July-10 labs understated the player — a core game mechanic was missing from the sim) + the ⭐ PLAYTEST V1 preset. **Read §73** for the full build, findings, save-compat, and layout bake batches 2–4.
+>
 > **⚠️ JULY 10, 2026 — MEMORY MYSTERY SOLVED:** the recurring 2.8GB footprints were NEVER the game — the app-level splash/title/map flow was decoding ~28 full-screen PNGs at full export resolution (~134MB each). §70h's "Xcode artifact, certified ignorable" verdict is **partially overturned**. Read **§72** for the full endgame: root cause, the 7-instrument investigation, the fix (TitleScreenView/DeveloperSplashView/MapScreenView now route through the budgeted loader), post-fix 188MB verification, the permanent debug-menu instrument panel, and the new audit rules. §71e logs the July-7 gameplay batch (day-end boon fix, value-targeted die upgrades, one-line boon blurbs, layout bake batch 1, balance lab v3).
 >
 > **⚠️ JUNE 27, 2026 — TOP-LEVEL STATUS (the June 10 line above is now historical):**
@@ -4476,3 +4478,150 @@ Four ships in one session (see chat summary `CHAT_SUMMARY` for the day): (1) **D
 
 **RESIDUAL BACKLOG (logged, none urgent):** (a) one-off decode storm (1,921 at-size decodes in ~1 min, one session, never reproduced — if seen again the profiler names it); (b) `bgtest` decodes at ~3000px / 35–64MB, above the expected 2048 cap — check the call site's displaySize someday; (c) census families can hold multiple sizes of the same asset (317MB alive post-fix vs 120MB cache budget — alive ≠ cached; benign while footprint is healthy, worth a look if it grows); (d) the lingering-vs-swept variance of the OLD builds was never fully explained — moot post-fix; (e) title art renders at the 2048px cap (mild theoretical softening of 4K exports) — if the artist's eye ever catches it, an exact-screen-sharpness title path is a small follow-up; re-exporting title art at ~1320×2868 would also shrink the app download.
 
+
+
+---
+
+## §73. PLAYTEST V1 — THE FIRST PUBLIC-BALANCE BUILD (July 10–11, 2026)
+
+### §73.1 The tap-to-swap parity correction (a lesson in humility)
+Every balance lab before July 10 simulated a player who fought customers in **fixed queue order** — but the game has ALWAYS had free retargeting: `tapProfile()` in GameState ("tap profile = swap with queue[0]", the CRITICAL function) lets the player tap any waiting customer to bring them to the front. **The sim player was weaker than a real one, so all pre-July-10 findings understate player power.** Lab v3.1 added a swap-targeting policy (secure kills before expiry → race the most urgent winnable patience clock → focus the biggest hitter) with a regression mode ('front') that reproduces the old anchors exactly. Honest outcome: even the TRUE player dies Day 7 in the pre-playtest game — the wall was raw power, not tactics — so old headline conclusions survived; tuning precision improved.
+**RULE:** before trusting any lab, diff its player model against the game's actual verbs (target selection, swap, inspect). A missing core mechanic invalidates numbers silently.
+
+### §73.2 Focus-Free dice (user design, evolved twice)
+Final design — **permanent lane members earned from the round pool**, NOT a random per-deal chance and NOT a new lane: picking "Focus-Free Heal" adds a SECOND heal die to the deck flagged `isFocusFree`; type-draw dealing then sometimes deals the free one (odds rise with each pick). Placing an FF die does NOT count against Focus. **Only heal / shield / potency** (never boost, never mirror). **Cap 1 per lane**, enforced as a POOL FILTER (the card stops being offered — Mended Spirit precedent; a maxed card must NEVER be a dead pick — the dead-pick version cratered survival 74%→0% in the lab). FF Potency is ESSENTIAL: 31% → 76% completion difference. No day-1 seed (adds ~3%, not worth the plumbing).
+
+### §73.3 The difficulty findings (all lab-measured, 300 trials, swap player)
+- **Capping player power is FATAL at any level** — the Day-7 boss is calibrated against the fire-hose economy (~10+ Potent-Brew stacks by D7). Flat caps, weekly-rising caps: all 0%.
+- **The lever is threat escalation:** `hpGrowthPerDay` 1.07→**1.09** (compounding → weeks 3–4 get much meaner). Sweep: 1.07 = 76% + late coast · 1.085 = 44% still coasts · **1.09 = 17%, median death D14, boss dips p50 4/1/19/16** · 1.10 = 0% wall. **FALLBACK: 1.08 ≈ 3× completions** if playtesters can't crack week 2 — one number in PotionShopModels.swift.
+- Relic-per-day + uncapped +1 cards + FF dice = the working chassis; the late "victory-lap" concern is handled by the 1.09 curve (survivors still get dragged to 16–19 at late bosses).
+
+### §73.4 What was BUILT (all shipped July 10, brace-verified, save-compatible)
+- **PotionShopModels.swift** — hpGrowth 1.09 (+fallback comment); `PotionShopBagDie.isFocusFree: Bool?` (optional → old saves decode); `PotionShopDie.isFocusFree: Bool = false` (hand die, non-Codable).
+- **PotionShopRunSystem.swift** — pool SPLIT: `roundPool` (Die Upgrade, Potent Brew, Healing Mastery, Stoked Coals, FF Heal/Shield/Potency ✨, **Bitter Dregs** ☕ = +2 all potency / −1 all heal via typeBonuses) + `relicPool` (Mended 💖, Warded 🛡️, **Iron Kettle** 🫖 `.ironKettle(1)` stacking maxCompBonus, **Ember Charm** 🕯️). `draw()` filters FF-at-cap; new `drawRelics()` filters owned one-shots (Mended, Ember). New Effect cases: `.ffDie(type:)` (inherits lane's best customFaces, addDie precedent), `.bitterDregs`, `.ironKettle(Int)`, `.emberCharm`. RunState +`maxCompBonus`, +`emberCharm` (custom-Codable extended, decode-safe). `all` = computed roundPool+relicPool; old literal kept as `legacyAll`.
+- **PotionShopGameState.swift** — `effectiveMaxComposure` (config + Iron Kettle) replaces the ceiling at ALL clamp/restore/UI sites; `offerBoons(thenAdvanceToDay:)` routes day-completion → `drawRelics` + `boonOfferIsRelic` flag; Focus counting = `nonFreePlacementCount` (FF dice free) at all 3 gate sites; FF flag threaded bag→hand post-map (`drawnFF` index-aligned); **Ember Charm = `loseFlameToAttack()`** wrapping ONLY the two big-hit sites (NOT the brew-spend loop — that's the fire economy's intended cost; unmodeled-in-lab, kept conservative); **patience jitter ±2 floor 3** at both spawn sites (bosses exempt; SINGLE roll for patience+maxPatience — a two-roll bug was caught in review; beatability holds by construction: floor 3 only reaches base-patience ≤5 = the small-HP tier); `emberUsedToday` resets in advanceDay (not persisted — worst case a load re-arms it, accepted); mirror-D2 grant audited CORRECT, untouched.
+- **PotionShopGameView.swift** — day-end menu titled **"Choose a Relic"** via `boonOfferIsRelic`.
+- **PotionShopCauldronView.swift** — FF dice in the tray get a soft white glow + "FREE" pill (✏️ placeholder until FF die art exists).
+
+### §73.5 Balance lab v3.3 (`cauldron_balance_lab_v3_3.html` — supersedes v3, v3_1, v3_2)
+Adds on v3: **Targeting** select (swap = game truth / front = old labs), **FF what-if %** slider (exploration only — real mechanism is FF dice), `ffDie` grant kind ⭐ in the build tester, **Pool model** select (july6 live / playtest v1 incl. relic-per-day policy), **FF cap/lane** slider (pool-filter semantics), **FF Potency in pool** checkbox, and the **⭐ PLAYTEST V1 preset** (one pick = pool model + FF potency + cap 1 + hpGrowth 1.09 + varied-patience archetype rows). E2E-tested: preset picked from the dropdown reproduces 17%. Defaults still describe the LIVE game — **BAKE defaults to playtest values once the build is confirmed in players' hands.** BALANCE_LAB_HANDOFF.md refreshed to v3.3 (same date).
+
+### §73.6 Layout bake batches 2–4 (July 10–11)
+- **Batch 2** (July 10, 8:39 PM): 7 skeleton scalars + 6 cells + 1 badge-HW + 8 badge-slot entries. KEY FINDING: the uploaded LayoutConfig was PRE-batch-1 — the user's device carried batch 1 in EDITOR STATE, not compiled defaults, so batch-2 diffs were relative to (file + editor state) = my accumulated copy. **Merge base = the accumulated /home/claude/game copy, verified via the REMOVED values.**
+- **Batch 3** (July 11, 1:37 AM): 5 waiting-row scalars, clean.
+- **Batch 4** (July 11, 2:37 AM): 32 values (6 scalars, 15 cells incl. the batch-1 floater seed repositioned, 11 badges, 3 brand-new surfaces). **FINDING: the editor's exports are CUMULATIVE snapshots** — each lists the full session diff, so only the LAST of a stack matters (earlier entries reappear verbatim in later exports).
+- **Integrity ritual (keep):** every export's REMOVED list must match the accumulated file's current values exactly once each — 4/4 batches passed = zero drift.
+- Watch item: `feetYWaiting1` / `slotXFractionWaiting1` wobbled across 3 consecutive batches — if they keep moving, the fix likely belongs one layer down (per-cell), per the tuning-order doctrine (§71-era).
+
+### §73.7 Playtest quick-check (do this after pasting the build)
+New run → mid-round menu says "Choose a Boon" with the new cards → finish Day 1 → **"Choose a Relic"** → take a Focus-Free die when offered → confirm FOUR dice place that turn (3 + the glowing FREE one) → take Iron Kettle and watch the composure ceiling read +1 → Bitter Dregs actually costs you (−1 all heal). If week 2 proves uncrackable for testers: hpGrowth 1.09 → 1.08 (one number, PotionShopModels.swift).
+
+
+### §73.8 TRUE BAG DRAW + THE REBALANCE (July 11, later)
+**Dealing changed (user design): the deck IS the bag** — 5 dice drawn without replacement per turn (GameState `drawFromBag`, July-11 block; hand sorted by type ✏️). Doubles/gaps real; deck composition matters; mirror = ordinary bag member from Day 2 (used-this-round rest rule kept). **Consequence measured: Day 1 became a coin flip** (66% of deaths — no-heal hands are 37.5% of 5-of-8 draws; day-1 sustain silently assumed the old one-per-type safety net). **REBALANCE SHIPPED (3 numbers, all in PotionShopModels.swift):** `composureRestBetweenRounds` 0→**5** · **warm-up grace** in `attackDayMultiplier` (attacks ×0.5 Day 1, ×0.75 Day 2) · `hpGrowthPerDay` 1.09→**1.1025** (dial is STEEP: 1.10=36% · 1.1025=22% · 1.105=10% · 1.11=1%). **Result (user's stated targets): 22% reach D30 · Day-1 deaths 0% · median death D14 · boss dips p50 7/6/23/7.** **PARITY CORRECTION:** the game has NO heal-once rule (computeBrew SUMS heal dice) — the lab's `healOncePerTurn: true` default was a July-6 audit error, now false; pin true when reproducing pre-July-11 anchors. Lab v3.5 (`cauldron_balance_lab_v3_5.html`, supersedes all): Deal-model select (bag/typeDraw), grace sliders, corrected preset, E2E-verified 22%/0%.
+
+
+### §73.9 HEAL RULE RE-CORRECTION + DRAG BUG + SINGLE-DIGIT HP (July 11, later)
+**The heal rule EXISTS**: a placement gate in `placeDie` (July 4: "HEAL is limited to ONCE PER TURN"). §73.8's "no heal rule" claim was WRONG — it searched the brew math (which sums) and missed the placement gate. Lab default back to `healOncePerTurn: true` (game truth). **BUG FIXED: the DRAG path (`dropDieOnNode`) bypassed the heal gate** — both paths now agree. **Re-measured with the rule ON: the shipped config lands EXACTLY on target — 20% D30 · 0% Day-1 deaths · median D14 · dips 6/5/22/7. Models values (rest 5, grace, hpGrowth 1.1025) UNCHANGED.** Lab v3.6 ships the corrected truth. **RULE for auditors: placement gates live in placeDie AND dropDieOnNode — check BOTH paths for any placement rule.**
+**Single-digit starting HP (user question, measured):** halving base HP (t2 ≈7–8) = **100% completion at ANY tested growth** — the player/HP ratio never recovers, the whole run trivializes. Single-digit starts would need a ground-up re-shape (hpGrowth ~1.13+, stronger attacks, or more customers), not a drop-in change. Parked unless the designer wants that pacing direction explored.
+
+---
+
+## §74 THE LAYOUT MEGA-SESSION (July 11, afternoon→evening) — feet planting, test round, gmarker-only, bake stamp
+
+### §74.1 ⚠️ THE DRAWER RULE (permanent, user was rightly angry)
+**"debug" ALWAYS means the in-scene OVERLAY DRAWER** (bottom drawer, tabs Header/Auto-Layout/Badges/Customers, scene stays visible above) — **NEVER the full-screen Debug Menu sheet.** All layout tooling goes in the drawer. The full-screen menu is only for non-visual utilities (memory footprint, saves, round skips, Copy Layout Values).
+
+### §74.2 FEET PLANTING (template-constant system, live, default ON)
+- Art template **CHARACTER_TEMPLATE_v2**: canvas 1024×1536 (exactly 2:3 = render frame → conforming exports never letterbox), **floor y=1500**, universal LEFT-foot-tip anchor **(300, 1500)**.
+- Planting inset is the CONSTANT **36/1536** (`PotionShopImageLoader.templateFeetInsetFraction()`), added to the feet-anchor yPos: every canvas lands on the same line. **Positions, never crops** — hems/perspective feet drawn below y=1500 render below the line as drawn; floaters keep their drawn hover.
+- Per-asset alpha scan (`sceneFeetInsetFraction`, 240px decode, flipped CGContext so row 0 = top, cached) powers the **conformance audit**: red "TRIMMED EXPORT" = export isn't the full 2:3 canvas (constant planting can't place it → RE-EXPORT, never nudge). Overhang %s are informational.
+- Drawer: 🦶 toggle (`feetPlantOnArt`, default true), undo-wired (EditorHistory `beginChange/updateLast`, **token is a UUID** — a static one for the toggle), rides BOTH Copy Layout Values and the changed-diff (one text builder feeds both). Resets to compiled default on relaunch until baked.
+- **Buckets are BANDS, not points** (rooster lesson): a bucket-level badge fits the member it was tuned on; outliers (heads high/low in canvas) get **per-character badge overrides** (layer above bucket cells; dino has one). Tune cells on the typical member, override the outliers.
+
+### §74.3 🧪 H×W TEST ROUND (drawer, deletable)
+One character per distinct (height×width) combo, 3 per page. **gmarker-only** (dormant named cast leaked in as untagged medium·medium — "ardo" alphabetically hijacked the rep slot; fixed with hasPrefix filter). **Rotation**: pages are a circular window; each full cycle shifts every combo one slot (label "Page p/N · rot r") — fixed chunking had locked each combo to one slot forever. Pages always show 3 (profile row never shrinks). Real `startRound()` exits test mode (flag used to linger and Next-page could hijack live rounds). hp 999 / patience 99 / no attacks; run+save untouched. DELETE LATER: GameState block + two drawer pills.
+
+### §74.4 ROSTER: gmarker_* ONLY (guide_* and named cast retired)
+- 13 guide_* character defs DELETED from Data; their LayoutConfig tags deleted; day-3 lineups retargeted (**substitutions: woman→oldlady, pig→dino, faun→goatguy** — user can recast). Unreferenced guide_* PNGs deletable from assets.
+- Named cast (mildred…royal_envoy) fully purged from **LayoutConfig**: per-char tuning blocks, BOTH seed dicts (incl. the **restore-resurrection landmine** — Restore Locked Defaults contained a second full named-cast dict that would wipe gmarker entries), 8 queue permutations, `applyDefaultHeightBuckets()` (whole function + a straggler call in restore that broke a build). **`applyTunedCharacterScales()` is called from init() AND restoreLockedDefaults()** — it holds the gmarker bucket tags AND every baked value; deleting its caller once left the game untuned (caught in verification). ⚠️ Its retired-cast blocks were interleaved with the LIVE bake() calls — never delete it wholesale.
+- Named-cast DEFS remain in Data as dormant data (documented decision) — **leaked twice already** (config, gallery); candidates for full removal.
+- Export lists (per-char section, badge-override list, editor swap picker) are now DYNAMIC (`hasPrefix("gmarker_")`) — can't go stale.
+
+### §74.5 LAYOUT SYSTEM AUDIT (verdicts; overhaul 1–4 approved-in-principle, NOT executed)
+DEAD: 6 `autoLayoutBucketScale*` sliders (zero call sites). SHADOWED: 18-slider per-slot×height size matrix (cell size wins entirely); `[h·w]` HP-badge master (slot layer wins field-by-field); **Badges tab = deepest fallback** (per-height-only, pre-bucket-era) — shadowed for every tuned combo. Badge resolution: per-character override → slot·H×W cell → H×W master → Badges-tab per-height. LEGACY-path-only (untouched by standing rounds): heightYAdjust, widthWeight, Start/EndX, YActive/YWaiting, ScaleActive/W1/W2. Slot X/Y and cell X/Y ADD on one axis. Overhaul items: 1 delete dead sliders · 2 shadow indicators · 3 retire HW badge master (migrate→slot) · 4 combined-total readouts.
+
+### §74.6 📦 BAKE STAMP (stale-binary guard — the "first 3 fucked every launch" saga)
+Live tunings die on relaunch; only PASTE+BUILD makes bakes real. The user ran a batch-10 binary for ~2h while batches 11–12 were baked → every launch reverted, same keys re-tuned each session (batches 10/11/12 all contain the same medium/tall keys). Detection: an export whose REMOVED values match an OLD batch's build = stale binary; the latest CHANGED then SUPERSEDES the intermediate batch (batch 12 baked over 11 for overlapping keys, file verified against b11 state instead of REMOVED). **Now visible**: `PotionShopLayoutConfig.layoutBakeStamp` shown in the drawer ("📦 Compiled layout: batch N") — **Claude bumps it every bake; if the device stamp lags the last bake, REBUILD before tuning.**
+
+### §74.7 Bake batches 6–14 ledger (all July 11)
+6: 3 scalars. 7: 12 lines + slug/dino per-char blocks (**slug waiting2 1.584 judged an accidental slider nudge — REVERTED after "supershort is huge"**). 8: 15 (dict-literal floater cells included). 9: **64 values** (programmatic line-verified baking begins). 10: ~40. 11: **70** (aborted once on an aligned-column context line — tolerant `\s+` matcher after every comma is now standard; a partial ship existed for ~1 min). 12: 13 (supersession over 11, see §74.6). 13: 2 + stamp. 14: 13 + stamp. **Integrity ritual: every REMOVED must match the accumulated file (or the explicitly-verified superseded state) before its line is touched; script aborts on mismatch. Zero drift through 14 batches.**
+
+### §74.8 Misc fixes shipped today
+- Profile buttons vanishing: **dangling `inspectedId`** — row hides at opacity 0 whenever inspecting, strip only renders if the inspected id resolves to a live `.waiting` customer; page swaps replaced customers w/o clearing → empty row. Fixed both ends (`inspectedId = nil` on swaps + `validInspected` gate in the view).
+- Tap-again on the selected customer UNSELECTS (clears `selectedSlotIndex` only — `selectedCharacterId` is NON-optional, default now "gmarker_octo").
+- Opacity sliders (slot 1/2) removed from drawer + export.
+- Memory section stripped to the Footprint row ONLY (all §72 instrumentation retired at user request; the budgeted-loader FIX is untouched). Footprint healthy: 139–246MB.
+- SwiftUI craft notes: giant drawer blocks blow the type-checker → extract `@ViewBuilder` subviews with pre-computed lets + shared ButtonStyle; DebugMenu closes via `isPresented=false` (no env dismiss); EditorHistory tokens are UUIDs; `@ViewBuilder` attributes must stay adjacent to their function (an insert once orphaned one onto a stored var).
+
+---
+
+## §75 CONTENT SYSTEMS SESSION (July 11, evening) — lab v3.7, content kit, v0/v1 plan
+
+### §75.1 Bake batch 15 (Jul 11, 8:44 PM export)
+3 badge cells + 1 hp-context UPDATE (s2 medium·medium←tall·medium dy → −40.78) + **first character context with a BACK neighbor** (s1 short·wide · front floater·medium · back superShort·skinny). All REMOVED matched batch-14 state; **stamp system verified working end-to-end** (device stamp read batch 14 before the bake). Stamp → batch 15.
+
+### §75.2 FF-FOCUS UI BUG (found by user, fixed July 11)
+The LOGIC was always right (all three placement gates use `nonFreePlacementCount`), but the UI counted every placement: `atCap` ×2 in PotionShopCauldronView + the header meter used `placements.count` → FF dice drained the meter and blocked the hand at 3. Fix: all three sites → `nonFreePlacementCount`. **Pattern to remember: when a rule lives in GameState, audit the VIEWS for parallel counters.** Pending (user): a different visual marking for FF dice (currently white glow).
+
+### §75.3 Balance lab v3.7 — "gamedesign playtest1" (see BALANCE_LAB_HANDOFF v3.7 addendum)
+Content pack architecture live: declarative CONTENT_PACK block (21 boons / 11 relics / 5 curses / 9 tags / 14 events, all placeholder guide content), die flags (focusFree · restsForDay · restsForRound · volatile · charged — user rule: some dice rest per DAY, others per ROUND like the heal die), TimedEffects, quota event scheduler (3/week seeded, no patterns), EV event policy w/ risk dial, archetype-committal drafting, trap-detection metrics. **Measured: 21% D30 · 0% D1 deaths · median death D7** (variance front-loads to the first boss). Pack-off = 22%/0%/D14 unchanged; v3_6 anchor A/B bit-identical. **Economy law: core cards ×6 / commons ×2 / rares ×1 — at commons ×3 the pack drowned potency density and completion collapsed to 2%.** Placeholder trap readout: bag 40% · sustain 31% · tempo 21% · risk 9% · fire 6% winrates (fire/risk = demonstration traps to retune during authoring).
+
+### §75.4 Authoring workflow
+CONTENT_DESIGN_KIT.md = the rules/vocabulary doc. **CONTENT_PACK_gamedesign_playtest1.js = the user's editable authoring file** (heavy how-to header; edit rows in any text editor, upload back, Claude validates + merges into the lab). V1_BUILD_SPEC.md = the upload-to-build doc for the v1 Swift port.
+
+### §75.5 healPity — MAYBE LATER (user-parked)
+Dice draws are a uniform Fisher–Yates bag (no hidden weights; 37.5% no-heal-hand math is honest). If playtesters report the dead-hand FEELING, candidates in order: pity rule (no-heal hand guarantees one next hand), first-hand-of-round guarantee, or lean on the Kindled Reroll relic (already built, player-priced). Not building unless playtests ask.
+
+### §75.6 v0 / v1 VERSIONING PLAN (user-declared)
+**v0 = the user's current playable build** (their uploads = ground truth; being QoL-edited now: font, text, tutorial). **v1 = the designed version** (content pack systems per V1_BUILD_SPEC). Future task: build both as complete playable sets and ZIP SEPARATELY for cross-testing feel. Not yet — user will say when.
+
+### §75.7 Tutorial rework (planned)
+User wants a dedicated tutorial round (a marked day if needed) replacing/extending the current 4-step overlay, covering all live systems with hands-on practice gates. Claude drafted a full flow in-chat (July 11) for the user to edit; implementation waits on their edited script.
+
+---
+
+## §76 THE TUTORIAL REBUILD SESSION (July 11 night → July 12, ~4 AM) — 20-step tutorial, highlight systems, tutorial round, batches 16–20
+
+### §76.1 The 20-step tutorial (PotionShopTutorialOverlay.swift)
+Data-driven script: `PotionShopTutStep` rows (title, body ✏️ user's verbatim copy, gate, effect, glow, centered, highlights[]). Steps 0–19: Welcome, Shop Day (TOD cycle effect), Customers, The Order, Choosing Customers, The Profile (auto-opens banner), Traits, Composure (auto-closes), Patience, Patience Runs Out, Brewing 101, Into the Cauldron (**gate .placePotency**), Live Preview, Focus, Brew! (**gate .brew**), The Yell, The Fire (flameMinusOne effect), Dead Fire (flameAllOut + relight on advance), The Other Dice, LET'S GET BREWING (plain tap → Day 1; a brew-gated finale was tried and REVERTED — the step-15 brew already spent the dice).
+- **Brew gates watch `gs.totalBrews`** (new counter, ticks EVERY brew) — `potionsBrewed` only counts DEFEATS and left the gate stuck (the "stuck at step 15" bug).
+- Effects: cycleTOD (0.8s loop via gs.tutorialTODOverride), openProfile/closeProfile (inspectedId), flameMinusOne, flameAllOut.
+- completeTutorial → `gs.rigNextBoonOffer` (first real offer guaranteed a Die Upgrade; draw-site bounded redraw using `if case .dieUpgrade` — the effect enum is NOT Equatable) + `pendingBoonTip` (explainer card over the first real boon offer).
+
+### §76.2 THE DEDICATED TUTORIAL ROUND (gs.startTutorialRound)
+"Day 0": pre-Day-1 round, FIXED cast so highlights land identically every run — **gmarker_octo hp 12 · gmarker_oldlady hp 14 · gmarker_goatguy hp 16** (⚠️ substitutions, user may recast), atk 1/wAtk 0, patience 9. Launch points: GameView first-run (!hasSeenTutorial) and PauseMenu → Tutorial, both call `gs.startTutorialRound()` then `tutorial.start()`.
+- **SNAPSHOT/RESTORE (the architecture that finally worked):** startTutorialRound FIRST captures `PotionShopSave.snapshot(from:)` into `gs.tutorialReturnSnapshot`; `endTutorialRound()` restores it (same machinery as app-relaunch resume; `restore(into:)` sets day/round/composure/run then calls startRound → fresh real round of that day). First run: snapshot = fresh Day 1 → finishing lands on Day 1. Mid-run replay: returns to the top of the round the player was on. **Exit handling MUST live on GameView** — the overlay is unmounted the same frame `tutorial.isActive` flips, so an onChange on the overlay NEVER FIRES (this was the "overlay comes off but same customers stay" bug). GameView's onChange also does TOD/fire cleanup then `gs.endTutorialRound()` (idempotent, guards isTutorialRound; startRound() itself clears isTutorialRound like the §74 test-round pattern).
+- **FORCED TUTORIAL HAND — the final law:** at the very END of drawFromBag, `if isTutorialRound` REPLACES the finished hand with a scripted one: **potency 2 · stability 1 · boost 1 · heal 2 · shield 1** (ids tutdie_*, tier .basic, faceValue = faceId(forType:), no FF). Two upstream "curate the bag" attempts FAILED (the true-bag-draw reads run.deck directly, and the day-1 pipeline reshuffles); the earlier curated-branch code in drawFromBag still exists but the forced hand overrides it. Every deal AND every post-brew refill. ✏️ Edit the `script` array in drawFromBag.
+
+### §76.3 HIGHLIGHT SYSTEMS (the session's big build — 4 revisions, ended simple)
+Registry on GameState: `tutHighlights: [String: PotionShopTutHighlight]` {frame (VISUAL rect, global coords), image?, group?, clipCircle, style: .shaped/.reveal/.underline}; `publishTutHighlight` dedupes via Equatable.
+**Publishers** (the traySlotPositions pattern):
+- `PotionShopTutFramePublisher` (CustomerSceneView) — per-customer, applies scaleEffect/offset math BY HAND (those are render-only; GeometryReader lies). Keys customer0-2, image = scenePortrait.
+- `PotionShopPlainFramePublisher` (generic, in TutorialOverlay.swift) — key/image/group/clipCircle/style/dx/dy; **`.onDisappear` removes its key** (stale frames from dead customers were the "random hp icons" bug). Published: die0-4 (group `"dice.\(type)"` — group matching lets one script key light all dice of a type wherever they landed), profile0-2 (portrait, clipCircle), hpBadge0-2 (REVEAL, dx/dy = effectiveX+headOffsetX+hpOffX*scale chain), brewSpoon/cauldron/todIcon/composureBar/focusPips/fireRow (all REVEAL).
+**Styles as shipped:** virtually EVERYTHING ended as REVEAL (clean 0%-dim hole) — user's preference. `.shaped` PNG re-render (no glow — glow was removed on request) survives only for customers/profiles; **dice were switched from .shaped to .reveal because the shaped draw produced nothing in play (3D cube dice have no flat PNG to load) while frames/matching were proven fine by edit-mode outlines.** `.underline` = padded hole + accent capsule under the item (inspectName, inspectTrait).
+**Rendering:** dim = compositingGroup mask; **`.ignoresSafeArea()` must sit on the dim COLOR only** — on the group it shifted all holes ~12pt off the rings (the batch-16 alignment bug). Holes punched for reveal(+10)/underline(+24)/shaped-nil-image; `.animation(nil, value: currentStep)` on both hole + above-dim layers (SNAP — killed the lingering-glow-across-steps complaint). `matchedHighlights` applies `cfg.tutNudges` (group members share the group's nudge). Manual reveal rects: `cfg.tutManualReveals` (step/x/y/w/h, circle-space coords) via ➕ Reveal in the drawer.
+**Editor:** drawer 🎓 tab — step nav, ✋ Edit mode (cyan dashed labeled outlines on ALL matched published frames — the diagnostic that proved frames right / draw wrong), per-step Reveal Spot nudges (X/Y/W±/H± via dict-Binding helper `tutNudgeBinding` in GameView), ➕ Circle, ➕ Reveal, card X/Y arrays (20 slots), dim sliders. Export adds `tutNudge[key]:` and `tutRevealN:` lines. **Export circle/reveal step numbers are 1-BASED; baked defaults are 0-based.**
+
+### §76.4 Bake state
+Batches 16→20 this session; **stamp = "batch 20 · Jul 12, 4:00 AM"**. Baked defaults: 16 circles (badges ×3 on Order + Yell, profiles ×3 on Choosing/Patience/PatienceOut, focus-area, composure detail), 4 nudges (composureBar, fireRow stretched +247w, inspectName, todIcon), 5 manual reveals (composure detail, focus row, brew sign, 2 tray-die rects), tuned card offsets. Cell/badge values: batch 16 ([1·mm]/[2·mm] cells+badges).
+
+### §76.5 Session bug ledger (patterns worth keeping)
+- §74.8 type-checker law violated THREE times (customer publisher closure, tutorialCard ternaries, drawer blocks) — every fix was struct/property extraction. **No closures-with-math and no ternaries in giant view bodies. Ever.**
+- Invented type name (`PotionShopTutorialScript`) — the constants live in **PotionShopTutorialConstants**. Verify names before referencing.
+- Registry wipe on tutorial start killed header reveals (persistent views only publish on appear/frame-change) — cleanup belongs on publisher `.onDisappear`, never bulk removeAll.
+- `hand` dice: PotionShopDie type is `let` — rebuild, don't mutate. PotionShopCustomer is memberwise-constructible (tutorial trio uses it).
+- Hold-to-peek (§75-era, this session): 0.4s long-press (maxDistance 8; drag needs 10pt) on tray die → parchment card (name, lane faces from gs.run.deck, ✏️ peekBlurb). PotionShopDie in hand has NO faces — look up the deck lane.
+
+### §76.6 Open items
+FF die visual marking (user's next-turn item, still pending). "Live Preview" step still has a built-in hpBadge0 reveal that may double the user's circle (Yell's was removed). Tutorial copy edits via the script table. Boon/relic menu sizing = next request. TestFlight friends build: disable Enna's Tavern + Shop of Oddities (GameSelectorView cards ~lines 60-90) + both debug entries.
