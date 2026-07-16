@@ -5,6 +5,8 @@
 //  Created on 4/4/26.
 //  Deck display with deal animation, flip animation, ghost cards, and drag-and-drop
 //  WITH PROGRESSIVE REVEAL SYSTEM
+//  v1.1 (July 2026): Larger card count badge, skull warning, and EMPTY label
+//  (look for "SIZE:" comments to adjust any number)
 //
 
 import SwiftUI
@@ -85,17 +87,20 @@ struct DeckView: View {
             
             // Card count badge (does NOT rotate, stays horizontal)
             HStack(spacing: 5) {
+                // SIZE: card count number (was 12)
                 Text("\(cardsRemaining)")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white.opacity(0.6))
                 
                 // Cursed-card early warning (only shown if 1+ curses remain unseen)
                 if cursedRemaining > 0 {
                     HStack(spacing: 2) {
+                        // SIZE: skull icon (was 9)
                         Image(systemName: "skull.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: 12))
+                        // SIZE: skull count number (was 11)
                         Text("\(cursedRemaining)")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundColor(.red.opacity(0.8))
                 }
@@ -349,8 +354,9 @@ struct DeckView: View {
             )
             .frame(width: cardWidth, height: cardHeight)
             .overlay(
+                // SIZE: "EMPTY" label (was 10)
                 Text("EMPTY")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white.opacity(0.5))
             )
             .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)

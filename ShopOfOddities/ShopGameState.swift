@@ -4,6 +4,8 @@
 //
 //  Created on 4/4/26.
 //  Main game state and logic for card repair gameplay
+//  v1 (July 2026): startNewGame() no longer deletes the save file
+//  v1.1 (July 2026): Added live scoring + rearranging placed cards
 //
 
 import SwiftUI
@@ -58,11 +60,25 @@ class ShopGameState {
         startNewGame()
     }
     
+    // MARK: - Live Scoring (Miracle Merchant style)
+    
+    /// The current running score of the repair-in-progress.
+    /// Updates automatically as cards are placed or rearranged.
+    var liveScore: Int {
+        guard let customer = currentCustomer else { return 0 }
+        return RepairResult(slots: repairSlots, customer: customer).totalScore
+    }
+    
+    /// Whether the repair-in-progress already contains the required type
+    var liveMeetsRequirement: Bool {
+        guard let customer = currentCustomer else { return false }
+        return repairSlots.cards.contains(where: { $0.type == customer.requiredType })
+    }
+    
     // MARK: - Game Setup
     
     /// Start a new game session
     func startNewGame() {
-        ShopOfOdditiesSave.deleteSave()
         print("🏪 Starting new Shop of Oddities game...")
         
         // Generate and shuffle all 4 decks (13 cards each)
@@ -168,6 +184,28 @@ class ShopGameState {
         if repairSlots.allFilled {
             print("   ✅ All slots filled! Ready to complete repair.")
         }
+    }
+    
+    /// Move an already-placed card to a new position on the counter.
+    /// Called when the player drags a placed card left/right to rearrange.
+    func movePlacedCard(from: Int, to: Int) {
+        guard !gameOver else { return }
+        
+        var cards = repairSlots.cards
+        guard cards.count > 1,
+              from >= 0, from < cards.count,
+              to >= 0, to < cards.count,
+              from != to else { return }
+        
+        let card = cards.remove(at: from)
+        cards.insert(card, at: to)
+        
+        // Rewrite slots with the new arrangement
+        for index in 0..<repairSlots.count {
+            repairSlots[index].card = index < cards.count ? cards[index] : nil
+        }
+        
+        print("↔️ Moved \(card.name) from position \(from) to \(to)")
     }
     
     /// Check if a deck can be drawn from

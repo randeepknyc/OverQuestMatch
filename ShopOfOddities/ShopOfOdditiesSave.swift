@@ -4,6 +4,7 @@
 //
 //  Codable snapshot of an in-progress Shop of Oddities session.
 //  Saved on background; deleted on game over or new game.
+//  v1 (July 2026): Now also saves the repair history (repairsCompleted).
 //
 
 import Foundation
@@ -17,6 +18,8 @@ struct ShopOfOdditiesSave: Codable {
     // Optional so older save files (from before the skip feature) still load;
     // if missing, the player simply gets a full set of skips.
     var bootsRemaining: Int?
+    // Optional so older save files still load; if missing, history starts empty.
+    var repairsCompleted: [RepairResult]?
 
     static let saveKey = "shop"
 
@@ -27,7 +30,8 @@ struct ShopOfOdditiesSave: Codable {
             customers: gs.customers,
             score: gs.score,
             customersServed: gs.customersServed,
-            bootsRemaining: gs.bootsRemaining
+            bootsRemaining: gs.bootsRemaining,
+            repairsCompleted: gs.repairsCompleted
         )
     }
 
@@ -38,6 +42,7 @@ struct ShopOfOdditiesSave: Codable {
         gs.score = score
         gs.customersServed = customersServed
         gs.bootsRemaining = bootsRemaining ?? ShopLayoutConfig.bootsPerGame
+        gs.repairsCompleted = repairsCompleted ?? []
         gs.currentCustomer = customers.first
         gs.nextCustomer = customers.count > 1 ? customers[1] : nil
         gs.gameOver = false

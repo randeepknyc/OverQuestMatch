@@ -4,6 +4,7 @@
 //
 //  Created on 4/4/26.
 //  Visual rendering for a single component card
+//  v1.1 (July 2026): Bigger fonts and icons for readability
 //
 
 import SwiftUI
@@ -43,14 +44,14 @@ struct ComponentCardView: View {
                         Image(card.type.iconName)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: compact ? 10 : 14, height: compact ? 10 : 14)
+                            .frame(width: compact ? 14 : 20, height: compact ? 14 : 20)
                             .foregroundColor(card.type.darkColor)
                         
                         Spacer()
                         
                         // Value (large center)
                         Text(card.displayValue)
-                            .font(.system(size: compact ? 20 : 32, weight: .bold, design: .rounded))
+                            .font(.system(size: compact ? 26 : 40, weight: .bold, design: .rounded))
                             .foregroundColor(card.isCursed ? .red : .white)
                             .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 2)
                         
@@ -58,7 +59,7 @@ struct ComponentCardView: View {
                         
                         // Card name (bottom)
                         Text(card.name)
-                            .font(.system(size: compact ? 6 : 9, weight: .medium))
+                            .font(.system(size: compact ? 9 : 12, weight: .semibold))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
@@ -72,18 +73,18 @@ struct ComponentCardView: View {
                                 Image(adjacencyType.iconName)
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: compact ? 6 : 8, height: compact ? 6 : 8)
+                                    .frame(width: compact ? 9 : 13, height: compact ? 9 : 13)
                                     .foregroundColor(adjacencyType.color)
                                 
                                 Text("+2")
-                                    .font(.system(size: compact ? 6 : 8, weight: .semibold))
+                                    .font(.system(size: compact ? 9 : 12, weight: .bold))
                                     .foregroundColor(.green)
                                     .shadow(color: .black.opacity(0.8), radius: 1, x: 0, y: 1)
                             }
                         } else {
                             // Placeholder to maintain consistent height
                             Text(" ")
-                                .font(.system(size: compact ? 6 : 8))
+                                .font(.system(size: compact ? 9 : 12))
                         }
                     }
                     .padding(.vertical, compact ? 4 : 8)

@@ -34,10 +34,8 @@ struct PotionShopHeaderView: View {
     /// JULY 2, 2026: player-facing settings menu (the ☰ button below).
     @Binding var showSettingsMenu: Bool
 
-    // JULY 2, 2026 (night): secret-unlock tap tracking for the debug
-    // gear (the gear itself lives at the cauldron's bottom-right now).
-    @State private var secretTapCount: Int = 0
-    @State private var secretLastTap: Date = .distantPast
+    // JULY 13, 2026: secret-unlock tap tracking moved into DevMode
+    // (shared across both games + the selector).
 
     /// Asset name for the current time-of-day icon.
     private var todIconName: String {
@@ -136,6 +134,9 @@ struct PotionShopHeaderView: View {
                             .offset(y: cfg.headerGearOffsetY)
                     }
                 }
+                // JULY 13 (rev 2): debug button REMOVED from the header —
+                // it overlapped the customer scene. It now lives on the
+                // PROFILE ROW's right edge (see PotionShopGameView).
             }
 
             // ── ROW 2: Day # + Composure # ──────────────────────
@@ -144,27 +145,15 @@ struct PotionShopHeaderView: View {
                     .font(Font.gameUI(size: cfg.headerDayFontSize))
                     .foregroundColor(PotionShopTheme.ink)
                     .offset(x: cfg.headerDayOffsetX, y: cfg.headerDayOffsetY)
-                    // JULY 2, 2026 (night): SECRET debug unlock for Release
-                    // builds — 7 quick taps here toggles the gear icon.
-                    // Does nothing meaningful on Xcode/DEBUG builds (gear
-                    // is always on there). Taps more than 1.5s apart reset
-                    // the count, so normal play can't trip it.
+                    // JULY 13, 2026: SECRET dev-mode unlock — 5 quick taps
+                    // here turn the app-wide DevMode ON (never off; the
+                    // "🙈 Hide Dev Mode" button in the debug menu does
+                    // that). Shared with Match-3's HUD strip and the
+                    // GAME SELECTOR title. All the counting/haptics live
+                    // in DevMode.registerSecretTap().
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        let now = Date()
-                        if now.timeIntervalSince(secretLastTap) > 1.5 {
-                            secretTapCount = 0
-                        }
-                        secretLastTap = now
-                        secretTapCount += 1
-                        if secretTapCount >= 7 {
-                            secretTapCount = 0
-                            PotionShopDebugAccess.toggleUnlock()
-                            // Nudge the observable so the CAULDRON's gear
-                            // (which lives in GameView now) re-evaluates.
-                            PotionShopLayoutConfig.shared.debugGearBump += 1
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
+                        DevMode.shared.registerSecretTap()
                     }
 
                 HStack(spacing: 4) {

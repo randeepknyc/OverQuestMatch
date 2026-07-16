@@ -10,7 +10,20 @@ struct BattleSceneView: View {
     @Bindable var viewModel: GameViewModel
     
     var body: some View {
-        ZStack {
+        // JULY 13, 2026 — THE 440pt LANDMINE FIX. The portraits row's
+        // MINIMUM width was exactly 440pt (180+180 fixed portraits +
+        // 20+20 HStack gaps + 8 Spacer minimum + 16+16 padding) — the
+        // Pro Max's exact width, where this was designed. On any
+        // narrower screen the row refused to compress, forcing the
+        // whole match-3 VStack to 440: HUD score capsule clipped,
+        // board proposed 440 (53pt tiles, 8th column off-screen).
+        // Fix: portraits now size from the REAL width, capped at 180 —
+        // Pro Max still computes 180 (pixel-identical look); narrower
+        // screens get proportionally smaller portraits and everything
+        // fits. The 80 below = those fixed gaps/spacer/padding.
+        GeometryReader { geo in
+            let portraitSize: CGFloat = max(44, min(180, (geo.size.width - 80) / 2))
+            ZStack {
             // Background - match_bg image
             if let bgImage = UIImage(named: GameAssets.matchBackground) {
                 Image(uiImage: bgImage)
@@ -30,6 +43,7 @@ struct BattleSceneView: View {
                         ZStack(alignment: .topTrailing) {
                             // Portrait with health border
                             CharacterPortraitWithHealthBorder(
+                                size: portraitSize,   // JULY 13: adaptive (see body header)
                                 character: viewModel.battleManager.player,
                                 isAttacking: viewModel.isPlayerAttacking,
                                 isFlashing: viewModel.flashPlayer,
@@ -69,6 +83,7 @@ struct BattleSceneView: View {
                         ZStack(alignment: .topLeading) {
                             // Portrait with health border
                             CharacterPortraitWithHealthBorder(
+                                size: portraitSize,   // JULY 13: adaptive
                                 character: viewModel.battleManager.enemy,
                                 isAttacking: viewModel.isEnemyAttacking,
                                 isFlashing: viewModel.flashEnemy,
@@ -98,8 +113,9 @@ struct BattleSceneView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8) // Space from match-3 board
             }
-            
-           
+
+            }
+            .frame(width: geo.size.width, height: geo.size.height)   // JULY 13: keep the ZStack centered in its band (GeometryReader anchors top-leading)
         }
     }
     
@@ -130,6 +146,10 @@ struct BattleSceneView: View {
 // MARK: - Character Portrait WITH HEALTH BORDER
 
 struct CharacterPortraitWithHealthBorder: View {
+    /// JULY 13, 2026: ring diameter — was hardcoded 180 (the 440pt
+    /// landmine). Inner portrait keeps the original 165:180 ratio.
+    var size: CGFloat = 180
+    private var innerSize: CGFloat { size * 165 / 180 }
     @Bindable var character: Character
     let isAttacking: Bool
     let isFlashing: Bool
@@ -140,7 +160,7 @@ struct CharacterPortraitWithHealthBorder: View {
             // Background circle (grey) - shows "missing health"
             Circle()
                 .stroke(Color.black.opacity(0.3), lineWidth: 8)
-                .frame(width: 180, height: 180)
+                .frame(width: size, height: size)
             
             // Health border (circular progress) - color-coded by health
             Circle()
@@ -153,13 +173,13 @@ struct CharacterPortraitWithHealthBorder: View {
                     ),
                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
-                .frame(width: 180, height: 180)
+                .frame(width: size, height: size)
                 .rotationEffect(.degrees(-90)) // Start from top
                 .animation(.easeInOut(duration: 0.4), value: character.currentHealth)
             
             // Portrait Image - uses StateBasedCharacterPortrait from CharacterAnimations.swift
             StateBasedCharacterPortrait(character: character)
-                .frame(width: 165, height: 165)
+                .frame(width: innerSize, height: innerSize)
                 .clipShape(Circle())
                 // 🎬 .id(character.currentState) REMOVED — it was rebuilding
                 // the portrait on every state change, resetting flipbooks to
@@ -170,7 +190,7 @@ struct CharacterPortraitWithHealthBorder: View {
             .overlay(
                 Circle()
                     .fill(Color.white.opacity(isFlashing ? 0.5 : 0))
-                    .frame(width: 165, height: 165)
+                    .frame(width: innerSize, height: innerSize)
                     .animation(.easeInOut(duration: 0.2), value: isFlashing)
             )
         }

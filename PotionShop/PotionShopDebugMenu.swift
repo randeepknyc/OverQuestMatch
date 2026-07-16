@@ -34,25 +34,13 @@ import Combine
 //     toggles it back off. Persists across launches (UserDefaults).
 
 enum PotionShopDebugAccess {
-    static let unlockKey = "ps_debugUnlocked"
-
-    /// True when the debug gear should be visible.
-    static var isAvailable: Bool {
-        #if DEBUG
-        return true
-        #else
-        return UserDefaults.standard.bool(forKey: unlockKey)
-        #endif
-    }
-
-    /// Flip the Release-build unlock (no effect on DEBUG builds,
-    /// which are always on).
-    @discardableResult
-    static func toggleUnlock() -> Bool {
-        let now = !UserDefaults.standard.bool(forKey: unlockKey)
-        UserDefaults.standard.set(now, forKey: unlockKey)
-        return now
-    }
+    // JULY 13, 2026: this enum now DEFERS to the app-wide DevMode
+    // (DevMode.swift at the project root) — one switch shared with
+    // Match-3 and the game selector. Kept as a shim so every existing
+    // isAvailable call site keeps compiling unchanged. Note DEBUG
+    // builds are no longer force-on; they DEFAULT on (DevMode) but can
+    // be hidden via "🙈 Hide Dev Mode" to preview the friend build.
+    static var isAvailable: Bool { DevMode.shared.unlocked }
 }
 
 struct PotionShopDebugMenu: View {
@@ -85,6 +73,27 @@ struct PotionShopDebugMenu: View {
                 // JULY 4, 2026 (memory v3): live footprint — the same
                 // number Xcode's memory gauge shows. Healthy ≈ 170–400MB;
                 // the watchdog purges + banners past 900MB on its own.
+                // JULY 13, 2026: the dev-mode OFF switch (the ONLY way
+                // off — the 5-tap only turns it ON). Hides this menu's
+                // button, the Match-3 hammer, and re-locks the two
+                // "Coming soon" games in the selector.
+                Section {
+                    Button {
+                        isPresented = false
+                        DevMode.shared.turnOff()
+                    } label: {
+                        HStack {
+                            Text("🙈")
+                            Text("Hide Dev Mode")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("5 taps on \"Day N\" restores")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 Section("Memory") {
                     // JULY 11, 2026: instrumentation retired at the user's
                     // request — the 2.8GB mystery is solved (§72) and only
@@ -812,6 +821,14 @@ struct PotionShopDebugMenu: View {
         📏 SECTION HEIGHTS (percentages of total screen height)
         ───────────────────────────────────────────────────────────────
         headerPercent: \(cfg.headerPercent)
+        headerEdgeY: \(cfg.headerEdgeY)
+        customerScaleGlobal: \(cfg.customerScaleGlobal)
+        hpBadgeScaleGlobal: \(cfg.hpBadgeScaleGlobal)
+        hpBadgeTailSwitchX: \(cfg.hpBadgeTailSwitchX)
+        tutGhostFromX: \(cfg.tutGhostFromX)
+        tutGhostFromY: \(cfg.tutGhostFromY)
+        tutGhostToX: \(cfg.tutGhostToX)
+        tutGhostToY: \(cfg.tutGhostToY)
         scenePercent: \(cfg.scenePercent)
         profilePercent: \(cfg.profilePercent)
         cauldronPercent: \(cfg.cauldronPercent)

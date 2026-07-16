@@ -4,6 +4,7 @@
 //
 //  Created on 4/4/26.
 //  Game over/win screen with stats and play again option
+//  v1 (July 2026): Failed (negative) repairs now display with correct sign in red
 //
 
 import SwiftUI
@@ -129,9 +130,9 @@ struct ShopGameOverOverlay: View {
                                         
                                         Spacer()
                                         
-                                        Text("+\(repair.totalScore)")
+                                        Text(repair.totalScore >= 0 ? "+\(repair.totalScore)" : "\(repair.totalScore)")
                                             .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                            .foregroundColor(.green)
+                                            .foregroundColor(repair.totalScore >= 0 ? .green : .red)
                                     }
                                 }
                             }
@@ -284,7 +285,7 @@ struct ScaleButtonStyle: ButtonStyle {
                     portraitName: "figure.martial.arts",
                     arrivalLine: "Can you fix this?",
                     satisfiedLine: "Perfect!",
-                    failedLine: "No!"
+                    failedLine: "What did you do?!"
                 )
             )
         ],

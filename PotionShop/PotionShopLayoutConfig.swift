@@ -25,7 +25,36 @@ class PotionShopLayoutConfig {
     
     // Section Heights (percentages)
     var headerPercent: Double = 1.7198581993579865
-    var scenePercent: Double = 27.27518081665039
+    /// JULY 13, 2026: the header/scene boundary in CANVAS POINTS. The old
+    /// headerPercent drawer slider was DEAD — GameView clamped with a 90pt
+    /// floor that always won (1.72% of 863 = 14.8 << 90). This drives the
+    /// edge directly; default 90 = exact pre-slider behavior. Bakeable.
+    var headerEdgeY: Double = 77.11834073066711   // batch 22
+    /// JULY 13, 2026: GLOBAL customer art size (×1 = exactly as tuned).
+    /// Multiplies ON TOP of every per-slot/per-cell value — feet-anchored,
+    /// so customers scale in place. HP badges do NOT follow it; if a
+    /// non-1.0 value is kept, re-nudge badges afterwards. Bakeable.
+    var customerScaleGlobal: Double = 1.0
+    /// JULY 13, 2026: GLOBAL HP-badge size multiplier (×1 = as tuned).
+    /// Applied at the END of hpBadgeSize(for:queueSlot:), so it stacks on
+    /// top of every bucket default and per-character/per-slot override
+    /// without touching any of them. Bakeable.
+    var hpBadgeScaleGlobal: Double = 1.0
+    /// JULY 13, 2026: SPEECH-BUBBLE TAIL AUTO-SELECT threshold (canvas
+    /// pts). The badge's X offset relative to its customer picks the
+    /// bubble art: < −T → base asset (tail on the bubble's right, correct
+    /// when the badge sits LEFT of the customer) · within ±T → "_tm"
+    /// (tail middle) · > +T → "_tl" (tail left). Missing variants fall
+    /// back to the base asset, so nothing changes until the art exists.
+    var hpBadgeTailSwitchX: Double = 18
+    /// JULY 15, 2026: ghost-drag endpoint nudges (tutorial "Into the
+    /// Cauldron"). Applied on top of the live registry anchors — start
+    /// defaults to the LEFTMOST potency die, end to the cauldron bowl.
+    var tutGhostFromX: Double = 0
+    var tutGhostFromY: Double = 0
+    var tutGhostToX: Double = 0
+    var tutGhostToY: Double = 61.541372537612915   // batch 24: lands on the middle node
+    var scenePercent: Double = 28.876492381095886   // batch 22
     var profilePercent: Double = 9.5
     var cauldronPercent: Double = 37.2
     var previewPercent: Double = 0.0  // ⚠️ REMOVED - Preview bar hidden
@@ -480,15 +509,21 @@ class PotionShopLayoutConfig {
     // Precedence for slot 1: waiting override -> active override -> bucket.
     // Precedence for slot 0: active override -> bucket.
     func hpBadgeSize(for characterId: String, queueSlot: Int = 0) -> Double {
+        // JULY 13, 2026: every path multiplies by hpBadgeScaleGlobal at
+        // the end — the one funnel all badge sizes already flow through.
         let cs = characterScale(for: characterId)
-        if queueSlot >= 2, let v = cs.waiting2HpBadgeSizeOverride { return v }
-        if queueSlot >= 1, let v = cs.waitingHpBadgeSizeOverride { return v }
-        if let v = cs.hpBadgeSizeOverride { return v }
-        switch cs.heightBucket {
-        case .short, .superShort: return hpBadgeSizeShort
-        case .medium, .floater: return hpBadgeSizeMedium
-        case .tall, .tallHat: return hpBadgeSizeTall
+        let base: Double
+        if queueSlot >= 2, let v = cs.waiting2HpBadgeSizeOverride { base = v }
+        else if queueSlot >= 1, let v = cs.waitingHpBadgeSizeOverride { base = v }
+        else if let v = cs.hpBadgeSizeOverride { base = v }
+        else {
+            switch cs.heightBucket {
+            case .short, .superShort: base = hpBadgeSizeShort
+            case .medium, .floater: base = hpBadgeSizeMedium
+            case .tall, .tallHat: base = hpBadgeSizeTall
+            }
         }
+        return base * hpBadgeScaleGlobal
     }
     func hpBadgeOffsetX(for characterId: String, queueSlot: Int = 0) -> Double {
         let cs = characterScale(for: characterId)
@@ -633,7 +668,7 @@ class PotionShopLayoutConfig {
     // stale — paste the latest LayoutConfig and BUILD before tuning,
     // or every relaunch reverts to the old compiled values.
     // (Claude updates this line with every bake batch.)
-    static let layoutBakeStamp = "batch 21 · Jul 12, 12:25 PM"
+    static let layoutBakeStamp = "batch 21 + peek steps · Jul 13"
 
     var autoLayoutFeetYActive: Double = 0.8297092318534851  // BAKED JULY 11, 2026 (user-tuned, batch 11)
     /// Floor Y-fraction for waiting1 slot (queue[1]).
@@ -1292,8 +1327,8 @@ class PotionShopLayoutConfig {
     // ─── TUTORIAL OVERLAY LAYOUT (July 4, 2026) ─────────────────────────
     // Edited live in debug menu → "🎓 Tutorial Layout". With edit mode ON,
     // the tutorial CARD can also be DRAGGED on screen per step.
-    var tutCardOffsetX: [Double] = [0.33, 1.33, -9.00, 8.67, 0.67, -2.00, 5.27, 0.67, -4.00, -3.33, -4.99, 1.67, -1.66, 22.00, 0.67, 4.66, 6.00, 2.00, 10.00, 1.00]  // BAKED JULY 12 batch 20  // BAKED JULY 12, 2026 (user-tuned, batch 16)   // per step 1–4
-    var tutCardOffsetY: [Double] = [0.33, 95.50, 252.33, 161.67, 360.67, 367.00, 370.67, 94.00, 374.00, 355.67, 231.00, 136.00, 156.00, 44.33, 130.00, 355.33, 293.33, 285.00, 371.00, 3.67]  // BAKED JULY 12 batch 20  // BAKED JULY 12, 2026 (user-tuned, batch 16)
+    var tutCardOffsetX: [Double] = [0.33, -7.37, -9.00, 8.67, 0.67, -2.00, 5.27, 0.67, -4.00, -3.33, -0.67, -0.67, -4.35, -4.99, 1.67, -1.66, 18.45, -4.35, 15.03, 8.01, 2.00, 25.05, 1.00]  // BAKED JULY 15 batch 24
+    var tutCardOffsetY: [Double] = [0.33, 111.89, 252.33, 161.67, 360.67, 367.00, 370.67, 94.00, 374.00, 355.67, 506.76, 482.68, 300.00, 231.00, 136.00, 156.00, 44.33, 153.08, 204.14, 349.19, 285.00, 436.90, 3.67]  // BAKED JULY 15 batch 24
     var tutCardMaxWidth: Double = 340
     var tutDimWatch: Double = 0.6    // screen fade, watch steps (1–3)
     var tutDimDoIt: Double = 0.35    // screen fade, do-it step (4)
@@ -1320,10 +1355,10 @@ class PotionShopLayoutConfig {
     static func defaultTutManualReveals() -> [TutManualReveal] {
         [
             TutManualReveal(step: 6,  x: -35.4, y: -93.5,  w: 56.7,  h: 45.6),   // composure detail
-            TutManualReveal(step: 13, x: 116.4, y: -379.8, w: 139.5, h: 31.6),   // focus row
-            TutManualReveal(step: 14, x: 149.6, y: -5.1,   w: 120.0, h: 70.7),   // brew sign
-            TutManualReveal(step: 11, x: -150.0, y: 387.4, w: 88.6, h: 80.0),    // batch 20: tray die (practice place)
-            TutManualReveal(step: 18, x: -73.9, y: 389.1,  w: 77.5, h: 75.2),    // batch 20: tray die (other dice)
+            TutManualReveal(step: 16, x: 116.4, y: -379.8, w: 139.5, h: 31.6),   // focus row (JULY 14: was 15, +1 die-card step)
+            TutManualReveal(step: 17, x: 149.6, y: -5.1,   w: 120.0, h: 70.7),   // brew sign (was 16)
+            TutManualReveal(step: 14, x: -150.0, y: 387.4, w: 88.6, h: 80.0),    // batch 20: tray die, practice place (was 13)
+            TutManualReveal(step: 21, x: -73.9, y: 389.1,  w: 77.5, h: 75.2),    // batch 20: tray die, other dice (was 20)
         ]
     }
 
@@ -1334,6 +1369,7 @@ class PotionShopLayoutConfig {
             "fireRow":      TutNudge(dx: -36.7, dy: -21.7, dw: 247.4, dh: -15.4),  // batch 19
             "inspectName":  TutNudge(dx: 1.8,  dy: -4.4,  dw: 14.3, dh: -17.0),
             "todIcon":      TutNudge(dx: 0.0,  dy: -3.1,  dw: 0.0,  dh: 11.7),
+            "peekCard":     TutNudge(dx: 0.0,  dy: -79.9, dw: 36.8, dh: 0.0),   // batch 24: die-card hole
         ]
     }
 
@@ -1352,10 +1388,10 @@ class PotionShopLayoutConfig {
             TutorialCircle(step: 9, x: -83.0, y: -73.7, size: 70.0),
             TutorialCircle(step: 9, x: 1.7, y: -75.0, size: 70.0),
             TutorialCircle(step: 9, x: 84.3, y: -75.7, size: 70.0),
-            TutorialCircle(step: 12, x: -38.3, y: -267.7, size: 63.1),
-            TutorialCircle(step: 15, x: -41.2, y: -271.2, size: 62.9),
-            TutorialCircle(step: 15, x: 24.0, y: -303.0, size: 59.1),
-            TutorialCircle(step: 15, x: 120.3, y: -311.5, size: 55.5),
+            TutorialCircle(step: 15, x: -38.3, y: -267.7, size: 63.1),   // JULY 14: was 14 (+1 die-card step)
+            TutorialCircle(step: 18, x: -41.2, y: -271.2, size: 62.9),   // JULY 14: was 17
+            TutorialCircle(step: 18, x: 24.0, y: -303.0, size: 59.1),    // JULY 14: was 17
+            TutorialCircle(step: 18, x: 120.3, y: -311.5, size: 55.5),   // JULY 14: was 17
         ]
     }
 
@@ -1396,8 +1432,8 @@ class PotionShopLayoutConfig {
     var tutManualReveals: [TutManualReveal] = PotionShopLayoutConfig.defaultTutManualReveals()
 
     func resetTutorialLayout() {
-        tutCardOffsetX = Array(repeating: 0, count: 20)
-        tutCardOffsetY = Array(repeating: 0, count: 20)
+        tutCardOffsetX = Array(repeating: 0, count: 23)   // JULY 14: 23 steps
+        tutCardOffsetY = Array(repeating: 0, count: 23)
         tutCardMaxWidth = 340
         tutDimWatch = 0.6
         tutDimDoIt = 0.35
@@ -1849,7 +1885,13 @@ class PotionShopLayoutConfig {
         resetFireMeter()
         // Section Heights
         headerPercent = 1.7198581993579865
-        scenePercent = 27.27518081665039
+        headerEdgeY = 77.11834073066711     // batch 22
+        customerScaleGlobal = 1.0           // JULY 13
+        hpBadgeScaleGlobal = 1.0            // JULY 13
+        hpBadgeTailSwitchX = 18             // JULY 13
+        tutGhostFromX = 0; tutGhostFromY = 0   // JULY 15
+        tutGhostToX = 0; tutGhostToY = 61.541372537612915   // batch 24
+        scenePercent = 28.876492381095886   // batch 22
         profilePercent = 9.5
         cauldronPercent = 37.2
         previewPercent = 0.0

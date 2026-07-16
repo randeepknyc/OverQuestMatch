@@ -4,6 +4,7 @@
 //
 //  Created on 4/5/26.
 //  Scene view displaying Ednar's shop with customer character (with slide-in animation)
+//  v1.1 (July 2026): Bigger required/preferred icons in the bottom overlay
 //
 
 import SwiftUI
@@ -36,27 +37,27 @@ struct ShopSceneView: View {
                 VStack {
                     Spacer()
                     
-                    HStack(spacing: 12) {
+                    HStack(spacing: 16) {
                         Spacer()
                         
                         // Required icon (full color)
                         Image(customer.requiredType.iconName)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 24, height: 24)
+                            .frame(width: 36, height: 36)
                             .foregroundColor(customer.requiredType.color)
                         
                         // Preferred icon (slightly faded)
                         Image(customer.preferredType.iconName)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 24, height: 24)
+                            .frame(width: 36, height: 36)
                             .foregroundColor(customer.preferredType.color)
                             .opacity(0.6)
                         
                         Spacer()
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 10)
                     .frame(width: geometry.size.width) // KEY: Match scene width
                     .background(
                         Color.black.opacity(0.7)
@@ -226,13 +227,13 @@ struct ShopSceneView: View {
     private func requirementPill(label: String, icon: String, color: Color) -> some View {
         HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.white)
             
             Image(icon)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 10, height: 10)
+                .frame(width: 14, height: 14)
                 .foregroundColor(color)
         }
         .padding(.horizontal, 6)
