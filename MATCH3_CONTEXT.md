@@ -182,7 +182,8 @@ Match3ContentView
 │  ├─ Score display
 │  └─ Pause button
 ├─ BattleSceneView (42% of screen)
-│  ├─ Character Portraits (side-by-side)
+│  ├─ Character Portraits (side-by-side, ADAPTIVE size since July 13 —
+│  │  max(44, min(180, (width−80)/2)); never force width past the screen)
 │  │  ├─ Ramp (player) + Health Bar + Shield Badge
 │  │  └─ Ednar (enemy) + Health Bar
 │  └─ Status & Info (side-by-side)
@@ -536,6 +537,11 @@ Total: 48 damage + 20 HP healed
 
 ### **Fixed Issues:**
 
+**Session 27 - The 440pt Landmine** ✅
+- **Problem:** Everything right-clipped on any screen narrower than a Pro Max
+- **Fix:** Portraits size from real screen width (capped 180) instead of fixed
+- **Result:** Fits every device; Pro Max look unchanged (still computes 180)
+
 **Session 19 - Selection Box Bug** ✅
 - **Problem:** Phantom selection boxes after "Play Again"
 - **Fix:** Clear `selectedPosition` BEFORE board regeneration
@@ -573,7 +579,9 @@ All major issues resolved! Game is stable and fully playable.
 
 ## 🎮 DEBUG MENU
 
-**Access:** Orange hammer icon in top-right corner
+**Access:** Orange hammer icon in top-right corner — **dev-mode gated since
+July 13** (hidden until 5 quick taps on the HUD's center strip; see
+MASTER_CONTEXT → Dev Mode). "🙈 Hide Dev Mode" inside the menu turns it off.
 
 ### **Quick Actions:**
 - Fill Mana (set to 7)
@@ -719,6 +727,29 @@ var asyncEnemyTurn: Bool = false
 
 ## 📚 RECENT MAJOR CHANGES
 
+**Session 27 (July 13, 2026)** - The 440pt Landmine + Dev Mode 🛠
+- **FIXED: match-3 clipped on every device narrower than a Pro Max** (score
+  capsule + 8th board column off-screen, oversized tiles). Root cause was in
+  `BattleSceneView`: the portraits row's MINIMUM width was exactly 440pt
+  (180+180 fixed portraits + 20+20 HStack gaps + 8 Spacer minimum + 32
+  padding = the Pro Max's exact width, where it was designed). SwiftUI can't
+  compress fixed frames, so narrower screens got a 440pt layout, top-leading
+  anchored, right edge clipped — which cascaded into the HUD and the board.
+  Diagnosed by pixel-measuring screenshots against the health ring's known
+  188pt diameter. **Bug predates July 13** — invisible because all testing
+  happened on Pro Max hardware/sims.
+- Fix: `CharacterPortraitWithHealthBorder` takes `size` (default 180, inner
+  portrait keeps the 165:180 ratio); `BattleSceneView.body` wraps in
+  GeometryReader and computes `portraitSize = max(44, min(180,
+  (width − 80) / 2))`. Pro Max still computes exactly 180 — pixel-identical.
+  The ZStack gets `.frame(width:height:)` since GeometryReader anchors
+  top-leading.
+- **Dev mode integration** (app-wide `DevMode.swift`, see MASTER_CONTEXT):
+  hammer button renders only when `DevMode.shared.unlocked`; invisible 5-tap
+  strip over the HUD center (width ×0.34, 60pt) turns dev mode ON;
+  "🙈 Hide Dev Mode" button added to the debug menu (the only way OFF);
+  `.devModeToast()` shows the unlock capsule. Default OFF in every build.
+
 **Session 26 (July 3, 2026)** - Multi-Enemy Roster & Selection Screen ⚔️
 - NEW `EnemyRoster.swift` — every enemy's stats/art/gem/messages in one config
 - NEW `EnemySelectView.swift` — "Choose Your Foe" grid (6 unlocked, 10 locked)
@@ -846,7 +877,7 @@ var asyncEnemyTurn: Bool = false
 - Portrait hold times/priorities → Config table in `AnimationCoordinator.swift`
 - Portrait boil speed → `frameDuration` in `CharacterAnimations.swift`
 - Add boil art → Just add PNGs to Assets (see `ANIMATION_ART_GUIDE.md`)
-- Debug board issues → Use Debug Menu (hammer icon)
+- Debug board issues → Use Debug Menu (hammer icon; needs dev mode ON — 5 taps on the HUD center strip)
 
 **Files to Check:**
 - Match-3 changes → Edit files in `Match3Game/` folder

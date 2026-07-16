@@ -877,6 +877,21 @@ struct PotionShopCustomerInSceneView: View {
     @State private var takingDamage: Bool = false
     @State private var emojiOffset: CGFloat = 0
 
+    /// JULY 13, 2026: 🧪 test-round bucket caption (see body). Extracted
+    /// so the body's overlay closure stays a single expression — the
+    /// inline version tipped the type checker over (§74.8).
+    @ViewBuilder
+    private var bucketCaptionOverlay: some View {
+        if gs.isLayoutTestRound {
+            // JULY 13, 2026 (rev 2): pushed well below the floor line —
+            // big characters' scaled art overflows the sizing skeleton,
+            // so the old +10 offset landed mid-shin and got hidden
+            // behind the art (user report). +34 clears the feet zone.
+            PotionShopBucketCaption(charKey: customer.charKey)
+                .offset(y: 34)
+        }
+    }
+
     private var char: PotionShopCharacter? {
         PotionShopData.character(customer.charKey)
     }
@@ -1002,7 +1017,7 @@ struct PotionShopCustomerInSceneView: View {
     /// June 1, 2026: per-cell X/Y overrides (for the character's height +
     /// width bucket combo in this slot) ADD on top of the slot fine-tune X/Y.
     private var slotTemplateForCurrentSlot: (w: Double, h: Double, x: Double, y: Double, scale: Double) {
-        guard gs.currentRoundUsesFeetAnchor else { return (1.0, 1.0, 0.0, 0.0, 1.0) }
+        guard gs.currentRoundUsesFeetAnchor else { return (1.0, 1.0, 0.0, 0.0, layoutConfig.customerScaleGlobal) }   // JULY 13: global size applies in every mode
         let slotIdx = min(queueIndex, 2)
         let cs = layoutConfig.characterScale(for: customer.charKey)
         let cellX = layoutConfig.resolvedCellX(slot: slotIdx, height: cs.heightBucket, width: cs.widthBucket)
@@ -1020,7 +1035,10 @@ struct PotionShopCustomerInSceneView: View {
             slotX = layoutConfig.autoLayoutWaiting2X
             slotY = layoutConfig.autoLayoutWaiting2Y
         }
-        return (1.0, 1.0, slotX + cellX, slotY + cellY, 1.0)
+        // JULY 13, 2026: customerScaleGlobal rides the template's scale
+        // slot, so it multiplies on top of every baked per-slot/per-cell
+        // value without touching any of them.
+        return (1.0, 1.0, slotX + cellX, slotY + cellY, layoutConfig.customerScaleGlobal)
     }
 
     // ─── Editor drag-the-thing-itself (June 12, 2026) ──────────────────
@@ -1269,6 +1287,11 @@ struct PotionShopCustomerInSceneView: View {
                             width: PotionShopSceneLayout.portraitDiameter * scale,
                             height: PotionShopSceneLayout.portraitDiameter * scale * 1.5  // 2:3 aspect ratio
                         )
+                        // JULY 13, 2026: 🧪 test-round bucket caption — rides
+                        // the sizing skeleton so it tracks the character.
+                        // (Extracted helper: the inline closure pushed this
+                        // giant body past the type-checker's limit — §74.8.)
+                        .overlay(alignment: .bottom) { bucketCaptionOverlay }
 
                     if useWhiteSilhouette {
                         // Underlay: opaque white silhouette of the character.
@@ -1473,18 +1496,18 @@ struct PotionShopCustomerInSceneView: View {
                         // banner so they pulse in sync.
                         let fade = 0.5 + 0.5 * sin(t * PotionShopBrewAnimator.damagePulseSpeed)
                         ZStack {
-                            if takingDamage, let img = PotionShopImageLoader.loadDisplayImage(named: "hp_damage", displaySize: hpSize * scale) {  // JULY 5 memory: was full-res
+                            if takingDamage, let img = PotionShopImageLoader.loadDisplayImage(named: tailedBadgeName("hp_damage", relX: hpOffX), displaySize: hpSize * scale) {  // JULY 5 memory: was full-res · JULY 13: tail variant
                                 Image(uiImage: img).resizable().scaledToFit()
                                     .frame(width: hpSize * scale, height: hpSize * scale)
-                            } else if isAttackingEdnar, let atkImg = PotionShopImageLoader.loadDisplayImage(named: "hp_customer_atk", displaySize: hpSize * scale) {
+                            } else if isAttackingEdnar, let atkImg = PotionShopImageLoader.loadDisplayImage(named: tailedBadgeName("hp_customer_atk", relX: hpOffX), displaySize: hpSize * scale) {
                                 Image(uiImage: atkImg).resizable().scaledToFit()
                                     .frame(width: hpSize * scale, height: hpSize * scale)
                             } else {
                                 // Base normal badge
-                                badgeImage("hp_badge", hpSize: hpSize, scale: scale)
+                                badgeImage(tailedBadgeName("hp_badge", relX: hpOffX), hpSize: hpSize, scale: scale)   // JULY 13: tail variant
                                 // Red badge fades in/out on top when damage staged
                                 if hasIncomingDamage {
-                                    badgeImage("hp_badge_red", hpSize: hpSize, scale: scale)
+                                    badgeImage(tailedBadgeName("hp_badge_red", relX: hpOffX), hpSize: hpSize, scale: scale)
                                         .opacity(fade)
                                 }
                             }
@@ -1709,8 +1732,30 @@ struct PotionShopCustomerInSceneView: View {
         }
     }
 
+    /// JULY 13, 2026 — SPEECH-BUBBLE TAIL VARIANTS. The HP badge is drawn
+    /// as a speech bubble whose tail should point at its customer. Draw
+    /// optional assets "<base>_tl" (tail on the bubble's LEFT) and
+    /// "<base>_tm" (tail middle) for any badge state (hp_badge,
+    /// hp_badge_red, hp_damage, hp_customer_atk) and this picks the right
+    /// one from the badge's X offset relative to the character:
+    ///   relX < −T → base art (its tail-right points at a customer on the
+    ///   right) · |relX| ≤ T → _tm · relX > +T → _tl.
+    /// T = layout config hpBadgeTailSwitchX (drawer slider). Variants that
+    /// aren't drawn yet fall back to the base asset — safe to ship now.
+    private func tailedBadgeName(_ base: String, relX: Double) -> String {
+        let t = PotionShopLayoutConfig.shared.hpBadgeTailSwitchX
+        let candidate: String
+        if relX > t { candidate = base + "_tl" }
+        else if relX >= -t { candidate = base + "_tm" }
+        else { return base }
+        return PotionShopBadgeTailArt.exists(candidate) ? candidate : base
+    }
+
     /// JUNE 20, 2026: helper to build a badge image (or red-circle fallback)
     /// at the right size, used by the crossfade pulse.
+    /// (JULY 13: doc + @ViewBuilder restored — an insertion had split the
+    /// attribute from this function, silently stripping its ViewBuilder
+    /// and breaking the Image/Circle branch typing.)
     @ViewBuilder
     private func badgeImage(_ name: String, hpSize: Double, scale: CGFloat) -> some View {
         // JULY 5, 2026 (memory): budgeted load — was a full-res decode.
@@ -2187,19 +2232,29 @@ struct PotionShopInspectStripView: View {
                 .background(
                     // OPTION 3: Custom parchment border replaces code border entirely
                     GeometryReader { geo in
-                        if let borderImage = PotionShopImageLoader.loadDisplayImage(named: "banner_border", displaySize: max(geo.size.width, geo.size.height)) {  // JULY 5 memory: was full-res
-                            // User's hand-drawn parchment border (PRIMARY)
-                            Image(uiImage: borderImage)
-                                .resizable()
-                                .frame(width: geo.size.width, height: geo.size.height)
-                        } else {
-                            // Fallback to code-drawn border if image missing (SAFETY NET)
+                        ZStack {
+                            // JULY 14, 2026: FIXED banner fill. The border
+                            // PNG's interior is transparent, so the banner
+                            // used to show the game BACKGROUND through it —
+                            // changing the bg color re-tinted the banner.
+                            // This pins the interior to one color forever.
                             Capsule()
-                                .fill(Color.white.opacity(0.85))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(PotionShopTheme.accent, lineWidth: 2)
-                                )
+                                .fill(PotionShopBannerStyle.fill)
+                                .padding(3)
+                            if let borderImage = PotionShopImageLoader.loadDisplayImage(named: "banner_border", displaySize: max(geo.size.width, geo.size.height)) {  // JULY 5 memory: was full-res
+                                // User's hand-drawn parchment border (PRIMARY)
+                                Image(uiImage: borderImage)
+                                    .resizable()
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                            } else {
+                                // Fallback to code-drawn border if image missing (SAFETY NET)
+                                Capsule()
+                                    .fill(Color.clear)
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(PotionShopTheme.accent, lineWidth: 2)
+                                    )
+                            }
                         }
                     }
                     .opacity(isExpanded ? 1.0 : 0.0)
@@ -2256,9 +2311,12 @@ struct PotionShopInspectStripView: View {
             Circle()
                 .trim(
                     from: 0,
-                    to: liveMaxPatience > 0
-                        ? Double(livePatience) / Double(liveMaxPatience)
-                        : 0
+                    // JULY 15: the tutorial's "Patience Runs Out" step
+                    // shows the ring EMPTY (gs.tutorialPatienceEmpty).
+                    to: gs.tutorialPatienceEmpty ? 0
+                        : (liveMaxPatience > 0
+                            ? Double(livePatience) / Double(liveMaxPatience)
+                            : 0)
                 )
                 .stroke(patienceRingColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
@@ -2601,4 +2659,55 @@ private struct PotionShopTutFramePublisher: View {
                           width: w, height: h)
         gs.publishTutHighlight(key, frame: rect, image: image)
     }
+}
+
+
+// MARK: - Badge tail-variant existence cache (July 13, 2026)
+//
+// One tiny budgeted probe per asset name per launch — never a full-res
+// decode (§72), never repeated. Missing art = permanent fallback to the
+// base asset until the variant is drawn.
+
+enum PotionShopBadgeTailArt {
+    private static var cache: [String: Bool] = [:]
+    static func exists(_ name: String) -> Bool {
+        if let hit = cache[name] { return hit }
+        let ok = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: 8) != nil
+        cache[name] = ok
+        return ok
+    }
+}
+
+
+// MARK: - 🧪 Test-round bucket caption (July 13, 2026)
+//
+// Tiny combo label under each character while the H×W layout test round
+// is running, so the user always knows which bucket class they're tuning.
+// FULLY DELETABLE alongside the test round itself.
+
+struct PotionShopBucketCaption: View {
+    let charKey: String
+    var body: some View {
+        let cs = PotionShopLayoutConfig.shared.characterScale(for: charKey)
+        Text("\(cs.heightBucket.rawValue)·\(cs.widthBucket.rawValue)")
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(Color.black.opacity(0.72)))
+            .fixedSize()
+    }
+}
+
+
+// MARK: - Inspect-banner style (July 14, 2026)
+//
+// ONE line to recolor the banner: replace the RGB below with the hex the
+// user likes. Hex → RGB: each pair /255 (e.g. #F2E6C7 → 242/255, 230/255,
+// 199/255). This fill sits UNDER the hand-drawn banner_border art and
+// never changes with the game background.
+
+enum PotionShopBannerStyle {
+    /// ← PASTE THE USER'S HEX HERE (placeholder ≈ warm parchment #F2E6C7)
+    static let fill = Color(red: 242/255, green: 230/255, blue: 199/255)
 }

@@ -1528,6 +1528,9 @@ struct PotionShopDieButtonView: View {
     /// it (movement past 8pt cancels the press; the drag needs 10pt, so
     /// drags never fight the peek).
     @State private var showPeek = false
+    /// JULY 13, 2026: invalidation token for the peek card's safety
+    /// auto-dismiss (see the long-press handler below).
+    @State private var peekToken = 0
     @Bindable var gs: PotionShopGameState
     let die: PotionShopDie
     let index: Int
@@ -1667,6 +1670,11 @@ struct PotionShopDieButtonView: View {
                     if !gs.isAnimating {
                         if !isDragging {
                             isDragging = true
+                            // JULY 13, 2026: starting a drag clears any
+                            // lingering peek card (third escape hatch —
+                            // see the long-press safety timer above).
+                            // JULY 14: except during "The Die Card" step.
+                            if showPeek && !gs.tutHoldPeekOpen { showPeek = false }
                             // JULY 2, 2026 FIX (hover glow): register the drag
                             // with the game state. The yellow drop-target glow,
                             // the cyan reach preview, AND smart chalk lines all
@@ -1711,6 +1719,9 @@ struct PotionShopDieButtonView: View {
                 }
         )
         .onTapGesture {
+            // JULY 13, 2026: a tap anywhere on the die also clears a
+            // lingering peek card (second escape hatch).
+            if showPeek && !gs.tutHoldPeekOpen { withAnimation(.easeOut(duration: 0.15)) { showPeek = false } }
             // Tap gesture (original behavior - select/deselect)
             if !gs.isAnimating && !isDragging {
                 gs.selectHand(index)
@@ -1723,9 +1734,34 @@ struct PotionShopDieButtonView: View {
         .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 8) {
             HapticManager.shared.diePlaced()
             withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { showPeek = true }
+            // JULY 14, 2026: the tutorial's peek gate counts HERE (the
+            // card popping IS the inspect), not on release — the July 13
+            // safety timer could clear showPeek during a long read-the-
+            // card hold, which silently skipped the release-time bump
+            // and hung the tutorial at "Inspect a Die" (user report).
+            gs.totalPeeks += 1
+            // JULY 13, 2026: SAFETY AUTO-DISMISS. SwiftUI can drop the
+            // onPressingChanged(false) callback when the finger slides
+            // off mid-hold or the system steals the gesture — the card
+            // then stuck forever (user report). A token-checked timer
+            // guarantees it always clears; normal release still hides
+            // it instantly below.
+            peekToken += 1
+            let token = peekToken
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                if showPeek && token == peekToken && !gs.tutHoldPeekOpen {
+                    withAnimation(.easeOut(duration: 0.2)) { showPeek = false }
+                }
+            }
         } onPressingChanged: { pressing in
             if !pressing {
-                withAnimation(.easeOut(duration: 0.15)) { showPeek = false }
+                // (JULY 14: the tutorial's peek count moved to the pop
+                // handler above — release only hides the card now, and
+                // NOT during "The Die Card" step, which keeps it open
+                // until the player taps to continue.)
+                if !gs.tutHoldPeekOpen {
+                    withAnimation(.easeOut(duration: 0.15)) { showPeek = false }
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -1734,8 +1770,26 @@ struct PotionShopDieButtonView: View {
                     die: die,
                     faces: gs.run.deck.first(where: { $0.type == die.type })?.effectiveFaces)
                     .offset(y: -(PotionShopCauldronLayout.dieSize * dieScale + 16))
+                    // JULY 14, 2026: publish the card's frame so the
+                    // tutorial's "The Die Card" step can cut its highlight
+                    // hole around it (same pattern as brewSpoon above).
+                    .background(GeometryReader { g in
+                        Color.clear
+                            .onAppear { gs.publishTutHighlight("peekCard", frame: g.frame(in: .global), image: nil, style: .reveal) }
+                            .onChange(of: g.frame(in: .global)) { _, fr in
+                                gs.publishTutHighlight("peekCard", frame: fr, image: nil, style: .reveal)
+                            }
+                            .onDisappear { gs.tutHighlights.removeValue(forKey: "peekCard") }
+                    })
                     .transition(.scale(scale: 0.85, anchor: .bottom).combined(with: .opacity))
                     .allowsHitTesting(false)
+            }
+        }
+        .onChange(of: gs.tutHoldPeekOpen) { _, open in
+            // JULY 14: "The Die Card" step ended (player tapped) — close
+            // the card that was being held open for reading.
+            if !open && showPeek {
+                withAnimation(.easeOut(duration: 0.2)) { showPeek = false }
             }
         }
         .disabled(gs.isAnimating)

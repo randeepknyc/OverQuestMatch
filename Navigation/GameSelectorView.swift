@@ -10,6 +10,10 @@
 //    • "Continue" skips it and resumes the saved battle directly
 //      (the save file remembers which enemy you were fighting)
 //
+//  🍺 JULY 14, 2026 — ENNA'S TAVERN v3: the Reigns-style swipe game was
+//  replaced by the dice & cards roguelike. Only three lines changed here:
+//  the tavern's save type, description, and launch view.
+//
 
 import SwiftUI
 
@@ -45,6 +49,11 @@ struct GameSelectorView: View {
                         Text("GAME SELECTOR")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(.white)
+                            // JULY 13, 2026: SECRET dev-mode unlock — 5
+                            // quick taps here (so the locked games can be
+                            // opened without entering a game first).
+                            .contentShape(Rectangle())
+                            .onTapGesture { DevMode.shared.registerSecretTap() }
                         
                         Text("Tap to launch a game")
                             .font(.system(size: 16))
@@ -81,9 +90,9 @@ struct GameSelectorView: View {
                         gameButton(
                             title: "Enna's Tavern",
                             icon: "🍺",
-                            description: "A Reigns-style story card game",
+                            description: "Dice & cards roguelike — make quota or lose the bar",
                             game: .ennaCardGame,
-                            saveKey: CardGameSave.saveKey
+                            saveKey: EnnasTavernSave.saveKey
                         )
                     }
                     .padding(.horizontal, 20)
@@ -110,6 +119,7 @@ struct GameSelectorView: View {
                     purgeInterGameCaches()
                 }
         }
+        .devModeToast()   // JULY 13: "Dev mode ON" capsule on 5-tap unlock
     }
 
     /// Flushes the image caches across all games. Called when the user
@@ -127,7 +137,13 @@ struct GameSelectorView: View {
     // MARK: - Game Button
     
     private func gameButton(title: String, icon: String, description: String, game: GameType, saveKey: String) -> some View {
-        let hasSave = SaveManager.hasSave(key: saveKey)
+        // JULY 13, 2026: Shop of Oddities + Enna's Tavern are LOCKED on
+        // friend/TestFlight builds (greyed, "Coming soon", not launchable)
+        // until dev mode is unlocked. Reading DevMode.shared.unlocked here
+        // makes the cards un-grey live the moment the 5-tap fires.
+        let locked = (game == .shopOfOddities || game == .ennaCardGame)
+                     && !DevMode.shared.unlocked
+        let hasSave = !locked && SaveManager.hasSave(key: saveKey)
         
         return VStack(spacing: 0) {
             HStack(spacing: 16) {
@@ -147,7 +163,7 @@ struct GameSelectorView: View {
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
-                    Text(description)
+                    Text(locked ? "Coming soon" : description)
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.7))
                         .lineLimit(2)
@@ -155,8 +171,12 @@ struct GameSelectorView: View {
                 
                 Spacer()
                 
-                // Arrow or Continue/New buttons
-                if !hasSave {
+                // Arrow, lock, or Continue/New buttons
+                if locked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.35))
+                } else if !hasSave {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white.opacity(0.4))
@@ -203,14 +223,16 @@ struct GameSelectorView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.1))
+                .fill(Color.white.opacity(locked ? 0.05 : 0.1))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.white.opacity(locked ? 0.1 : 0.2), lineWidth: 1)
                 )
         )
+        .saturation(locked ? 0 : 1)          // JULY 13: grey out the emoji
+        .opacity(locked ? 0.55 : 1)
         .onTapGesture {
-            if !hasSave {
+            if !locked && !hasSave {
                 selectedLaunch = GameLaunch(game: game, continueFromSave: false)
             }
         }
@@ -238,7 +260,7 @@ struct GameSelectorView: View {
         case .mapNavigation:
             PlaceholderView(gameName: "Map Navigation")
         case .ennaCardGame:
-            CardGameView(continueFromSave: launch.continueFromSave)
+            EnnasTavernView(continueFromSave: launch.continueFromSave)
         }
     }
 }

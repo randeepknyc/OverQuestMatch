@@ -83,6 +83,13 @@
 		7F5574A22F7872CA00081E01 /* MATCH3_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A12F7872CA00081E01 /* MATCH3_CONTEXT.md */; };
 		7F5574A42F78748000081E01 /* PHYSICS_CONTEXT.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */; };
 		7F5574A62F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */; };
+		7F5F6F10300691BB00C5C00A /* EnnasTavernScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0D300691BB00C5C00A /* EnnasTavernScreens.swift */; };
+		7F5F6F11300691BB00C5C00A /* EnnasTavernViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0F300691BB00C5C00A /* EnnasTavernViewModel.swift */; };
+		7F5F6F12300691BB00C5C00A /* EnnasTavernView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0E300691BB00C5C00A /* EnnasTavernView.swift */; };
+		7F5F6F13300691BB00C5C00A /* EnnasTavernModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0A300691BB00C5C00A /* EnnasTavernModels.swift */; };
+		7F5F6F14300691BB00C5C00A /* EnnasTavernPlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0B300691BB00C5C00A /* EnnasTavernPlayViews.swift */; };
+		7F5F6F15300691BB00C5C00A /* EnnasTavernSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0C300691BB00C5C00A /* EnnasTavernSave.swift */; };
+		7F5F6F16300691BB00C5C00A /* EnnasTavernDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */; };
 		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F60232C2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */; };
 		7F693B582FE6562900835FE2 /* PotionShopRunSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */; };
@@ -95,17 +102,12 @@
 		7F693BA22FF1DBD200835FE2 /* PotionShopSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BA12FF1DBD200835FE2 /* PotionShopSave.swift */; };
 		7F693BA42FF1DC7F00835FE2 /* Match3Save.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BA32FF1DC7F00835FE2 /* Match3Save.swift */; };
 		7F693BA62FF1DCD400835FE2 /* ShopOfOdditiesSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BA52FF1DCD400835FE2 /* ShopOfOdditiesSave.swift */; };
-		7F693BA82FF1DD1400835FE2 /* CardGameSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BA72FF1DD1400835FE2 /* CardGameSave.swift */; };
 		7F693BE32FF6340500835FE2 /* EnemySelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BE22FF6340500835FE2 /* EnemySelectView.swift */; };
 		7F693BE42FF6340500835FE2 /* EnemyRoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693BE12FF6340500835FE2 /* EnemyRoster.swift */; };
 		7F693C572FF74F5100835FE2 /* PotionShopPauseMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693C562FF74F5100835FE2 /* PotionShopPauseMenu.swift */; };
 		7F693C592FF7588A00835FE2 /* TileArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693C582FF7588A00835FE2 /* TileArt.swift */; };
 		7F693C5B2FF7602800835FE2 /* CharacterImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693C5A2FF7602800835FE2 /* CharacterImageLoader.swift */; };
 		7F693C5D2FF97CEF00835FE2 /* PotionShopUpgradePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693C5C2FF97CEF00835FE2 /* PotionShopUpgradePicker.swift */; };
-		7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163252FC4068700DBF8B7 /* CardDatabase.swift */; };
-		7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163272FC4068700DBF8B7 /* CardGameView.swift */; };
-		7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */; };
-		7F71632C2FC4068700DBF8B7 /* CardGameModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7163262FC4068700DBF8B7 /* CardGameModels.swift */; };
 		7F7907B32F8A2E5F00412002 /* cardrotation_anim.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */; };
 		7F7908642FA727F800412002 /* PotionShopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908632FA727F800412002 /* PotionShopModels.swift */; };
 		7F7908652FA727F800412002 /* PotionShopGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7908622FA727F800412002 /* PotionShopGameView.swift */; };
@@ -240,6 +242,13 @@
 		7F5574A12F7872CA00081E01 /* MATCH3_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MATCH3_CONTEXT.md; sourceTree = "<group>"; };
 		7F5574A32F78748000081E01 /* PHYSICS_CONTEXT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PHYSICS_CONTEXT.md; sourceTree = "<group>"; };
 		7F5574A52F78748500081E01 /* CONTEXT_REORGANIZATION_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTEXT_REORGANIZATION_SUMMARY.md; sourceTree = "<group>"; };
+		7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernDatabase.swift; sourceTree = "<group>"; };
+		7F5F6F0A300691BB00C5C00A /* EnnasTavernModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernModels.swift; sourceTree = "<group>"; };
+		7F5F6F0B300691BB00C5C00A /* EnnasTavernPlayViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernPlayViews.swift; sourceTree = "<group>"; };
+		7F5F6F0C300691BB00C5C00A /* EnnasTavernSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernSave.swift; sourceTree = "<group>"; };
+		7F5F6F0D300691BB00C5C00A /* EnnasTavernScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernScreens.swift; sourceTree = "<group>"; };
+		7F5F6F0E300691BB00C5C00A /* EnnasTavernView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernView.swift; sourceTree = "<group>"; };
+		7F5F6F0F300691BB00C5C00A /* EnnasTavernViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernViewModel.swift; sourceTree = "<group>"; };
 		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NODE_TO_NODE_DRAG_SESSION.md; sourceTree = "<group>"; };
 		7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopRunSystem.swift; sourceTree = "<group>"; };
@@ -252,17 +261,12 @@
 		7F693BA12FF1DBD200835FE2 /* PotionShopSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopSave.swift; sourceTree = "<group>"; };
 		7F693BA32FF1DC7F00835FE2 /* Match3Save.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Match3Save.swift; sourceTree = "<group>"; };
 		7F693BA52FF1DCD400835FE2 /* ShopOfOdditiesSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopOfOdditiesSave.swift; sourceTree = "<group>"; };
-		7F693BA72FF1DD1400835FE2 /* CardGameSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameSave.swift; sourceTree = "<group>"; };
 		7F693BE12FF6340500835FE2 /* EnemyRoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyRoster.swift; sourceTree = "<group>"; };
 		7F693BE22FF6340500835FE2 /* EnemySelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemySelectView.swift; sourceTree = "<group>"; };
 		7F693C562FF74F5100835FE2 /* PotionShopPauseMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopPauseMenu.swift; sourceTree = "<group>"; };
 		7F693C582FF7588A00835FE2 /* TileArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileArt.swift; sourceTree = "<group>"; };
 		7F693C5A2FF7602800835FE2 /* CharacterImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterImageLoader.swift; sourceTree = "<group>"; };
 		7F693C5C2FF97CEF00835FE2 /* PotionShopUpgradePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopUpgradePicker.swift; sourceTree = "<group>"; };
-		7F7163252FC4068700DBF8B7 /* CardDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDatabase.swift; sourceTree = "<group>"; };
-		7F7163262FC4068700DBF8B7 /* CardGameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameModels.swift; sourceTree = "<group>"; };
-		7F7163272FC4068700DBF8B7 /* CardGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameView.swift; sourceTree = "<group>"; };
-		7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGameViewModel.swift; sourceTree = "<group>"; };
 		7F7907B22F8A2E5F00412002 /* cardrotation_anim.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = cardrotation_anim.md; sourceTree = "<group>"; };
 		7F7908612FA727F800412002 /* PotionShopData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopData.swift; sourceTree = "<group>"; };
 		7F7908622FA727F800412002 /* PotionShopGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopGameView.swift; sourceTree = "<group>"; };
@@ -454,11 +458,13 @@
 		7F7163242FC405D700DBF8B7 /* EnnaCardGame */ = {
 			isa = PBXGroup;
 			children = (
-				7F7163252FC4068700DBF8B7 /* CardDatabase.swift */,
-				7F7163262FC4068700DBF8B7 /* CardGameModels.swift */,
-				7F7163272FC4068700DBF8B7 /* CardGameView.swift */,
-				7F7163282FC4068700DBF8B7 /* CardGameViewModel.swift */,
-				7F693BA72FF1DD1400835FE2 /* CardGameSave.swift */,
+				7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */,
+				7F5F6F0A300691BB00C5C00A /* EnnasTavernModels.swift */,
+				7F5F6F0B300691BB00C5C00A /* EnnasTavernPlayViews.swift */,
+				7F5F6F0C300691BB00C5C00A /* EnnasTavernSave.swift */,
+				7F5F6F0D300691BB00C5C00A /* EnnasTavernScreens.swift */,
+				7F5F6F0E300691BB00C5C00A /* EnnasTavernView.swift */,
+				7F5F6F0F300691BB00C5C00A /* EnnasTavernViewModel.swift */,
 			);
 			path = EnnaCardGame;
 			sourceTree = "<group>";
@@ -783,15 +789,18 @@
 				7F00950F2F6E52C600E10AEB /* BonusBlastEffects.swift in Sources */,
 				7F7908882FA95F1600412002 /* PotionShopLayoutConfig.swift in Sources */,
 				7F0094EF2F6E375B00E10AEB /* BonusTileConfig.swift in Sources */,
-				7F7163292FC4068700DBF8B7 /* CardDatabase.swift in Sources */,
-				7F71632A2FC4068700DBF8B7 /* CardGameView.swift in Sources */,
-				7F71632B2FC4068700DBF8B7 /* CardGameViewModel.swift in Sources */,
-				7F71632C2FC4068700DBF8B7 /* CardGameModels.swift in Sources */,
 				7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */,
 				7F5574682F77865000081E01 /* CharacterAnimations.swift in Sources */,
 				7F2ADE592F81A09A0078EF4E /* RepairSlotView.swift in Sources */,
 				7F5574692F77865000081E01 /* Match3ContentView.swift in Sources */,
 				7F55746A2F77865000081E01 /* HapticManager.swift in Sources */,
+				7F5F6F10300691BB00C5C00A /* EnnasTavernScreens.swift in Sources */,
+				7F5F6F11300691BB00C5C00A /* EnnasTavernViewModel.swift in Sources */,
+				7F5F6F12300691BB00C5C00A /* EnnasTavernView.swift in Sources */,
+				7F5F6F13300691BB00C5C00A /* EnnasTavernModels.swift in Sources */,
+				7F5F6F14300691BB00C5C00A /* EnnasTavernPlayViews.swift in Sources */,
+				7F5F6F15300691BB00C5C00A /* EnnasTavernSave.swift in Sources */,
+				7F5F6F16300691BB00C5C00A /* EnnasTavernDatabase.swift in Sources */,
 				7F693BA22FF1DBD200835FE2 /* PotionShopSave.swift in Sources */,
 				7F693B582FE6562900835FE2 /* PotionShopRunSystem.swift in Sources */,
 				7FB075422F5D300100BD0591 /* GameAssets.swift in Sources */,
@@ -828,7 +837,6 @@
 				7F2ADE662F81AA1E0078EF4E /* CommentaryManager.swift in Sources */,
 				7FB0753D2F5D2FED00BD0591 /* GameBoardView.swift in Sources */,
 				7FB0753F2F5D2FF600BD0591 /* GameOverView.swift in Sources */,
-				7F693BA82FF1DD1400835FE2 /* CardGameSave.swift in Sources */,
 				7FB075492F5D5B0300BD0591 /* TitleScreenView.swift in Sources */,
 				7F693C592FF7588A00835FE2 /* TileArt.swift in Sources */,
 			);

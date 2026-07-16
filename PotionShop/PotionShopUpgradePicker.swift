@@ -17,6 +17,90 @@
 
 import SwiftUI
 
+// MARK: - Die art color sampling (July 13, 2026)
+//
+// The picker's code-drawn face squares used to use the hand-tweaked
+// palette in PotionShopModels (type.color). They now SAMPLE the actual
+// die PNG (die_potency.png etc.) — average of its opaque pixels — so
+// the squares always match your art, even after you redraw it. Falls
+// back to type.color when the asset isn't drawn yet. Sampled once per
+// type per launch (tiny 12×12 decode through the budgeted loader, §72).
+//
+// HAND-DRAWN FACE SQUARES (OPEN-4b hook): draw face_potency.png,
+// face_heal.png, face_shield.png, face_stability.png, face_boost.png,
+// face_magic.png (~100×100, plain center so the white number reads) and
+// they replace the code-drawn squares automatically — same
+// loader-with-fallback pattern as everything else.
+
+enum PotionShopDieArtColor {
+    private static var cache: [PotionShopDieType: Color] = [:]
+
+    static func color(for type: PotionShopDieType) -> Color {
+        if let hit = cache[type] { return hit }
+        let sampled = sample(assetNamed: type.assetName) ?? type.color
+        cache[type] = sampled
+        return sampled
+    }
+
+    /// DOMINANT color of the asset (July 13, validated against the
+    /// user's real die art): a plain mean gets muddied by the icon —
+    /// boost (yellow cube, big purple arrow) averaged to brown. Instead:
+    /// 24×24 decode → drop transparent, near-black (the sketch outlines)
+    /// and near-white pixels → quantize to 32-step buckets → the biggest
+    /// bucket's average is the die's field color. Verified samples:
+    /// potency #b51b18 · stability #d55319 · heal #5a8c3a ·
+    /// shield #2f5077 · boost #fecf37 · magic #a9fefe (clamped darker —
+    /// see below — so white numbers stay readable).
+    private static func sample(assetNamed name: String) -> Color? {
+        guard let ui = PotionShopImageLoader.loadDisplayImage(named: name, displaySize: 24),
+              let cg = ui.cgImage else { return nil }
+        let w = 24, h = 24
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(data: &pixels, width: w, height: h,
+                                  bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+
+        // Collect kept pixels bucketed by coarse color.
+        var buckets: [Int: (r: Double, g: Double, b: Double, n: Double)] = [:]
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            let a = Double(pixels[i + 3]) / 255.0
+            guard a > 0.25 else { continue }              // transparent surround
+            // un-premultiply so alpha edges don't darken the sample
+            let r = min(1, Double(pixels[i])     / 255.0 / a)
+            let g = min(1, Double(pixels[i + 1]) / 255.0 / a)
+            let b = min(1, Double(pixels[i + 2]) / 255.0 / a)
+            let lum = 0.299 * r + 0.587 * g + 0.114 * b
+            guard lum > 0.16, lum < 0.92 else { continue } // outlines / white
+            let key = (Int(r * 7.99) << 6) | (Int(g * 7.99) << 3) | Int(b * 7.99)
+            var e = buckets[key] ?? (0, 0, 0, 0)
+            e.r += r; e.g += g; e.b += b; e.n += 1
+            buckets[key] = e
+        }
+        guard let top = buckets.values.max(by: { $0.n < $1.n }), top.n > 8
+        else { return nil }                                // sparse/absent asset
+        var r = top.r / top.n, g = top.g / top.n, b = top.b / top.n
+        // Readability clamp: the white number must survive a light die
+        // (magic's pale cyan). Scale very light fields toward mid-tone.
+        let lum = 0.299 * r + 0.587 * g + 0.114 * b
+        if lum > 0.75 {
+            let k = 0.75 / lum
+            r *= k; g *= k; b *= k
+        }
+        return Color(red: r, green: g, blue: b)
+    }
+}
+
+extension PotionShopDieType {
+    /// The square color matched to the drawn die asset (sampled), with
+    /// the old hand-tweaked palette as fallback.
+    var artColor: Color { PotionShopDieArtColor.color(for: self) }
+    /// Hand-drawn face-square asset name (face_potency etc., OPEN-4b).
+    var faceAssetName: String { assetName.replacingOccurrences(of: "die_", with: "face_") }
+}
+
 struct PotionShopUpgradePickerView: View {
     @Bindable var gs: PotionShopGameState
 
@@ -89,7 +173,7 @@ struct PotionShopUpgradePickerView: View {
                     .foregroundColor(.white)
                 Spacer()
                 if let die {
-                    faceStrip(die.effectiveFaces, color: type.color.opacity(0.9), size: 20)
+                    faceStrip(die.effectiveFaces, type: type, size: 20)
                 } else {
                     Text(gs.run.deck.contains(where: { $0.type == type }) ? "maxed" : "none in deck")
                         .font(Font.gameUI(size: 20))
@@ -127,11 +211,11 @@ struct PotionShopUpgradePickerView: View {
             HapticManager.shared.diePlaced()
         } label: {
             HStack(spacing: 6) {
-                faceSquare(value, color: type.color, size: 24)
+                faceSquare(value, type: type, size: 24)
                 Image(systemName: "arrow.right")
                     .font(.caption2.bold())
                     .foregroundColor(.yellow)
-                faceSquare(value + 1, color: type.color, size: 24, highlighted: true)
+                faceSquare(value + 1, type: type, size: 24, highlighted: true)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -167,41 +251,67 @@ struct PotionShopUpgradePickerView: View {
     }
 
     /// A single face drawn as its own little die.
+    /// JULY 13, 2026: draws your face_[type].png if it exists (number
+    /// overlaid on the plain center); until then a code-drawn square in
+    /// the SAMPLED art color (see PotionShopDieArtColor above).
     @ViewBuilder
-    private func faceSquare(_ v: Int, color: Color, size: CGFloat, highlighted: Bool = false) -> some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(color)
-            .frame(width: size, height: size)
-            .overlay(
-                Text("\(v)")
-                    .font(Font.gameScore(size: size * 0.62))
-                    .foregroundColor(.white)
-            )
-            .overlay(
+    private func faceSquare(_ v: Int, type: PotionShopDieType, size: CGFloat, highlighted: Bool = false) -> some View {
+        Group {
+            if let art = PotionShopImageLoader.loadDisplayImage(named: type.faceAssetName, displaySize: size) {
+                Image(uiImage: art)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(highlighted ? Color.yellow : Color.white.opacity(0.7),
-                            lineWidth: highlighted ? 1.4 : 0.8)
-            )
+                    .fill(type.artColor)
+                    .frame(width: size, height: size)
+            }
+        }
+        .overlay(
+            Text("\(v)")
+                .font(Font.gameScore(size: size * 0.62))
+                .foregroundColor(.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(highlighted ? Color.yellow : Color.white.opacity(0.7),
+                        lineWidth: highlighted ? 1.4 : 0.8)
+        )
     }
 
     /// Faces as little squares — the FULL multiset (1,1,2,2,2,2 shows six).
     /// Kept in the row header so you can see the whole die at a glance.
+    /// JULY 13, 2026: sampled art color + face_[type].png hook, matching
+    /// faceSquare above.
     @ViewBuilder
-    private func faceStrip(_ faces: [Int], color: Color, size: CGFloat) -> some View {
+    private func faceStrip(_ faces: [Int], type: PotionShopDieType, size: CGFloat) -> some View {
         HStack(spacing: 2) {
             ForEach(Array(faces.enumerated()), id: \.offset) { _, v in
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color)
-                    .frame(width: size, height: size)
-                    .overlay(
-                        Text("\(v)")
-                            .font(Font.gameScore(size: size * 0.62))
-                            .foregroundColor(.white)
-                    )
-                    .overlay(
+                Group {
+                    if let art = PotionShopImageLoader.loadDisplayImage(named: type.faceAssetName, displaySize: size) {
+                        Image(uiImage: art)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: size, height: size)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                            .opacity(0.9)
+                    } else {
                         RoundedRectangle(cornerRadius: 3)
-                            .stroke(Color.white.opacity(0.7), lineWidth: 0.8)
-                    )
+                            .fill(type.artColor.opacity(0.9))
+                            .frame(width: size, height: size)
+                    }
+                }
+                .overlay(
+                    Text("\(v)")
+                        .font(Font.gameScore(size: size * 0.62))
+                        .foregroundColor(.white)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(Color.white.opacity(0.7), lineWidth: 0.8)
+                )
             }
         }
     }

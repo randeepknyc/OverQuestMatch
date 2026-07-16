@@ -4,6 +4,8 @@
 //
 //  Created on 4/4/26.
 //  Main game screen for Ednar's Shop of Oddities card repair game with drag-and-drop
+//  v1 (July 2026): onAppear now restores the save when continuing
+//  v1.1 (July 2026): Live score pill on the counter + rearrange placed cards
 //
 
 import SwiftUI
@@ -147,6 +149,9 @@ struct ShopOfOdditiesView: View {
             // ── Restore from save if continuing ──────────────────
             if continueFromSave, let save = ShopOfOdditiesSave.load() {
                 save.restore(into: gameState)
+            } else {
+                // Fresh game: clear any leftover save from a previous session
+                ShopOfOdditiesSave.deleteSave()
             }
             // Track repairs known before this game started
             repairsDiscoveredBeforeGame = gameState.discoveredRepairNames
@@ -290,6 +295,65 @@ struct ShopOfOdditiesView: View {
         }
     }
     
+    // MARK: - Live Score Pill (Miracle Merchant style running score)
+    
+    /// Color for the live score:
+    /// green = would succeed, orange = positive but missing required type, red = would fail
+    private var liveScoreColor: Color {
+        if gameState.liveScore > 0 && gameState.liveMeetsRequirement {
+            return .green
+        } else if gameState.liveScore > 0 {
+            return .orange
+        } else {
+            return .red
+        }
+    }
+    
+    @ViewBuilder
+    private var liveScorePill: some View {
+        if gameState.repairSlots.filledCount > 0
+            && !gameState.gameOver
+            && !gameState.showingResultOverlay {
+            
+            HStack(spacing: 8) {
+                // Required-type indicator: icon + check (met) or ! (missing)
+                if let customer = gameState.currentCustomer {
+                    HStack(spacing: 3) {
+                        Image(customer.requiredType.iconName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                            .foregroundColor(customer.requiredType.color)
+                        
+                        Image(systemName: gameState.liveMeetsRequirement
+                              ? "checkmark.circle.fill"
+                              : "exclamationmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(gameState.liveMeetsRequirement ? .green : .red)
+                    }
+                }
+                
+                // Running total (includes adjacency + preferred bonuses)
+                Text(gameState.liveScore >= 0 ? "+\(gameState.liveScore)" : "\(gameState.liveScore)")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(liveScoreColor)
+                    .contentTransition(.numericText())
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color.black.opacity(0.65))
+                    .overlay(
+                        Capsule()
+                            .stroke(liveScoreColor.opacity(0.6), lineWidth: 1.5)
+                    )
+            )
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: gameState.liveScore)
+            .transition(.scale.combined(with: .opacity))
+        }
+    }
+    
     // MARK: - Counter / Repair Area (Counter Surface Style)
     
     private func counterRepairArea(geometry: GeometryProxy) -> some View {
@@ -333,7 +397,10 @@ struct ShopOfOdditiesView: View {
                 cardWidth: cardWidth,
                 cardHeight: cardHeight,
                 previewInsertIndex: hoverInsertIndex, // Pass the calculated insert index
-                draggedCard: nil // No preview card (just slide existing cards)
+                draggedCard: nil, // No preview card (just slide existing cards)
+                onReorder: { from, to in
+                    gameState.movePlacedCard(from: from, to: to)
+                }
             )
             .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
             .background(
@@ -348,6 +415,12 @@ struct ShopOfOdditiesView: View {
             )
         }
         .frame(height: counterHeight)
+        .overlay(alignment: .topTrailing) {
+            // Live running score — floats on the counter's top edge
+            liveScorePill
+                .padding(.trailing, 24)
+                .offset(y: -14)
+        }
     }
     
     // MARK: - Decks Area (Horizontal Row with Config-Based Rotation)
@@ -444,9 +517,9 @@ struct ShopOfOdditiesView: View {
                 repairAreaFrame: repairAreaFrame
             )
             .frame(width: cardWidth, height: cardHeight)
-                    }
-                    .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
-                }
+        }
+        .padding(.horizontal, ShopLayoutConfig.horizontalPadding)
+    }
     
     // MARK: - Drag Overlay
     

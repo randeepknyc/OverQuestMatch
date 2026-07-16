@@ -4,6 +4,8 @@
 //
 //  Created on 4/4/26.
 //  Visual display for character commentary with custom icon support
+//  v1.1 (July 2026): Larger commentary text and speaker icon
+//  (look for "SIZE:" comments to adjust any number)
 //
 
 import SwiftUI
@@ -17,18 +19,21 @@ struct CommentaryView: View {
             HStack(spacing: 8) {
             // Character icon (custom image or SF Symbol fallback)
             ZStack {
+                // SIZE: icon background circle (was 30)
                 Circle()
                     .fill(iconColor(for: commentary).opacity(0.2))
-                    .frame(width: 30, height: 30)
+                    .frame(width: 38, height: 38)
                 
+                // SIZE: speaker icon (was 20)
                 commentaryIcon(for: commentary)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 26, height: 26)
                     .foregroundColor(iconColor(for: commentary))
             }
             
             // Commentary text
+            // SIZE: commentary text (was 14)
             Text(commentary.text)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.system(size: 17, weight: .medium, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
@@ -60,8 +65,9 @@ struct CommentaryView: View {
                 .scaledToFit()
         } else {
             // Fallback to SF Symbol
+            // SIZE: fallback SF Symbol icon (was 20)
             Image(systemName: sfSymbolIconName(for: commentary))
-                .font(.system(size: 20))
+                .font(.system(size: 26))
         }
     }
     

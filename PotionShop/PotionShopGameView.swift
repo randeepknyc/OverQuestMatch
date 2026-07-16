@@ -15,6 +15,20 @@
 import SwiftUI
 import Combine
 
+// MARK: - Design canvas (July 13, 2026)
+//
+// The reference size every PotionShopLayoutConfig value — 21 batches of
+// hand-baked offsets — was tuned on: the iPhone Pro Max's SAFE-AREA
+// dimensions. The whole game renders at this size and uniformly scales
+// to fit the real screen (see PotionShopGameView.body). Re-baseline
+// these numbers ONLY if the entire layout is ever re-tuned on a
+// different device.
+
+enum PotionShopDesignCanvas {
+    static let width: CGFloat = 440
+    static let height: CGFloat = 863
+}
+
 struct PotionShopGameView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -39,12 +53,66 @@ struct PotionShopGameView: View {
     private let purgeTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        // JULY 13, 2026 — DESIGN-CANVAS SCALE (the potion-shop twin of
+        // Match-3's 440pt landmine, fixed the opposite way). Match-3 had
+        // ONE oversized row to make adaptive; here EVERY layout value in
+        // PotionShopLayoutConfig assumes the Pro Max's 440pt width, and
+        // rescaling hundreds of hand-tuned offsets per device would
+        // destroy the bake workflow. So instead: the WHOLE game lays out
+        // at the 440×863 design canvas and scales uniformly to fit the
+        // actual screen. Pro Max: scale = exactly 1.0, pixel-identical.
+        // iPhone 17 Pro: ×0.905. 13 mini: ×0.85. Hair-thin letterbox
+        // slivers are painted over by the real-size backdrop below.
+        // Gestures, drag-drop, and the tutorial's published frames all
+        // live inside the same scaled space, so they stay consistent.
+        // TUNING WORKFLOW UNCHANGED: tune + bake on the Pro Max only.
+        GeometryReader { screen in
+            let s = max(0.101, min(screen.size.width / PotionShopDesignCanvas.width,
+                                   screen.size.height / PotionShopDesignCanvas.height))
+            ZStack {
+                designCanvasBackdrop   // TRUE screen size + safe areas
+                designSizedGame
+                    .frame(width: PotionShopDesignCanvas.width,
+                           height: PotionShopDesignCanvas.height)
+                    .scaleEffect(s)
+                    .frame(width: screen.size.width, height: screen.size.height)
+            }
+        }
+    }
+
+    /// JULY 13: the shop's real backdrop painted at TRUE screen size,
+    /// so letterbox slivers and the notch/home areas continue the
+    /// parchment instead of showing black. Same cascade as the in-game
+    /// background (live color override → shop_background → theme).
+    @ViewBuilder
+    private var designCanvasBackdrop: some View {
+        if let liveColor = PotionShopLayoutConfig.shared.bgColorOverride {
+            liveColor.ignoresSafeArea()
+        } else if let bgImage = PotionShopImageLoader.loadDisplayImage(
+            named: "shop_background",
+            displaySize: max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)) {
+            Image(uiImage: bgImage)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+        } else {
+            PotionShopTheme.bg.ignoresSafeArea()
+        }
+    }
+
+    /// JULY 13: the ORIGINAL game body, unchanged below this line —
+    /// laid out at the fixed design canvas, so `geo` reports 440×863
+    /// on every device and all baked values land where they were tuned.
+    private var designSizedGame: some View {
         GeometryReader { geo in
             // ✅ VERIFIED CORRECT VALUES - May 4, 2026 Evening
             let totalHeight = geo.size.height
             
             // Section height calculations (percentages from layout editor)
-            let headerH      = max(90,  totalHeight * (layoutConfig.headerPercent / 100))
+            // JULY 13, 2026: direct point control — the old percent formula
+            // had a 90pt floor that always won, making the drawer's Header
+            // slider dead. headerEdgeY moves the header/scene boundary live.
+            let headerH      = min(200, max(40, layoutConfig.headerEdgeY))
             let sceneH       = max(160, totalHeight * (layoutConfig.scenePercent / 100))
             let profileRowH  = max(74,  totalHeight * (layoutConfig.profilePercent / 100))
             let cauldronH    = max(240, totalHeight * (layoutConfig.cauldronPercent / 100))
@@ -90,6 +158,35 @@ struct PotionShopGameView: View {
 
                     PotionShopProfileRowView(gs: gs)
                         .frame(height: profileRowH)
+                        // ━━━ DEBUG BUTTON (JULY 13, rev 2) ━━━━━━━━━━━━
+                        // Right-most edge of the PROFILE ROW (user
+                        // request) — an overlay, so the row's layout and
+                        // the customer scene above are untouched. Same
+                        // dashed-circle visual as the July-2 original;
+                        // ps_debug_button art replaces it if drawn.
+                        // Dev-mode gated (DevMode.swift).
+                        .overlay(alignment: .trailing) {
+                            if DevMode.shared.unlocked {
+                                Button {
+                                    showDebugMenu = true
+                                } label: {
+                                    if let dbgImg = PotionShopImageLoader.loadDisplayImage(named: "ps_debug_button", displaySize: 30) {
+                                        Image(uiImage: dbgImg)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                    } else {
+                                        Image(systemName: "circle.dashed")
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundColor(PotionShopTheme.muted)
+                                            .padding(6)
+                                            .background(Color.white.opacity(0.45))
+                                            .clipShape(Circle())
+                                    }
+                                }
+                                .padding(.trailing, 10)
+                            }
+                        }
 
                     PotionShopCauldronView(
                         gs: gs,
@@ -123,39 +220,9 @@ struct PotionShopGameView: View {
                         cauldronArtXOffset: layoutConfig.cauldronX,
                         cauldronArtYOffset: layoutConfig.cauldronY
                     )
-                    // ━━━ DEBUG GEAR (JULY 2, 2026 — moved from header) ━━
-                    // Dev-only, bottom-right of the cauldron. Gated by
-                    // PotionShopDebugAccess (always in Xcode builds; on
-                    // TestFlight only after the secret Day-label taps —
-                    // debugGearBump makes this re-check after a toggle).
-                    .overlay(alignment: .bottomTrailing) {
-                        let _ = layoutConfig.debugGearBump  // observe toggles
-                        if PotionShopDebugAccess.isAvailable {
-                            Button {
-                                showDebugMenu = true
-                            } label: {
-                                // JULY 2 (latest): debug wears a subtle
-                                // dashed CIRCLE (the gear now belongs to
-                                // the player settings). ps_debug_button
-                                // art replaces it if ever drawn.
-                                if let dbgImg = PotionShopImageLoader.loadDisplayImage(named: "ps_debug_button", displaySize: 30) {  // JULY 5 memory: was full-res
-                                    Image(uiImage: dbgImg)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                } else {
-                                    Image(systemName: "circle.dashed")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(PotionShopTheme.muted)
-                                        .padding(6)
-                                        .background(Color.white.opacity(0.45))
-                                        .clipShape(Circle())
-                                }
-                            }
-                            .padding(.trailing, 10)
-                            .padding(.bottom, 6)
-                        }
-                    }
+                    // ━━━ DEBUG BUTTON — JULY 13, 2026: moved to the header,
+                    // directly under the gear (see PotionShopHeaderView).
+                    // Dev-mode gated there (DevMode.swift).
                     // BACKUP (to revert, copy these values back):
                     // brewZoneX: 0.80, brewZoneWidth: 90, showBrewZone: true
                     // cauldronArtWidth: 2.61, cauldronArtHeight: 1.28
@@ -232,22 +299,10 @@ struct PotionShopGameView: View {
                 // ── MAGIC DIE INTRODUCTION (July 4, 2026) ────────
                 // Shown once, the moment the Day-2 mirror die joins the
                 // deck. Dismiss to play.
-                // ── MEMORY WATCHDOG BANNER (July 4, 2026) ────────
-                // Appears ONLY if the footprint crosses the soft limit —
-                // if you ever see this, tell Claude what was on screen.
-                if let warning = PotionShopMemoryWatchdog.shared.warningText {
-                    Text(warning)
-                        .font(Font.gameUI(size: 13))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(Color(red: 0.75, green: 0.12, blue: 0.10).opacity(0.95)))
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .padding(.top, 60)
-                        .allowsHitTesting(false)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .zIndex(990)
-                }
+                // ── MEMORY WATCHDOG (July 4, 2026) ───────────────
+                // JULY 13: the red on-screen banner is RETIRED (user
+                // request). The watchdog itself still runs — it purges
+                // caches past the soft limit and logs to the console.
 
                 if gs.showMagicIntro {
                     PotionShopMagicIntroView(gs: gs)
@@ -317,6 +372,7 @@ struct PotionShopGameView: View {
             }
         }
         // ── Save on background ───────────────────────────────────
+        .devModeToast()   // JULY 13: "Dev mode ON" capsule on 5-tap unlock
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background && gs.phase == .playing {
                 PotionShopSave.save(gs: gs)
@@ -941,6 +997,14 @@ struct PotionShopLayoutOverlay: View {
                     .font(.caption)
                     .tint(.cyan)
 
+                // JULY 15, 2026: 👻 ghost-drag endpoints ("Into the
+                // Cauldron"). Nudges on top of the live anchors —
+                // leftmost potency die → cauldron bowl. Bakeable.
+                sliderRow("👻 Ghost start X", value: $layoutConfig.tutGhostFromX, range: -150...150, format: "%.0f")
+                sliderRow("👻 Ghost start Y", value: $layoutConfig.tutGhostFromY, range: -150...150, format: "%.0f")
+                sliderRow("👻 Ghost end X", value: $layoutConfig.tutGhostToX, range: -150...150, format: "%.0f")
+                sliderRow("👻 Ghost end Y", value: $layoutConfig.tutGhostToY, range: -150...150, format: "%.0f")
+
                 // JULY 5, 2026: step navigation IN the drawer. While the
                 // drawer floats above the tutorial (edit mode), the
                 // overlay's bottom ✏️ toolbar can sit underneath it —
@@ -1168,7 +1232,7 @@ struct PotionShopLayoutOverlay: View {
             .onAppear { layoutConfig.ensureFireArrays() }
         case .sections:
             VStack(alignment: .leading, spacing: 10) {
-                sliderRow("Header", value: $layoutConfig.headerPercent, range: 0...20, format: "%.1f%%")
+                sliderRow("Header edge Y", value: $layoutConfig.headerEdgeY, range: 60...140, format: "%.0f")   // JULY 13: replaces the dead % slider
                 sliderRow("Scene", value: $layoutConfig.scenePercent, range: 0...50, format: "%.1f%%")
                 sliderRow("Profile", value: $layoutConfig.profilePercent, range: 0...20, format: "%.1f%%")
                 sliderRow("Cauldron", value: $layoutConfig.cauldronPercent, range: 0...60, format: "%.1f%%")
@@ -1212,6 +1276,62 @@ struct PotionShopLayoutOverlay: View {
                 Text("🧍 Customer Scene Portraits")
                     .font(.caption2.bold())
                     .foregroundColor(.cyan)
+
+                // JULY 13, 2026: GLOBAL size — multiplies every per-slot /
+                // per-cell value, feet-anchored (scales in place). Badges
+                // don't follow; re-nudge them if you keep a value ≠ 1.00.
+                sliderRow("Size — ALL customers ×", value: $layoutConfig.customerScaleGlobal, range: 0.6...1.4, format: "%.2f")
+                // JULY 13: global HP-badge size — multiplies every bucket
+                // default and per-character/slot override.
+                sliderRow("Size — ALL HP badges ×", value: $layoutConfig.hpBadgeScaleGlobal, range: 0.6...1.4, format: "%.2f")
+                // JULY 13: bubble-tail auto-select threshold (see
+                // CustomerSceneView.tailedBadgeName). Inert until the
+                // _tl/_tm badge assets are drawn.
+                sliderRow("Bubble tail switch ± X", value: $layoutConfig.hpBadgeTailSwitchX, range: 5...60, format: "%.0f")
+
+                // JULY 13, 2026: 🧪 manual test-round lineup. The paging
+                // tour only ever shows DISTINCT combos — these menus stage
+                // any permutation (same bucket ×3, 2+1, …) for tuning the
+                // contextual (neighbor-keyed) nudges.
+                if gs.isLayoutTestRound {
+                    Text("🧪 Test lineup — pick any combo per slot")
+                        .font(.caption2.bold())
+                        .foregroundColor(.orange)
+                    // JULY 13, 2026: bucket-grid coverage — combos with no
+                    // character yet can't be tuned (no art to stand there);
+                    // this shows the gaps so new characters can fill them.
+                    // A new character in a new combo auto-appears in the
+                    // pages + menus (reps derive live from the cast).
+                    Text(bucketCoverageText)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.55))
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(0..<3, id: \.self) { slot in
+                        Menu {
+                            ForEach(gs.layoutTestReps, id: \.self) { key in
+                                Button(bucketComboLabel(key)) {
+                                    var keys = gs.customers.map(\.charKey)
+                                    while keys.count < 3 { keys.append(key) }
+                                    keys[slot] = key
+                                    gs.setLayoutTestCustomers(Array(keys.prefix(3)))
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(slot == 0 ? "Active" : "Wait \(slot)")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.7))
+                                Spacer()
+                                Text(slot < gs.customers.count ? bucketComboLabel(gs.customers[slot].charKey) : "—")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.cyan)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08)))
+                        }
+                    }
+                }
                 
                 // Character picker
                 VStack(alignment: .leading, spacing: 4) {
@@ -3143,6 +3263,34 @@ struct PotionShopLayoutOverlay: View {
                 .font(.system(size: 10).bold())
                 .foregroundColor(.orange)
         }
+    }
+
+    /// JULY 13, 2026: which bucket combos exist in the cast vs the full
+    /// height×width grid — shown in the 🧪 test-lineup picker.
+    private var bucketCoverageText: String {
+        let cfg = PotionShopLayoutConfig.shared
+        let covered = Set(gs.layoutTestReps.map { key -> String in
+            let cs = cfg.characterScale(for: key)
+            return "\(cs.heightBucket.rawValue)·\(cs.widthBucket.rawValue)"
+        })
+        var missing: [String] = []
+        for h in PotionShopLayoutConfig.CustomerHeightBucket.allCases {
+            for w in PotionShopLayoutConfig.CustomerWidthBucket.allCases {
+                let combo = "\(h.rawValue)·\(w.rawValue)"
+                if !covered.contains(combo) { missing.append(combo) }
+            }
+        }
+        let total = PotionShopLayoutConfig.CustomerHeightBucket.allCases.count
+                  * PotionShopLayoutConfig.CustomerWidthBucket.allCases.count
+        if missing.isEmpty { return "all \(total) bucket combos drawn ✓" }
+        return "\(covered.count)/\(total) combos drawn · no character yet: "
+             + missing.joined(separator: ", ")
+    }
+
+    /// JULY 13, 2026: combo label for the 🧪 test-lineup picker.
+    private func bucketComboLabel(_ key: String) -> String {
+        let cs = PotionShopLayoutConfig.shared.characterScale(for: key)
+        return "\(cs.heightBucket.rawValue)·\(cs.widthBucket.rawValue)"
     }
 
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String, tier: PotionShopTunerTier? = nil) -> some View {

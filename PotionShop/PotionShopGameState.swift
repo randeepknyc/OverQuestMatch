@@ -153,6 +153,10 @@ class PotionShopGameState {
     /// JULY 11, 2026 (tutorial rebuild): header time-of-day icon override
     /// (0–3 = morning…night) while the tutorial's shop-day beat cycles it.
     var tutorialTODOverride: Int? = nil
+    /// JULY 15, 2026: while the tutorial's "Patience Runs Out" step is up,
+    /// every patience ring renders EMPTY (visual only — real patience is
+    /// untouched). Transient, overlay-managed.
+    var tutorialPatienceEmpty = false
     /// JULY 11, 2026: set when the tutorial completes — the next ROUND
     /// boon offer is guaranteed to include a Die Upgrade card.
     var rigNextBoonOffer: Bool = false
@@ -164,6 +168,16 @@ class PotionShopGameState {
     /// JULY 12: EVERY brew, lethal or not (potionsBrewed counts only
     /// defeats). The tutorial's brew gates watch this counter.
     var totalBrews: Int = 0
+    /// JULY 13, 2026: bumped each time a hold-to-peek card completes
+    /// (shown ≥0.4s, then released). The tutorial's "Inspect a Die"
+    /// step gates on it, exactly like brew steps gate on totalBrews.
+    /// Transient — not part of the save.
+    var totalPeeks: Int = 0
+    /// JULY 14, 2026: while the tutorial's "The Die Card" step is up, the
+    /// peek card stays open (CauldronView skips every dismissal path) so
+    /// the player can read it; tapping Next drops this and the card closes.
+    /// Transient — never saved.
+    var tutHoldPeekOpen = false
     /// JULY 12: true while the DEDICATED TUTORIAL ROUND is running — a
     /// pre-Day-1 round with a FIXED cast and a one-of-each-type hand, so
     /// every tutorial highlight lands on the same thing every time.
@@ -1152,6 +1166,20 @@ class PotionShopGameState {
         for i in 0..<min(3, n) {
             keys.append(layoutTestReps[(start + i) % n])
         }
+        installLayoutTestCustomers(keys)
+    }
+
+    /// JULY 13, 2026: manual lineup for the drawer's bucket picker — lets
+    /// the user stage ANY combo permutation, including the same bucket in
+    /// all three slots or 2+1, which the rotating pages never produce.
+    /// Keys are representative charKeys from layoutTestReps.
+    func setLayoutTestCustomers(_ keys: [String]) {
+        guard isLayoutTestRound, !keys.isEmpty else { return }
+        installLayoutTestCustomers(keys)
+    }
+
+    /// Shared installer (extracted July 13 from applyLayoutTestPage).
+    private func installLayoutTestCustomers(_ keys: [String]) {
         guard !keys.isEmpty else { return }
         placements.removeAll()
         // JULY 11, 2026 fix: a lingering inspectedId pointing at the OLD

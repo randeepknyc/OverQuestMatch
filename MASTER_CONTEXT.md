@@ -116,6 +116,7 @@ private let currentGame: GameType = .match3
 - `.mapNavigation` - Map Navigation System (coming soon)
 
 > **Note (June 28, 2026):** a runtime `GameSelectorView.swift` now also routes between games. Ednar's Potion Cauldron is reached from the selector ("Ednar's Potion Cauldron" → launches straight into Day 1 / Morning). "End Game" in its debug menu returns to the selector.
+> **Note (July 13, 2026):** Shop of Oddities + Enna's Tavern are LOCKED in the selector ("Coming soon", greyed, 🔒) unless dev mode is on — see 🛠 DEV MODE SYSTEM below.
 
 **How to Switch Games:**
 1. Open `OverQuestMatch3App.swift`
@@ -123,6 +124,35 @@ private let currentGame: GameType = .match3
 3. Change `.match3` to another game type
 4. Press Command+R to run
 5. App launches with selected game
+
+---
+
+## 🛠 DEV MODE SYSTEM (July 13, 2026)
+
+One app-wide switch separating the DEVELOPER experience from the
+FRIEND/TESTFLIGHT experience. Lives in **`DevMode.swift` (project root)** —
+`DevMode.shared.unlocked`, @Observable, persisted in UserDefaults
+(`devModeUnlocked`). **Default OFF in every build**, Xcode runs included.
+
+**Dev mode OFF (what friends see):**
+- No potion-shop debug button, no Match-3 hammer
+- Enna's Tavern + Shop of Oddities: greyed "Coming soon" + 🔒 in the game
+  selector, not launchable
+
+**Turning it ON — 5 quick taps (≤1.5s apart) on any of:**
+- the "Day N" label in the potion shop header
+- the invisible center strip over Match-3's HUD (score area)
+- the "GAME SELECTOR" title (so locked games unlock without entering a game)
+Feedback: medium haptic + "🛠 Dev mode ON" toast (`.devModeToast()`).
+Taps only turn it ON — never off (no accidental lockouts). Rev 3: if already on, 5 taps show "🛠 Dev mode already ON" instead of silence. NOTE: dev mode persists PER DEVICE — every simulator is its own device with its own state.
+
+**Turning it OFF:** the "🙈 Hide Dev Mode" button inside either debug menu
+(potion debug menu top section; Match-3 debug menu under End Game).
+
+**Shim:** `PotionShopDebugAccess.isAvailable` now just reads
+`DevMode.shared.unlocked` (old 7-tap toggle + `ps_debugUnlocked` key retired).
+TestFlight builds ship locked automatically — nothing to flip before archiving
+(see `TESTFLIGHT_STEPS.md`).
 
 ---
 
@@ -398,6 +428,7 @@ Each game has its own image sets:
 
 **Key Files:**
 - App Entry: `OverQuestMatch3App.swift`
+- Dev Mode (app-wide): `DevMode.swift` (project root)
 - Match-3 Main View: `Match3Game/Match3ContentView.swift`
 - Physics Game Main View: `PhysicsChainGame/PhysicsChainGameView.swift`
 - Shared Character Data: `Shared/Character.swift`
@@ -409,6 +440,15 @@ Each game has its own image sets:
 - Modify Match-3: Edit files in `Match3Game/` folder
 - Modify Physics Game: Edit files in `PhysicsChainGame/` folder
 - Share code: Add to `Shared/` folder
+
+**Layout law (July 13, 2026 — the 440pt landmine):** never let fixed frames +
+fixed spacing/padding in a row sum past the narrowest supported screen. A
+Pro-Max-tuned 180+180pt portrait row in Match-3 had a 440pt minimum and
+right-clipped every narrower device for weeks (fix: sizes derive from real
+width, capped at the design size — see MATCH3_CONTEXT Session 27). The
+potion shop had the same disease across ALL its hand-baked layout values and
+uses the opposite cure: the whole game renders at a fixed 440×863 design
+canvas and uniformly scales to the real screen (CAULDRON_CONTEXT §78).
 
 ---
 

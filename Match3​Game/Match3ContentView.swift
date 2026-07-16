@@ -76,23 +76,46 @@ struct GameScreen: View {
                 }
                 
                 // 🛠️ DEBUG BUTTON (Top-right corner)
+                // JULY 13, 2026: dev-mode gated (DevMode.swift) — hidden
+                // on friend/TestFlight builds until the 5-tap unlock.
                 VStack {
                     HStack {
                         Spacer()
-                        Button(action: { showDebugMenu = true }) {
-                            Image(systemName: "hammer.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.orange)
-                                .padding(12)
-                                .background(Circle().fill(Color.black.opacity(0.6)))
-                                .shadow(color: .orange.opacity(0.5), radius: 5)
+                        if DevMode.shared.unlocked {
+                            Button(action: { showDebugMenu = true }) {
+                                Image(systemName: "hammer.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.orange)
+                                    .padding(12)
+                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                                    .shadow(color: .orange.opacity(0.5), radius: 5)
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.top, 16)
                         }
-                        .padding(.trailing, 16)
-                        .padding(.top, 16)
                     }
                     Spacer()
                 }
                 .zIndex(100)
+
+                // JULY 13, 2026: SECRET dev-mode tap target — an invisible
+                // strip over the CENTER of the 60pt HUD row (the score/
+                // title area). 5 quick taps turn dev mode ON (DevMode.swift).
+                // Center-third only, so the hamburger and any edge buttons
+                // in GameHUDView stay tappable. If a HUD control ever moves
+                // to the center, shrink or move this strip.
+                VStack {
+                    HStack {
+                        Spacer()
+                        Color.clear
+                            .frame(width: geometry.size.width * 0.34, height: 60)
+                            .contentShape(Rectangle())
+                            .onTapGesture { DevMode.shared.registerSecretTap() }
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .zIndex(95)
                 .onChange(of: gameMode) { _, newMode in
                     viewModel.currentGameMode = newMode
                 }
@@ -185,6 +208,7 @@ struct GameScreen: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+        .devModeToast()   // JULY 13: "Dev mode ON" capsule on 5-tap unlock
     }
 }
 
@@ -237,6 +261,30 @@ struct Match3DebugMenuView: View {
                 Text("Returns to title screen")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.6))
+
+                // JULY 13, 2026: dev-mode OFF switch (the 5-tap only turns
+                // it ON). Also re-hides the potion shop's debug button and
+                // re-locks the two "Coming soon" games in the selector.
+                Button(action: {
+                    isShowing = false
+                    DevMode.shared.turnOff()
+                }) {
+                    HStack(spacing: 8) {
+                        Text("🙈")
+                        Text("Hide Dev Mode")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.white.opacity(0.12))
+                    )
+                }
+                Text("5 quick taps on the score strip bring it back")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.4))
                 
                 Divider()
                     .background(Color.white.opacity(0.3))

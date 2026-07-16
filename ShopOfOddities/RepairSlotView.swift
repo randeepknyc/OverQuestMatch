@@ -4,7 +4,8 @@
 //
 //  Created on 4/4/26.
 //  Dynamic repair slot view with centered card arrangement and drag preview
-//  Updated: Smooth card rearrangement with center bias
+//  v1.1 (July 2026): Placed cards can now be dragged left/right to rearrange —
+//  other cards slide out of the way, Miracle Merchant style.
 //
 
 import SwiftUI
@@ -14,8 +15,15 @@ struct RepairSlotView: View {
     let placedCards: [ComponentCard] // Ordered array of placed cards (left to right)
     let cardWidth: CGFloat // Size for placed cards (smaller than deck cards)
     let cardHeight: CGFloat
-    let previewInsertIndex: Int? // Where the dragged card will go (nil if not dragging over)
-    let draggedCard: ComponentCard? // The card currently being dragged (for preview)
+    let previewInsertIndex: Int? // Where a deck-dragged card will go (nil if not dragging over)
+    let draggedCard: ComponentCard? // The deck card currently being dragged (for preview)
+    var onReorder: ((Int, Int) -> Void)? = nil // Called when a placed card is moved (from, to)
+    
+    // MARK: - Internal Reorder Drag State
+    
+    @State private var draggingCardID: UUID? = nil
+    @State private var dragLocationX: CGFloat = 0
+    @State private var reorderTargetIndex: Int? = nil
     
     var body: some View {
         GeometryReader { geometry in
@@ -27,6 +35,7 @@ struct RepairSlotView: View {
                 // Placed cards (centered as a group)
                 cardsDisplay(in: geometry)
             }
+            .coordinateSpace(name: "repairArea")
             .background(
                 // Capture frame for drop detection
                 GeometryReader { geo in
@@ -44,33 +53,130 @@ struct RepairSlotView: View {
         let cards = calculateCardPositions(in: geometry)
         
         ZStack {
-            // Changed: Use card.id instead of index so SwiftUI can track and animate each card
+            // Use card.id so SwiftUI can track and animate each card
             ForEach(cards, id: \.card.id) { item in
                 ComponentCardView(card: item.card)
                     .frame(width: cardWidth, height: cardHeight)
-                    .shadow(color: item.card.type.color.opacity(0.6), radius: 8, x: 0, y: 4)
+                    .shadow(
+                        color: item.card.type.color.opacity(item.isDragging ? 0.9 : 0.6),
+                        radius: item.isDragging ? 12 : 8,
+                        x: 0,
+                        y: item.isDragging ? 8 : 4
+                    )
+                    .scaleEffect(item.isDragging ? 1.08 : 1.0)
                     .position(x: item.position, y: geometry.size.height / 2)
+                    .zIndex(item.isDragging ? 10 : 0)
                     .transition(.scale.combined(with: .opacity))
+                    .gesture(reorderGesture(for: item.card, in: geometry))
             }
         }
         .animation(.spring(response: ShopLayoutConfig.snapAnimationDuration, dampingFraction: 0.7), value: placedCards.count)
         .animation(.spring(response: 0.2, dampingFraction: 0.8), value: previewInsertIndex)
+        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: reorderTargetIndex)
+        .animation(.spring(response: 0.25, dampingFraction: 0.75), value: draggingCardID)
+    }
+    
+    // MARK: - Reorder Drag Gesture (for already-placed cards)
+    
+    private func reorderGesture(for card: ComponentCard, in geometry: GeometryProxy) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named("repairArea"))
+            .onChanged { value in
+                // Only allow reordering if enabled and there's something to reorder
+                guard onReorder != nil, placedCards.count > 1 else { return }
+                
+                if draggingCardID == nil {
+                    draggingCardID = card.id
+                }
+                guard draggingCardID == card.id else { return }
+                
+                dragLocationX = value.location.x
+                reorderTargetIndex = targetIndex(forX: value.location.x, in: geometry)
+            }
+            .onEnded { value in
+                guard draggingCardID == card.id else {
+                    resetReorderDrag()
+                    return
+                }
+                
+                if let from = placedCards.firstIndex(where: { $0.id == card.id }),
+                   let to = reorderTargetIndex,
+                   from != to {
+                    onReorder?(from, to)
+                }
+                
+                resetReorderDrag()
+            }
+    }
+    
+    private func resetReorderDrag() {
+        draggingCardID = nil
+        reorderTargetIndex = nil
+        dragLocationX = 0
+    }
+    
+    /// Which position (0..count-1) the dragged card should land in, based on its x
+    private func targetIndex(forX x: CGFloat, in geometry: GeometryProxy) -> Int {
+        let count = placedCards.count
+        guard count > 0 else { return 0 }
+        
+        let spacing = ShopLayoutConfig.repairCardSpacing
+        let totalCardsWidth = CGFloat(count) * cardWidth + CGFloat(count - 1) * spacing
+        let startX = geometry.size.width / 2 - totalCardsWidth / 2 + cardWidth / 2
+        
+        let slot = Int(round((x - startX) / (cardWidth + spacing)))
+        return min(max(slot, 0), count - 1)
     }
     
     // MARK: - Card Position Calculation
     
     private struct CardPosition {
         let card: ComponentCard
-        let index: Int
         let position: CGFloat // X position
+        let isDragging: Bool
     }
     
     private func calculateCardPositions(in geometry: GeometryProxy) -> [CardPosition] {
         let totalWidth = geometry.size.width
         let centerX = totalWidth / 2
+        let spacing = ShopLayoutConfig.repairCardSpacing
         
-        // Create a conceptual array that includes space for the dragged card (if hovering)
-        // but we won't actually render the dragged card (user wants no preview)
+        // ── MODE 1: Internal reorder drag in progress ──────────────────
+        if let dragID = draggingCardID,
+           let draggedPlacedCard = placedCards.first(where: { $0.id == dragID }) {
+            
+            let others = placedCards.filter { $0.id != dragID }
+            let count = placedCards.count // Layout keeps a gap for the dragged card
+            let currentIndex = placedCards.firstIndex(where: { $0.id == dragID }) ?? 0
+            let gapIndex = min(reorderTargetIndex ?? currentIndex, count - 1)
+            
+            let totalCardsWidth = CGFloat(count) * cardWidth + CGFloat(count - 1) * spacing
+            let startX = centerX - (totalCardsWidth / 2) + (cardWidth / 2)
+            
+            var positions: [CardPosition] = []
+            var visualIndex = 0
+            
+            for card in others {
+                if visualIndex == gapIndex { visualIndex += 1 } // Leave the gap
+                positions.append(CardPosition(
+                    card: card,
+                    position: startX + CGFloat(visualIndex) * (cardWidth + spacing),
+                    isDragging: false
+                ))
+                visualIndex += 1
+            }
+            
+            // The dragged card follows the finger (clamped inside the counter)
+            let clampedX = min(max(dragLocationX, cardWidth / 2), totalWidth - cardWidth / 2)
+            positions.append(CardPosition(
+                card: draggedPlacedCard,
+                position: clampedX,
+                isDragging: true
+            ))
+            
+            return positions
+        }
+        
+        // ── MODE 2: Deck-drag hover preview / normal display ───────────
         let cardCount: Int
         var placedCardsWithGap: [ComponentCard?] = placedCards.map { $0 as ComponentCard? }
         
@@ -85,7 +191,6 @@ struct RepairSlotView: View {
         guard cardCount > 0 else { return [] }
         
         // Calculate total width needed for all cards (including gap if hovering)
-        let spacing = ShopLayoutConfig.repairCardSpacing
         let totalCardsWidth = CGFloat(cardCount) * cardWidth + CGFloat(cardCount - 1) * spacing
         
         // Calculate starting X position (left edge of first card)
@@ -101,8 +206,8 @@ struct RepairSlotView: View {
                 
                 positions.append(CardPosition(
                     card: card,
-                    index: visualIndex,
-                    position: xPosition
+                    position: xPosition,
+                    isDragging: false
                 ))
             }
             visualIndex += 1
@@ -111,7 +216,7 @@ struct RepairSlotView: View {
         return positions
     }
     
-    // MARK: - Insert Index Calculation
+    // MARK: - Insert Index Calculation (for deck drags — unchanged)
     
     /// Calculate which index a card should be inserted at based on drag X position
     /// Returns nil if not over repair area, or the insert index (0-4)

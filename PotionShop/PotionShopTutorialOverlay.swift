@@ -29,8 +29,8 @@ import SwiftUI
 // edit mode, ➕ Circle — exactly as before, per step.
 // ✏️ ALL text below is the designer's copy — edit freely.
 
-enum PotionShopTutGate { case tap, placePotency, brew }
-enum PotionShopTutEffect { case none, cycleTOD, openProfile, closeProfile, flameMinusOne, flameAllOut }
+enum PotionShopTutGate { case tap, placePotency, brew, peek }   // JULY 13: peek = hold-to-inspect a tray die
+enum PotionShopTutEffect { case none, cycleTOD, openProfile, closeProfile, flameMinusOne, flameAllOut, patienceOut }   // JULY 15: patienceOut = rings render EMPTY on this step
 
 struct PotionShopTutStep {
     let title: String
@@ -39,6 +39,9 @@ struct PotionShopTutStep {
     var effect: PotionShopTutEffect = .none
     var glow: Bool = false
     var centered: Bool = false
+    /// JULY 13: pulsing ring over this step's highlight frames (the
+    /// "hold a die" beat) + a haptic tick when the step appears.
+    var pulse: Bool = false
     /// JULY 12: SHAPED highlights — registry keys ("customer0", "brewSpoon").
     /// PNG elements re-render in their own silhouette above the dim with a
     /// glow; code-drawn elements get a glowing frame + a matching cutout.
@@ -80,7 +83,28 @@ enum PotionShopTutorialConstants {
             glow: true,
             highlights: ["profile0", "profile1", "profile2"]),
         PotionShopTutStep(title: "Patience Runs Out",
-            body: "If their patience runs out before you can fulfill an order, the customer will leave and may damage you while leaving."),
+            body: "If their patience runs out before you can fulfill an order, the customer will leave and may damage you while leaving.",
+            effect: .patienceOut),   // JULY 15: rings drain to EMPTY (visual only)
+        // JULY 13, 2026: the PEEK beats — two new steps before Brewing
+        // 101 (user's copy ✏️). Step 1: the whole tray revealed. Step 2:
+        // one die pulses; the gate is the player actually performing the
+        // 0.4s hold — the real peek card pops (that's the "dialog box"),
+        // and releasing it advances into Brewing 101.
+        PotionShopTutStep(title: "Your Dice",
+            body: "These are your dice that you'll place in the cauldron.",
+            highlights: ["dice.potency", "dice.heal", "dice.shield", "dice.boost", "dice.stability"]),
+        PotionShopTutStep(title: "Inspect a Die",
+            body: "Hold any die to inspect its property.",
+            gate: .peek,
+            pulse: true,
+            highlights: ["die0"]),
+        // JULY 14, 2026: the read-the-card beat. The card that just
+        // popped STAYS OPEN (gs.tutHoldPeekOpen), gets its own highlight
+        // hole, and the player taps to close it and continue — fixes the
+        // "advances the instant the card pops" whiplash (user report).
+        PotionShopTutStep(title: "The Die Card",
+            body: "This card shows the die's faces — what each roll can do. Tap anywhere to continue.",
+            highlights: ["peekCard"]),
         PotionShopTutStep(title: "Brewing 101",
             body: "You create potions by taking potency dice…",
             highlights: ["dice.potency"]),
@@ -204,6 +228,33 @@ class PotionShopTutorialState {
     }
 }
 
+// MARK: - Pulse ring (July 13, 2026)
+//
+// A soft, endlessly pulsing accent ring for pulse-flagged steps —
+// draws attention to the die the player should hold. Fires one light
+// haptic tick when it appears (the step's "look here" nudge).
+
+struct PotionShopTutPulseRing: View {
+    let size: CGFloat
+    @State private var phase = false
+
+    var body: some View {
+        Circle()
+            .stroke(PotionShopTheme.accent, lineWidth: 3)
+            .frame(width: size, height: size)
+            .scaleEffect(phase ? 1.12 : 0.94)
+            .opacity(phase ? 0.35 : 0.95)
+            .shadow(color: PotionShopTheme.accent.opacity(0.8), radius: phase ? 10 : 4)
+            .onAppear {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                withAnimation(.easeInOut(duration: 0.75).repeatForever(autoreverses: true)) {
+                    phase = true
+                }
+            }
+            .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Tutorial overlay view
 
 struct PotionShopTutorialOverlay: View {
@@ -245,7 +296,7 @@ struct PotionShopTutorialOverlay: View {
             // coordinate space the dotted rings use — holes and rings align
             // exactly. The color still floods the whole screen.
             ZStack {
-                Color.black.opacity(tutorial.step.gate == .tap ? cfg.tutDimWatch : cfg.tutDimDoIt)
+                Color.black.opacity(dimOpacity)
                     .ignoresSafeArea()
                 ForEach(Array(cfg.tutCircles.enumerated()), id: \.element.id) { pair in
                     if pair.element.step == step {
@@ -339,7 +390,14 @@ struct PotionShopTutorialOverlay: View {
                             .position(x: h.frame.midX - o.x, y: h.frame.maxY - o.y + 7)
                             .shadow(color: PotionShopTheme.accent.opacity(0.8), radius: 6)
                     case .reveal:
-                        EmptyView()   // the hole IS the highlight
+                        // JULY 13: pulse steps draw an animated ring over
+                        // the revealed element (the "hold this die" beat).
+                        if tutorial.step.pulse {
+                            PotionShopTutPulseRing(size: max(h.frame.width, h.frame.height) + 14)
+                                .position(x: h.frame.midX - o.x, y: h.frame.midY - o.y)
+                        } else {
+                            EmptyView()   // the hole IS the highlight
+                        }
                     }
                 }
             }
@@ -348,6 +406,35 @@ struct PotionShopTutorialOverlay: View {
 
             // ── JULY 12: FINALE — after the final brew, tap anywhere to
             // end the tutorial and open the shop (real Day 1).
+            // ── JULY 14, 2026: 👻 GHOST-DRAG HINT for "Into the Cauldron"
+            // — a translucent potency die loops from the tray to the
+            // cauldron until the player performs the real drag (the
+            // placement gate advances the step, which removes this
+            // automatically). Frames come live from the highlight
+            // registry, so it tracks the real die/cauldron positions.
+            if tutorial.step.gate == .placePotency {
+                GeometryReader { geo in
+                    let o = geo.frame(in: .global).origin
+                    // JULY 15: LEFTMOST potency die (dictionary order was
+                    // random — the ghost kept starting on die #2) + the
+                    // drawer's endpoint nudges (🎓 tab, bakeable).
+                    let dieEntry = gs.tutHighlights.values
+                        .filter { $0.group == "dice.potency" }
+                        .min(by: { $0.frame.minX < $1.frame.minX })
+                    let potEntry = gs.tutHighlights["cauldron"]
+                    if let die = dieEntry, let pot = potEntry {
+                        PotionShopTutGhostDrag(
+                            from: CGPoint(x: die.frame.midX - o.x + cfg.tutGhostFromX,
+                                          y: die.frame.midY - o.y + cfg.tutGhostFromY),
+                            to: CGPoint(x: pot.frame.midX - o.x + cfg.tutGhostToX,
+                                        y: pot.frame.minY - o.y + pot.frame.height * 0.38 + cfg.tutGhostToY),
+                            size: max(40, die.frame.width * 0.9))
+                    }
+                }
+                .allowsHitTesting(false)
+                .zIndex(85)
+            }
+
             if tutorial.showFinale {
                 Color.black.opacity(0.001)
                     .ignoresSafeArea()
@@ -501,6 +588,26 @@ struct PotionShopTutorialOverlay: View {
         // ── JULY 11: practice gate — placing the potency die advances.
         // (Fallback: if the dealt hand somehow has no potency, ANY
         // placement advances so the tutorial can't dead-end.)
+        // ── JULY 13: peek gate — completing a hold-to-peek (card shown,
+        // finger released) advances the "Inspect a Die" step.
+        .onChange(of: gs.totalPeeks) { _, _ in
+            if tutorial.step.gate == .peek {
+                advanceWithAnimation()
+            }
+        }
+        // JULY 14: hold the peek card open exactly while "The Die Card"
+        // step is showing (and never leak the flag past the tutorial).
+        .onChange(of: tutorial.currentStep) { _, _ in
+            gs.tutHoldPeekOpen = tutorial.isActive
+                && tutorial.step.highlights.contains("peekCard")
+            // JULY 15: "Patience Runs Out" shows every ring EMPTY.
+            gs.tutorialPatienceEmpty = tutorial.isActive
+                && tutorial.step.effect == .patienceOut
+        }
+        .onDisappear {
+            gs.tutHoldPeekOpen = false
+            gs.tutorialPatienceEmpty = false
+        }
         .onChange(of: gs.placements.count) { _, count in
             guard tutorial.step.gate == .placePotency, count > 0 else { return }
             let placedPotency = gs.placements.values.contains { $0.type == .potency }
@@ -577,8 +684,9 @@ struct PotionShopTutorialOverlay: View {
     // ── JULY 11: step-entry effects (the scripted moments) ──────────
     private func applyStepEffect() {
         switch tutorial.step.effect {
-        case .none, .cycleTOD:
-            break   // cycleTOD runs in the .task above
+        case .none, .cycleTOD, .patienceOut:
+            break   // cycleTOD runs in the .task above; patienceOut is
+                    // handled by the onChange(currentStep) sync (JULY 15)
         case .openProfile:
             withAnimation { gs.inspectedId = gs.customers.first?.id }
         case .closeProfile:
@@ -602,6 +710,29 @@ struct PotionShopTutorialOverlay: View {
     }
     private var cardShowNext: Bool {
         tutorial.showFinale || tutorial.step.gate == .tap
+    }
+
+    /// JULY 13: the dim per gate (extracted — §74.8). PEEK steps run
+    /// UNDIMMED: the hold-to-peek card renders inside the GAME layer,
+    /// underneath this overlay, so any dim would grey the very card the
+    /// step teaches. The pulse ring carries the attention instead.
+    private var dimOpacity: Double {
+        switch tutorial.step.gate {
+        case .tap:  return cfg.tutDimWatch
+        case .peek: return 0
+        default:    return cfg.tutDimDoIt
+        }
+    }
+
+    /// JULY 13: per-gate hint line under the card (extracted — §74.8:
+    /// no growing ternaries inside view bodies). ✏️ copy.
+    private var gateHint: String {
+        switch tutorial.step.gate {
+        case .brew:         return "Tap BREW when ready"
+        case .placePotency: return "Drag the red potency die onto the cauldron"
+        case .peek:         return "Hold a die until its card appears"
+        case .tap:          return ""
+        }
     }
 
     private func completeTutorial() {
@@ -641,9 +772,7 @@ struct PotionShopTutorialOverlay: View {
                 .padding(.top, 4)
             } else {
                 // Practice-gate hint (no Next — the ACTION advances)
-                Text(tutorial.step.gate == .brew
-                     ? "Tap BREW when ready"
-                     : "Drag the red potency die onto the cauldron")
+                Text(gateHint)
                     .font(Font.gameUI(size: 28))
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.top, 4)
@@ -937,5 +1066,50 @@ struct PotionShopTutClip: Shape {
     let circle: Bool
     func path(in rect: CGRect) -> Path {
         circle ? Circle().path(in: rect) : Rectangle().path(in: rect)
+    }
+}
+
+
+// MARK: - 👻 Ghost drag hint (July 14, 2026)
+//
+// A translucent potency die that loops: pause on the tray → glide into
+// the cauldron → fade → repeat. Pure TimelineView math (no animation
+// state), so it can't leak or stick; the layer only exists while the
+// "Into the Cauldron" step is active.
+
+struct PotionShopTutGhostDrag: View {
+    let from: CGPoint
+    let to: CGPoint
+    let size: CGFloat
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            let loop: Double = 2.2
+            let t = timeline.date.timeIntervalSinceReferenceDate
+                .truncatingRemainder(dividingBy: loop) / loop
+            // phases: pause 0–0.12 · travel 0.12–0.78 · fade 0.78–0.95
+            let travel = min(1.0, max(0.0, (t - 0.12) / 0.66))
+            let eased = travel * travel * (3 - 2 * travel)   // smoothstep
+            let x = from.x + (to.x - from.x) * eased
+            let y = from.y + (to.y - from.y) * eased
+            let alpha: Double = t < 0.78 ? 0.65
+                : max(0, 0.65 * (1 - (t - 0.78) / 0.17))
+            ghostDie
+                .frame(width: size, height: size)
+                .position(x: x, y: y)
+                .opacity(alpha)
+        }
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private var ghostDie: some View {
+        if let img = PotionShopImageLoader.loadDisplayImage(named: "die_potency", displaySize: size) {
+            Image(uiImage: img).resizable().scaledToFit()
+        } else {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(red: 0.75, green: 0.2, blue: 0.2).opacity(0.8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.6), lineWidth: 2))
+        }
     }
 }
