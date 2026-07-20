@@ -104,7 +104,7 @@ enum PotionShopTutorialConstants {
         // "advances the instant the card pops" whiplash (user report).
         PotionShopTutStep(title: "The Die Card",
             body: "This card shows the die's faces — what each roll can do. Tap anywhere to continue.",
-            highlights: ["peekCard"]),
+            highlights: ["peekCard", "peekedDie"]),   // JULY 15: die follows the player's pick
         PotionShopTutStep(title: "Brewing 101",
             body: "You create potions by taking potency dice…",
             highlights: ["dice.potency"]),
@@ -125,7 +125,7 @@ enum PotionShopTutorialConstants {
         PotionShopTutStep(title: "The Yell",
             body: "The customer's potion value will go down. If you don't fulfill their order they may yell at you, signified by the !"),   // JULY 12: hpBadge0 reveal removed — the user's placed circles cover this beat
         PotionShopTutStep(title: "The Fire",
-            body: "The more you brew, the harder it is on the cauldron. The fire decreases depending on the strength of your brew.",
+            body: "The cauldron cools with one flame going out every turn, more with strong brews.",   // JULY 17: per-brew decay rule
             effect: .flameMinusOne,
             highlights: ["fireRow"]),
         PotionShopTutStep(title: "Dead Fire",
@@ -133,7 +133,7 @@ enum PotionShopTutorialConstants {
             effect: .flameAllOut,
             highlights: ["fireRow"]),
         PotionShopTutStep(title: "The Other Dice",
-            body: "There are several other dice: Heal, will heal this many composure, Shield, will add to your composure, Boost, will add a boost value to your brew, and indicate which spaces are affected.",
+            body: "There are several other dice: Stability, which will restore fire; Boost, will add a boost value to your brew and indicate which spaces are affected; Heal, will heal this many composure, Shield, will add to your composure,  .",
             highlights: ["dice.heal", "dice.shield", "dice.boost", "dice.stability"]),   // JULY 12: stability joins — all four non-potency dice light up
         PotionShopTutStep(title: "",
             body: "LET'S GET BREWING!",
@@ -423,11 +423,16 @@ struct PotionShopTutorialOverlay: View {
                         .min(by: { $0.frame.minX < $1.frame.minX })
                     let potEntry = gs.tutHighlights["cauldron"]
                     if let die = dieEntry, let pot = potEntry {
+                        // JULY 15 (rev 2): RAW anchors only — the drawer's
+                        // nudges are now read LIVE inside the ghost's
+                        // per-frame loop (see PotionShopTutGhostDrag), so
+                        // slider changes apply instantly, immune to any
+                        // observation gaps in this giant body.
                         PotionShopTutGhostDrag(
-                            from: CGPoint(x: die.frame.midX - o.x + cfg.tutGhostFromX,
-                                          y: die.frame.midY - o.y + cfg.tutGhostFromY),
-                            to: CGPoint(x: pot.frame.midX - o.x + cfg.tutGhostToX,
-                                        y: pot.frame.minY - o.y + pot.frame.height * 0.38 + cfg.tutGhostToY),
+                            from: CGPoint(x: die.frame.midX - o.x,
+                                          y: die.frame.midY - o.y),
+                            to: CGPoint(x: pot.frame.midX - o.x,
+                                        y: pot.frame.minY - o.y + pot.frame.height * 0.38),
                             size: max(40, die.frame.width * 0.9))
                     }
                 }
@@ -1090,8 +1095,16 @@ struct PotionShopTutGhostDrag: View {
             // phases: pause 0–0.12 · travel 0.12–0.78 · fade 0.78–0.95
             let travel = min(1.0, max(0.0, (t - 0.12) / 0.66))
             let eased = travel * travel * (3 - 2 * travel)   // smoothstep
-            let x = from.x + (to.x - from.x) * eased
-            let y = from.y + (to.y - from.y) * eased
+            // JULY 15 (rev 2): endpoint nudges read PER FRAME from the
+            // config — the 🎓 sliders move the ghost the instant they're
+            // dragged (the old constructor-time reads could go stale).
+            let c = PotionShopLayoutConfig.shared
+            let fx = from.x + c.tutGhostFromX
+            let fy = from.y + c.tutGhostFromY
+            let tx = to.x + c.tutGhostToX
+            let ty = to.y + c.tutGhostToY
+            let x = fx + (tx - fx) * eased
+            let y = fy + (ty - fy) * eased
             let alpha: Double = t < 0.78 ? 0.65
                 : max(0, 0.65 * (1 - (t - 0.78) / 0.17))
             ghostDie
