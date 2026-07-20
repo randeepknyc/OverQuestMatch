@@ -1,29 +1,14 @@
 //
 //  EnnasTavernSave.swift
-//  OverQuestMatch3 — Enna's Tavern
+//  OverQuestMatch3 — Enna's Tavern (v4 — the OPERATING COSTS build)
 //
-//  Two kinds of persistence:
-//   1. EnnasTavernSave — the in-progress RUN (key "tavern").
-//      Deleted when a run ends (win or lose) or on restart.
-//   2. TavernLedger — the LEDGER OF ENDINGS (key "tavern_ledger").
-//      Persists FOREVER across runs. Never deleted by the game.
-//      (⚠️ Enna-only collection — not the cross-game Town Ledger.)
+//  Run snapshot (key "tavern", deleted at run end) + the Ledger of
+//  Endings (key "tavern_ledger", persists forever). Old-format saves
+//  fail to decode and are treated as "no save" — safe and intentional.
 //
 
 import Foundation
 
-// ============================================================
-// MARKET OFFER SNAPSHOT (offers are rebuilt from these on load)
-// ============================================================
-struct TavernOfferSave: Codable {
-    var kind: String      // "joker" or "upgrade"
-    var refID: String     // joker id, or TavernRowID rawValue
-    var price: Int
-}
-
-// ============================================================
-// RUN SNAPSHOT
-// ============================================================
 struct EnnasTavernSave: Codable {
 
     static let saveKey = "tavern"
@@ -32,178 +17,180 @@ struct EnnasTavernSave: Codable {
     var act: Int
     var day: Int
     var runDay: Int
-    var serveIndex: Int
-    var patronsToday: Int
-    var dayScore: Int
-    var coin: Int
     var bossTwist: String
+
+    var dayScore: Int
+    var rollsLeft: Int
+    var customersServedToday: Int
+
+    var currentPatronID: String
+    var customerNeed: String
+    var customerLine: String
+    var ennaLine: String
+    var handLive: Bool
+    var chosenRow: String?
 
     var serveMode: String
     var dice: [TavernDie]
-    var rollsLeft: Int
     var deck: [TavernPlayingCard]
     var hand: [TavernPlayingCard]
-    var redrawsLeft: Int
-    var currentPatronID: String
 
+    var rowIcons: [String: String]
+    var dayMode: String
     var rowLevels: [String: Int]
-    var bankedToday: [String]
+    var rowServeCounts: [String: Int]
+    var permanentRowLevels: [String: Int]
+    var matchesThisRun: Int
+    var levelUpsThisDay: Int
+    var leveledTodayRows: [String]
+    var nextDayBonusRolls: Int
+    var tokens: Int
+    var skillIDs: [String]
+    var serviceLog: [TavernServiceEntry]
 
-    var jokerIDs: [String]
-    var spitePrimed: Bool
-    var gremlockUsedToday: Bool
-    var firstBankDoneToday: Bool
+    var interludeTokensEarned: Int
+    var minigameDone: Bool
+    var bjHandsPlayed: Int
+    var shopSkillIDs: [String]
+    var nightPickDone: Bool
 
-    var pendingCollectibles: [String]
     var showReaction: Bool
     var reactionLine: String
     var reactionPoints: Int
+    var reactionMatched: Bool
+    var pendingCollectibles: [String]
     var endingID: String?
     var genericEndText: String?
-    var lastCoinEarned: Int
-
-    var marketOffers: [TavernOfferSave]
-    var merchantID: String
-    var swordOffered: Bool
-
-    var todayServesUsedAllRerolls: [Bool]
-    var act1BankedNodEver: Bool
-    var today35PlusCount: Int
-    var todayRowKinds: [String]
     var dayResolvedPass: Bool
 
-    // ============================================================
-    // SNAPSHOT
-    // ============================================================
+    var maxRollsSpentOnOneCustomer: Int
+    var rollsSpentThisCustomer: Int
+    var servedHighCardInAct1: Bool
+    var bigServesToday: Int
+    var todayRowKinds: [String]
+
     static func snapshot(from vm: EnnasTavernViewModel) -> EnnasTavernSave {
         EnnasTavernSave(
             phase: vm.phase.rawValue,
             act: vm.act, day: vm.day, runDay: vm.runDay,
-            serveIndex: vm.serveIndex, patronsToday: vm.patronsToday,
-            dayScore: vm.dayScore, coin: vm.coin,
             bossTwist: vm.bossTwist.rawValue,
-            serveMode: vm.serveMode.rawValue,
-            dice: vm.dice, rollsLeft: vm.rollsLeft,
-            deck: vm.deck, hand: vm.hand, redrawsLeft: vm.redrawsLeft,
+            dayScore: vm.dayScore,
+            rollsLeft: vm.rollsLeft,
+            customersServedToday: vm.customersServedToday,
             currentPatronID: vm.currentPatronID,
+            customerNeed: vm.customerNeed.rawValue,
+            customerLine: vm.customerLine,
+            ennaLine: vm.ennaLine,
+            handLive: vm.handLive,
+            chosenRow: vm.chosenRow?.rawValue,
+            serveMode: vm.serveMode.rawValue,
+            dice: vm.dice, deck: vm.deck, hand: vm.hand,
+            rowIcons: Dictionary(uniqueKeysWithValues: vm.rowIcons.map { ($0.key.rawValue, $0.value.rawValue) }),
+            dayMode: vm.dayMode.rawValue,
             rowLevels: Dictionary(uniqueKeysWithValues: vm.rowLevels.map { ($0.key.rawValue, $0.value) }),
-            bankedToday: vm.bankedToday.map { $0.rawValue },
-            jokerIDs: vm.jokerIDs,
-            spitePrimed: vm.spitePrimed,
-            gremlockUsedToday: vm.gremlockUsedToday,
-            firstBankDoneToday: vm.firstBankDoneToday,
-            pendingCollectibles: vm.pendingCollectibles,
+            rowServeCounts: Dictionary(uniqueKeysWithValues: vm.rowServeCounts.map { ($0.key.rawValue, $0.value) }),
+            permanentRowLevels: Dictionary(uniqueKeysWithValues: vm.permanentRowLevels.map { ($0.key.rawValue, $0.value) }),
+            matchesThisRun: vm.matchesThisRun,
+            levelUpsThisDay: vm.levelUpsThisDay,
+            leveledTodayRows: vm.leveledTodayRows.map { $0.rawValue },
+            nextDayBonusRolls: vm.nextDayBonusRolls,
+            tokens: vm.tokens,
+            skillIDs: vm.skillIDs,
+            serviceLog: vm.serviceLog,
+            interludeTokensEarned: vm.interludeTokensEarned,
+            minigameDone: vm.minigameDone,
+            bjHandsPlayed: vm.bjHandsPlayed,
+            shopSkillIDs: vm.shopSkillIDs,
+            nightPickDone: vm.nightPickDone,
             showReaction: vm.showReaction,
             reactionLine: vm.reactionLine,
             reactionPoints: vm.reactionPoints,
+            reactionMatched: vm.reactionMatched,
+            pendingCollectibles: vm.pendingCollectibles,
             endingID: vm.endingID,
             genericEndText: vm.genericEndText,
-            lastCoinEarned: vm.lastCoinEarned,
-            marketOffers: vm.marketOffers.map { offer in
-                switch offer.kind {
-                case .joker(let j):        return TavernOfferSave(kind: "joker", refID: j.id, price: offer.price)
-                case .rowUpgrade(let row): return TavernOfferSave(kind: "upgrade", refID: row.rawValue, price: offer.price)
-                }
-            },
-            merchantID: vm.merchantID,
-            swordOffered: vm.swordOffered,
-            todayServesUsedAllRerolls: vm.todayServesUsedAllRerolls,
-            act1BankedNodEver: vm.act1BankedNodEver,
-            today35PlusCount: vm.today35PlusCount,
-            todayRowKinds: vm.todayRowKinds.map { $0.rawValue },
-            dayResolvedPass: vm.dayResolvedPass
+            dayResolvedPass: vm.dayResolvedPass,
+            maxRollsSpentOnOneCustomer: vm.maxRollsSpentOnOneCustomer,
+            rollsSpentThisCustomer: vm.rollsSpentThisCustomer,
+            servedHighCardInAct1: vm.servedHighCardInAct1,
+            bigServesToday: vm.bigServesToday,
+            todayRowKinds: vm.todayRowKinds.map { $0.rawValue }
         )
     }
 
-    // ============================================================
-    // RESTORE
-    // ============================================================
     func restore(into vm: EnnasTavernViewModel) {
         vm.phase = TavernPhase(rawValue: phase) ?? .dayIntro
         vm.act = act; vm.day = day; vm.runDay = runDay
-        vm.serveIndex = serveIndex; vm.patronsToday = patronsToday
-        vm.dayScore = dayScore; vm.coin = coin
         vm.bossTwist = TavernBossTwist(rawValue: bossTwist) ?? .none
-        vm.serveMode = TavernServeMode(rawValue: serveMode) ?? .dice
-        vm.dice = dice; vm.rollsLeft = rollsLeft
-        vm.deck = deck; vm.hand = hand; vm.redrawsLeft = redrawsLeft
+        vm.dayScore = dayScore
+        vm.rollsLeft = rollsLeft
+        vm.customersServedToday = customersServedToday
         vm.currentPatronID = currentPatronID
+        vm.customerNeed = TavernNeed(rawValue: customerNeed) ?? .food
+        vm.customerLine = customerLine
+        vm.ennaLine = ennaLine
+        vm.handLive = handLive
+        vm.chosenRow = chosenRow.flatMap { TavernRowID(rawValue: $0) }
+        vm.serveMode = TavernServeMode(rawValue: serveMode) ?? .dice
+        vm.dice = dice; vm.deck = deck; vm.hand = hand
 
-        var levels: [TavernRowID: Int] = [:]
-        for (k, v) in rowLevels {
-            if let id = TavernRowID(rawValue: k) { levels[id] = v }
+        var icons: [TavernRowID: TavernNeed] = [:]
+        for (k, v) in rowIcons {
+            if let row = TavernRowID(rawValue: k), let need = TavernNeed(rawValue: v) {
+                icons[row] = need
+            }
         }
-        // Make sure every row has a level even if new rows were added since the save
-        for row in EnnasTavernDatabase.rows where levels[row.id] == nil { levels[row.id] = 1 }
-        vm.rowLevels = levels
+        for row in EnnasTavernDatabase.rows where icons[row.id] == nil {
+            icons[row.id] = TavernNeed.allCases.randomElement() ?? .food
+        }
+        vm.rowIcons = icons
+        vm.dayMode = TavernServeMode(rawValue: dayMode) ?? .dice
+        vm.rowLevels = Dictionary(uniqueKeysWithValues: rowLevels.compactMap { k, val in TavernRowID(rawValue: k).map { ($0, val) } })
+        vm.rowServeCounts = Dictionary(uniqueKeysWithValues: rowServeCounts.compactMap { k, val in TavernRowID(rawValue: k).map { ($0, val) } })
+        vm.permanentRowLevels = Dictionary(uniqueKeysWithValues: permanentRowLevels.compactMap { k, val in TavernRowID(rawValue: k).map { ($0, val) } })
+        vm.matchesThisRun = matchesThisRun
+        vm.levelUpsThisDay = levelUpsThisDay
+        vm.leveledTodayRows = Set(leveledTodayRows.compactMap { TavernRowID(rawValue: $0) })
+        vm.nextDayBonusRolls = nextDayBonusRolls
 
-        vm.bankedToday = Set(bankedToday.compactMap { TavernRowID(rawValue: $0) })
-        vm.jokerIDs = jokerIDs
-        vm.spitePrimed = spitePrimed
-        vm.gremlockUsedToday = gremlockUsedToday
-        vm.firstBankDoneToday = firstBankDoneToday
+        vm.tokens = tokens
+        vm.skillIDs = skillIDs
+        vm.serviceLog = serviceLog
+        vm.interludeTokensEarned = interludeTokensEarned
+        vm.minigameDone = minigameDone
+        vm.showNightShop = minigameDone
+        vm.bjHandsPlayed = bjHandsPlayed
+        vm.shopSkillIDs = shopSkillIDs
+        vm.nightPickDone = nightPickDone
         vm.pendingCollectibles = pendingCollectibles
         vm.endingID = endingID
         vm.genericEndText = genericEndText
-        vm.lastCoinEarned = lastCoinEarned
-
-        vm.marketOffers = marketOffers.compactMap { saved in
-            if saved.kind == "joker", let j = EnnasTavernDatabase.joker(saved.refID) {
-                return TavernMarketOffer(kind: .joker(j), price: saved.price)
-            }
-            if saved.kind == "upgrade", let row = TavernRowID(rawValue: saved.refID) {
-                return TavernMarketOffer(kind: .rowUpgrade(row), price: saved.price)
-            }
-            return nil
-        }
-        vm.merchantID = merchantID
-        vm.swordOffered = swordOffered
-
-        vm.todayServesUsedAllRerolls = todayServesUsedAllRerolls
-        vm.act1BankedNodEver = act1BankedNodEver
-        vm.today35PlusCount = today35PlusCount
-        vm.todayRowKinds = Set(todayRowKinds.compactMap { TavernRowID(rawValue: $0) })
         vm.dayResolvedPass = dayResolvedPass
+        vm.maxRollsSpentOnOneCustomer = maxRollsSpentOnOneCustomer
+        vm.rollsSpentThisCustomer = rollsSpentThisCustomer
+        vm.servedHighCardInAct1 = servedHighCardInAct1
+        vm.bigServesToday = bigServesToday
+        vm.todayRowKinds = Set(todayRowKinds.compactMap { TavernRowID(rawValue: $0) })
 
-        // Restore overlays exactly as they were: a reaction shows first,
-        // then any queued collectible interludes.
         vm.reactionLine = reactionLine
         vm.reactionPoints = reactionPoints
+        vm.reactionMatched = reactionMatched
         vm.showReaction = showReaction
         vm.showCollectible = !showReaction && !vm.pendingCollectibles.isEmpty
     }
 
-    // ============================================================
-    // FILE OPERATIONS (via the shared SaveManager)
-    // ============================================================
-    static func save(vm: EnnasTavernViewModel) {
-        SaveManager.save(snapshot(from: vm), key: saveKey)
-    }
-
-    static func load() -> EnnasTavernSave? {
-        SaveManager.load(EnnasTavernSave.self, key: saveKey)
-    }
-
-    static func deleteSave() {
-        SaveManager.deleteSave(key: saveKey)
-    }
-
-    static func hasSave() -> Bool {
-        SaveManager.hasSave(key: saveKey)
-    }
+    static func save(vm: EnnasTavernViewModel) { SaveManager.save(snapshot(from: vm), key: saveKey) }
+    static func load() -> EnnasTavernSave? { SaveManager.load(EnnasTavernSave.self, key: saveKey) }
+    static func deleteSave() { SaveManager.deleteSave(key: saveKey) }
+    static func hasSave() -> Bool { SaveManager.hasSave(key: saveKey) }
 }
 
 // ============================================================
 // 📕 LEDGER OF ENDINGS — persists across ALL runs
 // ============================================================
 enum TavernLedger {
-
     static let key = "tavern_ledger"
-
-    static func found() -> Set<String> {
-        Set(SaveManager.load([String].self, key: key) ?? [])
-    }
-
+    static func found() -> Set<String> { Set(SaveManager.load([String].self, key: key) ?? []) }
     static func add(_ endingID: String) {
         var all = found()
         guard !all.contains(endingID) else { return }

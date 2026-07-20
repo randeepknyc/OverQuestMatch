@@ -722,6 +722,17 @@ struct PotionShopConfig {
     /// TUNING: raise firePerPotionValue for a slower burn (bigger brews per
     /// flame), lower it to make aggressive brewing costly.
     static let firePerPotionValue = 10
+
+    /// JULY 17, 2026 — PLAYTEST RESPONSE ("complicated but not strategic"):
+    /// the fire also burns a flat amount EVERY BREW, on top of the value
+    /// burn. This turns fire from a burst-throttle (which cautious players
+    /// never even saw move) into a round-long CLOCK: stability dice become
+    /// a recurring hand-slot decision — feed the fire or push damage —
+    /// and letting it gutter for a turn (halved damage, survivable) is a
+    /// legitimate tempo play.
+    /// TUNING: 1 = one flame per brew (current). 0 = OFF (restores the
+    /// pure value-burn behavior exactly). 2 = brutal, probably too hot.
+    static let firePerBrewDecay = 1
     static let fireBigHitThreshold = 10
 
     /// Stability fire meter: pieces shown under the cauldron. Starts full

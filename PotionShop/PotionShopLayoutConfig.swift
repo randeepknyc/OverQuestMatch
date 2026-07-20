@@ -46,6 +46,18 @@ class PotionShopLayoutConfig {
     /// when the badge sits LEFT of the customer) · within ±T → "_tm"
     /// (tail middle) · > +T → "_tl" (tail left). Missing variants fall
     /// back to the base asset, so nothing changes until the art exists.
+    /// JULY 17, 2026: 🎲 TEMPORARY TEST — real SceneKit 3D dice in the
+    /// tray (PotionShopDice3DTest.swift). Visuals only: values, rolls,
+    /// gestures all unchanged. Deliberately NOT in the export — flip it
+    /// in the drawer 🎲 tab; OFF = byte-identical to the 2D game.
+    var dice3DTest: Bool = false
+    /// REV 3: seat the 3D die onto the tray by eye (🎲 tab sliders).
+    var dice3DScale: Double = 0.9294533491134644     // batch 25
+    var dice3DYOffset: Double = 9.501113891601562    // batch 25
+    /// REV 7: the Tavern throw — leap + tumble + two squash-bounces,
+    /// clipped by the tray window. OFF = the quiet reel drop.
+    var dice3DBounceIn: Bool = true
+    var dice3DDropHeight: Double = 1.9      // throw height (Tavern default)
     var hpBadgeTailSwitchX: Double = 18
     /// JULY 15, 2026: ghost-drag endpoint nudges (tutorial "Into the
     /// Cauldron"). Applied on top of the live registry anchors — start
@@ -1888,6 +1900,11 @@ class PotionShopLayoutConfig {
         headerEdgeY = 77.11834073066711     // batch 22
         customerScaleGlobal = 1.0           // JULY 13
         hpBadgeScaleGlobal = 1.0            // JULY 13
+        dice3DTest = false                  // JULY 17 (test)
+        dice3DScale = 0.9294533491134644    // batch 25
+        dice3DYOffset = 9.501113891601562   // batch 25
+        dice3DBounceIn = true               // JULY 17 (test)
+        dice3DDropHeight = 1.9              // JULY 17 (test, throw height)
         hpBadgeTailSwitchX = 18             // JULY 13
         tutGhostFromX = 0; tutGhostFromY = 0   // JULY 15
         tutGhostToX = 0; tutGhostToY = 61.541372537612915   // batch 24

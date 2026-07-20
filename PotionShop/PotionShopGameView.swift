@@ -363,7 +363,7 @@ struct PotionShopGameView: View {
             // active window. drawFromBag() already ran during init() but the
             // generator silently no-ops before the view is on screen.
             if gs.currentRoundUses3DDice {
-                HapticManager.shared.diceRollRattle()
+                if !PotionShopLayoutConfig.shared.dice3DTest { HapticManager.shared.diceRollRattle() }   // JULY 17: 3D test owns rattle
             }
             // ── Tutorial first-run check ─────────────────────────
             if !tutorial.hasSeenTutorial {
@@ -1814,6 +1814,22 @@ struct PotionShopLayoutOverlay: View {
                 sliderRow("Tray Die Scale", value: $layoutConfig.trayDieScale, range: 0.5...5.0, format: "%.2f×")
                 sliderRow("Tray X", value: $layoutConfig.trayOffsetX, range: -200...200, format: "%.0f")
                 sliderRow("Tray Y", value: $layoutConfig.trayOffsetY, range: -200...200, format: "%.0f")
+
+                // JULY 17, 2026: 🎲 TEMPORARY TEST — real SceneKit dice.
+                // Visuals only; flip OFF to restore the 2D dice exactly.
+                Toggle("🎲 SceneKit 3D dice (test)", isOn: $layoutConfig.dice3DTest)
+                    .font(.caption)
+                    .tint(.orange)
+                if layoutConfig.dice3DTest {
+                    sliderRow("3D size ×", value: $layoutConfig.dice3DScale, range: 0.5...1.8, format: "%.2f")
+                    sliderRow("3D seat Y", value: $layoutConfig.dice3DYOffset, range: -60...60, format: "%.0f")
+                    Toggle("🎲 Tavern throw (bouncy)", isOn: $layoutConfig.dice3DBounceIn)
+                        .font(.caption)
+                        .tint(.orange)
+                    if layoutConfig.dice3DBounceIn {
+                        sliderRow("3D throw height", value: $layoutConfig.dice3DDropHeight, range: 0.8...3.0, format: "%.1f")
+                    }
+                }
 
                 // 3D test spin (Day 2 R2 only)
                 Divider()

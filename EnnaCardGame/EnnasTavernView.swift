@@ -1,522 +1,705 @@
 //
 //  EnnasTavernView.swift
-//  OverQuestMatch3 — Enna's Tavern
+//  OverQuestMatch3 — Enna's Tavern (v4 — the OPERATING COSTS build)
 //
-//  The main container: routes between phases and hosts the flow screens.
-//  The serving table lives in EnnasTavernPlayViews.swift.
-//  The market & ledger live in EnnasTavernScreens.swift.
+//  Router + chrome: hamburger settings, costs plaque, day screens,
+//  skills sheet (with free icon reassignment), service ledger,
+//  promotion/epilogue/game-over. Entry point unchanged for GameSelector.
 //
 
 import SwiftUI
 
 struct EnnasTavernView: View {
-
     let continueFromSave: Bool
+    var onExit: (() -> Void)? = nil
 
     @State private var vm = EnnasTavernViewModel()
     @State private var didSetUp = false
-    @State private var showLedger = false
+    @State private var showMenu = false
+    @State private var showSkills = false
+    @State private var showServiceLog = false
+    @State private var showEndingsLedger = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
-            // Tavern-wood background
-            LinearGradient(
-                colors: [TavernPalette.woodLight, TavernPalette.wood],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            TavernPalette.wood.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                TavernTopBar(vm: vm, onExit: exitGame, onLedger: { showLedger = true })
-
-                switch vm.phase {
-                case .dayIntro:
-                    TavernDayIntroScreen(vm: vm)
-                case .modeSelect:
-                    TavernModeSelectScreen(vm: vm)
-                case .serving:
-                    TavernServingScreen(vm: vm)
-                case .dayResult:
-                    TavernDayResultScreen(vm: vm)
-                case .market:
-                    TavernMarketScreen(vm: vm)
-                case .promotion:
-                    TavernEndingScreen(vm: vm, style: .promotion, onRestart: { vm.restart() }, onExit: exitGame)
-                case .epilogue:
-                    TavernEndingScreen(vm: vm, style: .victory, onRestart: { vm.restart() }, onExit: exitGame)
-                case .gameOver:
-                    TavernEndingScreen(vm: vm, style: .fail, onRestart: { vm.restart() }, onExit: exitGame)
-                }
+                TavernTopBar(vm: vm, onMenu: { showMenu = true })
+                content
             }
 
-            // ---- Overlays ----
-            if vm.showReaction {
-                TavernReactionOverlay(vm: vm)
-            }
             if vm.showCollectible, let id = vm.pendingCollectibles.first,
                let ending = EnnasTavernDatabase.ending(id) {
                 TavernCollectibleOverlay(ending: ending) { vm.dismissCollectible() }
             }
+
+            // 🔧 layout tuner — root level so it opens on ANY screen
+            if TavernLayout.shared.tunerOpen {
+                VStack {
+                    Spacer()
+                    TavernLayoutTuner(vm: vm)
+                }
+                .transition(.move(edge: .bottom))
+            }
         }
-        .sheet(isPresented: $showLedger) {
-            TavernLedgerSheet()
+        .sheet(isPresented: $showMenu) {
+            TavernMenuSheet(vm: vm,
+                            onEndingsLedger: { showMenu = false; showEndingsLedger = true },
+                            onExit: exitGame)
         }
+        .sheet(isPresented: $showSkills) { TavernSkillsSheet(vm: vm) }
+        .sheet(isPresented: $showServiceLog) { TavernServiceLogSheet(vm: vm) }
+        .sheet(isPresented: $showEndingsLedger) { TavernLedgerSheet() }
         .onAppear {
             guard !didSetUp else { return }
             didSetUp = true
             if continueFromSave, let save = EnnasTavernSave.load() {
                 save.restore(into: vm)
-            } else {
-                EnnasTavernSave.deleteSave()
-                vm.startRun()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch vm.phase {
+        case .dayIntro:  TavernDayIntroScreen(vm: vm)
+        case .serving:   TavernServingScreen(vm: vm,
+                                             onSkills: { showSkills = true },
+                                             onServiceLog: { showServiceLog = true })
+        case .dayResult: TavernDayResultScreen(vm: vm)
+        case .interlude: TavernInterludeScreen(vm: vm, onSkillsInfo: { showSkills = true })
+        case .promotion: TavernPromotionScreen(vm: vm)
+        case .epilogue, .gameOver: TavernEndingScreen(vm: vm, onExit: exitGame)
         }
     }
 
     private func exitGame() {
-        // Mid-run: progress is already saved after every action.
-        dismiss()
+        if let onExit { onExit() } else { dismiss() }
     }
 }
 
 // ============================================================
-// TOP BAR — act/day, quota progress, coin, exit
+// TOP BAR — hamburger left · operating-costs plaque right
 // ============================================================
 struct TavernTopBar: View {
     var vm: EnnasTavernViewModel
-    var onExit: () -> Void
-    var onLedger: () -> Void
-
-    private var showProgress: Bool {
-        vm.phase == .serving || vm.phase == .modeSelect || vm.phase == .dayResult
-    }
+    var onMenu: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text("ACT \(vm.act) · DAY \(vm.day)")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(TavernPalette.cream.opacity(0.8))
-
-                Spacer()
-
-                Button(action: onLedger) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(TavernPalette.cream.opacity(0.6))
-                }
-
-                HStack(spacing: 4) {
-                    Text("🪙").font(.system(size: 14))
-                    Text("\(vm.coin)")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(TavernPalette.amber)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(Color.black.opacity(0.3)))
-
-                Button(action: onExit) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(TavernPalette.cream.opacity(0.5))
-                }
+        HStack(alignment: .top) {
+            Button(action: onMenu) {
+                Image(systemName: "line.3.horizontal")
+                    .font(TavernFont.of(19))
+                    .foregroundColor(TavernPalette.cream.opacity(0.75))
+                    .padding(6)
             }
 
-            if showProgress {
-                TavernQuotaBar(served: vm.serveIndex, total: vm.patronsToday,
-                               ask: vm.serveQuota, dayScore: vm.dayScore)
+            // 🔧 the tuner wrench is ALWAYS here — no toggle, no hunting
+            Button(action: { TavernLayout.shared.tunerOpen.toggle() }) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(TavernFont.of(14))
+                    .foregroundColor(TavernPalette.wood)
+                    .padding(7)
+                    .background(Circle().fill(TavernPalette.amber))
             }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
-    }
-}
+            .padding(.leading, 2)
 
-/// Day progress: patrons served, plus the ask every hand must meet today.
-struct TavernQuotaBar: View {
-    let served: Int
-    let total: Int
-    let ask: Int
-    let dayScore: Int
-
-    private var fraction: Double {
-        guard total > 0 else { return 0 }
-        return min(1.0, Double(served) / Double(total))
-    }
-
-    var body: some View {
-        VStack(spacing: 3) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.black.opacity(0.35))
-                    Capsule()
-                        .fill(served >= total ? TavernPalette.green : TavernPalette.amber)
-                        .frame(width: max(8, geo.size.width * fraction))
-                        .animation(.spring(response: 0.5), value: fraction)
-                }
-            }
-            .frame(height: 10)
-
-            HStack {
-                Text("\(served)/\(total) patrons · \(dayScore) pts tonight")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(TavernPalette.cream.opacity(0.7))
-                Spacer()
-                Text("THE ASK: \(ask)")
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(TavernPalette.amber)
-            }
-        }
-    }
-}
-
-// ============================================================
-// SHARED PORTRAIT — gmarker image, or an initial circle if missing
-// ============================================================
-struct TavernPortraitView: View {
-    let imageName: String
-    let fallbackName: String
-    var size: CGFloat = 90
-
-    var body: some View {
-        Group {
-            if let ui = UIImage(named: imageName) {
-                Image(uiImage: ui)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                Circle()
-                    .fill(TavernPalette.amber.opacity(0.3))
-                    .overlay(
-                        Text(String(fallbackName.prefix(1)))
-                            .font(.system(size: size * 0.45, weight: .bold))
-                            .foregroundColor(TavernPalette.cream)
-                    )
-            }
-        }
-        .frame(width: size, height: size)
-    }
-}
-
-// ============================================================
-// JOKER SHELF — small strip of owned jokers
-// ============================================================
-struct TavernJokerShelf: View {
-    var vm: EnnasTavernViewModel
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text("SHELF")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(TavernPalette.cream.opacity(0.4))
-
-            if vm.activeJokers.isEmpty {
-                Text("empty — visit the caravan")
-                    .font(.system(size: 12))
-                    .foregroundColor(TavernPalette.cream.opacity(0.4))
-            } else {
-                ForEach(vm.activeJokers) { joker in
-                    Text(joker.icon)
-                        .font(.system(size: 20))
-                        .opacity(vm.jokersDisabledToday ? 0.25 : 1.0)
-                }
-                if vm.jokersDisabledToday {
-                    Text("DISABLED")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(TavernPalette.red)
-                }
-            }
             Spacer()
+
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("OPERATING COSTS")
+                    .font(TavernFont.of(10)).tracking(1)
+                    .foregroundColor(TavernPalette.cream.opacity(0.5))
+                HStack(spacing: 5) {
+                    TavernOdometerText(value: vm.dayScore,
+                                       font: TavernFont.of(TavernLayout.shared.costsFont),
+                                       color: vm.dayCleared ? TavernPalette.green : TavernPalette.amber)
+                    Text("/ \(vm.operatingCosts)")
+                        .font(TavernFont.of(TavernLayout.shared.costsFont))
+                        .foregroundColor((vm.dayCleared ? TavernPalette.green : TavernPalette.amber).opacity(0.75))
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.black.opacity(0.4))
+                        Capsule().fill(TavernPalette.amber)
+                            .frame(width: max(4, geo.size.width * min(1, Double(vm.dayScore) / Double(max(1, vm.operatingCosts)))))
+                            .animation(.spring(response: 0.45), value: vm.dayScore)
+                    }
+                }
+                .frame(width: 110, height: 6)
+
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                .stroke(TavernPalette.amber.opacity(0.5), lineWidth: 1))
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
     }
 }
 
 // ============================================================
-// DAY INTRO — the morning
+// DAY INTRO
 // ============================================================
 struct TavernDayIntroScreen: View {
     var vm: EnnasTavernViewModel
 
-    private var actTitle: String {
-        switch vm.act {
-        case 1: return "THE BARMAID"
-        case 2: return "HER OWN SIGN"
-        default: return "THE CITY ARRIVES"
-        }
-    }
-
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 18) {
             Spacer()
-
-            Text("ACT \(vm.act) — \(actTitle)")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(TavernPalette.amber)
-                .tracking(2)
-
-            Text("Day \(vm.day)")
-                .font(.system(size: 44, weight: .heavy, design: .serif))
+            Text("DAY \(vm.runDay)")
+                .font(TavernFont.of(13)).tracking(4)
+                .foregroundColor(TavernPalette.cream.opacity(0.5))
+            Text(vm.bossTwist == .none ? "Morning at the tavern." : "Something's off this morning.")
+                .font(TavernFont.of(TavernLayout.shared.panelFont))
                 .foregroundColor(TavernPalette.cream)
+                .multilineTextAlignment(.center).padding(.horizontal, 30)
 
             if vm.bossTwist != .none {
-                VStack(spacing: 6) {
-                    Text(vm.bossTwist.banner)
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundColor(.white)
-                    Text(vm.bossTwist.detail)
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity)
-                .background(RoundedRectangle(cornerRadius: 14).fill(TavernPalette.red.opacity(0.55)))
-                .padding(.horizontal, 24)
+                Text(vm.bossTwist.banner)
+                    .font(TavernFont.of(14)).italic()
+                    .foregroundColor(TavernPalette.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 34)
             }
 
             VStack(spacing: 10) {
-                infoRow(label: "The ask (per patron)", value: "\(vm.serveQuota) points")
-                infoRow(label: "Patrons expected", value: "\(vm.patronsToday)")
-                infoRow(label: "Do-overs per patron", value: "\(vm.doOversPerServe)")
+                infoRow(label: "Operating costs", value: "\(vm.operatingCosts) points")
+                infoRow(label: "Rolls in the tank", value: "\(vm.rollBudget)")
+                infoRow(label: "Coins", value: "the sum of your table")
+                infoRow(label: "Multiplier", value: "the hand you serve")
+                infoRow(label: "Act bonus", value: "+\(Int(EnnasTavernConfig.actMultBonus(act: vm.act))) mult")
+                infoRow(label: "Match a need", value: "+10 coins · +1 mult")
             }
-            .padding(18)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.25)))
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 40)
+            .padding(.vertical, 6)
 
-            TavernJokerShelf(vm: vm)
-                .padding(.horizontal, 28)
-
-            Spacer()
+            Text("Every roll costs one. Serving is free.\nMeet costs and the day is yours.")
+                .font(TavernFont.of(TavernLayout.shared.menuFont))
+                .foregroundColor(TavernPalette.cream.opacity(0.55))
+                .multilineTextAlignment(.center)
 
             Button(action: { vm.openDoors() }) {
                 Text("OPEN THE DOORS")
-                    .font(.system(size: 18, weight: .heavy))
+                    .font(TavernFont.of(16))
                     .foregroundColor(TavernPalette.wood)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(TavernPalette.amber))
+                    .padding(.horizontal, 40).padding(.vertical, 14)
+                    .background(Capsule().fill(TavernPalette.amber))
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 30)
+            .padding(.top, 8)
+            Spacer()
         }
     }
 
     private func infoRow(label: String, value: String) -> some View {
         HStack {
-            Text(label)
-                .font(.system(size: 14))
-                .foregroundColor(TavernPalette.cream.opacity(0.7))
+            Text(label).font(TavernFont.of(13))
+                .foregroundColor(TavernPalette.cream.opacity(0.65))
             Spacer()
-            Text(value)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(TavernPalette.cream)
+            Text(value).font(TavernFont.of(14))
+                .foregroundColor(TavernPalette.amber)
         }
     }
 }
 
 // ============================================================
-// MODE SELECT (Act 3) — dice or cards, per patron
-// ============================================================
-struct TavernModeSelectScreen: View {
-    var vm: EnnasTavernViewModel
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            TavernPortraitView(imageName: vm.currentPatron.imageName,
-                               fallbackName: vm.currentPatron.name,
-                               size: 120)
-
-            Text("\(vm.currentPatron.name) sits down.")
-                .font(.system(size: 18, weight: .bold, design: .serif))
-                .foregroundColor(TavernPalette.cream)
-
-            Text("How will Enna read them tonight?")
-                .font(.system(size: 14))
-                .foregroundColor(TavernPalette.cream.opacity(0.7))
-
-            HStack(spacing: 16) {
-                modeButton(title: "THE DICE", subtitle: "Roll & lock", emoji: "🎲", mode: .dice)
-                modeButton(title: "THE CARDS", subtitle: "Hold & redraw", emoji: "🃏", mode: .cards)
-            }
-            .padding(.horizontal, 24)
-
-            Spacer()
-            Spacer()
-        }
-    }
-
-    private func modeButton(title: String, subtitle: String, emoji: String, mode: TavernServeMode) -> some View {
-        Button(action: { vm.chooseMode(mode) }) {
-            VStack(spacing: 8) {
-                Text(emoji).font(.system(size: 44))
-                Text(title)
-                    .font(.system(size: 16, weight: .heavy))
-                    .foregroundColor(TavernPalette.cream)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundColor(TavernPalette.cream.opacity(0.6))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
-            .background(RoundedRectangle(cornerRadius: 18).fill(Color.black.opacity(0.3)))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(TavernPalette.amber.opacity(0.5), lineWidth: 1.5))
-        }
-    }
-}
-
-// ============================================================
-// DAY RESULT — quota met (non-boss days)
+// DAY RESULT
 // ============================================================
 struct TavernDayResultScreen: View {
     var vm: EnnasTavernViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
-
-            Text("LAST CALL")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(TavernPalette.cream.opacity(0.6))
-                .tracking(3)
-
-            Text("Day Cleared!")
-                .font(.system(size: 40, weight: .heavy, design: .serif))
+            Text("COSTS COVERED")
+                .font(TavernFont.of(13)).tracking(3)
                 .foregroundColor(TavernPalette.green)
-
-            Text("Every ask met. \(vm.dayScore) points across \(vm.patronsToday) patrons.")
-                .font(.system(size: 16))
+            Text("The tavern survives the day.")
+                .font(TavernFont.of(TavernLayout.shared.panelFont))
                 .foregroundColor(TavernPalette.cream)
-
-            HStack(spacing: 6) {
-                Text("🪙").font(.system(size: 20))
-                Text("+\(vm.lastCoinEarned) coin")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(TavernPalette.amber)
-            }
-            .padding(.top, 4)
-
-            Spacer()
-
-            Button(action: { vm.continueToMarket() }) {
-                Text("THE CARAVAN IS OUTSIDE →")
-                    .font(.system(size: 17, weight: .heavy))
+                .multilineTextAlignment(.center).padding(.horizontal, 30)
+            Text("\(vm.dayScore) earned against \(vm.operatingCosts) · \(vm.customersServedToday) customers · \(vm.rollsLeft) rolls to spare")
+                .font(TavernFont.of(TavernLayout.shared.menuFont))
+                .foregroundColor(TavernPalette.cream.opacity(0.6))
+                .multilineTextAlignment(.center).padding(.horizontal, 30)
+            Button(action: { vm.continueToNight() }) {
+                Text("CLOSE UP · NIGHT SCHOOL")
+                    .font(TavernFont.of(15))
                     .foregroundColor(TavernPalette.wood)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(TavernPalette.amber))
+                    .padding(.horizontal, 34).padding(.vertical, 14)
+                    .background(Capsule().fill(TavernPalette.amber))
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 30)
+            .padding(.top, 8)
+            Spacer()
         }
     }
 }
 
 // ============================================================
-// ENDING SCREEN — promotion ★ / victory epilogue / fail vignette
+// PROMOTION (act cleared) — reuses ending content
 // ============================================================
-struct TavernEndingScreen: View {
-
-    enum Style { case promotion, victory, fail }
-
+struct TavernPromotionScreen: View {
     var vm: EnnasTavernViewModel
-    let style: Style
-    var onRestart: () -> Void
-    var onExit: () -> Void
-
-    private var ending: TavernEnding? {
-        vm.endingID.flatMap { EnnasTavernDatabase.ending($0) }
-    }
-
-    private var header: String {
-        switch style {
-        case .promotion: return "ACT \(vm.act) COMPLETE"
-        case .victory:   return "THE RUN IS WON"
-        case .fail:      return "THE RUN ENDS"
-        }
-    }
-
-    private var headerColor: Color {
-        switch style {
-        case .promotion: return TavernPalette.amber
-        case .victory:   return TavernPalette.green
-        case .fail:      return TavernPalette.red
-        }
-    }
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             Spacer()
-
-            Text(header)
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundColor(headerColor)
-                .tracking(3)
-
-            if let ending = ending {
+            if let id = vm.endingID, let ending = EnnasTavernDatabase.ending(id) {
+                Text("★ PROMOTION")
+                    .font(TavernFont.of(13)).tracking(3)
+                    .foregroundColor(TavernPalette.amber)
                 Text(ending.title)
-                    .font(.system(size: 30, weight: .heavy, design: .serif))
+                    .font(TavernFont.of(TavernLayout.shared.panelFont))
                     .foregroundColor(TavernPalette.cream)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
+                    .multilineTextAlignment(.center).padding(.horizontal, 26)
                 Text(ending.flavor)
-                    .font(.system(size: 16, design: .serif))
-                    .italic()
+                    .font(TavernFont.of(TavernLayout.shared.menuFont)).italic()
                     .foregroundColor(TavernPalette.cream.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+                    .multilineTextAlignment(.center).padding(.horizontal, 30)
+            }
+            Button(action: { vm.continueToNight() }) {
+                Text("ONWARD · NIGHT SCHOOL")
+                    .font(TavernFont.of(15))
+                    .foregroundColor(TavernPalette.wood)
+                    .padding(.horizontal, 34).padding(.vertical, 14)
+                    .background(Capsule().fill(TavernPalette.amber))
+            }
+            .padding(.top, 8)
+            Spacer()
+        }
+    }
+}
 
+// ============================================================
+// ENDING SCREEN (epilogue + game over)
+// ============================================================
+struct TavernEndingScreen: View {
+    var vm: EnnasTavernViewModel
+    var onExit: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            if vm.phase == .epilogue {
+                Text("THE FESTIVAL IS OVER")
+                    .font(TavernFont.of(12)).tracking(3)
+                    .foregroundColor(TavernPalette.green)
+            } else {
+                Text("THE TAVERN GOES DARK")
+                    .font(TavernFont.of(12)).tracking(3)
+                    .foregroundColor(TavernPalette.red)
+            }
+            if let id = vm.endingID, let ending = EnnasTavernDatabase.ending(id) {
+                Text(ending.title)
+                    .font(TavernFont.of(TavernLayout.shared.panelFont))
+                    .foregroundColor(TavernPalette.cream)
+                    .multilineTextAlignment(.center).padding(.horizontal, 26)
+                Text(ending.flavor)
+                    .font(TavernFont.of(TavernLayout.shared.menuFont)).italic()
+                    .foregroundColor(TavernPalette.cream.opacity(0.85))
+                    .multilineTextAlignment(.center).padding(.horizontal, 30)
                 Text("Logged in the Ledger of Endings.")
-                    .font(.system(size: 12))
+                    .font(TavernFont.of(11))
                     .foregroundColor(TavernPalette.cream.opacity(0.45))
             } else if let text = vm.genericEndText {
                 Text(text)
-                    .font(.system(size: 17, design: .serif))
-                    .italic()
+                    .font(TavernFont.of(16)).italic()
                     .foregroundColor(TavernPalette.cream.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+                    .multilineTextAlignment(.center).padding(.horizontal, 30)
             }
-
-            Spacer()
-
-            if style == .promotion {
-                Button(action: { vm.continueToMarket() }) {
-                    Text("ON TO ACT \(vm.act + 1) →")
-                        .font(.system(size: 17, weight: .heavy))
+            HStack(spacing: 12) {
+                Button(action: { vm.restart() }) {
+                    Text("NEW RUN")
+                        .font(TavernFont.of(15))
                         .foregroundColor(TavernPalette.wood)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(TavernPalette.amber))
+                        .padding(.horizontal, 28).padding(.vertical, 13)
+                        .background(Capsule().fill(TavernPalette.amber))
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
-            } else {
-                VStack(spacing: 12) {
-                    Button(action: onRestart) {
-                        Text("NEW RUN")
-                            .font(.system(size: 17, weight: .heavy))
+                Button(action: onExit) {
+                    Text("LEAVE")
+                        .font(TavernFont.of(15))
+                        .foregroundColor(TavernPalette.cream.opacity(0.8))
+                        .padding(.horizontal, 28).padding(.vertical, 13)
+                        .background(Capsule().stroke(TavernPalette.cream.opacity(0.4), lineWidth: 1.5))
+                }
+            }
+            .padding(.top, 10)
+            Spacer()
+        }
+    }
+}
+
+// ============================================================
+// ☰ MENU SHEET — settings + toggles + endings ledger + exit
+// ============================================================
+struct TavernMenuSheet: View {
+    var vm: EnnasTavernViewModel
+    var onEndingsLedger: () -> Void
+    var onExit: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var playMode = TavernSettings.playMode
+    @State private var selMode = TavernSettings.selectionMode
+    @State private var interlude = TavernSettings.interludeEnabled
+    @State private var minigame = TavernSettings.minigame
+    @State private var economy = TavernSettings.nightEconomy
+
+    var body: some View {
+        ZStack {
+            TavernPalette.wood.ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 16) {
+                    Text("HOUSE RULES")
+                        .font(TavernFont.of(17))
+                        .foregroundColor(TavernPalette.cream).padding(.top, 22)
+
+                    section("On the table") {
+                        picker(options: [("Dice", TavernPlayMode.dice), ("Cards", .cards)],
+                               current: playMode) { playMode = $0; TavernSettings.playMode = $0 }
+                        Text("Applies from the next customer.")
+                            .font(TavernFont.of(10)).foregroundColor(TavernPalette.cream.opacity(0.5))
+                    }
+
+                    section("Tapping means") {
+                        picker(options: [("Keep tapped", TavernSelectionMode.holdSelected),
+                                         ("Reroll tapped", .rerollSelected)],
+                               current: selMode) { selMode = $0; TavernSettings.selectionMode = $0 }
+                    }
+
+                    section("Night school") {
+                        picker(options: [("Free pick", TavernNightEconomy.freePick), ("Hybrid", .hybrid)],
+                               current: economy) { economy = $0; TavernSettings.nightEconomy = $0 }
+                        Text(economy == .freePick
+                             ? "Pick one lesson free each night. No tokens."
+                             : "Pick one free · minigame earns tokens · tokens reroll the offers.")
+                            .font(TavernFont.of(10))
+                            .foregroundColor(TavernPalette.cream.opacity(0.5))
+                        if economy == .hybrid {
+                            Toggle(isOn: Binding(get: { interlude },
+                                                 set: { interlude = $0; TavernSettings.interludeEnabled = $0 })) {
+                                Text("Play for tokens (off = flat \(EnnasTavernConfig.flatTokensPerNight)/night)")
+                                    .font(TavernFont.of(12))
+                                    .foregroundColor(TavernPalette.cream)
+                            }
+                            .tint(TavernPalette.amber)
+                            picker(options: [("Dice throw", TavernMinigame.dice), ("Blackjack", .blackjack)],
+                                   current: minigame) { minigame = $0; TavernSettings.minigame = $0 }
+                        }
+                    }
+
+                    section("Tinkering") {
+                        Button(action: {
+                            TavernLayout.shared.tunerOpen = true
+                            dismiss()
+                        }) {
+                            HStack {
+                                Image(systemName: "slider.horizontal.3")
+                                Text("Open layout tuner (also: the amber wrench, top bar)")
+                                Spacer()
+                            }
+                            .font(TavernFont.of(12))
+                            .foregroundColor(TavernPalette.amber)
+                        }
+                    }
+
+                    Button(action: onEndingsLedger) {
+                        HStack {
+                            Image(systemName: "books.vertical.fill")
+                            Text("Ledger of Endings")
+                            Spacer()
+                            Text("\(TavernLedger.found().count)/\(EnnasTavernDatabase.endings.count)")
+                        }
+                        .font(TavernFont.of(13))
+                        .foregroundColor(TavernPalette.cream)
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.3)))
+                    }
+                    .padding(.horizontal, 20)
+
+                    Button(action: { dismiss(); onExit() }) {
+                        Text("LEAVE THE TAVERN")
+                            .font(TavernFont.of(12))
+                            .foregroundColor(TavernPalette.red)
+                    }
+                    .padding(.top, 4)
+
+                    Button(action: { dismiss() }) {
+                        Text("BACK TO THE BAR")
+                            .font(TavernFont.of(15))
                             .foregroundColor(TavernPalette.wood)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(TavernPalette.amber))
+                            .padding(.horizontal, 34).padding(.vertical, 13)
+                            .background(Capsule().fill(TavernPalette.amber))
                     }
-                    Button(action: onExit) {
-                        Text("Back to the Game Selector")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(TavernPalette.cream.opacity(0.6))
-                    }
+                    .padding(.bottom, 26)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 30)
             }
         }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(TavernFont.of(10)).tracking(2)
+                .foregroundColor(TavernPalette.cream.opacity(0.5))
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.22)))
+        .padding(.horizontal, 20)
+    }
+
+    private func picker<T: Equatable>(options: [(String, T)], current: T, set: @escaping (T) -> Void) -> some View {
+        HStack(spacing: 8) {
+            ForEach(0..<options.count, id: \.self) { i in
+                let (label, value) = options[i]
+                let on = value == current
+                Button(action: { set(value) }) {
+                    Text(label)
+                        .font(TavernFont.of(12))
+                        .foregroundColor(on ? TavernPalette.wood : TavernPalette.cream.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 9)
+                            .fill(on ? TavernPalette.amber : Color.black.opacity(0.3)))
+                }
+            }
+        }
+    }
+}
+
+// ============================================================
+// 🎓 SKILLS SHEET — learned skills + free icon reassignment
+// ============================================================
+struct TavernSkillsSheet: View {
+    var vm: EnnasTavernViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            TavernPalette.wood.ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 14) {
+                    Text("ENNA'S SKILLS")
+                        .font(TavernFont.of(17))
+                        .foregroundColor(TavernPalette.cream).padding(.top, 22)
+                    Text("Tokens: \(vm.tokens) · learn more at night school")
+                        .font(TavernFont.of(11))
+                        .foregroundColor(TavernPalette.cream.opacity(0.55))
+
+                    if vm.skillIDs.isEmpty {
+                        Text("She knows how to pour. That's it, so far.")
+                            .font(TavernFont.of(13)).italic()
+                            .foregroundColor(TavernPalette.cream.opacity(0.6))
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(vm.skillIDs, id: \.self) { id in
+                            if let s = EnnasTavernDatabase.skill(id) {
+                                HStack(spacing: 10) {
+                                    Image(systemName: s.school.symbol)
+                                        .font(TavernFont.of(14))
+                                        .foregroundColor(s.school.tint)
+                                        .frame(width: 26)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(s.name)
+                                            .font(TavernFont.of(14))
+                                            .foregroundColor(TavernPalette.cream)
+                                        Text(s.blurb)
+                                            .font(TavernFont.of(11))
+                                            .foregroundColor(TavernPalette.cream.opacity(0.6))
+                                    }
+                                    Spacer()
+                                }
+                                .padding(11)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.28)))
+                                .padding(.horizontal, 18)
+                            }
+                        }
+                    }
+
+                    Text("THE MENU — TAP AN ICON TO CHANGE THE DISH")
+                        .font(TavernFont.of(10)).tracking(1.5)
+                        .foregroundColor(TavernPalette.cream.opacity(0.5))
+                        .padding(.top, 8)
+
+                    ForEach(vm.visibleRows) { row in
+                        HStack {
+                            Text(row.name)
+                                .font(TavernFont.of(13))
+                                .foregroundColor(TavernPalette.cream)
+                            Text(row.requirement)
+                                .font(TavernFont.of(10))
+                                .foregroundColor(TavernPalette.cream.opacity(0.5))
+                            Spacer()
+                            Button(action: { vm.cycleRowIcon(row.id) }) {
+                                let icon = vm.rowIcon(row.id)
+                                HStack(spacing: 5) {
+                                    Image(systemName: icon.symbol)
+                                        .font(TavernFont.of(12))
+                                    Text(icon.label)
+                                        .font(TavernFont.of(11))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(Capsule().fill(icon.tint))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+
+                    Button(action: { dismiss() }) {
+                        Text("DONE")
+                            .font(TavernFont.of(15))
+                            .foregroundColor(TavernPalette.wood)
+                            .padding(.horizontal, 34).padding(.vertical, 13)
+                            .background(Capsule().fill(TavernPalette.amber))
+                    }
+                    .padding(.vertical, 20)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
+// ============================================================
+// 📓 SERVICE LEDGER — every customer this run
+// ============================================================
+struct TavernServiceLogSheet: View {
+    var vm: EnnasTavernViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            TavernPalette.wood.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Text("SERVICE LEDGER")
+                    .font(TavernFont.of(17))
+                    .foregroundColor(TavernPalette.cream)
+                    .padding(.top, 22).padding(.bottom, 10)
+                if vm.serviceLog.isEmpty {
+                    Spacer()
+                    Text("No one's been served yet.")
+                        .font(TavernFont.of(13)).italic()
+                        .foregroundColor(TavernPalette.cream.opacity(0.6))
+                    Spacer()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 6) {
+                            ForEach(vm.serviceLog.reversed()) { entry in
+                                HStack(spacing: 8) {
+                                    Image(systemName: entry.need.symbol)
+                                        .font(TavernFont.of(12))
+                                        .foregroundColor(entry.need.tint)
+                                        .frame(width: 22)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(entry.customerName)
+                                            .font(TavernFont.of(12))
+                                            .foregroundColor(TavernPalette.cream)
+                                        Text("wanted \(entry.need.label.lowercased()) · got \(entry.servedRow)")
+                                            .font(TavernFont.of(10))
+                                            .foregroundColor(TavernPalette.cream.opacity(0.55))
+                                    }
+                                    Spacer()
+                                    Text(entry.matched ? "MATCHED" : "shrugged")
+                                        .font(TavernFont.of(9))
+                                        .foregroundColor(entry.matched ? TavernPalette.green : TavernPalette.cream.opacity(0.4))
+                                    Text("+\(entry.points)")
+                                        .font(TavernFont.of(13))
+                                        .foregroundColor(TavernPalette.amber)
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 7)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.25)))
+                            }
+                        }
+                        .padding(.horizontal, 16).padding(.bottom, 20)
+                    }
+                }
+                Button(action: { dismiss() }) {
+                    Text("BACK")
+                        .font(TavernFont.of(14))
+                        .foregroundColor(TavernPalette.wood)
+                        .padding(.horizontal, 30).padding(.vertical, 12)
+                        .background(Capsule().fill(TavernPalette.amber))
+                }
+                .padding(.bottom, 22)
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+// ============================================================
+// PORTRAIT (asset with initial fallback)
+// ============================================================
+struct TavernPortraitView: View {
+    let imageName: String
+    let fallbackName: String
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let ui = UIImage(named: imageName) {
+                Image(uiImage: ui)
+                    .resizable().scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                ZStack {
+                    Circle().fill(TavernPalette.woodLight)
+                    Text(String(fallbackName.prefix(1)))
+                        .font(TavernFont.of(size * 0.4))
+                        .foregroundColor(TavernPalette.cream)
+                }
+                .frame(width: size, height: size)
+            }
+        }
+        .overlay(Circle().stroke(TavernPalette.amber.opacity(0.7), lineWidth: 2))
+    }
+}
+
+
+// ============================================================
+// 🎰 ODOMETER TEXT — counts toward its target with rolling
+// digits instead of snapping. Used by the operating-costs plaque.
+// ============================================================
+struct TavernOdometerText: View {
+    let value: Int
+    let font: Font
+    let color: Color
+
+    @State private var displayed: Int = 0
+    @State private var animator: Task<Void, Never>? = nil
+
+    var body: some View {
+        Text("\(displayed)")
+            .font(font)
+            .foregroundColor(color)
+            .contentTransition(.numericText(value: Double(displayed)))
+            .animation(.snappy(duration: 0.12), value: displayed)
+            .onAppear { displayed = value }
+            .onChange(of: value) { _, target in
+                animator?.cancel()
+                let start = displayed
+                let delta = target - start
+                guard delta != 0 else { return }
+                animator = Task { @MainActor in
+                    // ~0.7s ease-out count; bigger jumps take a few more steps
+                    let steps = min(24, max(6, abs(delta) / 3))
+                    for i in 1...steps {
+                        if Task.isCancelled { return }
+                        let t = Double(i) / Double(steps)
+                        let eased = 1 - pow(1 - t, 2.2)
+                        displayed = start + Int((Double(delta) * eased).rounded())
+                        try? await Task.sleep(nanoseconds: 28_000_000)
+                    }
+                    if !Task.isCancelled { displayed = target }
+                }
+            }
     }
 }

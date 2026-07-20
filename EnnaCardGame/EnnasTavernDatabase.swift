@@ -24,16 +24,17 @@ struct EnnasTavernDatabase {
     // Each row can be banked ONCE per day (except The Nod).
     // ============================================================
     static let rows: [TavernRow] = [
-        TavernRow(id: .nod,           name: "The Nod",              requirement: "Anything at all",        baseValue: 5,   worksWithDice: true,  worksWithCards: true,  repeatable: true),
-        TavernRow(id: .pair,          name: "A Kind Word",          requirement: "Pair",                   baseValue: 10,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .twoPair,       name: "Split Shift",          requirement: "Two Pair",               baseValue: 20,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .trips,         name: "The Long Talk",        requirement: "Three of a Kind",        baseValue: 35,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .straight,      name: "The Full Goose",       requirement: "Straight (run of 5)",    baseValue: 50,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .flush,         name: "Kindred Spirits",      requirement: "Flush (5 of one suit)",  baseValue: 55,  worksWithDice: false, worksWithCards: true,  repeatable: false),
-        TavernRow(id: .fullHouse,     name: "Sunday Roast",         requirement: "Full House (3 + 2)",     baseValue: 70,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .four,          name: "The Barred Door",      requirement: "Four of a Kind",         baseValue: 90,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
-        TavernRow(id: .five,          name: "The Regular's Toast",  requirement: "Five of a Kind",         baseValue: 150, worksWithDice: true,  worksWithCards: false, repeatable: false),
-        TavernRow(id: .straightFlush, name: "The Royal Welcome",    requirement: "Straight Flush",         baseValue: 150, worksWithDice: false, worksWithCards: true,  repeatable: false)
+        TavernRow(id: .nod,           name: "High Card",       requirement: "Anything at all",        baseValue: 8,   worksWithDice: true,  worksWithCards: true,  repeatable: true),
+        TavernRow(id: .pair,          name: "Pair",            requirement: "Two matching",                   baseValue: 15,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .twoPair,       name: "2 Pair",          requirement: "Two sets of two",               baseValue: 32,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .trips,         name: "3 of a Kind",     requirement: "Three matching",        baseValue: 48,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .straight,      name: "Straight",        requirement: "Run of 5",    baseValue: 85,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .flush,         name: "Flush",           requirement: "5 of one suit",  baseValue: 95,  worksWithDice: false, worksWithCards: true,  repeatable: false),
+        TavernRow(id: .fullHouse,     name: "Full House",      requirement: "3 + 2",     baseValue: 115,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .four,          name: "4 of a Kind",     requirement: "Four matching",         baseValue: 160,  worksWithDice: true,  worksWithCards: true,  repeatable: false),
+        TavernRow(id: .five,          name: "5 of a Kind",     requirement: "Five matching",         baseValue: 150, worksWithDice: true,  worksWithCards: false, repeatable: false),
+        TavernRow(id: .straightFlush, name: "Straight Flush",  requirement: "Run of 5, one suit",         baseValue: 260, worksWithDice: false, worksWithCards: true,  repeatable: false),
+        TavernRow(id: .royal,         name: "Royal Flush",     requirement: "10-J-Q-K-A, one suit",       baseValue: 400, worksWithDice: false, worksWithCards: true,  repeatable: false)
     ]
 
     static func row(_ id: TavernRowID) -> TavernRow {
@@ -65,6 +66,8 @@ struct EnnasTavernDatabase {
         return out
     }
 
+    /// Works on ANY number of cards (5 or the new 7-card deal): a hand
+    /// qualifies if any five of the cards form it.
     static func qualifyingRows(cards: [TavernPlayingCard]) -> Set<TavernRowID> {
         var out: Set<TavernRowID> = [.nod]
         let ranks = cards.map { $0.rank }
@@ -76,142 +79,29 @@ struct EnnasTavernDatabase {
         if pairsOrBetter >= 2 || maxCount >= 4 { out.insert(.twoPair) }
         if maxCount >= 3 { out.insert(.trips) }
         if maxCount >= 4 { out.insert(.four) }
+        if maxCount >= 3 && pairsOrBetter >= 2 { out.insert(.fullHouse) }
 
-        let sortedCounts = counts.values.sorted()
-        if sortedCounts == [2, 3] { out.insert(.fullHouse) }
+        let suitGroups = Dictionary(grouping: cards, by: { $0.suit })
+        if suitGroups.values.contains(where: { $0.count >= 5 }) { out.insert(.flush) }
 
-        let unique = Set(ranks).sorted()
-        var isStraight = false
-        if unique.count == 5 {
-            if unique.last! - unique.first! == 4 { isStraight = true }
-            if unique == [2, 3, 4, 5, 14] { isStraight = true }   // A-2-3-4-5 wheel
+        func hasRun(_ rankSet: Set<Int>) -> Bool {
+            var r = rankSet
+            if r.contains(14) { r.insert(1) }   // ace low for the wheel
+            for a in 1...10 where Set(a...(a + 4)).isSubset(of: r) { return true }
+            return false
         }
-        if isStraight { out.insert(.straight) }
-
-        let isFlush = Set(cards.map { $0.suit }).count == 1
-        if isFlush { out.insert(.flush) }
-        if isFlush && isStraight { out.insert(.straightFlush) }
-
+        if hasRun(Set(ranks)) { out.insert(.straight) }
+        for (_, suited) in suitGroups where suited.count >= 5 {
+            let sr = Set(suited.map { $0.rank })
+            if hasRun(sr) { out.insert(.straightFlush) }
+            if Set([10, 11, 12, 13, 14]).isSubset(of: sr) { out.insert(.royal) }
+        }
         return out
     }
 
     // ============================================================
-    // 🃏 JOKERS — everything the caravan sells
-    // Act 1 = Enna's HABITS · Act 2 = FIXTURES & REGULARS · Act 3 = FACTIONS
-    // ============================================================
-    static let jokers: [TavernJoker] = [
+    // (jokers retired in v4 — skills replaced them; see the skills extension below)
 
-        // ---- ACT 1 · HABITS ----
-        TavernJoker(id: "stubborn", name: "Stubborn", icon: "😤", actClass: 1, cost: 5,
-                    blurb: "Daily quotas are 10% lower. She simply refuses.",
-                    thresholdMultiplier: 0.9),
-
-        TavernJoker(id: "patience", name: "Mother's Patience", icon: "🫖", actClass: 1, cost: 5,
-                    blurb: "+1 do-over with every patron.",
-                    extraRerolls: 1),
-
-        TavernJoker(id: "spite", name: "Spite", icon: "🔥", actClass: 1, cost: 5,
-                    blurb: "After a bank of 10 or less, the next bank gets +15. Fueled by failure.",
-                    spite: true),
-
-        TavernJoker(id: "recipe", name: "Mother's Recipe", icon: "🍲", actClass: 1, cost: 5,
-                    blurb: "The Long Talk scores +20. It's the soup that opens people up.",
-                    rowFlatBonuses: [.trips: 20]),
-
-        TavernJoker(id: "earlyriser", name: "Early Riser", icon: "🌅", actClass: 1, cost: 5,
-                    blurb: "+1 patron on the first day of every act.",
-                    extraPatronsFirstDayOfAct: 1),
-
-        TavernJoker(id: "lightsleeper", name: "Light Sleeper", icon: "🕯️", actClass: 1, cost: 8,
-                    blurb: "+1 patron every day. She hears the late knock.",
-                    extraPatronsPerDay: 1),
-
-        // ---- THE SWORD (special one-time offer, first market only) ----
-        TavernJoker(id: "sword", name: "The Sword (?)", icon: "🗡️", actClass: 1, cost: EnnasTavernConfig.swordPrice,
-                    blurb: "All banks +10. It hums when the door opens. It was in a pawnshop. Don't ask.",
-                    flatBonusPerBank: 10,
-                    unique: true),
-
-        // ---- ACT 2 · FIXTURES, STAFF & REGULARS ----
-        TavernJoker(id: "ladle", name: "Grandma's Ladle", icon: "🥄", actClass: 2, cost: 7,
-                    blurb: "Sunday Roast scores double.",
-                    rowMultipliers: [.fullHouse: 2.0]),
-
-        TavernJoker(id: "kettle", name: "The Good Kettle", icon: "☕", actClass: 2, cost: 7,
-                    blurb: "Every bank scores +5. It has never once whistled off-key.",
-                    flatBonusPerBank: 5),
-
-        TavernJoker(id: "gremlock", name: "Gremlock Dishwasher", icon: "🪨", actClass: 2, cost: 7,
-                    blurb: "The first Nod each day scores 25. He also brings a rock.",
-                    gremlockNod: true),
-
-        TavernJoker(id: "bakasura", name: "Bakasura's Table", icon: "🍽️", actClass: 2, cost: 7,
-                    blurb: "The Barred Door, The Regular's Toast, and The Royal Welcome score +40. He is already eating.",
-                    rowFlatBonuses: [.four: 40, .five: 40, .straightFlush: 40]),
-
-        TavernJoker(id: "noamron", name: "Regular: Noamron", icon: "🦊", actClass: 2, cost: 7,
-                    blurb: "+8 coin every morning. Some evenings, something goes missing.",
-                    morningCoin: 8,
-                    noamronRisk: true),
-
-        // ---- ACT 3 · FACTION JOKERS ----
-        // GUILD
-        TavernJoker(id: "guildcontract", name: "Guild Contract", icon: "⚒️", actClass: 3, faction: .guild, cost: 9,
-                    blurb: "The Long Talk scores double. Page 31 just says \"OBEY.\"",
-                    rowMultipliers: [.trips: 2.0]),
-
-        TavernJoker(id: "chapterhousetab", name: "Chapterhouse Tab", icon: "📜", actClass: 3, faction: .guild, cost: 9,
-                    blurb: "The Full Goose scores +25. The Guild drinks in formation.",
-                    rowFlatBonuses: [.straight: 25]),
-
-        TavernJoker(id: "unionstamp", name: "Union Stamp", icon: "🔨", actClass: 3, faction: .guild, cost: 9,
-                    blurb: "Split Shift scores +20. Approved by committee.",
-                    rowFlatBonuses: [.twoPair: 20]),
-
-        // NOBLES
-        TavernJoker(id: "noblepatronage", name: "Noble Patronage", icon: "👑", actClass: 3, faction: .nobles, cost: 9,
-                    blurb: "Every bank scores +15, but quotas are 10% higher. Expectations.",
-                    thresholdMultiplier: 1.1,
-                    flatBonusPerBank: 15),
-
-        TavernJoker(id: "gildedmenu", name: "Gilded Menu", icon: "✨", actClass: 3, faction: .nobles, cost: 9,
-                    blurb: "Kindred Spirits scores +25. The circumflex was free.",
-                    rowFlatBonuses: [.flush: 25]),
-
-        TavernJoker(id: "velvetrope", name: "Velvet Rope", icon: "🎀", actClass: 3, faction: .nobles, cost: 9,
-                    blurb: "Sunday Roast scores +30. Reservations only.",
-                    rowFlatBonuses: [.fullHouse: 30]),
-
-        // COMMONS
-        TavernJoker(id: "wordofmouth", name: "Word of Mouth", icon: "🗣️", actClass: 3, faction: .commons, cost: 9,
-                    blurb: "+1 patron every day. Everyone heard about the soup.",
-                    extraPatronsPerDay: 1),
-
-        TavernJoker(id: "potluck", name: "Commons Potluck", icon: "🥧", actClass: 3, faction: .commons, cost: 9,
-                    blurb: "A Kind Word and Split Shift score +15. Everybody brought something.",
-                    rowFlatBonuses: [.pair: 15, .twoPair: 15]),
-
-        TavernJoker(id: "longbench", name: "The Long Bench", icon: "🪵", actClass: 3, faction: .commons, cost: 9,
-                    blurb: "The Nod scores +10. There is always room.",
-                    rowFlatBonuses: [.nod: 10]),
-
-        // WATCH
-        TavernJoker(id: "watchdiscount", name: "Watch Discount", icon: "🛡️", actClass: 3, faction: .watch, cost: 9,
-                    blurb: "+1 do-over with every patron. They're nervous, but they're helpful.",
-                    extraRerolls: 1),
-
-        TavernJoker(id: "nightpatrol", name: "Night Patrol", icon: "🌙", actClass: 3, faction: .watch, cost: 9,
-                    blurb: "The first bank of each day scores double. The morning shift is thorough.",
-                    firstBankMultiplier: 2.0),
-
-        TavernJoker(id: "curfewbell", name: "Curfew Bell", icon: "🔔", actClass: 3, faction: .watch, cost: 9,
-                    blurb: "The Barred Door scores +35. Nobody in, nobody out.",
-                    rowFlatBonuses: [.four: 35])
-    ]
-
-    static func joker(_ id: String) -> TavernJoker? {
-        jokers.first { $0.id == id }
-    }
 
     // ============================================================
     // 👥 PATRONS (15 gmarker characters)
@@ -338,8 +228,8 @@ struct EnnasTavernDatabase {
     static let endings: [TavernEnding] = [
 
         // ---- ACT 1 — Enna, Personally ----
-        TavernEnding(id: "act1_1", act: 1, title: "The Nap of No Return", kind: .fail,
-                     flavor: "Enna lies down behind a hay bale \"for one minute.\" Three weeks pass. A bird nests in her hair. The bird also seems tired."),
+        TavernEnding(id: "act1_1", act: 1, title: "Closing Time", kind: .fail,
+                     flavor: "The shop closed. Enna needed a break."),
         TavernEnding(id: "act1_2", act: 1, title: "Gainful Unemployment", kind: .fail,
                      flavor: "Broke, she takes a job at a rival tavern. The uniform includes a novelty hat. The hat has a name. The hat's name is Gerald."),
         TavernEnding(id: "act1_3", act: 1, title: "Audited", kind: .collectible,
@@ -401,4 +291,153 @@ struct EnnasTavernDatabase {
 
     static let genericVictoryText =
         "The Rusty Goose endures. The festival ends, the town exhales, and Enna — against several written predictions — is still standing behind her own bar."
+}
+
+
+// ============================================================
+// 🎯 NEED LINES — what customers say when they sit down (v4)
+// ============================================================
+extension EnnasTavernDatabase {
+
+    static let needLines: [TavernNeed: [String]] = [
+        .food: [
+            "Famished. Need some stew.",
+            "Whatever's in the pot. All of it.",
+            "I could eat the table. Feed me first.",
+            "Something hot. I've been walking since dawn.",
+            "The smell dragged me in. Don't make it a lie."
+        ],
+        .tavern: [
+            "Need a bed for the night.",
+            "A room. Any room. A dry corner, even.",
+            "One tall ale and a place to fall over.",
+            "Somewhere to put my boots up till morning.",
+            "The rain won. I surrender. Lodging, please."
+        ],
+        .support: [
+            "I'm feeling lonely.",
+            "Rough week. Just... talk to me a minute.",
+            "Everyone I know is somewhere else tonight.",
+            "I don't need anything. That's a lie. Sit with me.",
+            "My dog left with the tinker. My DOG."
+        ]
+    ]
+
+    static func needLine(for need: TavernNeed) -> String {
+        needLines[need]?.randomElement() ?? ""
+    }
+
+    /// 😒 What customers say when served something they DIDN'T ask for.
+    static let mismatchLines: [String] = [
+        "Oh... uh, thanks, I guess.",
+        "Not what I really wanted, but I'll take it.",
+        "This is... not what I said. It's fine. It's fine.",
+        "Hm. Well. It's warm, at least.",
+        "I'll eat it. I won't enjoy it. But I'll eat it.",
+        "Did you hear ANY of what I said?",
+        "Sure. Why not. Nothing means anything.",
+        "The thought was... adjacent. Thanks."
+    ]
+    static func mismatchLine() -> String { mismatchLines.randomElement() ?? "" }
+
+    /// 🍺 Enna's reply, spoken under the customer's ask.
+    static let ennaLines: [TavernNeed: [String]] = [
+        .food: [
+            "The pot's on. Let's see what the table gives me.",
+            "Hungry ones are easy. Feeding them well is the trick.",
+            "Stew I can do. Stew I can always do.",
+            "One hot meal, coming up — if the dice agree.",
+            "You'll leave heavier than you came. Promise."
+        ],
+        .tavern: [
+            "I've got a room. Whether it's YOUR room depends on the roll.",
+            "Beds upstairs, ale down here. Let's earn you one.",
+            "The good room has a window. Roll well and it's yours.",
+            "Lodging, is it? The house will see what it can do.",
+            "Boots off at the door. Let me sort the rest."
+        ],
+        .support: [
+            "Sit. The first kind word is free.",
+            "Lonely's just thirsty with better manners. I've got you.",
+            "I've heard worse weeks than yours. Pull up a stool.",
+            "Company's on the menu tonight. Let me plate it right.",
+            "You came to the right bar. They always do."
+        ]
+    ]
+
+    static func ennaLine(for need: TavernNeed) -> String {
+        ennaLines[need]?.randomElement() ?? ""
+    }
+
+    // ============================================================
+    // 🎓 SKILLS v2 — the night-school curriculum (15).
+    // Multipliers are the whole game now; nothing here is tiny.
+    // ============================================================
+    static let skills: [TavernSkill] = [
+        // ---- multiplier anchors ----
+        TavernSkill(id: "warmSmile", name: "Warm Smile", school: .support, cost: 3,
+                    blurb: "Matched serves hit +1 extra multiplier.",
+                    multOnMatch: 1),
+        TavernSkill(id: "keenEar", name: "Keen Ear", school: .support, cost: 5,
+                    blurb: "+1 multiplier on EVERY serve, matched or not.",
+                    multEvery: 1),
+        TavernSkill(id: "hearthCook", name: "Hearth Cook", school: .food, cost: 3,
+                    blurb: "Any food-icon dish serves at +1 multiplier.",
+                    multForNeed: [.food: 1]),
+        TavernSkill(id: "cellarKeys", name: "Cellar Keys", school: .tavern, cost: 3,
+                    blurb: "Any tavern-icon dish serves at +1 multiplier.",
+                    multForNeed: [.tavern: 1]),
+        TavernSkill(id: "goodListener", name: "Good Listener", school: .support, cost: 3,
+                    blurb: "Any support-icon dish serves at +1 multiplier.",
+                    multForNeed: [.support: 1]),
+        // ---- scaling engines ----
+        TavernSkill(id: "regulars", name: "The Regulars", school: .tavern, cost: 4,
+                    blurb: "Every 3 matches this run: +1 multiplier, permanently.",
+                    scalingMatchStep: 3),
+        TavernSkill(id: "showmanship", name: "Showmanship", school: .food, cost: 4,
+                    blurb: "+1 multiplier for every hand you level up today.",
+                    scalingLevelUps: true),
+        // ---- gamble deals ----
+        TavernSkill(id: "fireKitchen", name: "Fire in the Kitchen", school: .food, cost: 4,
+                    blurb: "Mismatches score ZERO. Matches hit +2 extra multiplier.",
+                    multOnMatch: 2, mismatchZero: true),
+        TavernSkill(id: "nightcap", name: "Nightcap", school: .tavern, cost: 3,
+                    blurb: "Serves made on an empty tank (0 rolls left) get +2 multiplier.",
+                    lastCallMult: 2),
+        // ---- conditional roll triggers · DICE ONLY ----
+        TavernSkill(id: "oddCrowd", name: "Odd Crowd", school: .support, cost: 2,
+                    blurb: "Serve five DIFFERENT values: +1 roll back.",
+                    mode: .dice, rollTrigger: .allDifferent),
+        TavernSkill(id: "fullPour", name: "Full Pour", school: .food, cost: 2,
+                    blurb: "Dice summing exactly 20: +1 roll back.",
+                    mode: .dice, rollTrigger: .luckySum),
+        TavernSkill(id: "bookends", name: "Bookends", school: .tavern, cost: 2,
+                    blurb: "Serve holding both a 1 and a 6: +1 roll back.",
+                    mode: .dice, rollTrigger: .bookends),
+        // ---- conditional roll triggers · CARDS ONLY ----
+        TavernSkill(id: "sevenKinds", name: "Seven Kinds of Trouble", school: .support, cost: 2,
+                    blurb: "Serve with all SEVEN ranks different: +1 roll back.",
+                    mode: .cards, rollTrigger: .allDifferent),
+        TavernSkill(id: "aceService", name: "Ace of Service", school: .food, cost: 2,
+                    blurb: "Serve while holding an Ace: +1 roll back.",
+                    mode: .cards, rollTrigger: .luckySum),
+        TavernSkill(id: "spreadEagle", name: "Spread Eagle", school: .tavern, cost: 2,
+                    blurb: "Serve holding both a 2 and an Ace: +1 roll back.",
+                    mode: .cards, rollTrigger: .bookends),
+        // ---- last call (both tables) ----
+        TavernSkill(id: "embers", name: "Embers", school: .food, cost: 3,
+                    blurb: "Serve on your very last roll: +2 rolls tomorrow morning.",
+                    rollTrigger: .lastRollFuel),
+        // ---- economy ----
+        TavernSkill(id: "luckyCoin", name: "Lucky Coin", school: .support, cost: 2,
+                    blurb: "It keeps turning up. +1 token every night.",
+                    bonusTokens: 1),
+        TavernSkill(id: "thriftyBooks", name: "Thrifty Books", school: .tavern, cost: 3,
+                    blurb: "The ledger tightens. Operating costs −10%.",
+                    costCut: 0.10),
+    ]
+
+    static func skill(_ id: String) -> TavernSkill? {
+        skills.first { $0.id == id }
+    }
 }

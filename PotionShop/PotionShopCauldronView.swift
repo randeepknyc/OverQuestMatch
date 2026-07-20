@@ -1555,7 +1555,29 @@ struct PotionShopDieButtonView: View {
         // Day 2 Round 2 uses a vertical reel-spin animation (3D-style).
         // All other rounds use the original static face render.
         Group {
-            if gs.currentRoundUses3DDice {
+            if PotionShopLayoutConfig.shared.dice3DTest {
+                // JULY 17, 2026: 🎲 TEMPORARY TEST — real SceneKit die in
+                // this slot. Same footprint, same gestures (the GL canvas
+                // never hit-tests), same spinTrigger3D throws, same value
+                // badge on top. Toggle lives in the drawer 🎲 tab.
+                ZStack {
+                    CauldronDie3D(
+                        die: die,
+                        isSelected: isSelected,
+                        size: scaledSize,
+                        index: index,
+                        spinToken: gs.spinTrigger3D,
+                        animateOnAppear: !gs.settledDiceIds.contains(die.id)
+                    )
+                    PotionShopTrayDieValueBadge(
+                        value: die.value,
+                        fontSize: scaledFontSize,
+                        spinToken: gs.spinTrigger3D,
+                        revealAfterSpin: !gs.settledDiceIds.contains(die.id)
+                    )
+                    .allowsHitTesting(false)
+                }
+            } else if gs.currentRoundUses3DDice {
                 // REQUEST 8 (June 12): the die's brew-math VALUE is now
                 // stamped over the cube in the tray, same style as the
                 // value shown on a placed die. It hides during the spin
@@ -1740,6 +1762,14 @@ struct PotionShopDieButtonView: View {
             // card hold, which silently skipped the release-time bump
             // and hung the tutorial at "Inspect a Die" (user report).
             gs.totalPeeks += 1
+            // JULY 15: alias THIS die as "peekedDie" so the Die Card
+            // step's highlight follows whichever die the player chose
+            // (fixed manual reveals can't — they sit where they're put).
+            // group stripped so "dice.*" wildcard steps don't double-hit.
+            if var d = gs.tutHighlights["die\(index)"] {
+                d.group = nil
+                gs.tutHighlights["peekedDie"] = d
+            }
             // JULY 13, 2026: SAFETY AUTO-DISMISS. SwiftUI can drop the
             // onPressingChanged(false) callback when the finger slides
             // off mid-hold or the system steals the gesture — the card
@@ -1779,7 +1809,10 @@ struct PotionShopDieButtonView: View {
                             .onChange(of: g.frame(in: .global)) { _, fr in
                                 gs.publishTutHighlight("peekCard", frame: fr, image: nil, style: .reveal)
                             }
-                            .onDisappear { gs.tutHighlights.removeValue(forKey: "peekCard") }
+                            .onDisappear {
+                                gs.tutHighlights.removeValue(forKey: "peekCard")
+                                gs.tutHighlights.removeValue(forKey: "peekedDie")   // JULY 15
+                            }
                     })
                     .transition(.scale(scale: 0.85, anchor: .bottom).combined(with: .opacity))
                     .allowsHitTesting(false)
@@ -1805,6 +1838,12 @@ struct PotionShopDieButtonView: View {
 struct PotionShopDiePeekCard: View {
     let die: PotionShopDie          // the HAND die (rolled value + type)
     let faces: [Int]?               // the lane's current faces, from the deck
+
+    /// JULY 14: cheap existence probe (8px budgeted decode, loader-cached)
+    /// — the code border/shadow only draw when there's no hand-drawn art.
+    private var hasCardArt: Bool {
+        PotionShopImageLoader.loadDisplayImage(named: "ps_peekcard", displaySize: 8) != nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -1845,14 +1884,32 @@ struct PotionShopDiePeekCard: View {
         .padding(10)
         .frame(width: 200, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(red: 0.13, green: 0.11, blue: 0.16).opacity(0.96))
+            // JULY 14, 2026: HAND-DRAWN CARD HOOK (pause-menu pattern).
+            // Draw the whole card as ONE transparent PNG named
+            // "ps_peekcard" (Assets.xcassets) — frame, background,
+            // decorations. The faces/values/text stay code-drawn on
+            // top (they change per die). Until the art exists, this
+            // code-drawn card renders — and doubles as the DRAWING
+            // TEMPLATE: screenshot it, draw over it in Procreate at
+            // the same proportions, export. Suggest ~800×H px, any
+            // aspect — the art stretches to the card's live size.
+            GeometryReader { g in
+                if let art = PotionShopImageLoader.loadDisplayImage(named: "ps_peekcard", displaySize: max(g.size.width, g.size.height)) {
+                    Image(uiImage: art)
+                        .resizable()
+                        .frame(width: g.size.width, height: g.size.height)
+                } else {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(red: 0.13, green: 0.11, blue: 0.16).opacity(0.96))
+                }
+            }
         )
         .overlay(
+            // JULY 14: fallback-only — the drawn card supplies its own frame.
             RoundedRectangle(cornerRadius: 10)
-                .stroke(die.type.color.opacity(0.7), lineWidth: 1.2)
+                .stroke(hasCardArt ? Color.clear : die.type.color.opacity(0.7), lineWidth: 1.2)
         )
-        .shadow(color: .black.opacity(0.45), radius: 8, y: 3)
+        .shadow(color: .black.opacity(hasCardArt ? 0.25 : 0.45), radius: 8, y: 3)
     }
 }
 

@@ -90,6 +90,8 @@
 		7F5F6F14300691BB00C5C00A /* EnnasTavernPlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0B300691BB00C5C00A /* EnnasTavernPlayViews.swift */; };
 		7F5F6F15300691BB00C5C00A /* EnnasTavernSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F0C300691BB00C5C00A /* EnnasTavernSave.swift */; };
 		7F5F6F16300691BB00C5C00A /* EnnasTavernDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */; };
+		7F5F6F183009DF0300C5C00A /* EnnasTavernDiceScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F173009DF0300C5C00A /* EnnasTavernDiceScene.swift */; };
+		7F5F6F1C300A7C9000C5C00A /* PotionShopDice3DTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F1B300A7C9000C5C00A /* PotionShopDice3DTest.swift */; };
 		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F60232C2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */; };
 		7F693B582FE6562900835FE2 /* PotionShopRunSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */; };
@@ -249,6 +251,8 @@
 		7F5F6F0D300691BB00C5C00A /* EnnasTavernScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernScreens.swift; sourceTree = "<group>"; };
 		7F5F6F0E300691BB00C5C00A /* EnnasTavernView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernView.swift; sourceTree = "<group>"; };
 		7F5F6F0F300691BB00C5C00A /* EnnasTavernViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernViewModel.swift; sourceTree = "<group>"; };
+		7F5F6F173009DF0300C5C00A /* EnnasTavernDiceScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernDiceScene.swift; sourceTree = "<group>"; };
+		7F5F6F1B300A7C9000C5C00A /* PotionShopDice3DTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopDice3DTest.swift; sourceTree = "<group>"; };
 		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NODE_TO_NODE_DRAG_SESSION.md; sourceTree = "<group>"; };
 		7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopRunSystem.swift; sourceTree = "<group>"; };
@@ -460,6 +464,7 @@
 			children = (
 				7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */,
 				7F5F6F0A300691BB00C5C00A /* EnnasTavernModels.swift */,
+				7F5F6F173009DF0300C5C00A /* EnnasTavernDiceScene.swift */,
 				7F5F6F0B300691BB00C5C00A /* EnnasTavernPlayViews.swift */,
 				7F5F6F0C300691BB00C5C00A /* EnnasTavernSave.swift */,
 				7F5F6F0D300691BB00C5C00A /* EnnasTavernScreens.swift */,
@@ -475,6 +480,7 @@
 				7F693B832FF0E27F00835FE2 /* PotionShopFireMeterConfig.swift */,
 				7F693B842FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift */,
 				7F693B852FF0E27F00835FE2 /* PotionShopFireMeterView.swift */,
+				7F5F6F1B300A7C9000C5C00A /* PotionShopDice3DTest.swift */,
 				7F693B812FF0D53900835FE2 /* PotionShopFireMeterView.swift */,
 				7FEC37872FDCF61D007BF757 /* PotionShopEditorKit.swift */,
 				7F7908712FA8395E00412002 /* PotionShopBrewAnimator.swift */,
@@ -774,6 +780,7 @@
 				7F693B872FF0E27F00835FE2 /* PotionShopFireMeterView.swift in Sources */,
 				7F693B882FF0E27F00835FE2 /* PotionShopFireMeterDebugView.swift in Sources */,
 				7F0094A32F69247F00E10AEB /* GridPosition.swift in Sources */,
+				7F5F6F183009DF0300C5C00A /* EnnasTavernDiceScene.swift in Sources */,
 				7F2ADE452F819CC80078EF4E /* ComponentType.swift in Sources */,
 				7F7908642FA727F800412002 /* PotionShopModels.swift in Sources */,
 				7F7908652FA727F800412002 /* PotionShopGameView.swift in Sources */,
@@ -792,6 +799,7 @@
 				7F2ADE492F819CD50078EF4E /* Customer.swift in Sources */,
 				7F5574682F77865000081E01 /* CharacterAnimations.swift in Sources */,
 				7F2ADE592F81A09A0078EF4E /* RepairSlotView.swift in Sources */,
+				7F5F6F1C300A7C9000C5C00A /* PotionShopDice3DTest.swift in Sources */,
 				7F5574692F77865000081E01 /* Match3ContentView.swift in Sources */,
 				7F55746A2F77865000081E01 /* HapticManager.swift in Sources */,
 				7F5F6F10300691BB00C5C00A /* EnnasTavernScreens.swift in Sources */,

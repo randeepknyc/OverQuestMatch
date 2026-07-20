@@ -512,7 +512,7 @@ class PotionShopGameState {
         }
         spinTrigger3D += 1
         // Haptic rattle for the duration of the 3D dice spin animation
-        HapticManager.shared.diceRollRattle()
+        if !PotionShopLayoutConfig.shared.dice3DTest { HapticManager.shared.diceRollRattle() }   // JULY 17: 3D test owns rattle
     }
 
     /// Die IDs whose 3D cube should appear at rest (no drop/spin animation)
@@ -1982,7 +1982,7 @@ class PotionShopGameState {
         // iOS has an active window — the haptic generator silently no-ops.
         // The view's .onAppear fires the initial rattle instead.
         if currentRoundUses3DDice && viewIsOnScreen {
-            HapticManager.shared.diceRollRattle()
+            if !PotionShopLayoutConfig.shared.dice3DTest { HapticManager.shared.diceRollRattle() }   // JULY 17: 3D test owns rattle
         }
     }
 
@@ -2337,6 +2337,10 @@ class PotionShopGameState {
             fireBrewCounter -= PotionShopConfig.firePerPotionValue
             fire = max(0, fire - 1)
         }
+        // JULY 17, 2026: flat per-brew decay ON TOP of the value burn —
+        // every brew costs the cauldron warmth regardless of size (see
+        // firePerBrewDecay in Models for the design note; 0 = off).
+        fire = max(0, fire - PotionShopConfig.firePerBrewDecay)
 
         discardAllDice()
         drawFromBag()
