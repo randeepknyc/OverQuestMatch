@@ -107,6 +107,20 @@ enum EnnasTavernConfig {
     static let keepBoonCost = 3
     static let offerRerollCost = 1   // hybrid: reroll the night's 3 offers
 
+    // ---- 📓 THE LEDGER PLAYS (run layer + town layer) ----
+    static let runRegularMatches = 3     // match a patron 3x this run → Regular (+1 mult)
+    static let grudgeMisses = 2          // shrug them twice → Grumpy (−1 until matched)
+    static let streakEvery = 3           // every 3rd consecutive match → +1 mult rest of day
+    static let wordOfMouthPer = 3        // every 3 matched entries at close → +1 roll tomorrow
+    /// 🔌 MASTER SWITCH: the town ledger RECORDS everything and shows
+    /// hearts, but tier bonuses stay dormant until this flips to true.
+    static let townPerksActive = false
+    // Town Ledger tier perks in the tavern (perks only ever ADD):
+    static let townRegularCoins = 5
+    static let townFriendMult = 1.0
+    static let townFamilyMult = 1.0
+    static let townFamilyCoins = 10
+
     // (v5: match bonus is +1 multiplier, computed in the ViewModel's breakdown.)
     /// 🎯 Blanket bonus: fulfilling the customer's ask also adds flat points.
     static let matchFlatBonus = 10
@@ -234,6 +248,33 @@ struct TavernMerchant: Identifiable {   // legacy (market retired) — kept so t
     let name: String
     let imageName: String
     let greeting: String
+}
+
+// ============================================================
+// 🎨 ART PIPELINE — every UI surface asks for its asset by name
+// (see ART_ASSET_GUIDE.md); if the file isn't in Assets yet, the
+// code-drawn look is the fallback. Drop art in → it appears.
+// ============================================================
+enum TavernArt {
+    static func has(_ name: String) -> Bool { UIImage(named: name) != nil }
+    /// Row-specific cell art: tavern_menu_cell_<row> → tavern_menu_cell → nil
+    static func cellAsset(for row: TavernRowID) -> String? {
+        let specific = "tavern_menu_cell_\(row.rawValue)"
+        if has(specific) { return specific }
+        if has("tavern_menu_cell") { return "tavern_menu_cell" }
+        return nil
+    }
+}
+
+/// 9-slice stretchable image (corners stay crisp, middle stretches).
+struct TavernNineSlice: View {
+    let asset: String
+    var cap: CGFloat = 24
+    var body: some View {
+        Image(asset)
+            .resizable(capInsets: EdgeInsets(top: cap, leading: cap, bottom: cap, trailing: cap),
+                       resizingMode: .stretch)
+    }
 }
 
 // ============================================================
@@ -419,6 +460,12 @@ class TavernLayout {
     var cardGap: Double = 0
     var scoreBoxH: Double = 0
     var scoreBoxFont: Double = 0
+    var hamburgerX: Double = 0
+    var hamburgerY: Double = 0
+    var wrenchX: Double = 0
+    var wrenchY: Double = 0
+    var plaqueX: Double = 0
+    var plaqueY: Double = 0
 
     /// Baked per profile from the user's tuned layouts (Jul 17).
     static let factoryDice: [String: Double] = [
@@ -431,7 +478,9 @@ class TavernLayout {
         "midBtnW": 100, "midBtnH": 71,
         "menuFont": 24, "menuRowPad": 8, "sideMargin": 10,
         "cardW": 58, "cardH": 80, "cardGap": 8,
-        "scoreBoxH": 110, "scoreBoxFont": 33
+        "scoreBoxH": 110, "scoreBoxFont": 33,
+        "hamburgerX": 0, "hamburgerY": 0, "wrenchX": 0, "wrenchY": 0,
+        "plaqueX": 0, "plaqueY": 0
     ]
     static let factoryCards: [String: Double] = [
         "portrait": 103, "bubbleFont": 20, "dialogueGap": 6,
@@ -443,7 +492,9 @@ class TavernLayout {
         "midBtnW": 127, "midBtnH": 71,
         "menuFont": 24, "menuRowPad": 5, "sideMargin": 10,
         "cardW": 75, "cardH": 114, "cardGap": 9,
-        "scoreBoxH": 52, "scoreBoxFont": 19
+        "scoreBoxH": 52, "scoreBoxFont": 19,
+        "hamburgerX": 0, "hamburgerY": 0, "wrenchX": 0, "wrenchY": 0,
+        "plaqueX": 0, "plaqueY": 0
     ]
     static func factory(for profile: String) -> [String: Double] {
         profile == "cards" ? factoryCards : factoryDice
@@ -459,7 +510,10 @@ class TavernLayout {
         ("midBtnW", \.midBtnW), ("midBtnH", \.midBtnH),
         ("menuFont", \.menuFont), ("menuRowPad", \.menuRowPad), ("sideMargin", \.sideMargin),
         ("cardW", \.cardW), ("cardH", \.cardH), ("cardGap", \.cardGap),
-        ("scoreBoxH", \.scoreBoxH), ("scoreBoxFont", \.scoreBoxFont)
+        ("scoreBoxH", \.scoreBoxH), ("scoreBoxFont", \.scoreBoxFont),
+        ("hamburgerX", \.hamburgerX), ("hamburgerY", \.hamburgerY),
+        ("wrenchX", \.wrenchX), ("wrenchY", \.wrenchY),
+        ("plaqueX", \.plaqueX), ("plaqueY", \.plaqueY)
     ]
 
     private static func stored(_ key: String, profile: String) -> Double {
@@ -531,6 +585,9 @@ class TavernLayout {
         side margins: \(Int(sideMargin))
         cards: \(Int(cardW)) x \(Int(cardH)) · gap \(Int(cardGap))
         score boxes: h \(Int(scoreBoxH)) · text \(Int(scoreBoxFont))
+        hamburger: x \(Int(hamburgerX)) · y \(Int(hamburgerY))
+        wrench: x \(Int(wrenchX)) · y \(Int(wrenchY))
+        costs plaque: x \(Int(plaqueX)) · y \(Int(plaqueY))
         """
     }
 }

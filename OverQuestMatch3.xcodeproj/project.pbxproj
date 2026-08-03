@@ -92,6 +92,7 @@
 		7F5F6F16300691BB00C5C00A /* EnnasTavernDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F09300691BB00C5C00A /* EnnasTavernDatabase.swift */; };
 		7F5F6F183009DF0300C5C00A /* EnnasTavernDiceScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F173009DF0300C5C00A /* EnnasTavernDiceScene.swift */; };
 		7F5F6F1C300A7C9000C5C00A /* PotionShopDice3DTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F1B300A7C9000C5C00A /* PotionShopDice3DTest.swift */; };
+		7F5F6F30301DADAF00C5C00A /* TownLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5F6F2F301DADAF00C5C00A /* TownLedger.swift */; };
 		7F60232A2FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */; };
 		7F60232C2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md in Resources */ = {isa = PBXBuildFile; fileRef = 7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */; };
 		7F693B582FE6562900835FE2 /* PotionShopRunSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */; };
@@ -253,6 +254,7 @@
 		7F5F6F0F300691BB00C5C00A /* EnnasTavernViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernViewModel.swift; sourceTree = "<group>"; };
 		7F5F6F173009DF0300C5C00A /* EnnasTavernDiceScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnnasTavernDiceScene.swift; sourceTree = "<group>"; };
 		7F5F6F1B300A7C9000C5C00A /* PotionShopDice3DTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopDice3DTest.swift; sourceTree = "<group>"; };
+		7F5F6F2F301DADAF00C5C00A /* TownLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TownLedger.swift; sourceTree = "<group>"; };
 		7F6023292FBA43A000A4D689 /* QUEUE_PERMUTATION_SYSTEM.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUEUE_PERMUTATION_SYSTEM.md; sourceTree = "<group>"; };
 		7F60232B2FBD85B700A4D689 /* NODE_TO_NODE_DRAG_SESSION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NODE_TO_NODE_DRAG_SESSION.md; sourceTree = "<group>"; };
 		7F693B572FE6562900835FE2 /* PotionShopRunSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotionShopRunSystem.swift; sourceTree = "<group>"; };
@@ -438,6 +440,7 @@
 				7F55745F2F77865000081E01 /* CharacterAnimations.swift */,
 				7F5574612F77865000081E01 /* HapticManager.swift */,
 				7F693B9F2FF1DBA000835FE2 /* SaveManager.swift */,
+				7F5F6F2F301DADAF00C5C00A /* TownLedger.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -840,6 +843,7 @@
 				7F2ADE7E2F838EC30078EF4E /* GameSelectorView.swift in Sources */,
 				7F2ADE4F2F819CE00078EF4E /* ShopGameState.swift in Sources */,
 				7F7908682FA7305E00412002 /* PotionShopGameState.swift in Sources */,
+				7F5F6F30301DADAF00C5C00A /* TownLedger.swift in Sources */,
 				7F0094E12F6BA4E200E10AEB /* DeveloperSplashView.swift in Sources */,
 				7F0094A52F6926B200E10AEB /* GameMode.swift in Sources */,
 				7F2ADE662F81AA1E0078EF4E /* CommentaryManager.swift in Sources */,

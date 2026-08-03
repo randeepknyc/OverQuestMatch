@@ -24,6 +24,15 @@ struct EnnasTavernView: View {
     var body: some View {
         ZStack {
             TavernPalette.wood.ignoresSafeArea()
+            if TavernArt.has("tavern_bg") {
+                Color.clear
+                    .overlay(
+                        Image("tavern_bg")
+                            .resizable().scaledToFill()
+                    )
+                    .clipped()
+                    .ignoresSafeArea()
+            }
 
             VStack(spacing: 0) {
                 TavernTopBar(vm: vm, onMenu: { showMenu = true })
@@ -95,6 +104,7 @@ struct TavernTopBar: View {
                     .foregroundColor(TavernPalette.cream.opacity(0.75))
                     .padding(6)
             }
+            .offset(x: TavernLayout.shared.hamburgerX, y: TavernLayout.shared.hamburgerY)
 
             // 🔧 the tuner wrench is ALWAYS here — no toggle, no hunting
             Button(action: { TavernLayout.shared.tunerOpen.toggle() }) {
@@ -105,6 +115,7 @@ struct TavernTopBar: View {
                     .background(Circle().fill(TavernPalette.amber))
             }
             .padding(.leading, 2)
+            .offset(x: TavernLayout.shared.wrenchX, y: TavernLayout.shared.wrenchY)
 
             Spacer()
 
@@ -132,9 +143,16 @@ struct TavernTopBar: View {
 
             }
             .padding(8)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+            .background(Group {
+                if TavernArt.has("tavern_plaque") {
+                    TavernNineSlice(asset: "tavern_plaque", cap: 20)
+                } else {
+                    RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35))
+                }
+            })
             .overlay(RoundedRectangle(cornerRadius: 10)
-                .stroke(TavernPalette.amber.opacity(0.5), lineWidth: 1))
+                .stroke(TavernArt.has("tavern_plaque") ? Color.clear : TavernPalette.amber.opacity(0.5), lineWidth: 1))
+            .offset(x: TavernLayout.shared.plaqueX, y: TavernLayout.shared.plaqueY)
         }
         .padding(.horizontal, 12)
         .padding(.top, 6)
@@ -226,6 +244,12 @@ struct TavernDayResultScreen: View {
                 .font(TavernFont.of(TavernLayout.shared.menuFont))
                 .foregroundColor(TavernPalette.cream.opacity(0.6))
                 .multilineTextAlignment(.center).padding(.horizontal, 30)
+
+            if vm.wordOfMouthEarned > 0 {
+                Text("🗣️ Word of mouth: +\(vm.wordOfMouthEarned) roll\(vm.wordOfMouthEarned > 1 ? "s" : "") tomorrow")
+                    .font(TavernFont.of(13))
+                    .foregroundColor(TavernPalette.green)
+            }
             Button(action: { vm.continueToNight() }) {
                 Text("CLOSE UP · NIGHT SCHOOL")
                     .font(TavernFont.of(15))
@@ -351,6 +375,15 @@ struct TavernMenuSheet: View {
     var body: some View {
         ZStack {
             TavernPalette.wood.ignoresSafeArea()
+            if TavernArt.has("tavern_menu_sheet") {
+                Color.clear
+                    .overlay(
+                        Image("tavern_menu_sheet")
+                            .resizable().scaledToFill()
+                    )
+                    .clipped()
+                    .ignoresSafeArea()
+            }
             ScrollView {
                 VStack(spacing: 16) {
                     Text("HOUSE RULES")
@@ -590,6 +623,56 @@ struct TavernServiceLogSheet: View {
                     Spacer()
                 } else {
                     ScrollView {
+                        // 📓 PATRONS — standings this run + hearts from across the town
+                        let known = Set(vm.serviceLog.map { $0.customerName }).sorted()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("PATRONS")
+                                .font(TavernFont.of(10)).tracking(2)
+                                .foregroundColor(TavernPalette.cream.opacity(0.5))
+                            ForEach(known, id: \.self) { name in
+                                HStack(spacing: 8) {
+                                    Text(name)
+                                        .font(TavernFont.of(13))
+                                        .foregroundColor(TavernPalette.cream)
+                                    let tier = TownLedger.shared.tier(for: name)
+                                    if tier.pips > 0 {
+                                        HStack(spacing: 2) {
+                                            ForEach(0..<tier.pips, id: \.self) { _ in
+                                                if TavernArt.has("townledger_heart") {
+                                                    Image("townledger_heart")
+                                                        .resizable().scaledToFit()
+                                                        .frame(width: 10, height: 10)
+                                                } else {
+                                                    Image(systemName: "heart.fill")
+                                                        .font(TavernFont.of(8))
+                                                        .foregroundColor(TavernPalette.red)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Spacer()
+                                    if (vm.patronMatchCounts[name] ?? 0) >= EnnasTavernConfig.runRegularMatches {
+                                        Text("REGULAR")
+                                            .font(TavernFont.of(9)).tracking(1)
+                                            .foregroundColor(TavernPalette.wood)
+                                            .padding(.horizontal, 8).padding(.vertical, 3)
+                                            .background(Capsule().fill(TavernPalette.green))
+                                    } else if (vm.patronMissCounts[name] ?? 0) >= EnnasTavernConfig.grudgeMisses {
+                                        Text("GRUMPY")
+                                            .font(TavernFont.of(9)).tracking(1)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8).padding(.vertical, 3)
+                                            .background(Capsule().fill(TavernPalette.red))
+                                    } else {
+                                        Text("\(vm.patronMatchCounts[name] ?? 0)/\(EnnasTavernConfig.runRegularMatches)")
+                                            .font(TavernFont.of(10))
+                                            .foregroundColor(TavernPalette.cream.opacity(0.5))
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20).padding(.bottom, 12)
+
                         VStack(spacing: 6) {
                             ForEach(vm.serviceLog.reversed()) { entry in
                                 HStack(spacing: 8) {

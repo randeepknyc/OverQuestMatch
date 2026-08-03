@@ -229,7 +229,7 @@ struct EnnasTavernDatabase {
 
         // ---- ACT 1 — Enna, Personally ----
         TavernEnding(id: "act1_1", act: 1, title: "Closing Time", kind: .fail,
-                     flavor: "The shop closed. Enna needed a break."),
+                     flavor: "A customer got angry & Enna punched him."),
         TavernEnding(id: "act1_2", act: 1, title: "Gainful Unemployment", kind: .fail,
                      flavor: "Broke, she takes a job at a rival tavern. The uniform includes a novelty hat. The hat has a name. The hat's name is Gerald."),
         TavernEnding(id: "act1_3", act: 1, title: "Audited", kind: .collectible,

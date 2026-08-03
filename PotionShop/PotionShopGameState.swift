@@ -247,6 +247,9 @@ class PotionShopGameState {
     /// set when a brew resolves with a magic die placed; cleared when a
     /// new round spawns. While true, dealing skips the magic lane.
     var magicUsedThisRound = false
+    /// JULY 17, 2026: how many hands this round have contained a
+    /// Focus-Free die (see maxFocusFreeHandsPerRound in Models).
+    var ffHandsThisRound = 0
     var selectedHandIndex: Int? = nil
     
     // MARK: - Drag and drop state
@@ -664,6 +667,7 @@ class PotionShopGameState {
         fire = PotionShopConfig.maxFire   // refill the fire meter for the new time-slot
         fireBrewCounter = 0               // fresh potion-value bank each time-slot
         magicUsedThisRound = false        // the mirror die is fresh each round
+        ffHandsThisRound = 0        // the free-die budget refreshes (JULY 17)
         // June 3, 2026: if the round has randomFromPool set, draw N=count chars
         // from the pool fresh each time. Otherwise use the literal customerIds.
         let resolvedIds: [String]
@@ -1884,7 +1888,37 @@ class PotionShopGameState {
             }
             picked = front
         } else {
-            picked = Array(bag.shuffled().prefix(5))
+            // JULY 17, 2026: FOCUS-FREE dice capped per hand (see
+            // maxFocusFreePerHand in Models). Walk the shuffled bag in
+            // order, seating dice normally but skipping FF dice past the
+            // cap; if the deck can't fill 5 without them (edge: an
+            // FF-heavy stripped deck), the skipped ones fill the gap so
+            // a hand is never short.
+            // JULY 17 (round budget): once this round has seen its FF
+            // hands, the per-hand allowance drops to zero — draws skip
+            // every FF die until next round.
+            let handFFAllowance = ffHandsThisRound < PotionShopConfig.maxFocusFreeHandsPerRound
+                ? PotionShopConfig.maxFocusFreePerHand : 0
+            let shuffledBag = bag.shuffled()
+            var take: [PotionShopBagDie] = []
+            var ffSeated = 0
+            var ffSkipped: [PotionShopBagDie] = []
+            for die in shuffledBag {
+                if take.count == 5 { break }
+                if die.isFocusFree == true {
+                    if ffSeated < handFFAllowance {
+                        ffSeated += 1
+                        take.append(die)
+                    } else {
+                        ffSkipped.append(die)
+                    }
+                } else {
+                    take.append(die)
+                }
+            }
+            if take.count < 5 { take.append(contentsOf: ffSkipped.prefix(5 - take.count)) }
+            if ffSeated > 0 { ffHandsThisRound += 1 }
+            picked = take
         }
         let drawn = picked
             .sorted { a, b in
@@ -2340,7 +2374,14 @@ class PotionShopGameState {
         // JULY 17, 2026: flat per-brew decay ON TOP of the value burn —
         // every brew costs the cauldron warmth regardless of size (see
         // firePerBrewDecay in Models for the design note; 0 = off).
-        fire = max(0, fire - PotionShopConfig.firePerBrewDecay)
+        // JULY 30, 2026: stability dice placed THIS brew SHELTER the meter
+        // from the flat decay. Without this, feeding a FULL fire was doubly
+        // robbed: the refill capped out (wasted) and the decay still bit —
+        // placing a +flame die at 5 flames dropped you to 4. Now feeding
+        // the fire covers that brew's upkeep; the value burn for big brews
+        // still applies.
+        let shelteredDecay = max(0, PotionShopConfig.firePerBrewDecay - preview.stabilityRefill)
+        fire = max(0, fire - shelteredDecay)
 
         discardAllDice()
         drawFromBag()

@@ -44,6 +44,11 @@ struct EnnasTavernSave: Codable {
     var levelUpsThisDay: Int
     var leveledTodayRows: [String]
     var nextDayBonusRolls: Int
+    var patronMatchCounts: [String: Int]
+    var patronMissCounts: [String: Int]
+    var matchStreak: Int
+    var streakMultToday: Int
+    var matchedServesToday: Int
     var tokens: Int
     var skillIDs: [String]
     var serviceLog: [TavernServiceEntry]
@@ -94,6 +99,11 @@ struct EnnasTavernSave: Codable {
             levelUpsThisDay: vm.levelUpsThisDay,
             leveledTodayRows: vm.leveledTodayRows.map { $0.rawValue },
             nextDayBonusRolls: vm.nextDayBonusRolls,
+            patronMatchCounts: vm.patronMatchCounts,
+            patronMissCounts: vm.patronMissCounts,
+            matchStreak: vm.matchStreak,
+            streakMultToday: vm.streakMultToday,
+            matchedServesToday: vm.matchedServesToday,
             tokens: vm.tokens,
             skillIDs: vm.skillIDs,
             serviceLog: vm.serviceLog,
@@ -152,6 +162,11 @@ struct EnnasTavernSave: Codable {
         vm.levelUpsThisDay = levelUpsThisDay
         vm.leveledTodayRows = Set(leveledTodayRows.compactMap { TavernRowID(rawValue: $0) })
         vm.nextDayBonusRolls = nextDayBonusRolls
+        vm.patronMatchCounts = patronMatchCounts
+        vm.patronMissCounts = patronMissCounts
+        vm.matchStreak = matchStreak
+        vm.streakMultToday = streakMultToday
+        vm.matchedServesToday = matchedServesToday
 
         vm.tokens = tokens
         vm.skillIDs = skillIDs

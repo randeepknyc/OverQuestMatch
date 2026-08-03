@@ -733,6 +733,24 @@ struct PotionShopConfig {
     /// TUNING: 1 = one flame per brew (current). 0 = OFF (restores the
     /// pure value-burn behavior exactly). 2 = brutal, probably too hot.
     static let firePerBrewDecay = 1
+
+    /// JULY 17, 2026 — PLAYTEST RESPONSE: at most this many FOCUS-FREE
+    /// dice can appear in one hand. Every FF boon adds an FF die to the
+    /// bag permanently, so mid-run hands were seating 2–3 at once — and
+    /// each one bypasses Focus, quietly deleting the turn's core
+    /// constraint. The bag itself is untouched; the DRAW just never
+    /// seats more than this many (skipped FF dice stay in the bag for
+    /// future hands). TUNING: 1 = current. 99 = uncapped (old behavior).
+    static let maxFocusFreePerHand = 1
+
+    /// JULY 17, 2026 — ROUND-LEVEL FF RARITY: Focus-Free dice may appear
+    /// in at most this many HANDS per round. Even capped at 1-per-hand,
+    /// a bag holding 2–3 FF dice put one in nearly EVERY hand; this
+    /// budget makes the free die an event ("about once a round"), not a
+    /// fixture. Once spent, draws skip ALL FF dice until next round —
+    /// they stay in the bag, nothing is lost.
+    /// TUNING: 1 = current. 2 = twice a round. 99 = off (hand cap only).
+    static let maxFocusFreeHandsPerRound = 99
     static let fireBigHitThreshold = 10
 
     /// Stability fire meter: pieces shown under the cauldron. Starts full

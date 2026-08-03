@@ -126,15 +126,21 @@ struct TavernSpeechBubble<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        content
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: 12).fill(TavernPalette.cream))
-            .overlay(alignment: tailEdge == .leading ? .leading : .trailing) {
-                TavernBubbleTail(pointsLeading: tailEdge == .leading)
-                    .fill(TavernPalette.cream)
-                    .frame(width: 10, height: 16)
-                    .offset(x: tailEdge == .leading ? -9 : 9)
-            }
+        if tailEdge == .leading && TavernArt.has("tavern_bubble_left") {
+            content
+                .padding(14)
+                .background(TavernNineSlice(asset: "tavern_bubble_left", cap: 28))
+        } else {
+            content
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(TavernPalette.cream))
+                .overlay(alignment: tailEdge == .leading ? .leading : .trailing) {
+                    TavernBubbleTail(pointsLeading: tailEdge == .leading)
+                        .fill(TavernPalette.cream)
+                        .frame(width: 10, height: 16)
+                        .offset(x: tailEdge == .leading ? -9 : 9)
+                }
+        }
     }
 }
 
@@ -177,10 +183,17 @@ struct TavernActionRow: View {
                 }
                 .foregroundColor(vm.canRoll ? TavernPalette.cream : TavernPalette.cream.opacity(0.3))
                 .frame(maxWidth: .infinity, minHeight: layout.panelHeight)
-                .background(RoundedRectangle(cornerRadius: 12)
-                    .fill(vm.canRoll ? TavernPalette.woodLight : Color.black.opacity(0.25)))
+                .background(Group {
+                    if TavernArt.has("tavern_btn_roll") {
+                        TavernNineSlice(asset: "tavern_btn_roll", cap: 30)
+                            .opacity(vm.canRoll ? 1 : 0.45)
+                    } else {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(vm.canRoll ? TavernPalette.woodLight : Color.black.opacity(0.25))
+                    }
+                })
                 .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(vm.canRoll ? TavernPalette.cream.opacity(0.35) : Color.clear, lineWidth: 1))
+                    .stroke(!TavernArt.has("tavern_btn_roll") && vm.canRoll ? TavernPalette.cream.opacity(0.35) : Color.clear, lineWidth: 1))
             }
             .disabled(!vm.canRoll)
 
@@ -197,10 +210,22 @@ struct TavernActionRow: View {
                 }
                 .foregroundColor(vm.handLive ? TavernPalette.wood : TavernPalette.cream.opacity(0.3))
                 .frame(maxWidth: .infinity, minHeight: layout.panelHeight)
-                .background(RoundedRectangle(cornerRadius: 12)
-                    .fill(vm.handLive
-                          ? (vm.servePreviewMatched ? TavernPalette.green : TavernPalette.amber)
-                          : Color.black.opacity(0.25)))
+                .background(Group {
+                    if vm.handLive && vm.servePreviewMatched && TavernArt.has("tavern_btn_serve_matched") {
+                        TavernNineSlice(asset: "tavern_btn_serve_matched", cap: 30)
+                    } else if TavernArt.has("tavern_btn_serve") {
+                        TavernNineSlice(asset: "tavern_btn_serve", cap: 30)
+                            .opacity(vm.handLive ? 1 : 0.45)
+                            .overlay((vm.handLive && vm.servePreviewMatched
+                                      ? TavernPalette.green.opacity(0.35) : Color.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 12)))
+                    } else {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(vm.handLive
+                                  ? (vm.servePreviewMatched ? TavernPalette.green : TavernPalette.amber)
+                                  : Color.black.opacity(0.25))
+                    }
+                })
             }
             .disabled(!vm.handLive)
         }
@@ -217,9 +242,15 @@ struct TavernActionRow: View {
             }
             .foregroundColor(TavernPalette.cream.opacity(0.75))
             .frame(width: layout.midBtnW, height: layout.midBtnH)
-            .background(RoundedRectangle(cornerRadius: 9).fill(Color.black.opacity(0.35)))
+            .background(Group {
+                if TavernArt.has("tavern_btn_small") {
+                    TavernNineSlice(asset: "tavern_btn_small", cap: 18)
+                } else {
+                    RoundedRectangle(cornerRadius: 9).fill(Color.black.opacity(0.35))
+                }
+            })
             .overlay(RoundedRectangle(cornerRadius: 9)
-                .stroke(TavernPalette.cream.opacity(0.2), lineWidth: 0.5))
+                .stroke(TavernArt.has("tavern_btn_small") ? Color.clear : TavernPalette.cream.opacity(0.2), lineWidth: 0.5))
         }
     }
 }
@@ -241,7 +272,13 @@ struct TavernHandList: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.32)))
+        .background(Group {
+            if TavernArt.has("tavern_menu_bg") {
+                TavernNineSlice(asset: "tavern_menu_bg", cap: 24)
+            } else {
+                RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.32))
+            }
+        })
     }
 
     private func column(_ list: [TavernRow]) -> some View {
@@ -286,14 +323,21 @@ struct TavernHandRowLine: View {
         }
         .padding(.vertical, layout.menuRowPad)
         .padding(.horizontal, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 9)
-                .fill(isChosen ? TavernPalette.amber.opacity(0.16)
-                      : (isBest && qualifies ? TavernPalette.cream.opacity(0.05) : Color.clear))
-        )
+        .background(Group {
+            if isChosen && TavernArt.has("tavern_row_glow") {
+                TavernNineSlice(asset: "tavern_row_glow", cap: 14)
+            } else if let cell = TavernArt.cellAsset(for: row.id) {
+                TavernNineSlice(asset: cell, cap: 14)
+                    .opacity(isChosen ? 1 : (qualifies ? 0.9 : 0.55))
+            } else {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(isChosen ? TavernPalette.amber.opacity(0.16)
+                          : (isBest && qualifies ? TavernPalette.cream.opacity(0.05) : Color.clear))
+            }
+        })
         .overlay(
             RoundedRectangle(cornerRadius: 9)
-                .stroke(isChosen ? TavernPalette.amber : Color.clear, lineWidth: 1.5)
+                .stroke(isChosen && !TavernArt.has("tavern_row_glow") ? TavernPalette.amber : Color.clear, lineWidth: 1.5)
         )
         .contentShape(Rectangle())
         .onTapGesture { vm.chooseRow(row.id) }
@@ -360,9 +404,15 @@ struct TavernPlayingCardView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 9)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
+            if TavernArt.has("tavern_card_face") {
+                TavernNineSlice(asset: "tavern_card_face", cap: 12)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
+            } else {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
+            }
             VStack(spacing: 2) {
                 HStack {
                     Text(card.rankLabel)
@@ -484,6 +534,12 @@ struct TavernLayoutTuner: View {
                     dial("Card gap",       \.cardGap,     0...24)
                     dial("Score box height",\.scoreBoxH,   34...110)
                     dial("Score box text", \.scoreBoxFont, 12...40)
+                    dial("Hamburger X",    \.hamburgerX,  -80...120)
+                    dial("Hamburger Y",    \.hamburgerY,  -40...120)
+                    dial("Wrench X",       \.wrenchX,     -80...120)
+                    dial("Wrench Y",       \.wrenchY,     -40...120)
+                    dial("Costs plaque X", \.plaqueX,    -160...80)
+                    dial("Costs plaque Y", \.plaqueY,     -40...160)
                     dial("Roll/Serve",     \.panelHeight, 40...200)
                     dial("Button text",    \.panelFont,   10...36)
                     dial("Mid button W",   \.midBtnW,     28...140)
@@ -595,9 +651,15 @@ struct TavernScoreBoxes: View {
             content()
         }
         .frame(maxWidth: .infinity, minHeight: layout.scoreBoxH)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.32)))
+        .background(Group {
+            if TavernArt.has("tavern_scorebox") {
+                TavernNineSlice(asset: "tavern_scorebox", cap: 20)
+            } else {
+                RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.32))
+            }
+        })
         .overlay(RoundedRectangle(cornerRadius: 10)
-            .stroke(TavernPalette.cream.opacity(0.15), lineWidth: 0.5))
+            .stroke(TavernArt.has("tavern_scorebox") ? Color.clear : TavernPalette.cream.opacity(0.15), lineWidth: 0.5))
     }
 }
 

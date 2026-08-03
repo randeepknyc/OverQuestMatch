@@ -60,7 +60,13 @@ class EnnasTavernViewModel {
     var matchesThisRun = 0
     var levelUpsThisDay = 0
     var leveledTodayRows: Set<TavernRowID> = []
-    var nextDayBonusRolls = 0                   // from the Embers trigger
+    var nextDayBonusRolls = 0                   // from Embers + word of mouth
+    var patronMatchCounts: [String: Int] = [:]  // this run: matches per patron
+    var patronMissCounts: [String: Int] = [:]   // this run: shrugs per patron (cleared by a match)
+    var matchStreak = 0                         // consecutive matches today
+    var streakMultToday = 0                     // +1 per 3-chain, rest of day
+    var matchedServesToday = 0                  // word-of-mouth fuel
+    var wordOfMouthEarned = 0                   // shown on the day-result screen
 
     // ---- progression ----
     var tokens = 0
@@ -129,6 +135,8 @@ class EnnasTavernViewModel {
         permanentRowLevels = [:]
         matchesThisRun = 0
         nextDayBonusRolls = 0
+        patronMatchCounts = [:]
+        patronMissCounts = [:]
         servedHighCardInAct1 = false
         maxRollsSpentOnOneCustomer = 0
         endingID = nil; genericEndText = nil
@@ -160,6 +168,9 @@ class EnnasTavernViewModel {
         rowServeCounts = [:]
         levelUpsThisDay = 0
         leveledTodayRows = []
+        matchStreak = 0
+        streakMultToday = 0
+        matchedServesToday = 0
         bossTwist = (day == EnnasTavernConfig.daysPerAct) ? actBoss() : .none
         rollsLeft = rollBudget + nextDayBonusRolls
         nextDayBonusRolls = 0
@@ -226,6 +237,23 @@ class EnnasTavernViewModel {
 
         var m = Double(rowMult(row)) + EnnasTavernConfig.actMultBonus(act: act)
         if matched { m += 1 }
+        m += Double(streakMultToday)
+
+        // 📓 the ledger plays: this patron's standing, this run + across the town
+        let pname = currentPatron.name
+        let grumpy = (patronMissCounts[pname] ?? 0) >= EnnasTavernConfig.grudgeMisses
+        if (patronMatchCounts[pname] ?? 0) >= EnnasTavernConfig.runRegularMatches { m += 1 }
+        if grumpy { m -= 1 }
+        if EnnasTavernConfig.townPerksActive {
+            switch TownLedger.shared.tier(for: pname) {
+            case .regular: pts += EnnasTavernConfig.townRegularCoins
+            case .friend:  m += EnnasTavernConfig.townFriendMult
+            case .family:  m += EnnasTavernConfig.townFamilyMult
+                           pts += EnnasTavernConfig.townFamilyCoins
+            case .stranger: break
+            }
+        }
+        if grumpy { m = max(m, 1) }   // a grudge stings; it never zeroes you
         if bossTwist == .inspector && row == .nod { m = 0 }
         if bossTwist == .guildAudit && (row == .nod || row == .pair || row == .twoPair) { m = 0 }
         var zeroed = false
@@ -328,6 +356,19 @@ class EnnasTavernViewModel {
                 if b > 0 { add(s.name, "+\(b)", 3, Double(b)) }
             }
             if s.scalingLevelUps && levelUpsThisDay > 0 { add(s.name, "+\(levelUpsThisDay)", 3, Double(levelUpsThisDay)) }
+        }
+        if streakMultToday > 0 { add("STREAK", "+\(streakMultToday)", 2, Double(streakMultToday)) }
+        let pname = currentPatron.name
+        if (patronMatchCounts[pname] ?? 0) >= EnnasTavernConfig.runRegularMatches { add("REGULAR", "+1", 2, 1) }
+        if EnnasTavernConfig.townPerksActive {
+            switch TownLedger.shared.tier(for: pname) {
+            case .friend: add("OLD FRIEND", "+1", 2, EnnasTavernConfig.townFriendMult)
+            case .family: add("FAMILY", "+1", 2, EnnasTavernConfig.townFamilyMult)
+            default: break
+            }
+        }
+        if (patronMissCounts[pname] ?? 0) >= EnnasTavernConfig.grudgeMisses { add("GRUMPY", "−1", 4, -1) }
+        for s in activeSkills {
             if s.lastCallMult > 0 && rollsLeft == 0 { add(s.name, "+\(Int(s.lastCallMult))", 3, s.lastCallMult) }
             if s.mismatchZero && !bd.matched { add(s.name, "×0", 4) }
         }
@@ -470,6 +511,21 @@ class EnnasTavernViewModel {
         }
         if matched { matchesThisRun += 1 }
 
+        // 📓 relationships: matches build, shrugs sour, streaks chain
+        let servedName = currentPatron.name
+        if matched {
+            patronMatchCounts[servedName, default: 0] += 1
+            patronMissCounts[servedName] = 0                 // all is forgiven
+            matchedServesToday += 1
+            matchStreak += 1
+            if matchStreak % EnnasTavernConfig.streakEvery == 0 { streakMultToday += 1 }
+            TownLedger.shared.recordServe(servedName, game: .ennasTavern,
+                                          portrait: currentPatron.imageName)   // 🏘️ the town remembers
+        } else {
+            patronMissCounts[servedName, default: 0] += 1
+            matchStreak = 0
+        }
+
         // 🎲 conditional roll triggers fire off the SERVED table
         reactionRollBonus = 0
         let table: [Int] = serveMode == .dice ? dice.map { $0.value } : hand.map { $0.rank }
@@ -568,8 +624,13 @@ class EnnasTavernViewModel {
                 await punchMult(to: Double(rowMult(r)))
                 await snooze(0.22)
             }
-            for step in reactionSteps where step.kind >= 1 && step.value > 0 {
-                await punchMult(to: scoreMultDisplay + step.value)
+            for step in reactionSteps where step.kind >= 1 && step.value != 0 {
+                if step.value > 0 {
+                    await punchMult(to: scoreMultDisplay + step.value)
+                } else {
+                    scoreMultDisplay = max(1, scoreMultDisplay + step.value)   // grumpy thud
+                    HapticManager.shared.defeat()
+                }
                 await snooze(0.18)
             }
             if reactionSteps.contains(where: { $0.kind == 4 }) {
@@ -627,6 +688,9 @@ class EnnasTavernViewModel {
     // DAY PASSED
     // ============================================================
     private func resolveDayPass() {
+        let wom = matchedServesToday / EnnasTavernConfig.wordOfMouthPer
+        if wom > 0 { nextDayBonusRolls += wom }
+        wordOfMouthEarned = wom
         dayResolvedPass = true
         if act == 2 && rollsLeft == 0 { queueCollectible("act2_4") }               // Fire Hazard
         if act == 2 && !todayRowKinds.isEmpty

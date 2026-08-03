@@ -18,6 +18,21 @@ struct TavernInterludeScreen: View {
     var onSkillsInfo: () -> Void
 
     var body: some View {
+        ZStack {
+            if TavernArt.has("tavern_night_bg") {
+                Color.clear
+                    .overlay(
+                        Image("tavern_night_bg")
+                            .resizable().scaledToFill()
+                    )
+                    .clipped()
+                    .ignoresSafeArea()
+            }
+        interludeBody
+        }
+    }
+
+    private var interludeBody: some View {
         ScrollView {
             VStack(spacing: 14) {
                 Text("NIGHT SCHOOL")
@@ -29,7 +44,13 @@ struct TavernInterludeScreen: View {
 
                 if TavernSettings.nightEconomy == .hybrid {
                 HStack {
-                    Image(systemName: "circle.hexagongrid.fill")
+                    Group {
+                        if TavernArt.has("tavern_token") {
+                            Image("tavern_token").resizable().scaledToFit().frame(width: 18, height: 18)
+                        } else {
+                            Image(systemName: "circle.hexagongrid.fill")
+                        }
+                    }
                         .foregroundColor(TavernPalette.amber)
                     Text("Tokens: \(vm.tokens)")
                         .font(TavernFont.of(15))
@@ -162,8 +183,16 @@ extension TavernInterludeScreen {
                     .background(Capsule().fill(TavernPalette.green))
             }
             .padding(11)
-            .background(RoundedRectangle(cornerRadius: 12)
-                .fill(highlight ? TavernPalette.amber.opacity(0.10) : Color.black.opacity(0.28)))
+            .background(Group {
+                if TavernArt.has("tavern_offer_bg") {
+                    TavernNineSlice(asset: "tavern_offer_bg", cap: 20)
+                        .overlay((highlight ? TavernPalette.amber.opacity(0.12) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 12)))
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(highlight ? TavernPalette.amber.opacity(0.10) : Color.black.opacity(0.28))
+                }
+            })
             .overlay(RoundedRectangle(cornerRadius: 12)
                 .stroke(highlight ? TavernPalette.amber.opacity(0.5) : Color.clear, lineWidth: 1))
         }
@@ -326,8 +355,15 @@ struct TavernCardBackView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 9)
+            Group {
+                if TavernArt.has("tavern_card_back") {
+                    TavernNineSlice(asset: "tavern_card_back", cap: 12)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                } else {
+                    RoundedRectangle(cornerRadius: 9)
                 .fill(TavernPalette.woodLight)
+                }
+            }
                 .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 2)
             RoundedRectangle(cornerRadius: 6)
                 .stroke(TavernPalette.amber.opacity(0.7), lineWidth: 1.5)
